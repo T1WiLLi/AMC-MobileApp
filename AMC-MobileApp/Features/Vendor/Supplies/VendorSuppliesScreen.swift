@@ -4,6 +4,8 @@ import SwiftUI
 /// Poussée depuis l'onglet Lots ; « Créer un lot » ouvre le TierEditor prérempli (zones, produit, date limite).
 struct VendorSuppliesScreen: View {
     let onCreateLot: (VendorSupply) -> Void
+    private let repositories: AppRepositories
+    private let vendorId: String
 
     @State private var model: VendorSuppliesViewModel
     @State private var draft: VendorSuppliesViewModel.Draft?
@@ -12,6 +14,8 @@ struct VendorSuppliesScreen: View {
     init(repositories: AppRepositories, vendorId: String, onCreateLot: @escaping (VendorSupply) -> Void) {
         _model = State(initialValue: VendorSuppliesViewModel(repositories: repositories, vendorId: vendorId))
         self.onCreateLot = onCreateLot
+        self.repositories = repositories
+        self.vendorId = vendorId
     }
 
     var body: some View {
@@ -21,6 +25,13 @@ struct VendorSuppliesScreen: View {
             .navigationTitle("Mes disponibilités")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
+                ToolbarItem(placement: .topBarTrailing) {
+                    NavigationLink {
+                        InterestedGroupsScreen(repositories: repositories, vendorId: vendorId, onCreateLot: onCreateLot)
+                    } label: {
+                        Label("Groupes intéressés", systemImage: "person.3.sequence")
+                    }
+                }
                 ToolbarItem(placement: .topBarTrailing) {
                     Button("Ajouter une disponibilité", systemImage: "plus") { draft = model.newDraft() }
                 }

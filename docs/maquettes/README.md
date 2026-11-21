@@ -1,6 +1,6 @@
 # Maquettes Grenier
 
-Images des maquettes iOS 26 (claim T-008, Q-007). Spécifications complètes (couleurs, typo, composants, règles) dans l'onglet **Maquettes** du board.
+Images des maquettes iOS 26 (claim T-008, Q-007). Spécifications complètes (couleurs, typo, composants, règles) : [`DESIGN-SYSTEM.md`](DESIGN-SYSTEM.md), recopiées dans l'onglet **Maquettes** du board.
 
 | Fichier | Contenu |
 | --- | --- |

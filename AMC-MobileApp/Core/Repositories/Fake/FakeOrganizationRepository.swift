@@ -3,7 +3,7 @@
 
 import Foundation
 
-nonisolated actor FakeOrganizationRepository: OrganizationRepository {
+actor FakeOrganizationRepository: OrganizationRepository {
     private let behavior: FakeBehavior
     private var organizations: [String: Organization]
     private var profiles: [String: GroupSolidarityProfile]

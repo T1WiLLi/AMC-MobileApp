@@ -39,12 +39,15 @@ struct TierEditorScreen: View {
     }
 
     init(
-        repositories: AppRepositories = .fake(),
-        vendorId: String = FakeData.ID.fermeRive,
+        repositories: AppRepositories,
+        vendorId: String,
         offerId: String? = nil,
+        supply: VendorSupply? = nil,
         onSaved: ((Offer) -> Void)? = nil
     ) {
-        _model = State(initialValue: TierEditorViewModel(repositories: repositories, vendorId: vendorId, offerId: offerId))
+        let model = TierEditorViewModel(repositories: repositories, vendorId: vendorId, offerId: offerId)
+        if let supply { model.prefill(from: supply) }
+        _model = State(initialValue: model)
         _showsErrors = State(initialValue: false)
         self.onSaved = onSaved
     }
@@ -838,20 +841,20 @@ private extension TierEditorViewModel {
 
 #Preview("Nouveau lot") {
     NavigationStack {
-        TierEditorScreen(repositories: .fake())
+        TierEditorScreen(repositories: .fake(), vendorId: FakeData.ID.fermeRive)
     }
 }
 
 #Preview("Modification sombre") {
     NavigationStack {
-        TierEditorScreen(repositories: .fake(), offerId: FakeData.ID.potatoOffer)
+        TierEditorScreen(repositories: .fake(), vendorId: FakeData.ID.fermeRive, offerId: FakeData.ID.potatoOffer)
     }
     .preferredColorScheme(.dark)
 }
 
 #Preview("AX5") {
     NavigationStack {
-        TierEditorScreen(repositories: .fake(), offerId: FakeData.ID.potatoOffer)
+        TierEditorScreen(repositories: .fake(), vendorId: FakeData.ID.fermeRive, offerId: FakeData.ID.potatoOffer)
     }
     .dynamicTypeSize(.accessibility5)
 }

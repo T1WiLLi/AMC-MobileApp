@@ -2,7 +2,7 @@
 // V1 Tableau de bord vendeur (T-022) : lots actifs, parts engagées, palier, revenus prévus, lots qui ferment bientôt.
 //
 // Usage dans une vue :
-//   @State private var model = VendorDashboardViewModel(repositories: .fake(), vendorId: FakeData.ID.fermeRive)
+//   @State private var model = VendorDashboardViewModel(repositories: context.repositories, vendorId: context.vendorId)
 //   .task { await model.load() }  ·  .refreshable { await model.refresh() }
 //   switch model.state { case .loaded(let dashboard): … }
 
@@ -24,10 +24,17 @@ final class VendorDashboardViewModel {
         var committedHouseholds: Int
         /// Meilleur palier atteint parmi les commandes (index dans `offer.sortedTiers`), nil si aucun.
         var bestTierIndex: Int?
-        /// Revenu prévu : somme, par commande, de parts × prix du palier atteint par cette commande.
+        /// Revenu prévu : somme, par commande, du revenu de ses parts (prix figé, sinon prix du palier atteint).
         var projectedRevenueCents: Cents
         /// Vrai si la date limite tombe dans la fenêtre « bientôt » du ViewModel.
         var isClosingSoon: Bool
+        /// Revenu de chaque commande (id → cents), calculé depuis ses parts (T-129).
+        var revenueByOrder: [String: Cents] = [:]
+
+        /// Revenu d'une commande du lot : celui de ses parts, sinon parts engagées × prix du palier.
+        func revenue(of linked: LinkedGroupOrder) -> Cents {
+            revenueByOrder[linked.order.id] ?? VendorRepositoryQueries.projectedRevenue(of: linked.order, offer: offer)
+        }
 
         var id: String { offer.id }
         var totalShares: Int { offer.totalShares }
@@ -126,6 +133,8 @@ final class VendorDashboardViewModel {
         let offerIds = Set(offers.map(\.id))
         let linked = try await VendorRepositoryQueries.linkedGroupOrders(ofOffers: offerIds, in: repositories)
         let ordersByOffer = Dictionary(grouping: linked, by: \.order.offerId)
+        let offersById = Dictionary(offers.map { ($0.id, $0) }, uniquingKeysWith: { first, _ in first })
+        let revenueByOrder = await Self.revenueByOrder(linked, offers: offersById, repositories: repositories)
         let currentDate = now()
 
         let summaries = offers.map { offer in
@@ -139,10 +148,35 @@ final class VendorDashboardViewModel {
                 committedShares: orders.reduce(0) { $0 + $1.order.committedShares },
                 committedHouseholds: orders.reduce(0) { $0 + $1.order.committedHouseholds },
                 bestTierIndex: orders.compactMap(\.order.currentTierIndex).filter { $0 < tierCount }.max(),
-                projectedRevenueCents: orders.reduce(0) { $0 + VendorRepositoryQueries.projectedRevenue(of: $1.order, offer: offer) },
-                isClosingSoon: remaining > 0 && remaining <= closingSoonInterval
+                projectedRevenueCents: orders.reduce(0) { total, linked in
+                    total + (revenueByOrder[linked.order.id]
+                        ?? VendorRepositoryQueries.projectedRevenue(of: linked.order, offer: offer))
+                },
+                isClosingSoon: remaining > 0 && remaining <= closingSoonInterval,
+                revenueByOrder: revenueByOrder.filter { id, _ in orders.contains { $0.order.id == id } }
             )
         }
         return Dashboard(offers: summaries.sorted { $0.offer.deadline < $1.offer.deadline })
+    }
+
+    /// Revenu de chaque commande depuis ses parts, lues en parallèle. Une commande dont les parts ne se lisent pas
+    /// (réseau, droits) est absente du résultat : on retombe alors sur parts engagées × prix du palier.
+    private static func revenueByOrder(
+        _ linked: [LinkedGroupOrder], offers: [String: Offer], repositories: AppRepositories
+    ) async -> [String: Cents] {
+        await withTaskGroup(of: (String, Cents)?.self) { group in
+            for item in linked {
+                guard let offer = offers[item.order.offerId] else { continue }
+                group.addTask {
+                    guard let shares = try? await repositories.groupOrders.shares(ofGroupOrder: item.order.id) else { return nil }
+                    return (item.order.id, VendorRepositoryQueries.revenue(of: item.order, offer: offer, shares: shares))
+                }
+            }
+            var result: [String: Cents] = [:]
+            for await entry in group {
+                if let entry { result[entry.0] = entry.1 }
+            }
+            return result
+        }
     }
 }

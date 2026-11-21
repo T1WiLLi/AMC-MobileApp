@@ -3,7 +3,7 @@
 // et ajoute les points de cueillette pour les prochaines livraisons.
 //
 // Usage :
-//   @State private var model = VendorRevenueModel(repositories: .fake(), vendorId: FakeData.ID.fermeRive)
+//   @State private var model = VendorRevenueModel(repositories: context.repositories, vendorId: context.vendorId)
 //   .task { await model.load() }  ·  .refreshable { await model.refresh() }
 //   StateView(state: model.state) { revenue in … }
 
@@ -92,7 +92,7 @@ nonisolated struct VendorRevenueSummary: Sendable, Hashable {
                 var entry = byNeighborhood[key] ?? NeighborhoodRevenue(
                     neighborhood: key, groupNames: [], revenueCents: 0, households: 0, shares: 0
                 )
-                entry.revenueCents += VendorRepositoryQueries.projectedRevenue(of: linked.order, offer: summary.offer)
+                entry.revenueCents += summary.revenue(of: linked)
                 entry.households += linked.order.committedHouseholds
                 entry.shares += linked.order.committedShares
                 if !entry.groupNames.contains(linked.group.name) { entry.groupNames.append(linked.group.name) }
@@ -121,7 +121,7 @@ nonisolated struct VendorRevenueSummary: Sendable, Hashable {
                     id: linked.order.id, offerTitle: summary.title, shareUnit: summary.offer.shareUnit,
                     deadline: summary.offer.deadline, groupName: linked.group.name,
                     shares: linked.order.committedShares, households: linked.order.committedHouseholds,
-                    revenueCents: VendorRepositoryQueries.projectedRevenue(of: linked.order, offer: summary.offer),
+                    revenueCents: summary.revenue(of: linked),
                     pickupPointName: point?.name, pickupAddress: point?.address,
                     pickupStart: linked.order.pickupSlots.map(\.start).min()
                 )

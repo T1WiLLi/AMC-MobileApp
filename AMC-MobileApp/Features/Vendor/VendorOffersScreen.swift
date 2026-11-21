@@ -11,6 +11,9 @@ struct VendorOffersScreen: View {
     enum Route: Hashable {
         case create
         case edit(offerId: String)
+        /// S-08 (T-109) : « Mes disponibilités », puis un lot créé depuis l'une d'elles.
+        case supplies
+        case fromSupply(VendorSupply)
     }
 
     private let repositories: AppRepositories
@@ -22,7 +25,7 @@ struct VendorOffersScreen: View {
     @Namespace private var transition
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
-    init(repositories: AppRepositories = .fake(), vendorId: String = FakeData.ID.fermeRive) {
+    init(repositories: AppRepositories, vendorId: String) {
         self.repositories = repositories
         self.vendorId = vendorId
         _model = State(initialValue: VendorDashboardViewModel(repositories: repositories, vendorId: vendorId))
@@ -36,6 +39,13 @@ struct VendorOffersScreen: View {
                 .navigationTitle("Lots")
                 .profileToolbar()
                 .newProductToolbar(repositories: repositories, vendorId: vendorId)
+                .toolbar {
+                    ToolbarItem(placement: .topBarLeading) {
+                        NavigationLink(value: Route.supplies) {
+                            Label("Mes disponibilités", systemImage: "tray.full.fill")
+                        }
+                    }
+                }
                 .safeAreaInset(edge: .top) { publishedBanner }
                 .safeAreaInset(edge: .bottom) { createButton }
                 .navigationDestination(for: Route.self) { route in
@@ -175,6 +185,12 @@ struct VendorOffersScreen: View {
         case .edit(let offerId):
             TierEditorScreen(repositories: repositories, vendorId: vendorId, offerId: offerId, onSaved: offerSaved)
                 .navigationTransition(.zoom(sourceID: offerId, in: transition))
+        case .supplies:
+            VendorSuppliesScreen(repositories: repositories, vendorId: vendorId) { supply in
+                path.append(.fromSupply(supply))
+            }
+        case .fromSupply(let supply):
+            TierEditorScreen(repositories: repositories, vendorId: vendorId, supply: supply, onSaved: offerSaved)
         }
     }
 
@@ -568,21 +584,21 @@ private struct VendorOffersEmptyState: View {
 }
 
 #Preview("Clair") {
-    VendorOffersScreen()
+    VendorOffersScreen(repositories: .fake(), vendorId: FakeData.ID.fermeRive)
 }
 
 #Preview("Sombre") {
-    VendorOffersScreen()
+    VendorOffersScreen(repositories: .fake(), vendorId: FakeData.ID.fermeRive)
         .preferredColorScheme(.dark)
 }
 
 #Preview("AX5") {
-    VendorOffersScreen()
+    VendorOffersScreen(repositories: .fake(), vendorId: FakeData.ID.fermeRive)
         .dynamicTypeSize(.accessibility5)
 }
 
 #Preview("Hors ligne") {
-    VendorOffersScreen(repositories: .fake(behavior: .failing(.offline)))
+    VendorOffersScreen(repositories: .fake(behavior: .failing(.offline)), vendorId: FakeData.ID.fermeRive)
 }
 
 #Preview("Vide") {

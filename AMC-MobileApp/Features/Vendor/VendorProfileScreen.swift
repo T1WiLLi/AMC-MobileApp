@@ -1,3 +1,4 @@
+import MapKit
 import PhotosUI
 import SwiftUI
 
@@ -11,13 +12,14 @@ struct VendorProfileScreen: View {
     @State private var savedCount = 0
     @State private var rejectedCount = 0
     @State private var confirmsDiscard = false
+    @State private var showsZoneMap = false
 
     @Environment(\.dismiss) private var dismiss
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     init(
-        repositories: AppRepositories = .fake(),
-        vendorId: String = FakeData.ID.fermeRive,
+        repositories: AppRepositories,
+        vendorId: String,
         photoStore: any VendorPhotoStoring = LocalVendorPhotoStore()
     ) {
         _viewModel = State(initialValue: VendorProfileViewModel(
@@ -184,7 +186,7 @@ struct VendorProfileScreen: View {
             } else {
                 ChipFlow {
                     ForEach(viewModel.servedZones, id: \.self) { zone in
-                        ZoneChip(title: viewModel.label(forZone: zone), code: zone, style: .selected) {
+                        ZoneChip(title: viewModel.label(forZone: zone), style: .selected) {
                             withGrenierAnimation(.snappy, reduceMotion: reduceMotion) { viewModel.removeZone(zone) }
                         }
                     }
@@ -199,7 +201,7 @@ struct VendorProfileScreen: View {
                         .foregroundStyle(.secondary)
                     ChipFlow {
                         ForEach(viewModel.zoneSuggestions) { option in
-                            ZoneChip(title: option.label, code: option.id, style: .suggestion) {
+                            ZoneChip(title: option.label, style: .suggestion) {
                                 addZone(option.id)
                             }
                         }
@@ -208,16 +210,62 @@ struct VendorProfileScreen: View {
                 .padding(.vertical, 4)
             }
 
-            HStack {
-                TextField("Autre zone (code geohash, ex. f25d)", text: $zoneDraft)
-                    .textInputAutocapitalization(.never)
+            // QA T-094 n° 17b : le vendeur choisit un quartier par son nom ou sur la carte ;
+            // le geohash est calculé et enregistré sans jamais être montré.
+            Label {
+                TextField("Chercher un quartier (ex. Villeray)", text: $zoneDraft)
+                    .textInputAutocapitalization(.words)
                     .autocorrectionDisabled()
                     .submitLabel(.done)
-                    .onSubmit { addZone(zoneDraft) }
-                Button("Ajouter", systemImage: "plus.circle.fill") { addZone(zoneDraft) }
-                    .labelStyle(.iconOnly)
-                    .imageScale(.large)
-                    .disabled(zoneDraft.trimmingCharacters(in: .whitespaces).isEmpty)
+                    .onSubmit {
+                        if let first = neighborhoodMatches.first { addNeighborhood(first) }
+                    }
+            } icon: {
+                Image(systemName: "magnifyingglass")
+                    .foregroundStyle(.secondary)
+            }
+
+            if !zoneDraft.trimmingCharacters(in: .whitespaces).isEmpty {
+                if neighborhoodMatches.isEmpty {
+                    Label("Aucun quartier de ce nom. Essaie la carte.", systemImage: "map")
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+                } else {
+                    ChipFlow {
+                        ForEach(neighborhoodMatches) { neighborhood in
+                            ZoneChip(title: neighborhood.name, style: .suggestion) {
+                                addNeighborhood(neighborhood)
+                            }
+                        }
+                    }
+                    .padding(.vertical, 4)
+                }
+            }
+
+            Button {
+                showsZoneMap = true
+            } label: {
+                Label("Choisir sur la carte", systemImage: "map.fill")
+                    .symbolRenderingMode(.hierarchical)
+            }
+            .tint(.grenier)
+            .sheet(isPresented: $showsZoneMap) {
+                ZoneMapPicker(
+                    label: { latitude, longitude in
+                        let zone = Geohash.encode(
+                            latitude: latitude, longitude: longitude,
+                            precision: VendorProfileViewModel.neighborhoodZonePrecision
+                        )
+                        return viewModel.label(forZone: zone)
+                    },
+                    onPick: { latitude, longitude in
+                        if let error = viewModel.addZone(latitude: latitude, longitude: longitude) {
+                            reject(error)
+                        } else {
+                            fieldError = nil
+                        }
+                    }
+                )
             }
 
             if let fieldError {
@@ -228,7 +276,21 @@ struct VendorProfileScreen: View {
         } header: {
             Label("Zones desservies", systemImage: "map.fill")
         } footer: {
-            Text("Tes nouveaux lots sont proposés aux familles de ces zones. \(viewModel.servedZones.count) sur \(VendorProfileViewModel.maxZones).")
+            Text("Tes nouveaux lots sont proposés aux familles de ces quartiers. \(viewModel.servedZones.count) sur \(VendorProfileViewModel.maxZones).")
+        }
+    }
+
+    /// Quartiers qui correspondent à la recherche (6 au plus).
+    private var neighborhoodMatches: [MontrealNeighborhood] {
+        Array(viewModel.neighborhoodMatches(zoneDraft).prefix(6))
+    }
+
+    private func addNeighborhood(_ neighborhood: MontrealNeighborhood) {
+        if let error = viewModel.addNeighborhood(neighborhood) {
+            reject(error)
+        } else {
+            fieldError = nil
+            zoneDraft = ""
         }
     }
 
@@ -427,7 +489,6 @@ private struct ZoneChip: View {
     enum Style { case selected, suggestion }
 
     let title: String
-    let code: String
     let style: Style
     let action: () -> Void
 
@@ -438,11 +499,6 @@ private struct ZoneChip: View {
                     .symbolRenderingMode(.hierarchical)
                 Text(title)
                     .font(.subheadline.weight(.semibold))
-                if title != code {
-                    Text(code)
-                        .font(.caption.monospaced())
-                        .foregroundStyle(style == .selected ? Color.onAccent.opacity(0.8) : .secondary)
-                }
                 if style == .selected {
                     Image(systemName: "xmark")
                         .font(.caption.weight(.bold))
@@ -456,8 +512,73 @@ private struct ZoneChip: View {
             .contentShape(.capsule)
         }
         .buttonStyle(.plain)
-        .accessibilityLabel(title == code ? "Zone \(code)" : "\(title), zone \(code)")
+        .accessibilityLabel(title)
         .accessibilityHint(style == .selected ? "Retire cette zone." : "Ajoute cette zone.")
+    }
+}
+
+/// Choix d'un secteur sur la carte : le vendeur déplace la carte sous l'épingle centrale, puis l'ajoute.
+private struct ZoneMapPicker: View {
+    /// Nom lisible du secteur sous l'épingle (« Villeray », « Secteur de Rosemont »).
+    let label: (Double, Double) -> String
+    let onPick: (Double, Double) -> Void
+
+    @Environment(\.dismiss) private var dismiss
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @State private var camera: MapCameraPosition = .region(.montreal)
+    @State private var center = MKCoordinateRegion.montreal.center
+
+    var body: some View {
+        NavigationStack {
+            Map(position: $camera, interactionModes: [.pan, .zoom])
+                .mapStyle(.standard(elevation: .flat, pointsOfInterest: .excludingAll))
+                .onMapCameraChange(frequency: .continuous) { context in
+                    center = context.region.center
+                }
+                .overlay {
+                    Image(systemName: "mappin.circle.fill")
+                        .font(.largeTitle)
+                        .symbolRenderingMode(.palette)
+                        .foregroundStyle(Color.onAccent, Color.grenier)
+                        .shadow(color: .black.opacity(0.2), radius: 4, y: 2)
+                        .allowsHitTesting(false)
+                        .accessibilityHidden(true)
+                }
+                .safeAreaInset(edge: .bottom) {
+                    VStack(spacing: 12) {
+                        Label(label(center.latitude, center.longitude), systemImage: "building.2.fill")
+                            .font(.headline)
+                            .foregroundStyle(Color.texte)
+                            .contentTransition(.opacity)
+                            .padding(.horizontal, 16)
+                            .padding(.vertical, 10)
+                            .glassEffect(.regular, in: .capsule)
+                        Button {
+                            onPick(center.latitude, center.longitude)
+                            dismiss()
+                        } label: {
+                            Label("Ajouter ce secteur", systemImage: "plus.circle.fill")
+                                .font(.headline)
+                                .frame(maxWidth: .infinity)
+                        }
+                        .buttonStyle(.glassProminent)
+                        .tint(.grenier)
+                        .controlSize(.large)
+                    }
+                    .padding(16)
+                }
+                .ignoresSafeArea(edges: .bottom)
+                .navigationTitle("Choisir un secteur")
+                .navigationBarTitleDisplayMode(.inline)
+                .toolbar {
+                    ToolbarItem(placement: .cancellationAction) {
+                        Button("Fermer", systemImage: "xmark") { dismiss() }
+                    }
+                }
+                .accessibilityElement(children: .contain)
+                .accessibilityLabel("Carte : déplace-la pour placer l'épingle sur le secteur à desservir")
+        }
+        .presentationDetents([.large])
     }
 }
 
@@ -524,19 +645,19 @@ private extension Vendor {
 // MARK: - Previews
 
 #Preview("Clair") {
-    VendorProfileScreen()
+    VendorProfileScreen(repositories: .fake(), vendorId: FakeData.ID.fermeRive)
 }
 
 #Preview("Sombre") {
-    VendorProfileScreen()
+    VendorProfileScreen(repositories: .fake(), vendorId: FakeData.ID.fermeRive)
         .preferredColorScheme(.dark)
 }
 
 #Preview("AX5") {
-    VendorProfileScreen()
+    VendorProfileScreen(repositories: .fake(), vendorId: FakeData.ID.fermeRive)
         .dynamicTypeSize(.accessibility5)
 }
 
 #Preview("Hors ligne") {
-    VendorProfileScreen(repositories: .fake(behavior: .failing()))
+    VendorProfileScreen(repositories: .fake(behavior: .failing()), vendorId: FakeData.ID.fermeRive)
 }

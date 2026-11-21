@@ -1,7 +1,7 @@
 import Foundation
 
 /// Validation en direct du formulaire courriel (format, longueur, force du mot de passe).
-enum EmailAuthValidation {
+nonisolated enum EmailAuthValidation {
     /// Minimum imposé par Firebase Auth.
     static let minimumPasswordLength = 6
 

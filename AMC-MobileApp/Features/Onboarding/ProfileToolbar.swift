@@ -57,21 +57,10 @@ struct ProfileToolbarModifier: ViewModifier {
 
 /// Feuille Profil : grande d'emblée (rien ne sort de l'écran à AX5), fond crème, bouton Fermer dans la barre.
 private struct ProfileSheet: View {
-    @Environment(\.dismiss) private var dismiss
-
     var body: some View {
-        ProfileScreen()
-            // ProfileScreen a sa propre NavigationStack : un ToolbarItem posé d'ici n'y apparaît pas.
-            // Le bouton se superpose donc à l'emplacement de la barre, en verre comme un bouton de barre.
-            .overlay(alignment: .topTrailing) {
-                Button("Fermer", systemImage: "xmark") { dismiss() }
-                    .labelStyle(.iconOnly)
-                    .buttonStyle(.glass)
-                    .buttonBorderShape(.circle)
-                    .controlSize(.large)
-                    .padding(.top, 12)
-                    .padding(.trailing, 16)
-            }
+        // Le bouton Fermer est dans la barre de l'écran racine du profil : il disparaît sur les écrans poussés
+        // (« Mon compte ») au lieu de passer par-dessus leur bouton « Enregistrer ».
+        ProfileScreen(showsCloseButton: true)
             .scrollContentBackground(.hidden)
             .presentationBackground(Color.fond)
             .presentationDetents([.large])

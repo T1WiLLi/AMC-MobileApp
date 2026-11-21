@@ -17,6 +17,9 @@ struct ProfileScreen: View {
     @State private var pendingPortal: Portal?
     /// T-122 : photo de profil, relue à chaque apparition (elle a pu changer dans « Mon compte »).
     @State private var photoURL: URL?
+    /// Ouvert en feuille : bouton Fermer dans la barre de l'écran racine seulement
+    /// (un bouton superposé à la feuille passait par-dessus « Enregistrer » des écrans poussés).
+    var showsCloseButton = false
 
     var body: some View {
         NavigationStack {
@@ -162,6 +165,13 @@ struct ProfileScreen: View {
             .scrollContentBackground(.hidden)
             .grenierBackground()
             .navigationTitle("Profil")
+            .toolbar {
+                if showsCloseButton {
+                    ToolbarItem(placement: .topBarTrailing) {
+                        Button("Fermer", systemImage: "xmark", role: .close) { dismiss() }
+                    }
+                }
+            }
             .onAppear {
                 Task { photoURL = try? await appContext.repositories.users.user(id: appContext.userId).photoURL }
             }

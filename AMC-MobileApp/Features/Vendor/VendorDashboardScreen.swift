@@ -10,6 +10,7 @@ struct VendorDashboardScreen: View {
     @State private var vendor: Vendor?
     @State private var showsInlineTitle = false
     @State private var showsNotifications = false
+    @State private var showsVendorProfile = false
 
     private let repositories: AppRepositories
     private let vendorId: String
@@ -50,6 +51,12 @@ struct VendorDashboardScreen: View {
             .navigationTitle(showsInlineTitle ? (vendor?.legalName ?? "Tableau") : "")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
+                ToolbarItem(placement: .topBarLeading) {
+                    Button("Profil vendeur", systemImage: "storefront") {
+                        showsVendorProfile = true
+                    }
+                    .accessibilityHint("Modifie ta description, tes photos et tes zones desservies.")
+                }
                 ToolbarItem(placement: .topBarTrailing) {
                     Button("Notifications", systemImage: "bell") {
                         showsNotifications = true
@@ -72,6 +79,12 @@ struct VendorDashboardScreen: View {
                     .padding(.bottom, 8)
                     .accessibilityHint("Ouvre l'éditeur de paliers pour un nouveau lot.")
                 }
+            }
+            .sheet(isPresented: $showsVendorProfile, onDismiss: {
+                Task { vendor = try? await repositories.vendors.vendor(id: vendorId) }
+            }) {
+                VendorProfileScreen(repositories: repositories, vendorId: vendorId)
+                    .presentationDetents([.large])
             }
             .sheet(isPresented: $showsNotifications) {
                 VendorNotificationsSheet(dashboard: viewModel.state.value)

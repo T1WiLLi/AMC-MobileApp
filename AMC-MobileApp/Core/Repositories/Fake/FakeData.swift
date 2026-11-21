@@ -34,6 +34,8 @@ nonisolated struct FakeData: Sendable {
         static let appleOffer = "offer-pommes-cortland"
         static let potatoOrder = "order-saint-michel-pommes-de-terre"
         static let jarryPickup = "pickup-jarry"
+        static let pieIXPickup = "pickup-pie-ix"
+        static let communityPickup = "pickup-centre-saint-michel"
     }
 
     /// Saint-Michel : la commande de pommes de terre est à 19 parts, la part d'Amina fait franchir le palier de 20.
@@ -124,6 +126,17 @@ nonisolated struct FakeData: Sendable {
                 PickupPoint(id: ID.jarryPickup, hostUserId: ID.amina, name: "Chez Amina, rue Jarry",
                             address: "Rue Jarry Est, Saint-Michel, Montréal", photoURL: nil, capacity: 25,
                             accessibility: [.stepFree, .nearMetro], slots: [slot]),
+                PickupPoint(id: ID.pieIXPickup, hostUserId: "user-karim", name: "Chez Karim, boul. Pie-IX",
+                            address: "8150 boul. Pie-IX, Saint-Michel, Montréal", photoURL: nil, capacity: 15,
+                            accessibility: [.parking],
+                            slots: PickupSlotBook.consecutiveSlots(from: saturday.addingTimeInterval(-2 * 3_600),
+                                                                   count: 3, duration: 3_600, capacity: 6)),
+                PickupPoint(id: ID.communityPickup, hostUserId: "user-sylvie",
+                            name: "Centre communautaire Saint-Michel",
+                            address: "7501 rue François-Perrault, Saint-Michel, Montréal", photoURL: nil, capacity: 60,
+                            accessibility: [.wheelchair, .stepFree, .elevator, .nearMetro],
+                            slots: PickupSlotBook.consecutiveSlots(from: saturday, count: 4, duration: 1_800,
+                                                                   capacity: 10)),
             ]
         )
     }()

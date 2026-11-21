@@ -8,6 +8,7 @@ struct ProfileScreen: View {
     /// Optionnel : absent dans les previews sans verrou.
     @Environment(AppLock.self) private var appLock: AppLock?
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.appContext) private var appContext
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     /// Portail touché, pour l'haptique (part avant la fermeture de la feuille).
@@ -26,6 +27,34 @@ struct ProfileScreen: View {
                     Text("Un même compte peut acheter en famille et vendre comme producteur.")
                 }
 
+                // T-075 : profil famille (RQ-015, RQ-017 à RQ-020), écrans dans Features/Profile/.
+                Section("Ma famille") {
+                    NavigationLink {
+                        HouseholdProfileLink()
+                    } label: {
+                        Label("Mon ménage", systemImage: "house.fill")
+                    }
+                    NavigationLink {
+                        PreferencesLink()
+                    } label: {
+                        Label("Préférences", systemImage: "slider.horizontal.3")
+                    }
+                }
+
+                if portal == .family {
+                    // T-105 (RQ-099, RQ-100) : planificateur de besoins du mois.
+                    Section {
+                        NavigationLink {
+                            NeedsPlannerScreen()
+                        } label: {
+                            Label("Planifier mon mois", systemImage: "list.bullet.clipboard.fill")
+                                .symbolRenderingMode(.hierarchical)
+                        }
+                    } footer: {
+                        Text("Tes besoins et ton budget, et les lots qui y répondent.")
+                    }
+                }
+
                 if let appLock {
                     SecuritySection(lock: appLock)
                 }
@@ -38,6 +67,15 @@ struct ProfileScreen: View {
                         } label: {
                             Label(user.displayName, systemImage: "person.crop.circle.fill")
                         }
+                        if let session {
+                            NavigationLink {
+                                AccountScreen(model: AccountViewModel(
+                                    repositories: appContext.repositories, userId: appContext.userId, auth: session.auth
+                                ))
+                            } label: {
+                                Label("Modifier ou supprimer mon compte", systemImage: "person.crop.circle.badge.gearshape")
+                            }
+                        }
                         Button("Se déconnecter", systemImage: "rectangle.portrait.and.arrow.right", role: .destructive) {
                             session?.signOut()
                         }
@@ -45,6 +83,12 @@ struct ProfileScreen: View {
                         Label("Non connecté", systemImage: "person.crop.circle.badge.questionmark")
                             .foregroundStyle(.secondary)
                     }
+                }
+
+                Section {
+                    // Geste caché (RQ-114) : 5 taps ou appui long ouvrent les outils de démo.
+                    AppVersionLabel()
+                        .demoToolsTrigger()
                 }
             }
             .navigationTitle("Profil")

@@ -4,6 +4,9 @@ import UIKit
 import FirebaseCore
 import FirebaseAuth
 import GoogleSignIn
+#if canImport(FirebaseFirestore)
+import FirebaseFirestore
+#endif
 
 /// Transporte un `AuthStateDidChangeListenerHandle` (non Sendable) dans une closure `@Sendable`.
 /// Sûr : le handle n'est que passé à `removeStateDidChangeListener`, sur le MainActor.
@@ -23,7 +26,9 @@ final class FirebaseAuthService: AuthService {
 
     func authStateChanges() -> AsyncStream<AuthUser?> {
         AsyncStream { continuation in
+            let restore = PerfSignposts.begin("auth.sessionRestore")
             let handle = Auth.auth().addStateDidChangeListener { _, user in
+                restore.end()
                 continuation.yield(user.map(AuthUser.init(firebaseUser:)))
             }
             self.listenerHandle = handle
@@ -66,6 +71,35 @@ final class FirebaseAuthService: AuthService {
         } catch {
             throw AuthError.failed(error.localizedDescription)
         }
+    }
+
+    // MARK: Apple
+
+    func signInWithApple(idToken: String, rawNonce: String, fullName: PersonNameComponents?) async throws -> AuthUser {
+        let credential = OAuthProvider.appleCredential(withIDToken: idToken, rawNonce: rawNonce, fullName: fullName)
+        do {
+            let result = try await Auth.auth().signIn(with: credential)
+            // Apple ne donne le nom qu'une fois : on le garde dans le profil Firebase s'il manque.
+            if result.user.displayName?.isEmpty ?? true, let name = Self.displayName(from: fullName) {
+                let change = result.user.createProfileChangeRequest()
+                change.displayName = name
+                try? await change.commitChanges()
+            }
+            return AuthUser(firebaseUser: Auth.auth().currentUser ?? result.user)
+        } catch {
+            if (error as NSError).domain == AuthErrorDomain,
+               AuthErrorCode(rawValue: (error as NSError).code) == .operationNotAllowed {
+                throw AuthError.failed("La connexion avec Apple n'est pas encore activée. Utilise Google ou ton courriel.")
+            }
+            throw Self.authError(from: error)
+        }
+    }
+
+    private static func displayName(from components: PersonNameComponents?) -> String? {
+        guard let components else { return nil }
+        let name = PersonNameComponentsFormatter.localizedString(from: components, style: .default)
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+        return name.isEmpty ? nil : name
     }
 
     // MARK: Courriel et mot de passe
@@ -158,6 +192,59 @@ final class FirebaseAuthService: AuthService {
             throw AuthError.failed(error.localizedDescription)
         }
     }
+
+    // MARK: Suppression du compte (RQ-021)
+
+    /// Au-delà, Firebase refuse `user.delete()` (`requiresRecentLogin`) : on le vérifie avant d'effacer les données.
+    static let recentLoginWindow: TimeInterval = 5 * 60
+
+    func deleteAccount() async throws {
+        guard let user = Auth.auth().currentUser else { throw AuthError.notSignedIn }
+        // Connexion trop ancienne : on s'arrête avant de toucher aux données, sinon il resterait un compte vide.
+        if let lastSignIn = user.metadata.lastSignInDate,
+           Date().timeIntervalSince(lastSignIn) > Self.recentLoginWindow {
+            throw AuthError.requiresRecentLogin
+        }
+        #if canImport(FirebaseFirestore)
+        try await Self.deleteUserData(uid: user.uid)
+        #endif
+        do {
+            try await user.delete()
+        } catch {
+            let nsError = error as NSError
+            if nsError.domain == AuthErrorDomain, AuthErrorCode(rawValue: nsError.code) == .requiresRecentLogin {
+                throw AuthError.requiresRecentLogin
+            }
+            throw Self.authError(from: error)
+        }
+        GIDSignIn.sharedInstance.signOut()
+    }
+
+    #if canImport(FirebaseFirestore)
+    /// Retire l'uid du ménage (le ménage ne se supprime pas : `delete: if false`), puis supprime `users/{uid}`.
+    /// Dernier membre : le ménage garde son uid, les règles exigent au moins un membre.
+    /// `nonisolated` : les instantanés Firestore (non Sendable) ne quittent pas cette fonction.
+    nonisolated private static func deleteUserData(uid: String) async throws {
+        let db = Firestore.firestore()
+        let userRef = db.collection(FirestoreCollection.users).document(uid)
+        do {
+            let snapshot = try await userRef.getDocument()
+            if let householdId = snapshot.data()?["householdId"] as? String, !householdId.isEmpty {
+                let householdRef = db.collection(FirestoreCollection.households).document(householdId)
+                // Ménage illisible ou disparu : rien à retirer.
+                if let household = try? await householdRef.getDocument(),
+                   let userIds = household.data()?["userIds"] as? [String],
+                   userIds.contains(uid), userIds.count > 1 {
+                    try await householdRef.updateData(["userIds": FieldValue.arrayRemove([uid])])
+                }
+            }
+            if snapshot.exists { try await userRef.delete() }
+        } catch {
+            let appError = FirestoreGroupOrderRepository.appError(from: error)
+            throw appError == .offline ? AuthError.network : AuthError.failed(appError.message)
+        }
+    }
+    #endif
 
     private static func topViewController() -> UIViewController? {
         let root = UIApplication.shared.connectedScenes

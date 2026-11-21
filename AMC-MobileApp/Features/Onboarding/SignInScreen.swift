@@ -1,8 +1,10 @@
+import AuthenticationServices
 import SwiftUI
 
 /// Écran de connexion : Google, ou courriel et mot de passe (avec vérification du courriel). iOS 26 Liquid Glass.
 struct SignInScreen: View {
     let session: SessionViewModel
+    @Environment(\.colorScheme) private var colorScheme
 
     private var isSigningIn: Bool { session.state == .signingIn }
 
@@ -37,6 +39,19 @@ struct SignInScreen: View {
                         .foregroundStyle(.red)
                         .multilineTextAlignment(.center)
                         .transition(.opacity)
+                }
+
+                if AppleSignIn.isEnabled {
+                    SignInWithAppleButton(.continue) { request in
+                        session.prepareAppleSignIn(request)
+                    } onCompletion: { result in
+                        Task { await session.completeAppleSignIn(result) }
+                    }
+                    .signInWithAppleButtonStyle(colorScheme == .dark ? .white : .black)
+                    .frame(maxWidth: .infinity, minHeight: 50)
+                    .clipShape(.capsule)
+                    .disabled(isSigningIn)
+                    .accessibilityHint("Ouvre la connexion Apple")
                 }
 
                 Button {

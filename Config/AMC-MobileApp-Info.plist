@@ -29,5 +29,17 @@
 	<!-- Nom affiché sous l'icône et dans la feuille système « … veut utiliser accounts.google.com » (sinon « AMC-MobileApp »). -->
 	<key>CFBundleDisplayName</key>
 	<string>Grenier</string>
+	<!-- Bouton « Se connecter avec Apple » (RQ-012). false si l'App ID n'a pas la capability Sign in with Apple. -->
+	<key>GRNSignInWithAppleEnabled</key>
+	<true/>
+	<!-- Rafraîchissement en arrière-plan → notifications locales, sans serveur (T-107, Core/Notifications/BackgroundRefresh). -->
+	<key>BGTaskSchedulerPermittedIdentifiers</key>
+	<array>
+		<string>ca.amc2026.mobileapp.refresh</string>
+	</array>
+	<key>UIBackgroundModes</key>
+	<array>
+		<string>fetch</string>
+	</array>
 </dict>
 </plist>

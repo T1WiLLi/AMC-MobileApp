@@ -40,6 +40,8 @@ nonisolated struct Share: Identifiable, Codable, Sendable, Hashable {
     var isPickedUp: Bool
     /// Dernière modification de la part (réservation ou changement de quantité) ; nil dans les anciennes données.
     var updatedAt: Date? = nil
+    /// Début du créneau de cueillette réservé par le ménage (RQ-064) ; nil = pas encore choisi.
+    var pickupSlotStart: Date? = nil
 
     var id: String { householdId }
 }

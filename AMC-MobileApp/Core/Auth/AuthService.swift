@@ -1,6 +1,6 @@
 import Foundation
 
-/// Authentification de l'app. Implémentations : `FirebaseAuthService` (Google Sign-In, courriel et mot de passe)
+/// Authentification de l'app. Implémentations : `FirebaseAuthService` (Google Sign-In, Apple, courriel et mot de passe)
 /// et `FakeAuthService` (previews, tests).
 protocol AuthService: AnyObject {
     /// Utilisateur connecté au lancement (session restaurée), ou nil.
@@ -9,6 +9,9 @@ protocol AuthService: AnyObject {
     func authStateChanges() -> AsyncStream<AuthUser?>
     /// Ouvre la feuille Google et connecte l'utilisateur à Firebase.
     func signInWithGoogle() async throws -> AuthUser
+    /// Connecte à Firebase le jeton reçu de « Se connecter avec Apple ». `rawNonce` = nonce brut dont le SHA-256
+    /// est parti dans la requête Apple ; `fullName` n'arrive qu'à la première connexion.
+    func signInWithApple(idToken: String, rawNonce: String, fullName: PersonNameComponents?) async throws -> AuthUser
     /// Crée un compte courriel et mot de passe (le prénom devient le nom affiché). Le courriel n'est pas encore vérifié.
     func signUp(email: String, password: String, displayName: String) async throws -> AuthUser
     /// Connexion avec un compte courriel existant.
@@ -20,6 +23,10 @@ protocol AuthService: AnyObject {
     /// Envoie le lien de réinitialisation du mot de passe.
     func sendPasswordReset(email: String) async throws
     func signOut() throws
+    /// Supprime le compte : retire l'utilisateur de son ménage (`userIds`), supprime `users/{uid}`,
+    /// puis le compte Firebase Auth. Lève `.requiresRecentLogin` si la connexion date trop : rien n'est supprimé,
+    /// il faut se reconnecter puis réessayer. L'état de session passe ensuite à « déconnecté ».
+    func deleteAccount() async throws
 }
 
 enum AuthError: LocalizedError, Equatable {
@@ -33,6 +40,8 @@ enum AuthError: LocalizedError, Equatable {
     case tooManyRequests
     case network
     case notSignedIn
+    /// Action sensible (suppression du compte) : Firebase exige une connexion récente.
+    case requiresRecentLogin
     case failed(String)
 
     /// Champ du formulaire sous lequel afficher l'erreur.
@@ -52,6 +61,7 @@ enum AuthError: LocalizedError, Equatable {
         case .tooManyRequests: "Trop de tentatives. Attends quelques minutes, puis réessaie."
         case .network: "Pas de connexion. Vérifie ton Internet, puis réessaie."
         case .notSignedIn: "Ta session a expiré. Connecte-toi de nouveau."
+        case .requiresRecentLogin: "Pour protéger ton compte, reconnecte-toi, puis supprime-le de nouveau."
         case .failed(let message): message
         }
     }
@@ -69,7 +79,7 @@ enum AuthError: LocalizedError, Equatable {
     var appError: AppError {
         switch self {
         case .network: .offline
-        case .notSignedIn: .unauthenticated
+        case .notSignedIn, .requiresRecentLogin: .unauthenticated
         case .invalidEmail, .emailAlreadyInUse, .weakPassword, .wrongPassword:
             .invalidInput(errorDescription ?? "")
         case .tooManyRequests, .cancelled, .missingConfiguration, .noPresentingScreen, .failed:
@@ -112,6 +122,25 @@ final class FakeAuthService: AuthService {
         currentUser = .sample
         continuation?.yield(currentUser)
         return .sample
+    }
+
+    /// Dernier nonce brut reçu par `signInWithApple` (tests).
+    private(set) var lastAppleNonce: String?
+
+    func signInWithApple(idToken: String, rawNonce: String, fullName: PersonNameComponents?) async throws -> AuthUser {
+        try await simulateCall()
+        lastAppleNonce = rawNonce
+        let name = fullName?.givenName ?? AuthUser.sample.displayName
+        let user = AuthUser(
+            id: "fake-apple-\(idToken.prefix(8))",
+            displayName: name,
+            email: "relais@privaterelay.appleid.com",
+            photoURL: nil,
+            isEmailVerified: true,
+            usesPassword: false
+        )
+        setCurrentUser(user)
+        return user
     }
 
     /// Ajoute un compte courriel existant (previews, tests).
@@ -187,6 +216,22 @@ final class FakeAuthService: AuthService {
     }
 
     func signOut() throws {
+        setCurrentUser(nil)
+    }
+
+    /// Données de l'utilisateur à effacer avec le compte (ménage + `users/{uid}`) ; nil = compte seul.
+    var userData: FakeUserRepository?
+    /// Uid dont les données vivent dans `userData` (dans la démo, il diffère de l'uid Auth fake).
+    var dataUserId: String?
+    /// Comptes supprimés (tests).
+    private(set) var deletedAccountIds: [String] = []
+
+    func deleteAccount() async throws {
+        try await simulateCall()
+        guard let user = currentUser else { throw AuthError.notSignedIn }
+        await userData?.removeUserAndLeaveHousehold(id: dataUserId ?? user.id)
+        accounts[user.email.lowercased()] = nil
+        deletedAccountIds.append(user.id)
         setCurrentUser(nil)
     }
 

@@ -1,6 +1,6 @@
 import SwiftUI
 
-/// Bascule de portail en capsule de verre (T-123) : « Familles | Vendeurs », icônes, pastille Grenier
+/// Bascule de portail en capsule de verre (T-123) : « Familles | Vendeurs | Organismes », icônes, pastille Grenier
 /// qui glisse vers le portail choisi. Construite depuis une liste de portails : un troisième portail
 /// ajoute un segment sans autre changement. Empilée verticalement sous Dynamic Type accessibilité.
 struct PortalSegmentedControl: View {
@@ -13,6 +13,14 @@ struct PortalSegmentedControl: View {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     private var isStacked: Bool { dynamicTypeSize.isAccessibilitySize }
+    /// Plus de deux portails sur une ligne : segments plus étroits, icône au-dessus du nom.
+    private var isCompactRow: Bool { !isStacked && portals.count > 2 }
+
+    private func segmentIcon(_ portal: Portal, isSelected: Bool) -> some View {
+        Image(systemName: portal.systemImage)
+            .symbolRenderingMode(.hierarchical)
+            .symbolEffect(.bounce, options: .nonRepeating, value: reduceMotion ? false : isSelected)
+    }
 
     var body: some View {
         let layout = isStacked
@@ -36,19 +44,31 @@ struct PortalSegmentedControl: View {
         return Button {
             onSelect(portal)
         } label: {
-            Label {
-                Text(portal.title)
-                    .lineLimit(isStacked ? nil : 1)
-                    .minimumScaleFactor(0.8)
-            } icon: {
-                Image(systemName: portal.systemImage)
-                    .symbolRenderingMode(.hierarchical)
-                    .symbolEffect(.bounce, options: .nonRepeating, value: reduceMotion ? false : isSelected)
+            Group {
+                if isCompactRow {
+                    // Trois portails côte à côte (T-116) : icône au-dessus du nom pour garder « Organismes » entier.
+                    VStack(spacing: 2) {
+                        segmentIcon(portal, isSelected: isSelected)
+                            .font(.headline)
+                        Text(portal.title)
+                            .font(.footnote.weight(.semibold))
+                            .lineLimit(1)
+                            .minimumScaleFactor(0.75)
+                    }
+                } else {
+                    Label {
+                        Text(portal.title)
+                            .lineLimit(isStacked ? nil : 1)
+                            .minimumScaleFactor(0.8)
+                    } icon: {
+                        segmentIcon(portal, isSelected: isSelected)
+                    }
+                    .font(.headline)
+                }
             }
-            .font(.headline)
             .foregroundStyle(isSelected ? Color.onAccent : Color.texte)
             .frame(maxWidth: .infinity, minHeight: 44)
-            .padding(.horizontal, 12)
+            .padding(.horizontal, isCompactRow ? 6 : 12)
             .padding(.vertical, 4)
             .background {
                 if isSelected {

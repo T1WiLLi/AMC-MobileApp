@@ -20,7 +20,8 @@ struct PickupScreen: View {
                             title: "Aucune cueillette prévue",
                             message: "Réserve ta part d'un lot : ton code QR et ton créneau apparaîtront ici.",
                             main: GrenierSymbol.qrCode,
-                            satellites: ["basket.fill", "calendar.badge.clock", "mappin.and.ellipse"]
+                            satellites: ["basket.fill", "calendar.badge.clock", "mappin.and.ellipse"],
+                            action: .browseOffers
                         )
                     } else {
                         StateView(state: viewModel.state, retry: { await viewModel.load() }) { content in
@@ -28,20 +29,17 @@ struct PickupScreen: View {
                                 .refreshable { await viewModel.load() }
                         }
                     }
-                } else if context.groupId == nil {
+                } else if context.isResolved && !context.hasGroup {
                     PickupIllustratedEmptyView(
                         title: "Aucune cueillette prévue",
                         message: "Rejoins un groupe de ton quartier pour réserver ta première part.",
                         main: GrenierSymbol.groups,
-                        satellites: ["house.fill", "basket.fill", GrenierSymbol.solidarity]
+                        satellites: ["house.fill", "basket.fill", GrenierSymbol.solidarity],
+                        action: .findGroup
                     )
                 } else {
-                    ProgressView {
-                        Label("Chargement…", systemImage: "basket.fill")
-                            .symbolRenderingMode(.hierarchical)
-                            .foregroundStyle(.texteSecondaire)
-                    }
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    LoadingStateView()
+                        .frame(maxWidth: .infinity, maxHeight: .infinity)
                 }
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -49,13 +47,25 @@ struct PickupScreen: View {
             .navigationTitle("Cueillette")
             .profileToolbar()
             .pickupTools(groupOrderId: viewModel?.state.value?.items.first?.groupOrderId)
+            // Retour sur l'onglet (ou depuis une fiche) : une part réservée entre-temps apparaît sans tirer pour actualiser.
+            .onAppear { reloadIfAlreadyLoaded() }
         }
-        .task {
-            guard viewModel == nil, let groupId = context.groupId else { return }
+        .task(id: context.groupId) {
+            guard viewModel == nil, context.hasGroup, let groupId = context.groupId else { return }
             let model = PickupViewModel(repositories: context.repositories, householdId: context.householdId, groupId: groupId)
             viewModel = model
             await model.load()
         }
+    }
+
+    /// Recharge seulement après un premier chargement : la `.task` s'occupe du tout premier.
+    private func reloadIfAlreadyLoaded() {
+        guard let viewModel else { return }
+        switch viewModel.state {
+        case .loaded, .empty: break
+        case .idle, .loading, .failed: return
+        }
+        Task { await viewModel.load() }
     }
 }
 
@@ -67,6 +77,8 @@ private struct PickupIllustratedEmptyView: View {
     let message: LocalizedStringKey
     let main: String
     var satellites: [String] = []
+    /// Prochaine étape proposée (rejoindre un groupe, voir les lots).
+    var action: FamilyCallToAction.Destination?
     @ScaledMetric(relativeTo: .largeTitle) private var diameter: CGFloat = 110
 
     var body: some View {
@@ -77,6 +89,10 @@ private struct PickupIllustratedEmptyView: View {
             }
         } description: {
             Text(message)
+        } actions: {
+            if let action {
+                FamilyCallToAction(destination: action)
+            }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .grenierBackground()
@@ -103,6 +119,7 @@ private struct PickupContentView: View {
                 PickupCodeCard(content: content)
                 PickupItemsCard(items: content.items)
                 PickupPointSummaryCard(content: content)
+                PickupNeighbourHelpCard(pickupPoint: content.pickupPoint, slot: content.slot) // RQ-069, RQ-070
                 directionsButton
             }
             .padding(.horizontal, 16)
@@ -331,7 +348,7 @@ private struct PickupItemsCard: View {
     }
 
     private func icon(_ item: PickupViewModel.Item) -> some View {
-        Image(systemName: PickupFormat.symbol(for: item.product.category))
+        Image(systemName: item.product.category == .produce ? ProductIcon.symbol(for: item.product) : PickupFormat.symbol(for: item.product.category))
             .symbolRenderingMode(.hierarchical)
             .foregroundStyle(item.isPickedUp ? Color.economie : Color.grenier)
             .frame(width: iconSize, height: iconSize)
@@ -608,7 +625,7 @@ private enum PickupFormat {
         case .canned: "cylinder.fill"
         case .eggs: "egg.fill"
         case .meat: "fork.knife"
-        case .produce: "carrot.fill"
+        case .produce: "basket.fill"
         case .household: "sparkles"
         }
     }

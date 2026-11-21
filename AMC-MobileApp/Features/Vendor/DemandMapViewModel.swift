@@ -8,7 +8,8 @@
 //   switch model.state { case .loaded(let points): bulles de taille `point.intensity`, badge si `point.isHighDemand` }
 //
 // Demande = commandes groupées ouvertes ou palier atteint (`open`, `reached`) des groupes publics
-// (voir la limite dans `VendorRepositoryQueries`).
+// (voir la limite dans `VendorRepositoryQueries`), plus les envies des familles (`groups/{id}/wishes`, S-07)
+// encore valables, agrégées sans dire qui (`GroupDemand`). Tout vient des dépôts (Firestore en vrai) (T-129).
 
 import Foundation
 import Observation
@@ -74,8 +75,18 @@ final class DemandMapViewModel {
         var householdCount: Int
         /// Produits demandés, par parts décroissantes.
         var products: [ProductDemand]
-        /// Parts relatives au point le plus demandeur, de 0 à 1 (taille des bulles).
+        /// Demande relative au point le plus demandeur, de 0 à 1 (taille des bulles), voir `demandScore`.
         var intensity: Double
+        /// Envies des familles du point, par catégorie et unité (agrégat anonyme).
+        var wishes: [GroupDemand] = []
+        /// Ménages distincts qui ont au moins une envie dans le point.
+        var wishingHouseholds: Int = 0
+
+        /// Familles prêtes à acheter : engagées dans une commande ou qui ont exprimé une envie.
+        /// Un ménage engagé qui a aussi une envie peut compter deux fois : les parts ne disent pas qui les a prises.
+        var interestedHouseholds: Int { committedHouseholds + wishingHouseholds }
+        /// Poids du point sur la carte : une part engagée = 1, une famille qui exprime une envie = 1.
+        var demandScore: Int { committedShares + wishingHouseholds }
 
         /// Badge « Forte demande ».
         var isHighDemand: Bool { intensity >= DemandMapViewModel.highDemandThreshold }
@@ -86,6 +97,20 @@ final class DemandMapViewModel {
         var linked: LinkedGroupOrder
         var offer: Offer
         var product: Product?
+    }
+
+    /// Une envie d'une famille, avec le groupe où elle a été exprimée.
+    nonisolated struct WishRecord: Sendable, Hashable {
+        var wish: GroupWish
+        var group: NeighborhoodGroup
+    }
+
+    /// Données brutes chargées : commandes vivantes et envies valables.
+    nonisolated struct DemandData: Sendable, Hashable {
+        var orders: [DemandRecord] = []
+        var wishes: [WishRecord] = []
+
+        var isEmpty: Bool { orders.isEmpty && wishes.isEmpty }
     }
 
     /// Intensité à partir de laquelle un point est en « Forte demande ».
@@ -105,14 +130,16 @@ final class DemandMapViewModel {
     // MARK: État
 
     /// Données brutes chargées.
-    private(set) var records: LoadState<[DemandRecord]> = .idle
+    private(set) var records: LoadState<DemandData> = .idle
 
     let vendorId: String
     private let repositories: AppRepositories
+    private let now: @Sendable () -> Date
 
-    init(repositories: AppRepositories, vendorId: String) {
+    init(repositories: AppRepositories, vendorId: String, now: @escaping @Sendable () -> Date = { .now }) {
         self.repositories = repositories
         self.vendorId = vendorId
+        self.now = now
     }
 
     /// Points agrégés selon les filtres, par parts décroissantes ; `.empty` si aucune demande.
@@ -122,17 +149,21 @@ final class DemandMapViewModel {
         case .loading: .loading
         case .empty: .empty
         case .failed(let error): .failed(error)
-        case .loaded(let records): .from(Self.aggregate(filtered(records), by: grouping, precision: geohashPrecision))
+        case .loaded(let data):
+            .from(Self.aggregate(
+                filtered(data.orders), wishes: filteredWishes(data), by: grouping, precision: geohashPrecision
+            ))
         }
     }
 
     var points: [DemandPoint] { state.value ?? [] }
     var selectedPoint: DemandPoint? { points.first { $0.id == selectedPointID } }
     var totalCommittedShares: Int { points.reduce(0) { $0 + $1.committedShares } }
+    var totalWishingHouseholds: Int { points.reduce(0) { $0 + $1.wishingHouseholds } }
 
     /// Produits présents dans la demande chargée (pour le filtre), par nom.
     var availableProducts: [ProductDemand] {
-        let records = (records.value ?? []).filter { scope == .allOffers || $0.offer.vendorId == vendorId }
+        let records = (records.value?.orders ?? []).filter { scope == .allOffers || $0.offer.vendorId == vendorId }
         return Self.productDemands(records).sorted { $0.name.localizedCompare($1.name) == .orderedAscending }
     }
 
@@ -146,8 +177,10 @@ final class DemandMapViewModel {
     /// Recharge sans repasser par `.loading`.
     func refresh() async {
         do {
-            let records = try await fetchRecords()
-            self.records = .from(records)
+            async let orders = fetchRecords()
+            async let wishes = fetchWishes()
+            let data = DemandData(orders: try await orders, wishes: try await wishes)
+            records = data.isEmpty ? .empty : .loaded(data)
         } catch {
             records = .failed(AppError(error))
         }
@@ -180,6 +213,36 @@ final class DemandMapViewModel {
         return records
     }
 
+    /// Envies valables (période pas encore finie) des groupes publics. Les groupes privés restent privés,
+    /// comme pour les commandes (`linkedGroupOrders(in:)`).
+    private func fetchWishes() async throws -> [WishRecord] {
+        async let wishes = repositories.wishes.allWishes()
+        async let groups = repositories.groups.groups(inNeighborhood: nil)
+        return Self.wishRecords(try await wishes, groups: try await groups, now: now())
+    }
+
+    /// Relie chaque envie à son groupe public ; ignore les envies vides, terminées ou d'un groupe inconnu.
+    nonisolated static func wishRecords(_ wishes: [GroupWish], groups: [NeighborhoodGroup], now: Date) -> [WishRecord] {
+        let groupsById = Dictionary(groups.filter(\.isPublic).map { ($0.id, $0) }, uniquingKeysWith: { first, _ in first })
+        return wishes.compactMap { wish in
+            guard wish.quantity > 0, let group = groupsById[wish.groupId] else { return nil }
+            if let until = wish.wantedUntil, until < now { return nil }
+            return WishRecord(wish: wish, group: group)
+        }
+    }
+
+    /// Les envies ne sont liées à aucun lot : elles comptent dans « Toute la demande » seulement.
+    /// Avec un filtre produit, on garde les envies de ce produit et celles de sa catégorie sans produit précis.
+    private func filteredWishes(_ data: DemandData) -> [WishRecord] {
+        guard scope == .allOffers else { return [] }
+        guard let productFilter else { return data.wishes }
+        let category = data.orders.first { $0.offer.productId == productFilter }?.product?.category
+        return data.wishes.filter { record in
+            if let productId = record.wish.productId { return productId == productFilter }
+            return category != nil && record.wish.category == category
+        }
+    }
+
     private func filtered(_ records: [DemandRecord]) -> [DemandRecord] {
         records.filter { record in
             (scope == .allOffers || record.offer.vendorId == vendorId)
@@ -189,22 +252,35 @@ final class DemandMapViewModel {
 
     // MARK: Agrégation (pure, testable)
 
-    nonisolated static func aggregate(_ records: [DemandRecord], by grouping: Grouping, precision: Int = 4) -> [DemandPoint] {
-        let buckets = Dictionary(grouping: records) { record -> String in
-            let group = record.linked.group
-            return switch grouping {
+    nonisolated static func aggregate(
+        _ records: [DemandRecord],
+        wishes: [WishRecord] = [],
+        by grouping: Grouping,
+        precision: Int = 4
+    ) -> [DemandPoint] {
+        func key(of group: NeighborhoodGroup) -> String {
+            switch grouping {
             case .group: group.id
             case .neighborhood: group.neighborhood
             case .geohash: String(group.centerGeohash.prefix(max(1, precision)))
             }
         }
-        var points = buckets.map { key, records -> DemandPoint in
-            // Un groupe compte une fois pour ses membres, même s'il a plusieurs commandes.
+        let buckets = Dictionary(grouping: records) { key(of: $0.linked.group) }
+        let wishBuckets = Dictionary(grouping: wishes) { key(of: $0.group) }
+        var points = Set(buckets.keys).union(wishBuckets.keys).map { key -> DemandPoint in
+            let records = buckets[key] ?? []
+            let wishes = wishBuckets[key] ?? []
+            // Un groupe compte une fois pour ses membres, même s'il a plusieurs commandes ou envies.
+            // Le groupe le plus demandeur (parts, puis familles qui ont une envie) place la bulle.
             var groups: [String: NeighborhoodGroup] = [:]
             var sharesByGroup: [String: Int] = [:]
             for record in records {
                 groups[record.linked.group.id] = record.linked.group
                 sharesByGroup[record.linked.group.id, default: 0] += record.linked.order.committedShares
+            }
+            for (groupId, groupWishes) in Dictionary(grouping: wishes, by: \.group.id) {
+                groups[groupId] = groupWishes[0].group
+                sharesByGroup[groupId, default: 0] += Set(groupWishes.map(\.wish.householdId)).count
             }
             let topGroup = sharesByGroup.max { $0.value < $1.value || ($0.value == $1.value && $0.key > $1.key) }
                 .flatMap { groups[$0.key] }
@@ -222,14 +298,16 @@ final class DemandMapViewModel {
                 committedHouseholds: records.reduce(0) { $0 + $1.linked.order.committedHouseholds },
                 householdCount: groups.values.reduce(0) { $0 + $1.householdCount },
                 products: productDemands(records),
-                intensity: 0
+                intensity: 0,
+                wishes: GroupDemand.aggregate(wishes.map(\.wish)),
+                wishingHouseholds: Set(wishes.map(\.wish.householdId)).count
             )
         }
-        let maxShares = points.map(\.committedShares).max() ?? 0
+        let maxScore = points.map(\.demandScore).max() ?? 0
         for index in points.indices {
-            points[index].intensity = maxShares > 0 ? Double(points[index].committedShares) / Double(maxShares) : 0
+            points[index].intensity = maxScore > 0 ? Double(points[index].demandScore) / Double(maxScore) : 0
         }
-        return points.sorted { ($0.committedShares, $1.label) > ($1.committedShares, $0.label) }
+        return points.sorted { ($0.demandScore, $1.label) > ($1.demandScore, $0.label) }
     }
 
     nonisolated private static func productDemands(_ records: [DemandRecord]) -> [ProductDemand] {

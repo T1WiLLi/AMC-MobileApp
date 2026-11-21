@@ -245,7 +245,10 @@ private struct OfferDetailContent: View {
         }
         .ignoresSafeArea(edges: .top)
         .scrollEdgeEffectStyle(.soft, for: .top)
-        .safeAreaInset(edge: .bottom, spacing: 0) {
+        // B-042 : barre de contrôle iOS 26. Le contenu s'arrête au-dessus d'elle (« Ton groupe » reste visible
+        // en fin de défilement) et un bord net la sépare du texte qui passe dessous : rien de superposé.
+        .scrollEdgeEffectStyle(.hard, for: .bottom)
+        .safeAreaBar(edge: .bottom, spacing: 0) {
             reserveBar(content)
         }
     }
@@ -271,7 +274,7 @@ private struct OfferDetailContent: View {
                 Circle()
                     .fill(Color.surface.opacity(0.7))
                     .frame(width: heroSymbolSize * 1.5, height: heroSymbolSize * 1.5)
-                Image(systemName: ProductIcon.symbol(for: category))
+                Image(systemName: ProductIcon.symbol(for: content.product))
                     .font(.system(size: heroSymbolSize, weight: .regular))
                     .symbolRenderingMode(.hierarchical)
                     .foregroundStyle(Color.grenier)
@@ -372,7 +375,7 @@ private struct OfferDetailContent: View {
                 VStack(alignment: .leading, spacing: 4) {
                     PriceTag(priceCents: pricing.currentPriceCents, referenceCents: pricing.groceryPriceCents)
                         .contentTransition(.numericText(value: Double(pricing.currentPriceCents)))
-                    Label("prix du \(content.offer.shareUnit)", systemImage: OfferDetailSymbol.shareUnit)
+                    Label("prix par \(content.offer.shareUnit)", systemImage: OfferDetailSymbol.shareUnit)
                         .font(.caption)
                         .symbolRenderingMode(.hierarchical)
                         .foregroundStyle(.texteSecondaire)
@@ -546,7 +549,7 @@ private struct OfferDetailContent: View {
 
     private func progressTitle(households: Int, content: OfferDetailViewModel.Content) -> some View {
         Label {
-            Text("\(households) \(households > 1 ? "familles" : "famille") · \(content.committedShares) parts sur \(content.offer.totalShares)")
+            Text("\(FrenchPlural.count(households, "famille")) · \(FrenchPlural.count(content.committedShares, "part")) sur \(content.offer.totalShares)")
                 .monospacedDigit()
                 .contentTransition(.numericText(value: Double(content.committedShares)))
         } icon: {
@@ -963,7 +966,7 @@ private struct TierCelebrationView: View {
         let price = displayedPriceCents ?? celebration.previousPriceCents
         return VStack(spacing: 16) {
             Label {
-                Text("Nouveau prix du \(shareUnit)")
+                Text("Nouveau prix par \(shareUnit)")
             } icon: {
                 Image(systemName: OfferDetailSymbol.priceSection)
                     .symbolRenderingMode(.hierarchical)
@@ -983,7 +986,7 @@ private struct TierCelebrationView: View {
             TierProgressBar(tiers: tiers, committedShares: celebration.committedShares, totalShares: totalShares)
 
             Label {
-                Text("Palier \(celebration.tierNumber) sur \(celebration.tierCount) · \(celebration.committedShares) parts")
+                Text("Palier \(celebration.tierNumber) sur \(celebration.tierCount) · \(FrenchPlural.count(celebration.committedShares, "part"))")
                     .monospacedDigit()
             } icon: {
                 Image(systemName: OfferDetailSymbol.tier)

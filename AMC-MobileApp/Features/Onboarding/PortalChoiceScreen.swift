@@ -1,6 +1,6 @@
 import SwiftUI
 
-/// Choix du portail après la première connexion (RQ-014) : Familles, Vendeurs, ou les deux.
+/// Choix du portail après la première connexion (RQ-014) : Familles, Vendeurs, Organismes (T-116), un ou plusieurs.
 struct PortalChoiceScreen: View {
     @State private var model: PortalChoiceViewModel
     private let defaults: UserDefaults
@@ -31,7 +31,7 @@ struct PortalChoiceScreen: View {
                     }
                 }
 
-                Label(model.hint, systemImage: model.choice == .both ? "arrow.left.arrow.right.circle.fill" : "info.circle")
+                Label(model.hint, systemImage: model.choice?.isMultiple == true ? "arrow.left.arrow.right.circle.fill" : "info.circle")
                     .font(.footnote)
                     .foregroundStyle(Color.texteSecondaire)
                     .fixedSize(horizontal: false, vertical: true)
@@ -89,6 +89,15 @@ struct PortalChoiceScreen: View {
 #Preview("Clair") {
     PortalChoiceScreen(defaults: UserDefaults(suiteName: "preview-portal-choice")!)
         .environment(SessionViewModel(auth: FakeAuthService(signedInUser: .sample)))
+}
+
+#Preview("AX5, les trois") {
+    PortalChoiceScreen(
+        model: PortalChoiceViewModel(selection: Set(Portal.allCases)),
+        defaults: UserDefaults(suiteName: "preview-portal-choice")!
+    )
+    .environment(SessionViewModel(auth: FakeAuthService(signedInUser: .sample)))
+    .dynamicTypeSize(.accessibility5)
 }
 
 #Preview("Sombre, les deux") {

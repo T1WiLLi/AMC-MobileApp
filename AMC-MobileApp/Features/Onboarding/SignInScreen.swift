@@ -8,6 +8,9 @@ struct SignInScreen: View {
     let session: SessionViewModel
     @State private var mode: EmailAuthForm.Mode = .signIn
     @Environment(\.colorScheme) private var colorScheme
+    /// Hauteur du bouton Apple : le libellé de `SignInWithAppleButton` suit la hauteur du bouton,
+    /// pas Dynamic Type ; on la fait donc grandir avec le texte (plafonnée pour garder le bouton lisible).
+    @ScaledMetric(relativeTo: .headline) private var appleButtonHeight: CGFloat = 48
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     /// Hauteur visible de l'écran (hors zones sûres), pour choisir la taille du bandeau.
@@ -109,7 +112,7 @@ struct SignInScreen: View {
                 }
                 .signInWithAppleButtonStyle(colorScheme == .dark ? .white : .black)
                 .frame(maxWidth: .infinity)
-                .frame(height: 48)
+                .frame(height: min(appleButtonHeight, 110))
                 .clipShape(.rect(cornerRadius: 16))
                 .disabled(isSigningIn)
                 .accessibilityHint("Ouvre la connexion Apple")

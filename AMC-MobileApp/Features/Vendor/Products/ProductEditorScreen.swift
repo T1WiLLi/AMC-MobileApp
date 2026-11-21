@@ -35,7 +35,7 @@ struct ProductEditorScreen: View {
         repositories: AppRepositories,
         vendorId: String,
         productId: String? = nil,
-        photoUploader: any ProductPhotoUploader = FakeProductPhotoUploader(),
+        photoUploader: any ProductPhotoUploader,
         onSaved: @escaping (Product) -> Void = { _ in },
         onDeleted: @escaping (String) -> Void = { _ in }
     ) {
@@ -462,14 +462,17 @@ private extension DietaryTag {
 #if DEBUG
 #Preview("Nouveau produit") {
     NavigationStack {
-        ProductEditorScreen(repositories: .fake(behavior: .instant), vendorId: FakeData.ID.fermeRive)
+        ProductEditorScreen(
+            repositories: .fake(behavior: .instant), vendorId: FakeData.ID.fermeRive, photoUploader: FakeProductPhotoUploader()
+        )
     }
 }
 
 #Preview("Modifier, sombre") {
     NavigationStack {
         ProductEditorScreen(
-            repositories: .fake(behavior: .instant), vendorId: FakeData.ID.fermeRive, productId: FakeData.ID.potatoes
+            repositories: .fake(behavior: .instant), vendorId: FakeData.ID.fermeRive, productId: FakeData.ID.potatoes,
+            photoUploader: FakeProductPhotoUploader()
         )
     }
     .preferredColorScheme(.dark)

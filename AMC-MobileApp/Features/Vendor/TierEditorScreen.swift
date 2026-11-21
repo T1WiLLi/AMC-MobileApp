@@ -39,8 +39,8 @@ struct TierEditorScreen: View {
     }
 
     init(
-        repositories: AppRepositories = .fake(),
-        vendorId: String = FakeData.ID.fermeRive,
+        repositories: AppRepositories,
+        vendorId: String,
         offerId: String? = nil,
         supply: VendorSupply? = nil,
         onSaved: ((Offer) -> Void)? = nil
@@ -149,6 +149,8 @@ struct TierEditorScreen: View {
                         .fieldBox(isInvalid: isInvalid(.quantity))
                     Text(model.totalShares > 1 ? "parts" : "part")
                         .foregroundStyle(.texteSecondaire)
+                        .lineLimit(1)
+                        .fixedSize()
                 }
             } label: {
                 Label("Quantité", systemImage: "number.circle.fill")
@@ -460,11 +462,11 @@ private struct TierRow: View {
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     @ScaledMetric(relativeTo: .headline) private var badgeSize: CGFloat = 32
     @ScaledMetric(relativeTo: .body) private var priceWidth: CGFloat = 96
-    @ScaledMetric(relativeTo: .body) private var thresholdWidth: CGFloat = 48
+    @ScaledMetric(relativeTo: .body) private var thresholdWidth: CGFloat = 40
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
-            let layout = dynamicTypeSize.isAccessibilitySize
+            let layout = isStacked
                 ? AnyLayout(VStackLayout(alignment: .leading, spacing: 10))
                 : AnyLayout(HStackLayout(alignment: .center, spacing: 12))
             layout {
@@ -487,17 +489,24 @@ private struct TierRow: View {
                             Text("dès")
                                 .font(.subheadline)
                                 .foregroundStyle(.texteSecondaire)
+                                .lineLimit(1)
+                                .fixedSize()
+                            // Largeur fixe calée sur « 999 » : les champs des paliers restent alignés
+                            // d'une rangée à l'autre, quel que soit le seuil (1 à 999).
                             IntegerField(label: String(localized: "Seuil du palier \(rank)"), value: $tier.minShares)
-                                .frame(minWidth: thresholdWidth)
+                                .frame(width: thresholdWidth)
                                 .focused(focus, equals: .threshold(tier.id))
                                 .fieldBox(isInvalid: isInvalid, compact: true)
+                            // « part / parts » ne se coupe jamais sur deux lignes.
                             Text(tier.minShares > 1 ? "parts" : "part")
                                 .font(.subheadline)
                                 .foregroundStyle(.texteSecondaire)
+                                .lineLimit(1)
+                                .fixedSize()
                         }
                     }
                 }
-                if !dynamicTypeSize.isAccessibilitySize { Spacer(minLength: 4) }
+                if !isStacked { Spacer(minLength: 4) }
                 PriceField(label: String(localized: "Prix du palier \(rank)"), value: $tier.price)
                     .frame(minWidth: priceWidth)
                     .focused(focus, equals: .price(tier.id))
@@ -513,6 +522,10 @@ private struct TierRow: View {
     }
 
     private var rank: Int { preview?.rank ?? 1 }
+
+    /// Dès xxLarge, le prix passe sous le seuil : côte à côte, la rangée débordait de la carte
+    /// (rang et champ de prix collés aux bords sur iPhone 17).
+    private var isStacked: Bool { dynamicTypeSize >= .xxLarge }
 
     private var rangeLabel: some View {
         Text(rangeText)
@@ -841,20 +854,20 @@ private extension TierEditorViewModel {
 
 #Preview("Nouveau lot") {
     NavigationStack {
-        TierEditorScreen(repositories: .fake())
+        TierEditorScreen(repositories: .fake(), vendorId: FakeData.ID.fermeRive)
     }
 }
 
 #Preview("Modification sombre") {
     NavigationStack {
-        TierEditorScreen(repositories: .fake(), offerId: FakeData.ID.potatoOffer)
+        TierEditorScreen(repositories: .fake(), vendorId: FakeData.ID.fermeRive, offerId: FakeData.ID.potatoOffer)
     }
     .preferredColorScheme(.dark)
 }
 
 #Preview("AX5") {
     NavigationStack {
-        TierEditorScreen(repositories: .fake(), offerId: FakeData.ID.potatoOffer)
+        TierEditorScreen(repositories: .fake(), vendorId: FakeData.ID.fermeRive, offerId: FakeData.ID.potatoOffer)
     }
     .dynamicTypeSize(.accessibility5)
 }

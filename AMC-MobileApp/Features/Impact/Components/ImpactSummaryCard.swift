@@ -45,9 +45,10 @@ struct ImpactSummaryCard: View {
                 AnimatedCounter(value: snapshot.currentMonthSavedCents, format: .money)
                     .priceStyle(.largeTitle.bold())
                     .foregroundStyle(.economie)
-                Text("ce mois-ci, par rapport à l'épicerie")
+                Text(savingsCaption)
                     .font(.subheadline)
                     .foregroundStyle(.texteSecondaire)
+                    .fixedSize(horizontal: false, vertical: true)
             }
 
             Divider().overlay(Color.piste)
@@ -95,20 +96,40 @@ struct ImpactSummaryCard: View {
 
     // MARK: - Textes (testés)
 
-    var greeting: String { String(localized: "Bravo \(snapshot.firstName) !") }
+    /// « Bravo Amina ! » quand le mois rapporte quelque chose ; à 0 $, un encouragement plutôt qu'un bravo.
+    var greeting: String {
+        let name = snapshot.firstName.trimmingCharacters(in: .whitespaces)
+        if snapshot.currentMonthSavedCents > 0 {
+            return name.isEmpty ? String(localized: "Bravo !") : String(localized: "Bravo \(name) !")
+        }
+        return name.isEmpty ? String(localized: "Ta première économie t'attend") : String(localized: "\(name), ta première économie t'attend")
+    }
 
-    /// « Novembre à Parc-Extension »
+    /// « ce mois-ci, par rapport à l'épicerie », ou la marche à suivre quand rien n'est encore économisé.
+    var savingsCaption: String {
+        snapshot.currentMonthSavedCents > 0
+            ? "ce mois-ci, par rapport à l'épicerie"
+            : "ce mois-ci : réserve une part dans un lot pour commencer à économiser"
+    }
+
+    /// « Novembre à Parc-Extension » ; sans quartier connu, le mois seul (jamais « Novembre à »).
     var subtitle: String {
         let month = snapshot.currentMonthName
-        guard let first = month.first else { return snapshot.neighborhoodName }
-        return "\(first.uppercased())\(month.dropFirst()) à \(snapshot.neighborhoodName)"
+        let neighborhood = snapshot.neighborhoodName.trimmingCharacters(in: .whitespaces)
+        guard let first = month.first else { return neighborhood }
+        let capitalized = "\(first.uppercased())\(month.dropFirst())"
+        return neighborhood.isEmpty ? capitalized : "\(capitalized) à \(neighborhood)"
     }
 
     /// « Amina, tu as économisé 48 $ ce mois-ci. Ton quartier a économisé 3 900 $. 12 paniers suspendus offerts. »
     var accessibilitySummary: String {
         let s = snapshot
         let baskets = ImpactFormat.plural(s.suspendedBasketsOffered, String(localized: "panier suspendu offert"), String(localized: "paniers suspendus offerts"))
-        return String(localized: "\(s.firstName), tu as économisé \(Money.formatRounded(s.currentMonthSavedCents)) ce mois-ci. ")
+        let saved = Money.formatRounded(s.currentMonthSavedCents)
+        let opening = s.firstName.isEmpty
+            ? String(localized: "Tu as économisé \(saved) ce mois-ci. ")
+            : String(localized: "\(s.firstName), tu as économisé \(saved) ce mois-ci. ")
+        return opening
             + String(localized: "Ton quartier a économisé \(Money.formatRounded(s.neighborhoodSavedCents)). \(baskets).")
     }
 }

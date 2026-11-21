@@ -2,7 +2,7 @@
 // Gestion des lots du vendeur (T-064, RQ-036, RQ-037) : lots par section, pause, reprise, retrait, duplication.
 //
 // Usage dans une vue :
-//   @State private var model = VendorOffersViewModel(repositories: repos, vendorId: FakeData.ID.fermeRive)
+//   @State private var model = VendorOffersViewModel(repositories: context.repositories, vendorId: context.vendorId)
 //   .task { await model.load() }  ·  .refreshable { await model.refresh() }
 //   switch model.state { case .loaded(let sections): ForEach(sections) { section in Section(section.title) { … } } }
 //   Actions : `await model.pause(offerId:)`, `resume(offerId:)`, `withdraw(offerId:)`, `duplicate(offerId:)`.

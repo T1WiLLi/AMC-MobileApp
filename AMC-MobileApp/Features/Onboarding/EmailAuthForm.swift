@@ -27,6 +27,10 @@ struct EmailAuthForm: View {
     @State private var email = ""
     @State private var password = ""
     @State private var showsPassword = false
+    /// Largeur de l'icône de tête et côté du bouton œil : suivent Dynamic Type pour ne jamais déborder
+    /// sur le libellé (à AX5, un symbole dans un cadre fixe dépassait sur « Mot de passe »).
+    @ScaledMetric(relativeTo: .body) private var fieldIconWidth: CGFloat = 24
+    @ScaledMetric(relativeTo: .body) private var eyeButtonSide: CGFloat = 44
     @State private var attemptedSubmit = false
     @State private var showsReset = false
     /// Champs déjà quittés une fois : on n'affiche l'erreur de format qu'après.
@@ -109,7 +113,7 @@ struct EmailAuthForm: View {
                         Image(systemName: showsPassword ? "eye.slash.fill" : "eye.fill")
                             .contentTransition(.symbolEffect(.replace))
                             .foregroundStyle(Color.texteSecondaire)
-                            .frame(width: 44, height: 44)
+                            .frame(width: eyeButtonSide, height: eyeButtonSide)
                             .contentShape(.rect)
                     }
                     .buttonStyle(.plain)
@@ -231,7 +235,7 @@ struct EmailAuthForm: View {
                 Image(systemName: icon)
                     .symbolRenderingMode(.hierarchical)
                     .foregroundStyle(issue == nil ? Color.grenier : .red)
-                    .frame(width: 24)
+                    .frame(width: fieldIconWidth)
                     // Rebond à la prise du focus, frétillement quand une erreur apparaît.
                     .symbolEffect(.bounce, options: .nonRepeating, value: reduceMotion ? false : isFocused)
                     .symbolEffect(.wiggle, options: .nonRepeating, value: reduceMotion ? false : issue != nil)

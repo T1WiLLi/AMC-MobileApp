@@ -7,6 +7,8 @@ struct SessionGate: View {
     @AppStorage(OnboardingKeys.hasSeenIntro) private var hasSeenIntro = false
     @AppStorage(OnboardingKeys.hasChosenPortal) private var hasChosenPortal = false
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    /// Contexte de la session (T-127) : vidé à la déconnexion pour que le compte suivant reparte de zéro.
+    @Environment(SessionContextStore.self) private var contextStore: SessionContextStore?
 
     private var step: AppFlowStep {
         AppFlowStep.resolve(
@@ -33,13 +35,19 @@ struct SessionGate: View {
                 PortalChoiceScreen { hasChosenPortal = true }
                     .transition(transition)
             case .app:
-                RootView()
-                    .transition(.opacity)
+                if let user = session.currentUser {
+                    // Ménage, groupe et vendeur lus depuis users/{uid} avant d'ouvrir l'app (T-127).
+                    SessionContextGate(user: user)
+                        .transition(.opacity)
+                }
             }
         }
         .environment(session)
         .animation(reduceMotion ? .easeInOut(duration: 0.2) : .smooth, value: step)
         .task { await session.observeSession() }
+        .onChange(of: session.currentUser?.id) { _, id in
+            if id == nil { contextStore?.clear() }
+        }
     }
 
     /// Glisse vers la gauche d'une étape à l'autre ; simple fondu si Reduce Motion.

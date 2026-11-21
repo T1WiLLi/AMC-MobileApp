@@ -15,7 +15,7 @@ struct DemandMapViewModelTests {
     )
 
     @Test func aggregatesByNeighborhoodByDefault() async throws {
-        let model = DemandMapViewModel(repositories: .fake(behavior: .instant), vendorId: ID.fermeRive)
+        let model = DemandMapViewModel(repositories: VendorTestData.repositories(), vendorId: ID.fermeRive)
         #expect(model.state == .idle)
         await model.load()
         let points = try #require(model.state.value)
@@ -108,7 +108,9 @@ struct DemandMapViewModelTests {
             id: "order-livree", group: ID.hochelaga, offer: ID.appleOffer, shares: 9, households: 3, tierIndex: 0,
             status: .delivered
         ))
-        let model = DemandMapViewModel(repositories: .fake(behavior: .instant, data: data), vendorId: ID.fermeRive)
+        let model = DemandMapViewModel(
+            repositories: VendorTestData.withWishes([], .fake(behavior: .instant, data: data)), vendorId: ID.fermeRive
+        )
         await model.load()
         #expect(model.state == .empty)
     }

@@ -10,14 +10,40 @@ struct RootView: View {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     /// Bascule animée de portail (T-123), demandée depuis le profil ou le menu du bouton Profil.
     @State private var portalSwitch = PortalSwitchCoordinator()
+    /// Contexte de la session (T-127) : un portail ne s'ouvre que si le compte a ce qu'il lui faut.
+    @Environment(\.appContext) private var context
+    @Environment(SessionContextStore.self) private var contextStore: SessionContextStore?
 
     private var isOffline: Bool { network?.isOnline == false }
 
     var body: some View {
         Group {
             switch portal {
-            case .family: FamilyTabView()
-            case .vendor: VendorTabView()
+            case .family:
+                if context.hasHousehold {
+                    FamilyTabView()
+                } else {
+                    // Compte sans ménage (vendeur seul) : on le crée en un geste, sans id de démo.
+                    ContextRequirementView(
+                        .household,
+                        isWorking: contextStore?.isCreatingHousehold == true,
+                        error: contextStore?.householdCreationError
+                    ) {
+                        await contextStore?.createHousehold()
+                    }
+                }
+            case .vendor:
+                if context.hasVendor {
+                    VendorTabView()
+                } else {
+                    // Pas de vendeur rattaché (users/{uid}.vendorId, posé par le seed ou un admin).
+                    ContextRequirementView(.vendor) {
+                        portalSwitch.switchPortal(from: .vendor, to: .family, reduceMotion: reduceMotion)
+                    }
+                }
+            case .organization:
+                // T-116 : organisme de la session ; en démo fake, l'organisme de démo (AppContext.demo).
+                OrganizationTabView()
             }
         }
         .animation(.smooth, value: portal)
@@ -54,6 +80,16 @@ struct RootView: View {
 
 #Preview("Clair") {
     RootView()
+        .environment(NetworkMonitor(startsMonitoring: false))
+}
+
+#Preview("Sans ménage ni vendeur") {
+    var context = AppContext.instant
+    context.householdId = ""
+    context.groupId = nil
+    context.vendorId = ""
+    return RootView()
+        .environment(\.appContext, context)
         .environment(NetworkMonitor(startsMonitoring: false))
 }
 

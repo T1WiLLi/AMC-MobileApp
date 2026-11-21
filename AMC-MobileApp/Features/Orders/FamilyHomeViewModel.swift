@@ -84,7 +84,7 @@ final class FamilyHomeViewModel {
             guard let share = shares.first(where: { $0.householdId == householdId }), share.quantity > 0 else { continue }
             let offer = try await repositories.offers.offer(id: order.offerId)
             let product = try await repositories.vendors.product(id: offer.productId)
-            let price = share.finalPriceCents
+            let price = share.finalUnitPriceCents
                 ?? OfferPricing(offer: offer, product: product, committedShares: order.committedShares).currentPriceCents
             total += max(0, product.referenceGroceryPriceCents - price) * share.quantity
         }

@@ -139,7 +139,7 @@ struct SolidarityFundMathTests {
         let open = Share(householdId: "a", quantity: 10, finalPriceCents: nil, isPaid: false,
                          suspendedAmountCents: 0, subsidyCents: 0, qrCode: nil, isPickedUp: false)
         var closed = open
-        closed.finalPriceCents = 210
+        closed.finalPriceCents = 10 * 210  // total figé de la part
         #expect(SolidarityMath.amountDue(of: open, unitPriceCents: 260) == 2_600)
         #expect(SolidarityMath.amountDue(of: closed, unitPriceCents: 260) == 2_100)
     }

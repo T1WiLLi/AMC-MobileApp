@@ -80,7 +80,7 @@ final class OrderHistoryViewModel {
     /// Prix final : celui figé sur la part, sinon celui du palier atteint à la clôture ; nil si annulée.
     nonisolated static func finalPrice(share: Share, order: GroupOrder, offer: Offer) -> Cents? {
         guard order.status != .cancelled else { return nil }
-        if let price = share.finalPriceCents { return price }
+        if let price = share.finalUnitPriceCents { return price }
         let tiers = offer.sortedTiers
         if let index = order.currentTierIndex, tiers.indices.contains(index) { return tiers[index].priceCents }
         if case .confirmed(_, let price) = TierEngine.closureOutcome(offer: offer, committedShares: order.committedShares) {

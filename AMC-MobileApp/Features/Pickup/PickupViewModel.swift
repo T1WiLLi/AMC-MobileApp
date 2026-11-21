@@ -79,7 +79,7 @@ final class PickupViewModel {
             guard let share = shares.first(where: { $0.householdId == householdId }), share.quantity > 0 else { continue }
             let offer = try await repositories.offers.offer(id: order.offerId)
             let product = try await repositories.vendors.product(id: offer.productId)
-            let price = share.finalPriceCents
+            let price = share.finalUnitPriceCents
                 ?? OfferPricing(offer: offer, product: product, committedShares: order.committedShares).currentPriceCents
             items.append(Item(groupOrderId: order.id, product: product, offer: offer, quantity: share.quantity,
                               totalCents: price * share.quantity, isPickedUp: share.isPickedUp))

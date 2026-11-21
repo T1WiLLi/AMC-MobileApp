@@ -44,4 +44,10 @@ nonisolated struct Share: Identifiable, Codable, Sendable, Hashable {
     var pickupSlotStart: Date? = nil
 
     var id: String { householdId }
+
+    /// Prix unitaire figé à la clôture : `finalPriceCents` est le total de la part (quantité × prix unitaire).
+    var finalUnitPriceCents: Cents? {
+        guard let finalPriceCents, quantity > 0 else { return nil }
+        return finalPriceCents / quantity
+    }
 }

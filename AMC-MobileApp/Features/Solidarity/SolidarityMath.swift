@@ -74,7 +74,7 @@ nonisolated enum SolidarityMath {
 
     /// Ce que doit une part au prix unitaire donné, avant aide : jamais négatif.
     static func amountDue(of share: Share, unitPriceCents: Cents) -> Cents {
-        max(0, share.quantity) * max(0, share.finalPriceCents ?? unitPriceCents)
+        max(0, share.finalPriceCents ?? max(0, share.quantity) * max(0, unitPriceCents))
     }
 
     /// Ce qu'il reste à payer à un ménage : sa part moins l'aide reçue, plus son propre panier suspendu. Jamais négatif.

@@ -130,15 +130,25 @@ Les fiches de lot (F3, F4) sont poussées dans le `NavigationStack` ; la barre d
 
 ## Écrans
 
+Détail par écran (portail Familles, parcours de démo d'Amina) :
+
+- **F1 Accueil** : titre « Bonjour Amina » + avatar ; carte Economie « 48 $ économisés ce mois-ci » ; « Ta commande en cours » = OfferCard du riz (TierProgressBar compacte, « Encore 1 famille pour −19 % ») ; « Nouveaux lots près de toi » en liste groupée. Onglet Accueil.
+- **F2 Groupe** : carte (MapKit) en haut avec la zone du groupe et le point de cueillette ; boutons verre retour / partager ; nom, avatars, « 24 familles » ; lieu et horaire de cueillette ; lots ouverts ; bouton principal « Rejoindre le groupe ». Onglet Groupes.
+- **F3 Lot** : image produit en haut ; vendeur, nom, date de fermeture ; PriceTag 2,60 $/kg + épicerie barrée + SavingsBadge ; TierProgressBar complète + incitation ; choix de part (Picker segmenté 5 / 10 / 20 kg) ; barre du bas : total 26,00 $ + « Réserver 10 kg ». Pas de barre d'onglets.
+- **F4 Palier franchi** : `checkmark.seal.fill` en grand (bounce + haptique succès), « Palier débloqué ! », prix 2,60 → 2,10 $ (numericText), barre pleine, ta part 10 kg · 21,00 $, « 20 $ vs épicerie » ; bouton « Voir ma cueillette ».
+- **F5 Cueillette** : aperçu Live Activity « Cueillette dans 25 min » ; QR de la commande « Montre ce code à Fatima » ; articles ; boutons verre « Itinéraire » et « Autre créneau ». Onglet Cueillette.
+- **F6 Impact** : tes économies par mois (Swift Charts, novembre en Economie) ; grille du quartier 3 900 $, 12 paniers suspendus, 1,2 t, −41 km ; carte Solidarite « Offrir un panier suspendu ». Onglet Impact.
+
+
 | Écran | Fichier image | État |
 | --- | --- | --- |
 | Design system | `00-design-system.png` | prêt |
-| F1 Accueil d'Amina | `F1-accueil.png` | en cours |
-| F2 Groupe Parc-Ex Ouest | `F2-groupe.png` | en cours |
-| F3 Lot de riz et choix de part | `F3-lot.png` | en cours |
-| F4 Palier franchi | `F4-palier.png` | en cours |
-| F5 Cueillette et QR | `F5-cueillette.png` | en cours |
-| F6 Impact sur Montréal | `F6-impact.png` | en cours |
+| F1 Accueil d'Amina | `F1-accueil.png` | prêt |
+| F2 Groupe Parc-Ex Ouest | `F2-groupe.png` | prêt |
+| F3 Lot de riz et choix de part | `F3-lot.png` | prêt |
+| F4 Palier franchi | `F4-palier.png` | prêt |
+| F5 Cueillette et QR | `F5-cueillette.png` | prêt |
+| F6 Impact sur Montréal | `F6-impact.png` | prêt |
 | V1 Tableau de bord vendeur | — | à faire |
 | V2 Éditeur de paliers | — | à faire |
 | V3 Carte de la demande | — | à faire |

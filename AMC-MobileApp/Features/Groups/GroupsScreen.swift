@@ -63,7 +63,7 @@ struct GroupsScreen: View {
                     .accessibilityHint("Groupes, points de cueillette et producteurs autour de chez toi")
                 }
             }
-            .navigationDestination(for: GroupRoute.self) { route in
+            .grenierZoomDestination(for: GroupRoute.self) { route in
                 GroupDetailScreen(groupId: route.groupId)
             }
             .offerDestination()
@@ -139,13 +139,14 @@ private struct GroupList: View {
     }
 
     private func rows(_ items: [GroupsViewModel.Item]) -> some View {
-        ForEach(items) { item in
+        ForEach(Array(items.enumerated()), id: \.element.id) { index, item in
             GroupRow(
                 item: item,
                 isPending: viewModel.pendingGroupIds.contains(item.id),
                 onJoin: { Task { await viewModel.join(groupId: item.id) } }
             )
             .grenierTransition(.cardAppear)
+            .grenierAppear(index: index)
         }
     }
 }
@@ -338,6 +339,8 @@ private struct GroupRow: View {
             trailing
         }
         .grenierCard(padding: 14)
+        // La fiche du groupe sort de la carte entière en zoom (T-123).
+        .grenierZoomSource(GroupRoute(groupId: group.id))
         .contextMenu {
             Label(detailText, systemImage: GrenierSymbol.groups)
             if !item.isMember {

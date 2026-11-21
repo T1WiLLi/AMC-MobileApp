@@ -11,15 +11,19 @@ struct VendorTabView: View {
         TabView(selection: $selection) {
             Tab("Tableau", systemImage: "house.fill", value: .dashboard) {
                 VendorDashboardScreen()
+                    .grenierTabContent(isSelected: selection == .dashboard)
             }
             Tab("Lots", systemImage: "shippingbox.fill", value: .offers) {
                 VendorOffersScreen()
+                    .grenierTabContent(isSelected: selection == .offers)
             }
             Tab("Demande", systemImage: "map.fill", value: .demand) {
                 VendorDemandMapScreen()
+                    .grenierTabContent(isSelected: selection == .demand)
             }
             Tab("Revenus", systemImage: "dollarsign.circle.fill", value: .revenue) {
                 VendorRevenueScreen()
+                    .grenierTabContent(isSelected: selection == .revenue)
             }
             Tab(value: .search, role: .search) {
                 SearchScreen(

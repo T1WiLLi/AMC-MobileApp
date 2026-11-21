@@ -22,10 +22,12 @@ struct PortalChoiceScreen: View {
                 header
 
                 VStack(spacing: 12) {
-                    ForEach(Portal.allCases) { portal in
+                    ForEach(Array(Portal.allCases.enumerated()), id: \.element) { index, portal in
                         PortalCard(portal: portal, isSelected: model.isSelected(portal)) {
                             withAnimation(reduceMotion ? nil : .smooth) { model.toggle(portal) }
                         }
+                        // Les cartes arrivent en cascade, comme les listes de l'app (T-123).
+                        .grenierAppear(index: index)
                     }
                 }
 

@@ -1,9 +1,9 @@
 // VendorRepositoryQueries.swift
 // Requêtes composées du portail Vendeur (T-022), partagées par les ViewModels V1 à V3.
 //
-// Limite connue : aucun dépôt ne donne directement les commandes d'un lot. On compose
-// `groups.groups(inNeighborhood: nil)` puis `groupOrders.groupOrders(ofGroup:)` pour chaque groupe.
-// Le dépôt ne renvoie que les groupes PUBLICS : les commandes des groupes privés n'apparaissent pas.
+// Commandes de lots connus : `linkedGroupOrders(ofOffers:in:)` passe par `groupOrders(ofOffer:)` (T-033),
+// groupes privés compris. Toutes les commandes (carte de la demande, tous lots) : `linkedGroupOrders(in:)`
+// parcourt les groupes PUBLICS seulement.
 
 import Foundation
 
@@ -34,6 +34,34 @@ nonisolated enum VendorRepositoryQueries {
                 .map { LinkedGroupOrder(order: $0, group: group) }
         }
         return result
+    }
+
+    /// Commandes groupées des lots donnés, avec leur groupe, groupes privés compris (T-033).
+    /// Une commande dont le groupe n'existe plus est ignorée.
+    static func linkedGroupOrders(
+        ofOffers offerIds: some Sequence<String>,
+        in repositories: AppRepositories,
+        statuses: Set<GroupOrder.Status> = Set(GroupOrder.Status.allCases).subtracting([.cancelled])
+    ) async throws -> [LinkedGroupOrder] {
+        var groups: [String: NeighborhoodGroup] = [:]
+        var result: [LinkedGroupOrder] = []
+        for offerId in Set(offerIds) {
+            for order in try await repositories.groupOrders.groupOrders(ofOffer: offerId) where statuses.contains(order.status) {
+                let group: NeighborhoodGroup
+                if let cached = groups[order.groupId] {
+                    group = cached
+                } else {
+                    do {
+                        group = try await repositories.groups.group(id: order.groupId)
+                    } catch AppError.notFound {
+                        continue
+                    }
+                    groups[group.id] = group
+                }
+                result.append(LinkedGroupOrder(order: order, group: group))
+            }
+        }
+        return result.sorted { $0.order.id < $1.order.id }
     }
 
     /// Prix par part du palier atteint par la commande (`currentTierIndex` dans `offer.sortedTiers`), nil sous le premier palier.

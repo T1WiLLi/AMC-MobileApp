@@ -1,0 +1,735 @@
+[
+  {
+    "id": "household-amina",
+    "name": "Famille Benali",
+    "size": 5,
+    "geohash": "f25du",
+    "userIds": [
+      "user-amina"
+    ],
+    "groupId": "group-parc-extension",
+    "memberRole": "member",
+    "private": {
+      "isSubsidized": false
+    }
+  },
+  {
+    "id": "household-jean",
+    "name": "Famille Tremblay",
+    "size": 2,
+    "geohash": "f25eh",
+    "userIds": [
+      "user-jean"
+    ],
+    "groupId": "group-parc-extension",
+    "memberRole": "member",
+    "private": {
+      "isSubsidized": false
+    }
+  },
+  {
+    "id": "household-001",
+    "name": "Famille Nguyen",
+    "size": 2,
+    "geohash": "f25eh",
+    "userIds": [],
+    "groupId": "group-parc-extension",
+    "memberRole": "coordinator",
+    "private": {
+      "isSubsidized": false
+    }
+  },
+  {
+    "id": "household-002",
+    "name": "Famille Papadopoulos",
+    "size": 3,
+    "geohash": "f25du",
+    "userIds": [],
+    "groupId": "group-parc-extension",
+    "memberRole": "member",
+    "private": {
+      "isSubsidized": false
+    }
+  },
+  {
+    "id": "household-003",
+    "name": "Famille Singh",
+    "size": 2,
+    "geohash": "f25eh",
+    "userIds": [],
+    "groupId": "group-parc-extension",
+    "memberRole": "member",
+    "private": {
+      "isSubsidized": true,
+      "referralCode": "ORG-PE-003"
+    }
+  },
+  {
+    "id": "household-004",
+    "name": "Famille Joseph",
+    "size": 4,
+    "geohash": "f25du",
+    "userIds": [],
+    "groupId": "group-parc-extension",
+    "memberRole": "member",
+    "private": {
+      "isSubsidized": false
+    }
+  },
+  {
+    "id": "household-005",
+    "name": "Famille Rodriguez",
+    "size": 4,
+    "geohash": "f25eh",
+    "userIds": [],
+    "groupId": "group-parc-extension",
+    "memberRole": "member",
+    "private": {
+      "isSubsidized": false
+    }
+  },
+  {
+    "id": "household-006",
+    "name": "Famille Kaur",
+    "size": 2,
+    "geohash": "f25eh",
+    "userIds": [],
+    "groupId": "group-parc-extension",
+    "memberRole": "member",
+    "private": {
+      "isSubsidized": false
+    }
+  },
+  {
+    "id": "household-007",
+    "name": "Famille Haddad",
+    "size": 3,
+    "geohash": "f25eh",
+    "userIds": [],
+    "groupId": "group-parc-extension",
+    "memberRole": "member",
+    "private": {
+      "isSubsidized": true,
+      "referralCode": "ORG-PE-007"
+    }
+  },
+  {
+    "id": "household-008",
+    "name": "Famille Gagnon",
+    "size": 5,
+    "geohash": "f25du",
+    "userIds": [],
+    "groupId": "group-parc-extension",
+    "memberRole": "member",
+    "private": {
+      "isSubsidized": false
+    }
+  },
+  {
+    "id": "household-009",
+    "name": "Famille Morales",
+    "size": 3,
+    "geohash": "f25ej",
+    "userIds": [],
+    "groupId": "group-rosemont",
+    "memberRole": "coordinator",
+    "private": {
+      "isSubsidized": false
+    }
+  },
+  {
+    "id": "household-010",
+    "name": "Famille Chen",
+    "size": 6,
+    "geohash": "f25ej",
+    "userIds": [],
+    "groupId": "group-rosemont",
+    "memberRole": "member",
+    "private": {
+      "isSubsidized": false
+    }
+  },
+  {
+    "id": "household-011",
+    "name": "Famille Dupuis",
+    "size": 2,
+    "geohash": "f25ej",
+    "userIds": [],
+    "groupId": "group-rosemont",
+    "memberRole": "member",
+    "private": {
+      "isSubsidized": false
+    }
+  },
+  {
+    "id": "household-012",
+    "name": "Famille Okafor",
+    "size": 3,
+    "geohash": "f25ej",
+    "userIds": [],
+    "groupId": "group-rosemont",
+    "memberRole": "member",
+    "private": {
+      "isSubsidized": true,
+      "referralCode": "ORG-R-012"
+    }
+  },
+  {
+    "id": "household-013",
+    "name": "Famille Lefebvre",
+    "size": 5,
+    "geohash": "f25ej",
+    "userIds": [],
+    "groupId": "group-rosemont",
+    "memberRole": "member",
+    "private": {
+      "isSubsidized": false
+    }
+  },
+  {
+    "id": "household-014",
+    "name": "Famille Silva",
+    "size": 3,
+    "geohash": "f25ej",
+    "userIds": [],
+    "groupId": "group-rosemont",
+    "memberRole": "member",
+    "private": {
+      "isSubsidized": false
+    }
+  },
+  {
+    "id": "household-015",
+    "name": "Famille Bouchard",
+    "size": 6,
+    "geohash": "f25ej",
+    "userIds": [],
+    "groupId": "group-rosemont",
+    "memberRole": "member",
+    "private": {
+      "isSubsidized": false
+    }
+  },
+  {
+    "id": "household-016",
+    "name": "Famille Pierre",
+    "size": 2,
+    "geohash": "f25ej",
+    "userIds": [],
+    "groupId": "group-rosemont",
+    "memberRole": "member",
+    "private": {
+      "isSubsidized": false
+    }
+  },
+  {
+    "id": "household-017",
+    "name": "Famille Ahmed",
+    "size": 6,
+    "geohash": "f25en",
+    "userIds": [],
+    "groupId": "group-hochelaga",
+    "memberRole": "coordinator",
+    "private": {
+      "isSubsidized": false
+    }
+  },
+  {
+    "id": "household-018",
+    "name": "Famille Côté",
+    "size": 3,
+    "geohash": "f25en",
+    "userIds": [],
+    "groupId": "group-hochelaga",
+    "memberRole": "member",
+    "private": {
+      "isSubsidized": false
+    }
+  },
+  {
+    "id": "household-019",
+    "name": "Famille Kowalski",
+    "size": 4,
+    "geohash": "f25en",
+    "userIds": [],
+    "groupId": "group-hochelaga",
+    "memberRole": "member",
+    "private": {
+      "isSubsidized": true,
+      "referralCode": "ORG-H-019"
+    }
+  },
+  {
+    "id": "household-020",
+    "name": "Famille Mbeki",
+    "size": 4,
+    "geohash": "f25en",
+    "userIds": [],
+    "groupId": "group-hochelaga",
+    "memberRole": "member",
+    "private": {
+      "isSubsidized": false
+    }
+  },
+  {
+    "id": "household-021",
+    "name": "Famille Lavoie",
+    "size": 2,
+    "geohash": "f25en",
+    "userIds": [],
+    "groupId": "group-hochelaga",
+    "memberRole": "member",
+    "private": {
+      "isSubsidized": false
+    }
+  },
+  {
+    "id": "household-022",
+    "name": "Famille Tran",
+    "size": 6,
+    "geohash": "f25en",
+    "userIds": [],
+    "groupId": "group-hochelaga",
+    "memberRole": "member",
+    "private": {
+      "isSubsidized": false
+    }
+  },
+  {
+    "id": "household-023",
+    "name": "Famille Diallo",
+    "size": 2,
+    "geohash": "f25en",
+    "userIds": [],
+    "groupId": "group-hochelaga",
+    "memberRole": "member",
+    "private": {
+      "isSubsidized": false
+    }
+  },
+  {
+    "id": "household-024",
+    "name": "Famille Ferreira",
+    "size": 3,
+    "geohash": "f25eh",
+    "userIds": [],
+    "groupId": "group-saint-michel",
+    "memberRole": "coordinator",
+    "private": {
+      "isSubsidized": false
+    }
+  },
+  {
+    "id": "household-025",
+    "name": "Famille Roy",
+    "size": 1,
+    "geohash": "f25eh",
+    "userIds": [],
+    "groupId": "group-saint-michel",
+    "memberRole": "member",
+    "private": {
+      "isSubsidized": true,
+      "referralCode": "ORG-SM-025"
+    }
+  },
+  {
+    "id": "household-026",
+    "name": "Famille Hassan",
+    "size": 6,
+    "geohash": "f25eh",
+    "userIds": [],
+    "groupId": "group-saint-michel",
+    "memberRole": "member",
+    "private": {
+      "isSubsidized": false
+    }
+  },
+  {
+    "id": "household-027",
+    "name": "Famille Bélanger",
+    "size": 6,
+    "geohash": "f25eh",
+    "userIds": [],
+    "groupId": "group-saint-michel",
+    "memberRole": "member",
+    "private": {
+      "isSubsidized": false
+    }
+  },
+  {
+    "id": "household-028",
+    "name": "Famille Patel",
+    "size": 5,
+    "geohash": "f25eh",
+    "userIds": [],
+    "groupId": "group-saint-michel",
+    "memberRole": "member",
+    "private": {
+      "isSubsidized": false
+    }
+  },
+  {
+    "id": "household-029",
+    "name": "Famille Ouellet",
+    "size": 3,
+    "geohash": "f25eh",
+    "userIds": [],
+    "groupId": "group-saint-michel",
+    "memberRole": "member",
+    "private": {
+      "isSubsidized": false
+    }
+  },
+  {
+    "id": "household-030",
+    "name": "Famille Rossi",
+    "size": 2,
+    "geohash": "f25eh",
+    "userIds": [],
+    "groupId": "group-saint-michel",
+    "memberRole": "member",
+    "private": {
+      "isSubsidized": false
+    }
+  },
+  {
+    "id": "household-031",
+    "name": "Famille Saint-Fleur",
+    "size": 6,
+    "geohash": "f25dt",
+    "userIds": [],
+    "groupId": "group-verdun",
+    "memberRole": "coordinator",
+    "private": {
+      "isSubsidized": true,
+      "referralCode": "ORG-V-031"
+    }
+  },
+  {
+    "id": "household-032",
+    "name": "Famille Dubois",
+    "size": 2,
+    "geohash": "f25dt",
+    "userIds": [],
+    "groupId": "group-verdun",
+    "memberRole": "member",
+    "private": {
+      "isSubsidized": false
+    }
+  },
+  {
+    "id": "household-033",
+    "name": "Famille Khan",
+    "size": 6,
+    "geohash": "f25dt",
+    "userIds": [],
+    "groupId": "group-verdun",
+    "memberRole": "member",
+    "private": {
+      "isSubsidized": false
+    }
+  },
+  {
+    "id": "household-034",
+    "name": "Famille Morin",
+    "size": 4,
+    "geohash": "f25dt",
+    "userIds": [],
+    "groupId": "group-verdun",
+    "memberRole": "member",
+    "private": {
+      "isSubsidized": false
+    }
+  },
+  {
+    "id": "household-035",
+    "name": "Famille Castillo",
+    "size": 4,
+    "geohash": "f25dt",
+    "userIds": [],
+    "groupId": "group-verdun",
+    "memberRole": "member",
+    "private": {
+      "isSubsidized": false
+    }
+  },
+  {
+    "id": "household-036",
+    "name": "Famille Pham",
+    "size": 2,
+    "geohash": "f25dt",
+    "userIds": [],
+    "groupId": "group-verdun",
+    "memberRole": "member",
+    "private": {
+      "isSubsidized": false
+    }
+  },
+  {
+    "id": "household-037",
+    "name": "Famille Gauthier",
+    "size": 4,
+    "geohash": "f25dw",
+    "userIds": [],
+    "groupId": "group-verdun",
+    "memberRole": "member",
+    "private": {
+      "isSubsidized": false
+    }
+  },
+  {
+    "id": "household-038",
+    "name": "Famille Chowdhury",
+    "size": 4,
+    "geohash": "f25du",
+    "userIds": [],
+    "groupId": "group-cote-des-neiges",
+    "memberRole": "coordinator",
+    "private": {
+      "isSubsidized": true,
+      "referralCode": "ORG-CDN-038"
+    }
+  },
+  {
+    "id": "household-039",
+    "name": "Famille Augustin",
+    "size": 2,
+    "geohash": "f25du",
+    "userIds": [],
+    "groupId": "group-cote-des-neiges",
+    "memberRole": "member",
+    "private": {
+      "isSubsidized": false
+    }
+  },
+  {
+    "id": "household-040",
+    "name": "Famille Fournier",
+    "size": 4,
+    "geohash": "f25du",
+    "userIds": [],
+    "groupId": "group-cote-des-neiges",
+    "memberRole": "member",
+    "private": {
+      "isSubsidized": false
+    }
+  },
+  {
+    "id": "household-041",
+    "name": "Famille Rahman",
+    "size": 2,
+    "geohash": "f25du",
+    "userIds": [],
+    "groupId": "group-cote-des-neiges",
+    "memberRole": "member",
+    "private": {
+      "isSubsidized": false
+    }
+  },
+  {
+    "id": "household-042",
+    "name": "Famille Lambert",
+    "size": 3,
+    "geohash": "f25du",
+    "userIds": [],
+    "groupId": "group-cote-des-neiges",
+    "memberRole": "member",
+    "private": {
+      "isSubsidized": false
+    }
+  },
+  {
+    "id": "household-043",
+    "name": "Famille Mendoza",
+    "size": 5,
+    "geohash": "f25du",
+    "userIds": [],
+    "groupId": "group-cote-des-neiges",
+    "memberRole": "member",
+    "private": {
+      "isSubsidized": false
+    }
+  },
+  {
+    "id": "household-044",
+    "name": "Famille Ibrahim",
+    "size": 1,
+    "geohash": "f25du",
+    "userIds": [],
+    "groupId": "group-cote-des-neiges",
+    "memberRole": "member",
+    "private": {
+      "isSubsidized": true,
+      "referralCode": "ORG-CDN-044"
+    }
+  },
+  {
+    "id": "household-045",
+    "name": "Famille Paquette",
+    "size": 5,
+    "geohash": "f25ek",
+    "userIds": [],
+    "groupId": "group-montreal-nord",
+    "memberRole": "coordinator",
+    "private": {
+      "isSubsidized": false
+    }
+  },
+  {
+    "id": "household-046",
+    "name": "Famille Ali",
+    "size": 3,
+    "geohash": "f25ek",
+    "userIds": [],
+    "groupId": "group-montreal-nord",
+    "memberRole": "member",
+    "private": {
+      "isSubsidized": false
+    }
+  },
+  {
+    "id": "household-047",
+    "name": "Famille Desjardins",
+    "size": 4,
+    "geohash": "f25ek",
+    "userIds": [],
+    "groupId": "group-montreal-nord",
+    "memberRole": "member",
+    "private": {
+      "isSubsidized": false
+    }
+  },
+  {
+    "id": "household-048",
+    "name": "Famille Kim",
+    "size": 3,
+    "geohash": "f25ek",
+    "userIds": [],
+    "groupId": "group-montreal-nord",
+    "memberRole": "member",
+    "private": {
+      "isSubsidized": false
+    }
+  },
+  {
+    "id": "household-049",
+    "name": "Famille Charles",
+    "size": 4,
+    "geohash": "f25ek",
+    "userIds": [],
+    "groupId": "group-montreal-nord",
+    "memberRole": "member",
+    "private": {
+      "isSubsidized": false
+    }
+  },
+  {
+    "id": "household-050",
+    "name": "Famille Bergeron",
+    "size": 4,
+    "geohash": "f25ek",
+    "userIds": [],
+    "groupId": "group-montreal-nord",
+    "memberRole": "member",
+    "private": {
+      "isSubsidized": false
+    }
+  },
+  {
+    "id": "household-051",
+    "name": "Famille Torres",
+    "size": 3,
+    "geohash": "f25ek",
+    "userIds": [],
+    "groupId": "group-montreal-nord",
+    "memberRole": "member",
+    "private": {
+      "isSubsidized": false
+    }
+  },
+  {
+    "id": "household-052",
+    "name": "Famille Bakari",
+    "size": 2,
+    "geohash": "f25eh",
+    "userIds": [],
+    "groupId": "group-villeray",
+    "memberRole": "coordinator",
+    "private": {
+      "isSubsidized": true,
+      "referralCode": "ORG-V-052"
+    }
+  },
+  {
+    "id": "household-053",
+    "name": "Famille Lévesque",
+    "size": 3,
+    "geohash": "f25eh",
+    "userIds": [],
+    "groupId": "group-villeray",
+    "memberRole": "member",
+    "private": {
+      "isSubsidized": false
+    }
+  },
+  {
+    "id": "household-054",
+    "name": "Famille Sharma",
+    "size": 5,
+    "geohash": "f25eh",
+    "userIds": [],
+    "groupId": "group-villeray",
+    "memberRole": "member",
+    "private": {
+      "isSubsidized": false
+    }
+  },
+  {
+    "id": "household-055",
+    "name": "Famille Nadeau",
+    "size": 6,
+    "geohash": "f25eh",
+    "userIds": [],
+    "groupId": "group-villeray",
+    "memberRole": "member",
+    "private": {
+      "isSubsidized": false
+    }
+  },
+  {
+    "id": "household-056",
+    "name": "Famille Jean-Baptiste",
+    "size": 4,
+    "geohash": "f25eh",
+    "userIds": [],
+    "groupId": "group-villeray",
+    "memberRole": "member",
+    "private": {
+      "isSubsidized": false
+    }
+  },
+  {
+    "id": "household-057",
+    "name": "Famille Belkacem",
+    "size": 4,
+    "geohash": "f25eh",
+    "userIds": [],
+    "groupId": "group-villeray",
+    "memberRole": "member",
+    "private": {
+      "isSubsidized": false
+    }
+  },
+  {
+    "id": "household-058",
+    "name": "Famille Vasquez",
+    "size": 6,
+    "geohash": "f25eh",
+    "userIds": [],
+    "groupId": "group-villeray",
+    "memberRole": "member",
+    "private": {
+      "isSubsidized": false
+    }
+  }
+]

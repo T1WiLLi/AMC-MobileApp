@@ -174,7 +174,13 @@ npm --prefix scripts/seed run seed:firestore                                   #
 npm --prefix scripts/seed run seed:firestore -- --target cloud --yes           # VRAI projet, session de firebase login
 ```
 
-Sur le vrai projet, le script prend le jeton de `firebase login` (pas de clé de service). Les uid des personas (`user-amina`…) ne correspondent pas aux vrais comptes Google : un vrai compte voit le catalogue public, pas le ménage d'Amina.
+Sur le vrai projet, le script prend le jeton de `firebase login` (pas de clé de service).
+
+Il crée aussi (ou remet à jour) un compte Auth courriel par utilisateur de `users.json`, avec uid = id du document (B-029), sans toucher aux autres comptes. Pour jouer le parcours, connectez-vous dans l'app avec `amina@demo.grenier.local` (famille), `ferme-lafleur@demo.grenier.local` (vendeur) ou `jean@demo.grenier.local` (hôte). Le mot de passe commun vient de `GRENIER_DEMO_PASSWORD` ; sans cette variable, le script en génère un, l'applique à tous les comptes de démo et l'affiche une seule fois. Il n'est jamais versionné : gardez-le dans un gestionnaire de mots de passe. Le fournisseur « Adresse e-mail/Mot de passe » doit être activé dans la console Firebase.
+
+```bash
+GRENIER_DEMO_PASSWORD='…' npm --prefix scripts/seed run seed:firestore -- --target cloud --yes
+```
 
 ## 7. Recommandations avant la démo publique
 

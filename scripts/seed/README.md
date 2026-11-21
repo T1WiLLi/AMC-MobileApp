@@ -1,6 +1,6 @@
 # Réinitialiser les données de démo de Grenier
 
-> Pour remplir le **vrai projet** `amc-2026-8ab03` (ou un émulateur) sans rien supprimer, utilisez `seedFirestore.ts` : voir `docs/firebase.md`, section 6.
+> Pour remplir le **vrai projet** `amc-2026-8ab03` (ou un émulateur) sans rien supprimer, utilisez `seedFirestore.ts` : il écrit les mêmes documents et crée ou met à jour les mêmes comptes de démo (voir `docs/firebase.md`, section 6).
 
 Le script B-025 vide Firestore `(default)` et les comptes Auth du projet d’émulateur sélectionné. Il recharge ensuite toutes les [fixtures](fixtures/README.md) avec le SDK Firebase Admin : le catalogue (vendeurs, produits, lots), les groupes, les points de cueillette, les utilisateurs, les ménages et les commandes groupées. Il crée enfin les comptes Auth de démo (B-029).
 
@@ -45,4 +45,6 @@ npm --prefix scripts/seed test
 npx --yes firebase-tools@15.37.0 emulators:exec --project demo-grenier-seed-test --only auth,firestore 'npm --prefix scripts/seed run test:emulators'
 ```
 
-Le test d’intégration lance la commande deux fois sur un projet jetable, avec puis sans `GRENIER_DEMO_PASSWORD`. Il vérifie la suppression d’un compte et d’un document en sous-collection, le contenu de Firestore (sous-collections comprises) et la connexion des trois personas à chaque passage. Arrêtez les autres émulateurs qui occupent les ports par défaut avant de lancer ce test.
+Le test `seedDemo.integration.ts` lance la commande deux fois sur un projet jetable, avec puis sans `GRENIER_DEMO_PASSWORD`. Il vérifie la suppression d’un compte et d’un document en sous-collection, le contenu de Firestore (sous-collections comprises) et la connexion des trois personas à chaque passage. Arrêtez les autres émulateurs qui occupent les ports par défaut avant de lancer ce test.
+
+`seedFirestore.integration.ts` lance `seedFirestore.ts` deux fois sur le même projet : il vérifie qu’un document et un compte étrangers au seed survivent, que les comptes sont créés puis mis à jour, et que les personas se connectent avec le mot de passe courant.

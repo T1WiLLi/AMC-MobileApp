@@ -14,6 +14,7 @@ import {
   getDoc,
   getDocs,
   collection,
+  collectionGroup,
   serverTimestamp,
   setDoc,
   Timestamp,
@@ -258,5 +259,90 @@ describe('reste refusé', () => {
   test('collection inconnue', async () => {
     await assertFails(setDoc(doc(amina(), 'admin/config'), { open: true }))
     await assertFails(getDoc(doc(amina(), 'admin/config')))
+  })
+})
+
+describe('envies des familles et disponibilités des vendeurs (S-07, S-08)', () => {
+  const voisin = () => env.authenticatedContext('voisin').firestore()
+  const wishPath = 'groups/group-parc-extension/wishes/wish-1'
+  const voisinWishPath = 'groups/group-parc-extension/wishes/wish-voisin'
+  const supplyPath = 'vendors/vendor-lafleur/supplies/supply-1'
+  const now = () => Timestamp.fromMillis(Date.now())
+  const wish = (overrides: Record<string, unknown> = {}) => ({
+    id: 'wish-1', groupId: 'group-parc-extension', householdId: 'household-amina', category: 'grains',
+    quantity: 10, unit: 'kg', frequency: 'monthly', createdAt: now(), updatedAt: now(), ...overrides
+  })
+  const supply = (overrides: Record<string, unknown> = {}) => ({
+    id: 'supply-1', vendorId: 'vendor-lafleur', category: 'produce', productId: 'product-carottes', quantity: 200,
+    unit: 'kg', availableFrom: now(), availableTo: Timestamp.fromMillis(Date.now() + 7 * 86_400_000),
+    servedZones: ['f25d'], createdAt: now(), updatedAt: now(), ...overrides
+  })
+
+  beforeEach(async () => {
+    await env.withSecurityRulesDisabled(async (context) => {
+      const db = context.firestore()
+      await setDoc(doc(db, 'users/voisin'), { ...aminaUser, id: 'voisin', displayName: 'Voisin', householdId: 'household-voisin' })
+      await setDoc(doc(db, 'households/household-voisin'), { id: 'household-voisin', name: 'Voisins', size: 2, geohash: 'f25du', userIds: ['voisin'] })
+      await setDoc(doc(db, 'groups/group-parc-extension/members/household-amina'), { householdId: 'household-amina', role: 'member', joinedAt: now() })
+      await setDoc(doc(db, 'groups/group-parc-extension/members/household-voisin'), { householdId: 'household-voisin', role: 'member', joinedAt: now() })
+      await setDoc(doc(db, voisinWishPath), wish({ id: 'wish-voisin', householdId: 'household-voisin' }))
+      await setDoc(doc(db, 'vendors/vendor-autre/supplies/supply-autre'), supply({ id: 'supply-autre', vendorId: 'vendor-autre', productId: null }))
+    })
+  })
+
+  test('un membre crée l’envie de son ménage', async () => {
+    await assertSucceeds(setDoc(doc(amina(), wishPath), wish()))
+  })
+  test('un membre ne crée pas l’envie d’un autre ménage', async () => {
+    await assertFails(setDoc(doc(amina(), wishPath), wish({ householdId: 'household-voisin' })))
+  })
+  test('un non-membre ne crée pas d’envie', async () => {
+    await assertFails(setDoc(doc(intruder(), wishPath), wish({ householdId: 'household-intrus' })))
+  })
+  test('envie invalide refusée', async () => {
+    await assertFails(setDoc(doc(amina(), wishPath), wish({ quantity: 0 })))
+    await assertFails(setDoc(doc(amina(), wishPath), wish({ unit: 'tonne' })))
+    await assertFails(setDoc(doc(amina(), wishPath), wish({ groupId: 'group-autre' })))
+    await assertFails(setDoc(doc(amina(), wishPath), wish({ isAdmin: true })))
+  })
+  test('un membre change et retire seulement ses envies', async () => {
+    await assertSucceeds(updateDoc(doc(voisin(), voisinWishPath), { quantity: 4, updatedAt: now() }))
+    await assertFails(updateDoc(doc(voisin(), voisinWishPath), { householdId: 'household-amina' }))
+    await assertFails(updateDoc(doc(amina(), voisinWishPath), { quantity: 99 }))
+    await assertFails(deleteDoc(doc(amina(), voisinWishPath)))
+    await assertSucceeds(deleteDoc(doc(voisin(), voisinWishPath)))
+  })
+  test('membres et vendeurs lisent les envies, pas les autres', async () => {
+    await assertSucceeds(getDocs(collection(amina(), 'groups/group-parc-extension/wishes')))
+    await assertSucceeds(getDocs(collection(lafleur(), 'groups/group-parc-extension/wishes')))
+    await assertFails(getDocs(collection(intruder(), 'groups/group-parc-extension/wishes')))
+    await assertFails(getDocs(collection(anonymous(), 'groups/group-parc-extension/wishes')))
+  })
+  test('collectionGroup des envies : vendeurs seulement', async () => {
+    await assertSucceeds(getDocs(collectionGroup(lafleur(), 'wishes')))
+    await assertFails(getDocs(collectionGroup(amina(), 'wishes')))
+  })
+
+  test('le vendeur crée, change et retire ses disponibilités', async () => {
+    await assertSucceeds(setDoc(doc(lafleur(), supplyPath), supply()))
+    await assertSucceeds(updateDoc(doc(lafleur(), supplyPath), { quantity: 150, updatedAt: now() }))
+    await assertFails(updateDoc(doc(lafleur(), supplyPath), { vendorId: 'vendor-autre' }))
+    await assertSucceeds(deleteDoc(doc(lafleur(), supplyPath)))
+  })
+  test('disponibilité invalide refusée', async () => {
+    await assertFails(setDoc(doc(lafleur(), supplyPath), supply({ servedZones: [] })))
+    await assertFails(setDoc(doc(lafleur(), supplyPath), supply({ quantity: -1 })))
+    await assertFails(setDoc(doc(lafleur(), supplyPath), supply({ availableTo: Timestamp.fromMillis(0) })))
+    await assertFails(setDoc(doc(lafleur(), 'vendors/vendor-lafleur/supplies/supply-2'), supply({ id: 'supply-2', productId: 'product-inconnu' })))
+  })
+  test('personne d’autre n’écrit les disponibilités d’un vendeur', async () => {
+    await assertFails(setDoc(doc(amina(), supplyPath), supply()))
+    await assertFails(setDoc(doc(lafleur(), 'vendors/vendor-autre/supplies/supply-1'), supply({ vendorId: 'vendor-autre', productId: null })))
+    await assertFails(deleteDoc(doc(lafleur(), 'vendors/vendor-autre/supplies/supply-autre')))
+  })
+  test('tout connecté lit les disponibilités, pas l’anonyme', async () => {
+    await assertSucceeds(getDocs(collection(amina(), 'vendors/vendor-autre/supplies')))
+    await assertSucceeds(getDocs(collectionGroup(amina(), 'supplies')))
+    await assertFails(getDocs(collectionGroup(anonymous(), 'supplies')))
   })
 })

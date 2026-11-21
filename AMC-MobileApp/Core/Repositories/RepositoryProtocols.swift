@@ -87,6 +87,69 @@ nonisolated protocol PickupPointRepository: Sendable {
     func savePickupPoint(_ point: PickupPoint) async throws
 }
 
+/// Envies des familles (`groups/{groupId}/wishes`) — S-07.
+/// Les écrans des familles n'affichent que `demand(ofGroup:)` (anonyme) et les envies de leur propre ménage.
+nonisolated protocol GroupWishRepository: Sendable {
+    /// Toutes les envies du groupe (membres du groupe et vendeurs seulement, voir firestore.rules).
+    func wishes(ofGroup groupId: String) async throws -> [GroupWish]
+    /// Envies d'un ménage dans un groupe, les plus anciennes d'abord.
+    func wishes(ofHousehold householdId: String, inGroup groupId: String) async throws -> [GroupWish]
+    /// Envies de tous les groupes, pour le `Matcher` côté vendeur.
+    func allWishes() async throws -> [GroupWish]
+    /// Crée l'envie (id attribué s'il est vide, dates posées) et la renvoie telle qu'enregistrée.
+    @discardableResult
+    func addWish(_ wish: GroupWish) async throws -> GroupWish
+    /// Change quantité, unité, rythme, produit ou période. Groupe et ménage ne changent pas
+    /// (`.permissionDenied`), un id inconnu lève `.notFound`.
+    @discardableResult
+    func updateWish(_ wish: GroupWish) async throws -> GroupWish
+    func removeWish(id: String, groupId: String) async throws
+    /// Écoute en temps réel : émet les envies du groupe, puis à chaque changement.
+    func observeWishes(ofGroup groupId: String) async -> AsyncThrowingStream<[GroupWish], any Error>
+}
+
+extension GroupWishRepository {
+    /// « Ce que le groupe veut » : total par catégorie et nombre de ménages, sans dire qui.
+    nonisolated func demand(ofGroup groupId: String) async throws -> [GroupDemand] {
+        GroupDemand.aggregate(try await wishes(ofGroup: groupId))
+    }
+
+    /// Agrégat en temps réel ; le listener sous-jacent s'arrête quand le flux se termine.
+    nonisolated func observeDemand(ofGroup groupId: String) async -> AsyncThrowingStream<[GroupDemand], any Error> {
+        let wishes = await observeWishes(ofGroup: groupId)
+        let (stream, continuation) = AsyncThrowingStream<[GroupDemand], any Error>.makeStream()
+        let task = Task {
+            do {
+                for try await groupWishes in wishes {
+                    continuation.yield(GroupDemand.aggregate(groupWishes))
+                }
+                continuation.finish()
+            } catch {
+                continuation.finish(throwing: error)
+            }
+        }
+        continuation.onTermination = { _ in task.cancel() }
+        return stream
+    }
+}
+
+/// Disponibilités des vendeurs (`vendors/{vendorId}/supplies`) — S-08.
+nonisolated protocol VendorSupplyRepository: Sendable {
+    /// Disponibilités du vendeur, par date de début.
+    func supplies(ofVendor vendorId: String) async throws -> [VendorSupply]
+    /// Disponibilités de tous les vendeurs, pour le `Matcher`.
+    func allSupplies() async throws -> [VendorSupply]
+    /// Crée la disponibilité (id attribué s'il est vide, dates posées) et la renvoie telle qu'enregistrée.
+    @discardableResult
+    func addSupply(_ supply: VendorSupply) async throws -> VendorSupply
+    /// Le vendeur ne change pas (`.permissionDenied`), un id inconnu lève `.notFound`.
+    @discardableResult
+    func updateSupply(_ supply: VendorSupply) async throws -> VendorSupply
+    func removeSupply(id: String, vendorId: String) async throws
+    /// Écoute en temps réel : émet les disponibilités du vendeur, puis à chaque changement.
+    func observeSupplies(ofVendor vendorId: String) async -> AsyncThrowingStream<[VendorSupply], any Error>
+}
+
 /// Tous les dépôts de l'app, à injecter dans les ViewModels.
 nonisolated struct AppRepositories: Sendable {
     var users: any UserRepository
@@ -95,6 +158,9 @@ nonisolated struct AppRepositories: Sendable {
     var offers: any OfferRepository
     var groupOrders: any GroupOrderRepository
     var pickupPoints: any PickupPointRepository
+    /// S-07, S-08. Valeur par défaut (fakes vides) pour que les appels existants de l'init compilent tels quels.
+    var wishes: any GroupWishRepository = FakeGroupWishRepository()
+    var supplies: any VendorSupplyRepository = FakeVendorSupplyRepository()
 
     /// Dépôts en mémoire remplis avec `FakeData`.
     static func fake(behavior: FakeBehavior = .realistic, data: FakeData = .montreal) -> AppRepositories {
@@ -106,7 +172,9 @@ nonisolated struct AppRepositories: Sendable {
             groupOrders: FakeGroupOrderRepository(
                 behavior: behavior, groupOrders: data.groupOrders, shares: data.shares, offers: data.offers
             ),
-            pickupPoints: FakePickupPointRepository(behavior: behavior, pickupPoints: data.pickupPoints)
+            pickupPoints: FakePickupPointRepository(behavior: behavior, pickupPoints: data.pickupPoints),
+            wishes: FakeGroupWishRepository(behavior: behavior, wishes: FakeData.demoWishes),
+            supplies: FakeVendorSupplyRepository(behavior: behavior, supplies: FakeData.demoSupplies)
         )
     }
 }

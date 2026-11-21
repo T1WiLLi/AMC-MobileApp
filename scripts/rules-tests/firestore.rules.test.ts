@@ -14,6 +14,9 @@ import {
   getDoc,
   getDocs,
   collection,
+  collectionGroup,
+  query,
+  where,
   serverTimestamp,
   setDoc,
   Timestamp,
@@ -145,6 +148,12 @@ describe('groups/members', () => {
   })
   test('pas pour le ménage d’un autre', async () => {
     await assertFails(setDoc(doc(intruder(), 'groups/group-parc-extension/members/household-amina'), { householdId: 'household-amina', role: 'member', joinedAt: serverTimestamp() }))
+  })
+  test('groupes d’un ménage : requête de groupe de collections (B-017)', async () => {
+    await assertSucceeds(getDocs(query(collectionGroup(amina(), 'members'), where('householdId', '==', 'household-amina'))))
+  })
+  test('pas de requête de groupe de collections sans session', async () => {
+    await assertFails(getDocs(query(collectionGroup(anonymous(), 'members'), where('householdId', '==', 'household-amina'))))
   })
 })
 

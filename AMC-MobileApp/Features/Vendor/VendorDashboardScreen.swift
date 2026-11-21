@@ -64,6 +64,7 @@ struct VendorDashboardScreen: View {
                 }
             }
             .profileToolbar()
+            .portalContentReady(.vendor, when: { if case .idle = viewModel.state { return false }; return !viewModel.state.isLoading }())
             .safeAreaInset(edge: .bottom, alignment: .trailing) {
                 if let onCreateOffer {
                     Button(action: onCreateOffer) {

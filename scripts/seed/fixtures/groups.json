@@ -1,0 +1,141 @@
+[
+  {
+    "id": "group-parc-extension",
+    "name": "Voisins de Parc-Ex",
+    "neighborhood": "parc-extension",
+    "description": "Familles de Parc-Extension qui achètent ensemble fruits, légumes et produits secs, à deux pas du métro Parc.",
+    "centerGeohash": "f25eh8",
+    "latitude": 45.531,
+    "longitude": -73.629,
+    "radiusMeters": 1500,
+    "coordinatorIds": [
+      "user-jean"
+    ],
+    "householdCount": 10,
+    "isPublic": true,
+    "inviteCode": "PAREX1",
+    "pickupPointIds": [
+      "pickup-parc-extension-1",
+      "pickup-parc-extension-2"
+    ]
+  },
+  {
+    "id": "group-rosemont",
+    "name": "Rosemont en commun",
+    "neighborhood": "rosemont",
+    "description": "Des voisins de Rosemont qui regroupent leurs commandes pour payer moins cher, près de la Promenade Masson.",
+    "centerGeohash": "f25ejd",
+    "latitude": 45.543,
+    "longitude": -73.585,
+    "radiusMeters": 1500,
+    "coordinatorIds": [],
+    "householdCount": 8,
+    "isPublic": true,
+    "inviteCode": "ROSEM1",
+    "pickupPointIds": [
+      "pickup-rosemont-1"
+    ]
+  },
+  {
+    "id": "group-hochelaga",
+    "name": "Hochelaga solidaire",
+    "neighborhood": "hochelaga",
+    "description": "Un groupe d'achat de quartier dans Hochelaga-Maisonneuve, autour de la rue Ontario.",
+    "centerGeohash": "f25ene",
+    "latitude": 45.547,
+    "longitude": -73.542,
+    "radiusMeters": 1500,
+    "coordinatorIds": [],
+    "householdCount": 7,
+    "isPublic": true,
+    "inviteCode": "HOCHE1",
+    "pickupPointIds": [
+      "pickup-hochelaga-1"
+    ]
+  },
+  {
+    "id": "group-saint-michel",
+    "name": "Saint-Michel s'entraide",
+    "neighborhood": "saint-michel",
+    "description": "Familles de Saint-Michel qui partagent de gros lots de denrées venus des fermes du Québec.",
+    "centerGeohash": "f25ehx",
+    "latitude": 45.566,
+    "longitude": -73.62,
+    "radiusMeters": 1500,
+    "coordinatorIds": [],
+    "householdCount": 7,
+    "isPublic": true,
+    "inviteCode": "STMIC1",
+    "pickupPointIds": [
+      "pickup-saint-michel-1"
+    ]
+  },
+  {
+    "id": "group-verdun",
+    "name": "Verdun au panier",
+    "neighborhood": "verdun",
+    "description": "Des ménages de Verdun qui achètent en commun, près de la rue Wellington.",
+    "centerGeohash": "f25dtg",
+    "latitude": 45.458,
+    "longitude": -73.57,
+    "radiusMeters": 1500,
+    "coordinatorIds": [],
+    "householdCount": 7,
+    "isPublic": true,
+    "inviteCode": "VERDU1",
+    "pickupPointIds": [
+      "pickup-verdun-1"
+    ]
+  },
+  {
+    "id": "group-cote-des-neiges",
+    "name": "Côte-des-Neiges ensemble",
+    "neighborhood": "cote-des-neiges",
+    "description": "Un groupe d'achat multiculturel de Côte-des-Neiges, avec des produits halal, casher et végétariens.",
+    "centerGeohash": "f25dud",
+    "latitude": 45.496,
+    "longitude": -73.625,
+    "radiusMeters": 1500,
+    "coordinatorIds": [],
+    "householdCount": 7,
+    "isPublic": true,
+    "inviteCode": "CDNEI1",
+    "pickupPointIds": [
+      "pickup-cote-des-neiges-1"
+    ]
+  },
+  {
+    "id": "group-montreal-nord",
+    "name": "Montréal-Nord partage",
+    "neighborhood": "montreal-nord",
+    "description": "Familles de Montréal-Nord qui se regroupent pour des paniers à prix de gros.",
+    "centerGeohash": "f25ekk",
+    "latitude": 45.594,
+    "longitude": -73.634,
+    "radiusMeters": 1500,
+    "coordinatorIds": [],
+    "householdCount": 7,
+    "isPublic": true,
+    "inviteCode": "MTLNO1",
+    "pickupPointIds": [
+      "pickup-montreal-nord-1"
+    ]
+  },
+  {
+    "id": "group-villeray",
+    "name": "Villeray en vrac",
+    "neighborhood": "villeray",
+    "description": "Des voisins de Villeray qui achètent en vrac et récupèrent leurs parts près du marché Jean-Talon.",
+    "centerGeohash": "f25ehe",
+    "latitude": 45.544,
+    "longitude": -73.62,
+    "radiusMeters": 1500,
+    "coordinatorIds": [],
+    "householdCount": 7,
+    "isPublic": true,
+    "inviteCode": "VILLE1",
+    "pickupPointIds": [
+      "pickup-villeray-1"
+    ]
+  }
+]

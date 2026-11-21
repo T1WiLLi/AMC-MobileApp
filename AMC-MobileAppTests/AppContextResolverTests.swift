@@ -148,6 +148,23 @@ struct AppContextResolverTests {
         #expect(store.householdId == nil)
     }
 
+    /// Rejoindre un groupe ailleurs (onglet Groupes) puis recharger : l'Accueil reçoit le groupe sans relancer l'app.
+    @Test func reloadAfterJoiningPicksUpTheNewGroup() async throws {
+        let store = SessionContextStore(defaults: UserDefaults(suiteName: "AppContextResolverTests-\(UUID().uuidString)")!)
+        let fixture = Self.fixture()
+        let base = AppContext(repositories: fixture.repositories, userId: "", householdId: "", groupId: nil,
+                              vendorId: "", status: .unresolved)
+        await store.load(for: Self.authUser("user-jean"), base: base)
+        #expect(store.context.isResolved)
+        #expect(!store.context.hasGroup)
+
+        try await fixture.repositories.groups.join(groupId: "group-rosemont", householdId: "household-jean")
+        await store.reload()
+
+        #expect(store.phase == .ready)
+        #expect(store.context.groupId == "group-rosemont")
+    }
+
     @Test func storeUsesAnAlreadyResolvedBaseAsIs() async {
         let store = SessionContextStore(defaults: UserDefaults(suiteName: "AppContextResolverTests-\(UUID().uuidString)")!)
         await store.load(for: .sample, base: .instant)

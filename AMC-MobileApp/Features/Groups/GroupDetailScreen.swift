@@ -135,6 +135,8 @@ private struct GroupDetailContent: View {
     /// B-056 : feuille « Rejoindre avec un code » (groupe privé).
     @State private var isJoiningWithCode = false
     @Environment(\.appContext) private var context
+    /// Rejoindre ou quitter change le groupe actif : l'Accueil suit (contexte rechargé).
+    @Environment(SessionContextStore.self) private var contextStore: SessionContextStore?
     /// Le nom passe dans la barre de navigation une fois la bannière remontée.
     @State private var showsNavigationTitle = false
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
@@ -225,7 +227,10 @@ private struct GroupDetailContent: View {
                         .disabled(viewModel.isUpdatingMembership)
                         .confirmationDialog("Quitter \(group.name) ?", isPresented: $isConfirmingLeave, titleVisibility: .visible) {
                             Button("Quitter le groupe", role: .destructive) {
-                                Task { await viewModel.leave() }
+                                Task {
+                                    await viewModel.leave()
+                                    await contextStore?.reload()
+                                }
                             }
                             Button("Annuler", role: .cancel) {}
                         } message: {
@@ -263,7 +268,10 @@ private struct GroupDetailContent: View {
         }
         .sheet(isPresented: $isJoiningWithCode) {
             JoinWithCodeSheet(repositories: context.repositories, householdId: context.householdId) { _ in
-                Task { await viewModel.load() }
+                Task {
+                    await viewModel.load()
+                    await contextStore?.reload()
+                }
             }
         }
         .safeAreaInset(edge: .bottom) {
@@ -271,7 +279,10 @@ private struct GroupDetailContent: View {
                 Button {
                     // B-056 : un groupe privé s'ouvre seulement avec une invitation.
                     if group.isPublic {
-                        Task { await viewModel.join() }
+                        Task {
+                            await viewModel.join()
+                            await contextStore?.reload()
+                        }
                     } else {
                         isJoiningWithCode = true
                     }

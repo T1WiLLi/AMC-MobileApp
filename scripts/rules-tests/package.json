@@ -6,7 +6,7 @@
     "node": ">=22.18.0"
   },
   "scripts": {
-    "test": "node --test --test-concurrency=1 firestore.rules.test.ts storage.rules.test.ts",
+    "test": "node --test --test-concurrency=1 firestore.rules.test.ts firestore.attacks.test.ts storage.rules.test.ts",
     "test:emulators": "cd ../.. && npx --yes firebase-tools@latest emulators:exec --config firebase.rules-tests.json --project demo-grenier-rules --only firestore,storage 'npm --prefix scripts/rules-tests test'"
   },
   "dependencies": {

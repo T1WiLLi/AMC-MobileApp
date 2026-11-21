@@ -182,13 +182,21 @@ nonisolated final class FirestoreGroupOrderRepository: GroupOrderRepository, @un
                     share.quantity = quantity
                     share.updatedAt = now
                     newShares.append(share)
-                    transaction.setData(try Firestore.Encoder().encode(share), forDocument: shareRef)
+                    if mine == nil {
+                        transaction.setData(try Firestore.Encoder().encode(share), forDocument: shareRef)
+                    } else {
+                        // Seuls les champs qui changent : réécrire toute la part ferait bouger les dates
+                        // (aller-retour Date ↔ Timestamp) et les null du seed, et firestore.rules refuserait.
+                        transaction.updateData(
+                            ["quantity": quantity, "updatedAt": Timestamp(date: now)], forDocument: shareRef
+                        )
+                    }
                 } else if mine != nil {
                     transaction.deleteDocument(shareRef)
                 }
                 // Même recalcul que le fake (RQ-051) : quantité, ménages, palier et statut.
                 let updated = try TierEngine.recalculated(order, offer: offer, shares: newShares)
-                transaction.setData(try Firestore.Encoder().encode(updated), forDocument: orderRef)
+                transaction.updateData(Self.counterFields(updated), forDocument: orderRef)
                 return updated
             }
         }
@@ -225,14 +233,15 @@ nonisolated final class FirestoreGroupOrderRepository: GroupOrderRepository, @un
                         eligibleHouseholdIds: eligibleHouseholdIds, solidarityFundCents: solidarityFundCents
                     )
                     for share in result.shares {
-                        transaction.setData(
-                            try Firestore.Encoder().encode(share),
-                            forDocument: self.sharesRef(groupOrderId).document(share.householdId)
-                        )
+                        transaction.updateData([
+                            "finalPriceCents": share.finalPriceCents.map { $0 as Any } ?? NSNull(),
+                            "subsidyCents": share.subsidyCents,
+                            "qrCode": share.qrCode.map { $0 as Any } ?? NSNull(),
+                        ], forDocument: self.sharesRef(groupOrderId).document(share.householdId))
                     }
                     allocation = result
                 }
-                transaction.setData(try Firestore.Encoder().encode(closed), forDocument: orderRef)
+                transaction.updateData(Self.counterFields(closed), forDocument: orderRef)
                 return Closure(order: closed, outcome: outcome, allocation: allocation)
             }
         }
@@ -314,6 +323,17 @@ nonisolated final class FirestoreGroupOrderRepository: GroupOrderRepository, @un
         return (order, offer, shares)
     }
 
+    /// Champs d'une commande que recalculent `TierEngine.recalculated` et `TierEngine.closed`.
+    /// On n'écrit qu'eux (pas `pickupSlots`, `pickupPointId`) : voir `setShare`.
+    private static func counterFields(_ order: GroupOrder) -> [String: Any] {
+        [
+            "committedShares": order.committedShares,
+            "committedHouseholds": order.committedHouseholds,
+            "currentTierIndex": order.currentTierIndex.map { $0 as Any } ?? FieldValue.delete(),
+            "status": order.status.rawValue,
+        ]
+    }
+
     /// Les parts lues expliquent-elles tout `committedShares` ? Sinon une part a été ajoutée entre-temps.
     private static func checkInvariant(_ order: GroupOrder, shares: [Share]) throws {
         let total = shares.reduce(0) { $0 + $1.quantity }
@@ -321,6 +341,56 @@ nonisolated final class FirestoreGroupOrderRepository: GroupOrderRepository, @un
         if total != order.committedShares || households != order.committedHouseholds {
             throw StaleShareList()
         }
+    }
+
+    // MARK: - Cueillette (T-077)
+
+    /// RQ-063 : point et créneaux choisis par le coordonnateur (`firestore.rules` le vérifie).
+    /// Les réservations sur un créneau retiré sont effacées dans le même lot d'écritures.
+    @discardableResult
+    func setPickupPoint(_ pickupPointId: String?, slots: [PickupSlot], groupOrderId: String) async throws -> GroupOrder {
+        var order = try await groupOrder(id: groupOrderId)
+        guard order.status != .cancelled, order.status != .delivered else { throw AppError.orderClosed }
+        let slots = pickupPointId == nil ? [] : try PickupSlotBook.validatedSlots(slots)
+        let shares = try await fetchShares(groupOrderId)
+        do {
+            let batch = db.batch()
+            let encodedSlots = try slots.map { try Firestore.Encoder().encode($0) }
+            batch.updateData([
+                "pickupPointId": pickupPointId.map { $0 as Any } ?? NSNull(),
+                "pickupSlots": encodedSlots,
+            ], forDocument: orderRef(groupOrderId))
+            let cleared = PickupSlotBook.clearingRemovedSlots(shares, keeping: slots)
+            for (before, after) in zip(shares, cleared) where before.pickupSlotStart != after.pickupSlotStart {
+                batch.updateData(["pickupSlotStart": FieldValue.delete()],
+                                 forDocument: sharesRef(groupOrderId).document(before.householdId))
+            }
+            try await batch.commit()
+        } catch {
+            throw Self.appError(from: error)
+        }
+        order.pickupPointId = pickupPointId
+        order.pickupSlots = slots
+        return order
+    }
+
+    /// RQ-064 : créneau du ménage. La capacité est vérifiée sur les parts lues juste avant
+    /// (pas de transaction : un dépassement d'une place reste possible si deux ménages réservent en même temps).
+    @discardableResult
+    func reservePickupSlot(start: Date?, householdId: String, groupOrderId: String) async throws -> Share {
+        let order = try await groupOrder(id: groupOrderId)
+        guard order.status != .cancelled, order.status != .delivered else { throw AppError.orderClosed }
+        let shares = try await fetchShares(groupOrderId)
+        let share = try PickupSlotBook.reserving(
+            start, householdId: householdId, slots: order.pickupSlots, shares: shares, now: now()
+        )
+        do {
+            let value: Any = share.pickupSlotStart.map { Timestamp(date: $0) as Any } ?? FieldValue.delete()
+            try await sharesRef(groupOrderId).document(householdId).updateData(["pickupSlotStart": value])
+        } catch {
+            throw Self.appError(from: error)
+        }
+        return share
     }
 
     // MARK: - Requêtes et décodage

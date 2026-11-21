@@ -213,20 +213,59 @@ describe('parcours légitimes de l’app (ne doivent pas casser)', () => {
     await assertSucceeds(setDoc(doc(as('jean'), 'groupOrders/order-low'), { ...lowOrder, status: 'cancelled' }))
   })
   test('clôture d’une grosse commande (20 ménages dont 8 subventionnés) : limite d’accès des règles', async () => {
-    const ids = Array.from({ length: 20 }, (_, i) => `household-g${String(i).padStart(2, '0')}`)
-    const big = { ...dueOrder, id: 'order-big', committedShares: 40, committedHouseholds: 20, currentTierIndex: 2 }
+    const n = Number(process.env.BIG_N ?? 20)
+    const subsidized = Number(process.env.BIG_SUB ?? 8)
+    const ids = Array.from({ length: n }, (_, i) => `household-g${String(i).padStart(2, '0')}`)
+    const tierIndex = 2 * n >= 24 ? 2 : 2 * n >= 16 ? 1 : 0
+    const unit = tiers[tierIndex].priceCents
+    const big = { ...dueOrder, id: 'order-big', committedShares: 2 * n, committedHouseholds: n, currentTierIndex: tierIndex }
     await env.withSecurityRulesDisabled(async (c) => {
       const db = c.firestore()
       await setDoc(doc(db, 'groupOrders/order-big'), big)
       for (const [i, id] of ids.entries()) {
         await setDoc(doc(db, `groupOrders/order-big/shares/${id}`), familyShare(id, 2))
-        if (i < 8) await setDoc(doc(db, `households/${id}/private/profile`), { isSubsidized: true, referralCode: 'ORG-PE-00035' })
+        if (i < subsidized) await setDoc(doc(db, `households/${id}/private/profile`), { isSubsidized: true, referralCode: 'ORG-PE-00035' })
       }
     })
     const shares = ids.map((id, i) => ({
-      ...familyShare(id, 2), finalPriceCents: 2 * 559, subsidyCents: i < 8 ? 500 : 0, qrCode: qr('order-big', id)
+      ...familyShare(id, 2), finalPriceCents: 2 * unit, subsidyCents: i < subsidized ? 500 : 0, qrCode: qr('order-big', id)
     }))
     await assertSucceeds(closeBatch(as('jean'), 'order-big', shares, { ...big, status: 'closed' }))
+  })
+  test('forme exacte de setShare (updateData des champs qui changent) avec créneaux et réservation', async () => {
+    await env.withSecurityRulesDisabled(async (c) => {
+      const db = c.firestore()
+      await updateDoc(doc(db, 'groupOrders/order-open'), {
+        pickupPointId: 'pickup-1', pickupSlots: [{ start: Timestamp.fromMillis(Date.now() + 1234567), end: Timestamp.fromMillis(Date.now() + 9234567) }]
+      })
+      await updateDoc(doc(db, 'groupOrders/order-open/shares/household-bob'), { pickupSlotStart: Timestamp.fromMillis(Date.now() + 1234567) })
+    })
+    const db = as('bob')
+    const batch = writeBatch(db)
+    batch.update(doc(db, 'groupOrders/order-open/shares/household-bob'), { quantity: 9, updatedAt: Timestamp.now() })
+    batch.update(doc(db, 'groupOrders/order-open'), { committedShares: 9, committedHouseholds: 1, currentTierIndex: 0, status: 'reached' })
+    await assertSucceeds(batch.commit())
+    const back = writeBatch(db)
+    back.update(doc(db, 'groupOrders/order-open/shares/household-bob'), { quantity: 2, updatedAt: Timestamp.now() })
+    back.update(doc(db, 'groupOrders/order-open'), { committedShares: 2, committedHouseholds: 1, currentTierIndex: deleteField(), status: 'open' })
+    await assertSucceeds(back.commit())
+  })
+  test('forme exacte de closeGroupOrder (updateData)', async () => {
+    const db = as('jean')
+    const batch = writeBatch(db)
+    for (const [h, q] of [['household-amina', 4], ['household-bob', 6]] as const) {
+      batch.update(doc(db, `groupOrders/order-due/shares/${h}`), { finalPriceCents: q * 739, subsidyCents: 0, qrCode: qr('order-due', h) })
+    }
+    batch.update(doc(db, 'groupOrders/order-due'), { committedShares: 10, committedHouseholds: 2, currentTierIndex: 0, status: 'closed' })
+    await assertSucceeds(batch.commit())
+  })
+  test('annulation sous le minimum, forme exacte (currentTierIndex supprimé alors qu’absent)', async () => {
+    await assertSucceeds(updateDoc(doc(as('jean'), 'groupOrders/order-low'), {
+      committedShares: 3, committedHouseholds: 1, currentTierIndex: deleteField(), status: 'cancelled'
+    }))
+  })
+  test('le coordonnateur choisit un point de cueillette existant', async () => {
+    await assertSucceeds(updateDoc(doc(as('jean'), 'groupOrders/order-open'), { pickupPointId: 'pickup-1', pickupSlots: [] }))
   })
   test('membre et vendeur du lot lisent les parts', async () => {
     await assertSucceeds(getDocs(collection(as('amina'), 'groupOrders/order-open/shares')))
@@ -479,6 +518,16 @@ describe('attaques : coordonnateur et vendeur à la clôture', () => {
   test('le coordonnateur d’un autre groupe ou le vendeur d’un autre lot clôture', async () => {
     await assertFails(setDoc(doc(as('rival'), 'groupOrders/order-low'), { ...lowOrder, status: 'cancelled' }))
     await assertFails(setDoc(doc(as('autre'), 'groupOrders/order-low'), { ...lowOrder, status: 'cancelled' }))
+  })
+  test('le coordonnateur choisit un point de cueillette inexistant', async () => {
+    await assertFails(updateDoc(doc(as('jean'), 'groupOrders/order-open'), { pickupPointId: 'pickup-fantome' }))
+  })
+  test('un membre non coordonnateur choisit le point de cueillette', async () => {
+    await assertFails(updateDoc(doc(as('amina'), 'groupOrders/order-open'), { pickupPointId: 'pickup-1' }))
+  })
+  test('un étranger qui se déclare du ménage de Bob lui change son créneau', async () => {
+    await updateDoc(doc(as('intrus'), 'users/intrus'), { householdId: 'household-bob' })
+    await assertFails(updateDoc(doc(as('intrus'), 'groupOrders/order-open/shares/household-bob'), { pickupSlotStart: Timestamp.now() }))
   })
   test('le coordonnateur modifie la part d’une famille en cours de commande', async () => {
     await assertFails(updateDoc(doc(as('jean'), 'groupOrders/order-open/shares/household-bob'), { quantity: 1 }))

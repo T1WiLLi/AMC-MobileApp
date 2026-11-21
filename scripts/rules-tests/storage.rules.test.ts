@@ -8,7 +8,7 @@ import {
   type RulesTestEnvironment
 } from '@firebase/rules-unit-testing'
 import { doc, setDoc } from 'firebase/firestore'
-import { ref, uploadBytes, getMetadata } from 'firebase/storage'
+import { ref, uploadBytes, getMetadata, deleteObject } from 'firebase/storage'
 
 let env: RulesTestEnvironment
 const png = new Uint8Array([0x89, 0x50, 0x4e, 0x47])
@@ -55,5 +55,36 @@ describe('storage', () => {
   })
   test('chemin inconnu refusé', async () => {
     await assertFails(uploadBytes(ref(storageOf('amina'), 'public/x.png'), png, { contentType: 'image/png' }))
+  })
+
+  // T-093 : attaques
+  test('SVG refusé (script dans une « image », XSS stockée)', async () => {
+    const svg = new TextEncoder().encode('<svg xmlns="http://www.w3.org/2000/svg"><script>alert(1)</script></svg>')
+    await assertFails(uploadBytes(ref(storageOf('lafleur'), 'vendors/vendor-lafleur/x.svg'), svg, { contentType: 'image/svg+xml' }))
+    await assertFails(uploadBytes(ref(storageOf('amina'), 'users/amina/avatar.svg'), svg, { contentType: 'image/svg+xml' }))
+  })
+  test('formats photo usuels acceptés', async () => {
+    for (const type of ['image/jpeg', 'image/heic', 'image/webp']) {
+      await assertSucceeds(uploadBytes(ref(storageOf('amina'), `users/amina/a.${type.split('/')[1]}`), png, { contentType: type }))
+    }
+  })
+  test('fichier de 5 Mo ou plus refusé', async () => {
+    const big = new Uint8Array(5 * 1024 * 1024)
+    await assertFails(uploadBytes(ref(storageOf('amina'), 'users/amina/big.png'), big, { contentType: 'image/png' }))
+  })
+  test('type déguisé (text/html;image/png) refusé', async () => {
+    await assertFails(uploadBytes(ref(storageOf('amina'), 'users/amina/x.png'), png, { contentType: 'text/html; image/png' }))
+  })
+  test('sous-dossier hors schéma refusé', async () => {
+    await assertFails(uploadBytes(ref(storageOf('lafleur'), 'vendors/vendor-lafleur/a/b.png'), png, { contentType: 'image/png' }))
+  })
+  test('un autre ne supprime ni la photo d’un vendeur ni celle d’un profil', async () => {
+    await assertFails(deleteObject(ref(storageOf('amina'), 'vendors/vendor-lafleur/existante.png')))
+    await assertFails(deleteObject(ref(env.unauthenticatedContext().storage(), 'vendors/vendor-lafleur/existante.png')))
+  })
+  test('un étranger qui pose vendorId dans son profil ne devient pas vendeur (règles Firestore)', async () => {
+    const db = env.authenticatedContext('amina').firestore()
+    await assertFails(setDoc(doc(db, 'users/amina'), { id: 'amina', vendorId: 'vendor-lafleur' }))
+    await assertFails(uploadBytes(ref(storageOf('amina'), 'vendors/vendor-lafleur/y.png'), png, { contentType: 'image/png' }))
   })
 })

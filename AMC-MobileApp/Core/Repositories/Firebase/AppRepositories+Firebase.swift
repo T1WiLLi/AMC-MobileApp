@@ -14,18 +14,32 @@
 // Le même dépôt sert pour l'émulateur et le projet de démo : `FirebaseSetup` a déjà pointé Firestore au bon endroit.
 
 import Foundation
+#if canImport(FirebaseCore)
+import FirebaseCore
+#endif
 
 extension AppRepositories {
     /// Dépôts Firebase. Les dépôts pas encore écrits en Firestore retombent sur les fakes.
     nonisolated static func firebase() -> AppRepositories {
         let fallback = AppRepositories.fake()
+        #if canImport(FirebaseFirestore) && canImport(FirebaseCore)
+        // Sans FirebaseApp par défaut (tests, configuration ratée), `Firestore.firestore()` plante : fakes.
+        let isConfigured = FirebaseApp.app() != nil
+        let firestoreVendors: (any VendorRepository)? = isConfigured ? FirestoreVendorRepository() : nil
+        let firestoreOffers: (any OfferRepository)? = isConfigured ? FirestoreOfferRepository() : nil
+        let firestorePickupPoints: (any PickupPointRepository)? = isConfigured ? FirestorePickupPointRepository() : nil
+        #else
+        let firestoreVendors: (any VendorRepository)? = nil
+        let firestoreOffers: (any OfferRepository)? = nil
+        let firestorePickupPoints: (any PickupPointRepository)? = nil
+        #endif
         return AppRepositories(
             users: fallback.users,               // B-017 : FirestoreUserRepository() — users, households
             groups: fallback.groups,             // B-018 : FirestoreGroupRepository() — groups, members
-            vendors: fallback.vendors,           // B-017 : FirestoreVendorRepository() — vendors, products
-            offers: fallback.offers,             // B-017 : FirestoreOfferRepository() — offers
+            vendors: firestoreVendors ?? fallback.vendors,        // B-018 — vendors, products
+            offers: firestoreOffers ?? fallback.offers,           // B-018 — offers
             groupOrders: fallback.groupOrders,   // B-019 : FirestoreGroupOrderRepository() — groupOrders, shares
-            pickupPoints: fallback.pickupPoints  // B-018 : FirestorePickupPointRepository() — pickupPoints
+            pickupPoints: firestorePickupPoints ?? fallback.pickupPoints  // B-018 — pickupPoints
         )
     }
 

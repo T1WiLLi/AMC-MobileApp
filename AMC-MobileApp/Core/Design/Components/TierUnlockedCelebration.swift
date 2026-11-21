@@ -47,22 +47,19 @@ struct TierUnlockedCelebrationContent: Equatable, Sendable {
         savingsPercent > 0 ? .percent(savingsPercent) : nil
     }
 
-    /// Annonce VoiceOver : « Palier débloqué, nouveau prix 2,10 $ le kilo ».
+    /// Annonce VoiceOver : « Palier débloqué, nouveau prix 2 dollars 10 le kilo ».
     var announcement: String {
-        "Palier débloqué, nouveau prix \(newPriceText) \(Self.spokenUnit(unit))"
+        "Palier débloqué, nouveau prix \(Money.spoken(newPriceCents, per: unit))"
     }
 
-    /// Lecture de l'unité pour VoiceOver.
+    /// Lecture du prix pour VoiceOver : « Nouveau prix 2 dollars 10 le kilo, au lieu de 2 dollars 60 ».
+    var priceAccessibilityText: String {
+        "Nouveau prix \(Money.spoken(newPriceCents, per: unit)), au lieu de \(Money.spoken(oldPriceCents))"
+    }
+
+    /// Lecture de l'unité pour VoiceOver (voir `Money.spokenPerUnit`).
     static func spokenUnit(_ unit: String) -> String {
-        switch unit.lowercased() {
-        case "kg": "le kilo"
-        case "g": "le gramme"
-        case "lb": "la livre"
-        case "l": "le litre"
-        case "ml": "le millilitre"
-        case "unité", "u": "l'unité"
-        default: "par \(unit)"
-        }
+        Money.spokenPerUnit(unit)
     }
 }
 
@@ -209,6 +206,7 @@ struct TierUnlockedCelebration: View {
 
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Environment(\.accessibilityVoiceOverEnabled) private var voiceOverEnabled
+    @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
 
     @State private var showsNewPrice = false
     @State private var cardVisible = false
@@ -275,7 +273,8 @@ struct TierUnlockedCelebration: View {
 
     private var backdrop: some View {
         ZStack {
-            Color.fond.opacity(0.92)
+            // Reduce Transparency : fond plein, l'écran du dessous ne transparaît plus.
+            Color.fond.opacity(reduceTransparency ? 1 : 0.92)
             LinearGradient(
                 colors: [Color.grenier.opacity(0.22), Color.grenier.opacity(0)],
                 startPoint: .top,
@@ -329,7 +328,7 @@ struct TierUnlockedCelebration: View {
         return Image(systemName: "checkmark.seal.fill")
             .font(.system(size: min(sealSymbolSize, 90), weight: .semibold))
             .foregroundStyle(Color.onAccent)
-            .symbolEffect(.bounce, options: .speed(0.8), value: bounce)
+            .symbolEffect(.bounce, options: .speed(0.8), value: reduceMotion ? 0 : bounce)
             .frame(width: diameter, height: diameter)
             .background(Color.economie, in: .circle)
             .shadow(color: .economie.opacity(0.35), radius: 16, y: 8)
@@ -352,9 +351,7 @@ struct TierUnlockedCelebration: View {
             }
         }
         .accessibilityElement(children: .ignore)
-        .accessibilityLabel(
-            "Nouveau prix \(content.newPriceText) \(TierUnlockedCelebrationContent.spokenUnit(content.unit)), au lieu de \(content.oldPriceText)"
-        )
+        .accessibilityLabel(content.priceAccessibilityText)
     }
 
     private var oldPrice: some View {
@@ -371,12 +368,13 @@ struct TierUnlockedCelebration: View {
             Text(Money.format(cents))
                 .priceStyle(.largeTitle.bold())
                 .foregroundStyle(Color.grenier)
-                .contentTransition(.numericText(value: Double(cents)))
+                .contentTransition(reduceMotion ? .opacity : .numericText(value: Double(cents)))
             Text(content.unitSuffix)
                 .font(.subheadline.weight(.semibold))
                 .foregroundStyle(.texteSecondaire)
         }
         .lineLimit(1)
+        .minimumScaleFactor(0.6) // AX5 : le prix rétrécit plutôt que d'être coupé en « … ».
     }
 
     // MARK: Séquence
@@ -514,4 +512,10 @@ private struct TierUnlockedCelebrationPreviewHost: View {
 #Preview("AX5") {
     TierUnlockedCelebrationPreviewHost()
         .dynamicTypeSize(.accessibility5)
+}
+
+#Preview("AX5 sombre") {
+    TierUnlockedCelebrationPreviewHost()
+        .dynamicTypeSize(.accessibility5)
+        .preferredColorScheme(.dark)
 }

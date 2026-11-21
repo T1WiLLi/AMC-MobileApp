@@ -22,6 +22,7 @@ struct SavingsBadge: View {
             .padding(.vertical, compact ? 4 : 6)
             .foregroundStyle(isFilled ? Color.onAccent : Color.economie)
             .background(isFilled ? Color.economie : Color.economie.opacity(0.12), in: .capsule)
+            .fixedSize(horizontal: false, vertical: true) // AX5 : la pilule passe sur deux lignes, jamais « … ».
             .accessibilityLabel(accessibilityText)
     }
 
@@ -36,10 +37,11 @@ struct SavingsBadge: View {
         }
     }
 
-    private var accessibilityText: String {
+    /// « 37 pour cent moins cher qu'en épicerie », « 48 dollars économisés ».
+    var accessibilityText: String {
         switch kind {
         case .percent(let value): "\(value) pour cent moins cher qu'en épicerie"
-        case .amount(let cents): "\(Money.formatRounded(cents)) économisés"
+        case .amount(let cents): "\(Money.spoken(cents)) économisés"
         }
     }
 }
@@ -62,4 +64,14 @@ struct SavingsBadge: View {
     }
     .padding()
     .preferredColorScheme(.dark)
+}
+
+#Preview("AX5") {
+    VStack(alignment: .leading, spacing: 12) {
+        SavingsBadge(kind: .percent(37))
+        SavingsBadge(kind: .amount(4_850))
+        SavingsBadge(kind: .percent(37), compact: true)
+    }
+    .padding()
+    .dynamicTypeSize(.accessibility5)
 }

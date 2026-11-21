@@ -42,7 +42,8 @@ struct AvatarStack: View {
             .padding(.horizontal, 7)
             .foregroundStyle(tint)
             .frame(width: size, height: size)
-            .background(tint.opacity(0.15), in: .circle)
+            // 12 % comme les autres teintes du design system : Grenier y reste au-dessus de 4,5:1.
+            .background(tint.opacity(0.12), in: .circle)
             .background(Color.surface, in: .circle)
             .overlay(Circle().stroke(Color.surface, lineWidth: 2))
     }
@@ -63,4 +64,13 @@ struct AvatarStack: View {
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .grenierBackground()
         .preferredColorScheme(.dark)
+}
+
+#Preview("AX5") {
+    AvatarStack(initials: ["AM", "FB", "RK"], extraCount: 121)
+        .padding()
+        .grenierCard()
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .grenierBackground()
+        .dynamicTypeSize(.accessibility5)
 }

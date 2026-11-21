@@ -12,6 +12,8 @@ enum AppError: Error, Equatable, Sendable {
     case notFound
     /// La commande groupée est fermée : on ne peut plus changer sa part.
     case orderClosed
+    /// Les Activités en direct sont désactivées pour Grenier (Réglages).
+    case liveActivitiesDisabled
     /// Saisie invalide ; le message dit quoi corriger.
     case invalidInput(String)
     /// Autre erreur, avec un détail technique pour les logs.
@@ -24,6 +26,7 @@ enum AppError: Error, Equatable, Sendable {
         case .permissionDenied: "Action non permise"
         case .notFound: "Introuvable"
         case .orderClosed: "Commande fermée"
+        case .liveActivitiesDisabled: "Activités en direct désactivées"
         case .invalidInput: "Vérifie ta saisie"
         case .unknown: "Oups, un problème est survenu"
         }
@@ -41,6 +44,8 @@ enum AppError: Error, Equatable, Sendable {
             "Cet élément n'existe plus. Il a peut-être été retiré."
         case .orderClosed:
             "La date limite est passée : les parts ne peuvent plus être modifiées."
+        case .liveActivitiesDisabled:
+            "Active-les dans Réglages > Grenier pour suivre ta commande sur l'écran verrouillé."
         case .invalidInput(let detail):
             detail
         case .unknown:
@@ -55,6 +60,7 @@ enum AppError: Error, Equatable, Sendable {
         case .permissionDenied: "lock.fill"
         case .notFound: "questionmark.folder"
         case .orderClosed: "clock.badge.xmark"
+        case .liveActivitiesDisabled: "bell.slash"
         case .invalidInput: "exclamationmark.bubble"
         case .unknown: "exclamationmark.triangle"
         }
@@ -64,7 +70,7 @@ enum AppError: Error, Equatable, Sendable {
     var isRetryable: Bool {
         switch self {
         case .offline, .unknown: true
-        case .unauthenticated, .permissionDenied, .notFound, .orderClosed, .invalidInput: false
+        case .unauthenticated, .permissionDenied, .notFound, .orderClosed, .liveActivitiesDisabled, .invalidInput: false
         }
     }
 

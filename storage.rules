@@ -1,9 +1,40 @@
 rules_version = '2';
 
-// Prototype initial (B-014) : tout est refusé. Chaque usage (photos de produits, de points de
-// cueillette…) ajoute son propre chemin, réservé aux utilisateurs connectés, avec taille et type validés.
+// Règles Storage de Grenier — prototype de la compétition. Tests : scripts/rules-tests.
+// - vendors/{vendorId}/... : photos de produits et de vitrine, écrites par le vendeur rattaché
+//   (users/{uid}.vendorId, posé par le seed ou un admin), lues par les utilisateurs connectés.
+// - users/{uid}/... : photo de profil, écrite par son propriétaire.
+// Images seulement, 5 Mo maximum. Tout le reste est refusé.
 service firebase.storage {
   match /b/{bucket}/o {
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    function isImageUnder5MB() {
+      return request.resource.size < 5 * 1024 * 1024
+        && request.resource.contentType.matches('image/.*');
+    }
+
+    function isVendorOf(vendorId) {
+      let userPath = /databases/(default)/documents/users/$(request.auth.uid);
+      return isAuthenticated()
+        && firestore.exists(userPath)
+        && firestore.get(userPath).data.get('vendorId', '') == vendorId;
+    }
+
+    match /vendors/{vendorId}/{fileName} {
+      allow read: if isAuthenticated();
+      allow create, update: if isVendorOf(vendorId) && isImageUnder5MB();
+      allow delete: if isVendorOf(vendorId);
+    }
+
+    match /users/{userId}/{fileName} {
+      allow read: if isAuthenticated();
+      allow create, update: if isAuthenticated() && request.auth.uid == userId && isImageUnder5MB();
+      allow delete: if isAuthenticated() && request.auth.uid == userId;
+    }
+
     match /{allPaths=**} {
       allow read, write: if false;
     }

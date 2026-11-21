@@ -1,21 +1,55 @@
 import SwiftUI
 
-/// Affiche la connexion tant que personne n'est connecté, puis l'app (RootView et ses portails).
+/// Parcours d'arrivée : présentation (une fois) → connexion → choix du portail (première fois) → app.
 struct SessionGate: View {
     let session: SessionViewModel
 
+    @AppStorage(OnboardingKeys.hasSeenIntro) private var hasSeenIntro = false
+    @AppStorage(OnboardingKeys.hasChosenPortal) private var hasChosenPortal = false
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
+    private var step: AppFlowStep {
+        AppFlowStep.resolve(
+            hasSeenIntro: hasSeenIntro,
+            isSignedIn: session.currentUser != nil,
+            hasChosenPortal: hasChosenPortal,
+            needsEmailVerification: session.pendingVerificationUser != nil
+        )
+    }
+
     var body: some View {
-        Group {
-            switch session.state {
-            case .signedOut, .signingIn:
+        ZStack {
+            switch step {
+            case .intro:
+                IntroScreen { hasSeenIntro = true }
+                    .transition(transition)
+            case .signIn:
                 SignInScreen(session: session)
-            case .signedIn:
+                    .transition(transition)
+            case .emailVerification:
+                EmailVerificationScreen(session: session)
+                    .transition(transition)
+            case .portalChoice:
+                PortalChoiceScreen { hasChosenPortal = true }
+                    .transition(transition)
+            case .app:
                 RootView()
+                    .transition(.opacity)
             }
         }
         .environment(session)
-        .animation(.smooth, value: session.state)
+        .animation(reduceMotion ? .easeInOut(duration: 0.2) : .smooth, value: step)
         .task { await session.observeSession() }
+    }
+
+    /// Glisse vers la gauche d'une étape à l'autre ; simple fondu si Reduce Motion.
+    private var transition: AnyTransition {
+        reduceMotion
+            ? .opacity
+            : .asymmetric(
+                insertion: .move(edge: .trailing).combined(with: .opacity),
+                removal: .move(edge: .leading).combined(with: .opacity)
+            )
     }
 }
 
@@ -25,4 +59,13 @@ struct SessionGate: View {
 
 #Preview("Connecté") {
     SessionGate(session: SessionViewModel(auth: FakeAuthService(signedInUser: .sample)))
+}
+
+#Preview("Courriel à vérifier") {
+    SessionGate(session: SessionViewModel(auth: FakeAuthService(signedInUser: .unverifiedSample)))
+}
+
+#Preview("Sombre") {
+    SessionGate(session: SessionViewModel(auth: FakeAuthService()))
+        .preferredColorScheme(.dark)
 }

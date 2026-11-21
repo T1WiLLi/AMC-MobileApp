@@ -10,8 +10,11 @@ struct AMCMobileApp: App {
     @State private var appLock = AppLock()
 
     init() {
-        let firebaseReady = FirebaseSetup.configureIfAvailable()
-        _session = State(initialValue: SessionViewModel(auth: FirebaseSetup.makeAuthService(firebaseReady: firebaseReady)))
+        // Fake, émulateur ou projet de démo (B-013) : voir `BackendMode` et docs/firebase.md §4.
+        let mode = FirebaseSetup.configure()
+        _session = State(initialValue: SessionViewModel(auth: FirebaseSetup.makeAuthService(mode: mode)))
+        // Démo : -resetOnboarding rejoue l'accueil, -demoFamilyPortal rouvre côté Familles. Ne touche pas Firebase.
+        OnboardingKeys.applyLaunchArguments(ProcessInfo.processInfo.arguments)
     }
 
     var body: some Scene {
@@ -20,6 +23,16 @@ struct AMCMobileApp: App {
                 .appLock(appLock)
                 #if canImport(GoogleSignIn)
                 .onOpenURL { url in _ = GIDSignIn.sharedInstance.handle(url) }
+                #endif
+                #if DEBUG
+                // Démo jury : `-GrenierLiveActivityDemo` au lancement démarre la Live Activity
+                // et enchaîne palier franchi → en route → arrivée (OrderActivityController).
+                // `-GrenierLiveActivityDemoStep 8` règle l'intervalle entre les étapes (5 s par défaut).
+                .task {
+                    guard ProcessInfo.processInfo.arguments.contains("-GrenierLiveActivityDemo") else { return }
+                    let step = UserDefaults.standard.integer(forKey: "GrenierLiveActivityDemoStep")
+                    try? await OrderActivityController.shared.startDemo(stepInterval: .seconds(step > 0 ? step : 5))
+                }
                 #endif
         }
     }

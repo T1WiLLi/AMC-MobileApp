@@ -36,6 +36,9 @@ nonisolated protocol VendorRepository: Sendable {
     func products(ofVendor vendorId: String) async throws -> [Product]
     func product(id: String) async throws -> Product
     func saveProduct(_ product: Product) async throws
+    /// Enregistre le profil du vendeur. Seuls `description`, `photoURLs` et `servedZones` peuvent changer
+    /// (firestore.rules) ; tout autre changement lève `.permissionDenied`, un id inconnu `.notFound`.
+    func saveVendor(_ vendor: Vendor) async throws
 }
 
 /// Lots (`offers`).

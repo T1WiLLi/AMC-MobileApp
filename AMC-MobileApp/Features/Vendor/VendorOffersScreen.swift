@@ -38,16 +38,24 @@ struct VendorOffersScreen: View {
                 .grenierBackground()
                 .navigationTitle("Lots")
                 .profileToolbar()
-                .newProductToolbar(repositories: repositories, vendorId: vendorId)
+                // B-052 : « Créer un lot » en icône de barre (le bouton flottant cachait le bas de la liste),
+                // « Mes produits » ouvre le catalogue du vendeur.
+                .myProductsToolbar(repositories: repositories, vendorId: vendorId)
                 .toolbar {
                     ToolbarItem(placement: .topBarLeading) {
                         NavigationLink(value: Route.supplies) {
                             Label("Mes disponibilités", systemImage: "tray.full.fill")
                         }
                     }
+                    ToolbarItem(placement: .topBarTrailing) {
+                        Button("Créer un lot", systemImage: "plus") {
+                            path.append(.create)
+                        }
+                        .symbolEffect(.bounce, value: reduceMotion ? 0 : publishedTrigger)
+                        .accessibilityHint("Ouvre l'éditeur de paliers pour un nouveau lot.")
+                    }
                 }
                 .safeAreaInset(edge: .top) { publishedBanner }
-                .safeAreaInset(edge: .bottom) { createButton }
                 .navigationDestination(for: Route.self) { route in
                     editor(for: route)
                 }
@@ -122,30 +130,6 @@ struct VendorOffersScreen: View {
         }
         .scrollContentBackground(.hidden)
         .refreshable { await model.refresh() }
-    }
-
-    // MARK: Création
-
-    private var createButton: some View {
-        Button {
-            path.append(.create)
-        } label: {
-            Label {
-                Text("Créer un lot")
-            } icon: {
-                Image(systemName: "plus.circle.fill")
-                    .symbolRenderingMode(.hierarchical)
-                    .symbolEffect(.bounce, value: reduceMotion ? 0 : publishedTrigger)
-            }
-            .font(.headline)
-            .frame(maxWidth: .infinity, minHeight: 32)
-        }
-        .buttonStyle(.glassProminent)
-        .tint(.grenier)
-        .controlSize(.large)
-        .padding(.horizontal, 16)
-        .padding(.bottom, 8)
-        .accessibilityHint("Ouvre l'éditeur de paliers pour un nouveau lot.")
     }
 
     /// Bandeau de succès après publication ou modification d'un lot.

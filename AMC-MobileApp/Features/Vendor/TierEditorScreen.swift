@@ -96,6 +96,7 @@ struct TierEditorScreen: View {
                 deadlineSection
             }
             .scrollContentBackground(.hidden)
+            .symbolRenderingMode(.hierarchical)
             .scrollDismissesKeyboard(.interactively)
             .contentMargins(.bottom, 8, for: .scrollContent)
             .safeAreaInset(edge: .bottom) {
@@ -126,13 +127,15 @@ struct TierEditorScreen: View {
 
     private var productSection: some View {
         Section {
-            Picker("Produit", selection: productBinding) {
+            Picker(selection: productBinding) {
                 if model.productId == nil {
                     Text("Choisir").tag(String?.none)
                 }
                 ForEach(model.products) { product in
                     Text(product.name).tag(Optional(product.id))
                 }
+            } label: {
+                Label("Produit", systemImage: "shippingbox.fill")
             }
             .id(ErrorAnchor.product)
 
@@ -145,7 +148,7 @@ struct TierEditorScreen: View {
                         .foregroundStyle(.texteSecondaire)
                 }
             } label: {
-                Text("Quantité")
+                Label("Quantité", systemImage: "number.circle.fill")
             }
             .id(ErrorAnchor.quantity)
 
@@ -157,13 +160,15 @@ struct TierEditorScreen: View {
                     .focused($focus, equals: .shareUnit)
                     .accessibilityLabel("Contenu d'une part")
             } label: {
-                Text("Une part")
+                Label("Une part", systemImage: "scalemass.fill")
             }
 
-            LabeledContent("Prix en épicerie") {
+            LabeledContent {
                 Text(referencePriceText)
                     .monospacedDigit()
                     .foregroundStyle(.texteSecondaire)
+            } label: {
+                Label("Prix en épicerie", systemImage: "cart.fill")
             }
             .accessibilityElement(children: .combine)
         } footer: {
@@ -206,7 +211,8 @@ struct TierEditorScreen: View {
                 showsErrors = true
                 if let last = model.tiers.last { focus = .price(last.id) }
             } label: {
-                Label("Ajouter un palier", systemImage: "plus")
+                Label("Ajouter un palier", systemImage: "plus.circle.fill")
+                    .symbolEffect(.bounce, value: reduceMotion ? 0 : model.tiers.count)
                     .font(.headline)
                     .frame(minHeight: 44)
             }
@@ -229,7 +235,7 @@ struct TierEditorScreen: View {
             if let message = errorMessage(for: .tiers) {
                 InlineError(message: message)
             } else {
-                Text("Glisse un palier vers la gauche pour le supprimer.")
+                Label("Glisse un palier vers la gauche pour le supprimer.", systemImage: "hand.draw.fill")
                     .font(.footnote)
                     .foregroundStyle(.texteSecondaire)
             }
@@ -238,14 +244,20 @@ struct TierEditorScreen: View {
     }
 
     private var tiersTitle: some View {
-        Text("Paliers de prix")
-            .font(.title2.bold())
-            .foregroundStyle(.texte)
-            .accessibilityAddTraits(.isHeader)
+        Label {
+            Text("Paliers de prix")
+                .foregroundStyle(.texte)
+        } icon: {
+            Image(systemName: "stairs")
+                .foregroundStyle(Color.grenier)
+        }
+        .font(.title2.bold())
+        .accessibilityAddTraits(.isHeader)
     }
 
     private var tiersSubtitle: some View {
-        Text("plus de parts, prix plus bas")
+        Label("plus de parts, prix plus bas", systemImage: "arrow.down.right")
+            .labelStyle(TightLabelStyle())
             .font(.subheadline)
             .foregroundStyle(.texteSecondaire)
     }
@@ -275,14 +287,20 @@ struct TierEditorScreen: View {
     }
 
     private var chartTitle: some View {
-        Text("Prix selon la demande")
-            .font(.headline)
-            .foregroundStyle(.texte)
-            .accessibilityAddTraits(.isHeader)
+        Label {
+            Text("Prix selon la demande")
+                .foregroundStyle(.texte)
+        } icon: {
+            Image(systemName: GrenierSymbol.savings)
+                .foregroundStyle(Color.grenier)
+        }
+        .font(.headline)
+        .accessibilityAddTraits(.isHeader)
     }
 
     private var deadlineCaption: some View {
-        Text("fermeture \(model.deadline.formatted(.dateTime.weekday(.wide).hour().locale(Self.locale)))")
+        Label("fermeture \(model.deadline.formatted(.dateTime.weekday(.wide).hour().locale(Self.locale)))", systemImage: "clock.fill")
+            .labelStyle(TightLabelStyle())
             .font(.subheadline)
             .foregroundStyle(.texteSecondaire)
     }
@@ -293,14 +311,20 @@ struct TierEditorScreen: View {
             let amount = range.lowerBound == range.upperBound
                 ? Text(Money.formatRounded(range.lowerBound)).bold()
                 : Text("\(Text(Money.formatRounded(range.lowerBound)).bold()) à \(Text(Money.formatRounded(range.upperBound)).bold())")
-            Text("Revenu estimé : \(amount) pour \(model.totalShares) \(model.totalShares > 1 ? "parts" : "part")")
-                .font(.subheadline)
-                .foregroundStyle(.texteSecondaire)
-                .monospacedDigit()
-                .contentTransition(.numericText())
-                .animation(motion, value: range)
+            Label {
+                Text("Revenu estimé : \(amount) pour \(model.totalShares) \(model.totalShares > 1 ? "parts" : "part")")
+            } icon: {
+                Image(systemName: "dollarsign.circle.fill")
+                    .foregroundStyle(Color.economie)
+                    .symbolEffect(.bounce, value: reduceMotion ? 0 : range.upperBound)
+            }
+            .font(.subheadline)
+            .foregroundStyle(.texteSecondaire)
+            .monospacedDigit()
+            .contentTransition(.numericText())
+            .animation(motion, value: range)
         } else {
-            Text("Donne un prix à tes paliers pour voir le revenu estimé.")
+            Label("Donne un prix à tes paliers pour voir le revenu estimé.", systemImage: "dollarsign.circle")
                 .font(.subheadline)
                 .foregroundStyle(.texteSecondaire)
         }
@@ -311,18 +335,19 @@ struct TierEditorScreen: View {
     private var deadlineSection: some View {
         Section {
             DatePicker(
-                "Date limite",
                 selection: $model.deadline,
                 in: Date.now...,
                 displayedComponents: [.date, .hourAndMinute]
-            )
+            ) {
+                Label("Date limite", systemImage: "calendar.badge.clock")
+            }
             .environment(\.locale, Self.locale)
             .id(ErrorAnchor.deadline)
         } footer: {
             if let message = errorMessage(for: .deadline) {
                 InlineError(message: message)
             } else {
-                Text("Les familles peuvent prendre une part jusqu'à cette date. Le prix final est celui du palier atteint.")
+                Label("Les familles peuvent prendre une part jusqu'à cette date. Le prix final est celui du palier atteint.", systemImage: "info.circle.fill")
                     .font(.footnote)
                     .foregroundStyle(.texteSecondaire)
             }
@@ -464,7 +489,8 @@ private struct TierRow: View {
                 if !dynamicTypeSize.isAccessibilitySize { Spacer(minLength: 4) }
                 HStack(spacing: 10) {
                     if let preview, preview.savingsPercent > 0 {
-                        Text("−\(preview.savingsPercent) %")
+                        Label("−\(preview.savingsPercent) %", systemImage: "arrow.down.circle.fill")
+                            .labelStyle(TightLabelStyle())
                             .font(.subheadline.bold())
                             .fontDesign(.rounded)
                             .monospacedDigit()
@@ -472,7 +498,8 @@ private struct TierRow: View {
                             .contentTransition(.numericText())
                             .accessibilityLabel("\(preview.savingsPercent) pour cent moins cher qu'en épicerie")
                     } else if hasReference, tier.priceCents > 0 {
-                        Text("aucune économie")
+                        Label("aucune économie", systemImage: "equal.circle")
+                            .labelStyle(TightLabelStyle())
                             .font(.caption)
                             .foregroundStyle(.texteSecondaire)
                     }

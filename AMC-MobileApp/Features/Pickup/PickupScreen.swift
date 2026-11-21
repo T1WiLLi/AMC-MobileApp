@@ -118,6 +118,7 @@ private struct PickupContentView: View {
                 }
                 PickupCodeCard(content: content)
                 PickupItemsCard(items: content.items)
+                PickupRateVendorsCard(items: content.items) // T-157 : noter le producteur après la cueillette
                 PickupPointSummaryCard(content: content)
                 PickupNeighbourHelpCard(pickupPoint: content.pickupPoint, slot: content.slot) // RQ-069, RQ-070
                 directionsButton
@@ -495,6 +496,41 @@ private struct PickupInfoLabel: View {
                 .foregroundStyle(Color.grenier)
         }
         .font(font)
+    }
+}
+
+/// Après la cueillette (T-157) : un lien par producteur dont une part est récupérée, vers sa page pour le noter.
+private struct PickupRateVendorsCard: View {
+    let items: [PickupViewModel.Item]
+
+    var body: some View {
+        let picked = Dictionary(grouping: items.filter(\.isPickedUp), by: \.offer.vendorId)
+            .compactMap { vendorId, items in items.first.map { (vendorId: vendorId, item: $0) } }
+            .sorted { $0.item.product.name < $1.item.product.name }
+        if !picked.isEmpty {
+            VStack(alignment: .leading, spacing: 12) {
+                Label("Comment était ton lot ?", systemImage: "star.bubble.fill")
+                    .font(.headline)
+                    .symbolRenderingMode(.hierarchical)
+                    .foregroundStyle(.texte)
+                Text("Ta note aide les autres familles à choisir leurs producteurs.")
+                    .font(.subheadline)
+                    .foregroundStyle(.texteSecondaire)
+                ForEach(picked, id: \.vendorId) { entry in
+                    NavigationLink {
+                        PublicVendorScreen(vendorId: entry.vendorId)
+                    } label: {
+                        Label("Noter le producteur · \(entry.item.product.name)", systemImage: "star.leadinghalf.filled")
+                            .fontWeight(.semibold)
+                            .frame(maxWidth: .infinity, minHeight: 32)
+                    }
+                    .buttonStyle(.glass)
+                    .tint(.grenier)
+                }
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .grenierCard()
+        }
     }
 }
 

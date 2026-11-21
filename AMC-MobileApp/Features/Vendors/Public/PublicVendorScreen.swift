@@ -1,7 +1,9 @@
 import SwiftUI
 
 /// Page publique d'un vendeur pour les familles (T-097, R-009) : qui il est, où il livre,
-/// ce qu'il vend et les lots à rejoindre maintenant. Lecture seule, aucune donnée privée.
+/// ce qu'il vend et les lots à rejoindre maintenant. Aucune donnée privée.
+/// T-157 : galerie de photos, note et avis des familles, prix par produit, dernière vente, indicateurs de
+/// confiance ; une famille qui a reçu un lot du producteur peut le noter (feuille `VendorReviewSheet`).
 ///
 /// À pousser dans un `NavigationStack` qui enregistre `.offerDestination()` (le bouton « Rejoindre »
 /// pousse une `OfferRoute`). Les dépôts viennent de `@Environment(\.appContext)`, sauf si on en passe :
@@ -30,7 +32,10 @@ struct PublicVendorScreen: View {
         }
         .task {
             if viewModel == nil {
-                viewModel = PublicVendorViewModel(vendorId: vendorId, repositories: repositories ?? context.repositories)
+                let viewer = context.hasHousehold
+                    ? PublicVendorViewModel.Viewer(userId: context.userId, householdId: context.householdId) : nil
+                viewModel = PublicVendorViewModel(vendorId: vendorId, repositories: repositories ?? context.repositories,
+                                                  viewer: viewer)
             }
         }
     }
@@ -40,6 +45,8 @@ struct PublicVendorScreen: View {
 
 private struct PublicVendorContent: View {
     let viewModel: PublicVendorViewModel
+
+    @State private var isRating = false
 
     var body: some View {
         Group {
@@ -56,8 +63,17 @@ private struct PublicVendorContent: View {
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
                     .grenierBackground()
             case .loaded(let profile):
-                PublicVendorPage(profile: profile, catalog: viewModel.catalog, openOffers: viewModel.openOffers)
+                PublicVendorPage(profile: profile, catalog: viewModel.catalog, openOffers: viewModel.openOffers,
+                                 reputation: viewModel.reputation, bestPrices: viewModel.bestPriceByProduct,
+                                 rate: { isRating = true })
                     .refreshable { await viewModel.refresh() }
+                    .sheet(isPresented: $isRating) {
+                        VendorReviewSheet(vendorName: profile.name,
+                                          saleText: viewModel.reputation.value?.eligibleSale.map(SaleText.short),
+                                          existing: viewModel.reputation.value?.myReview) { rating, comment in
+                            await viewModel.saveReview(rating: rating, comment: comment)
+                        }
+                    }
             }
         }
         .navigationTitle(viewModel.profile?.name ?? String(localized: "Producteur"))
@@ -80,23 +96,35 @@ private struct PublicVendorPage: View {
     let profile: PublicVendorViewModel.Profile
     let catalog: LoadState<[PublicVendorViewModel.CatalogSection]>
     let openOffers: LoadState<[PublicVendorViewModel.OpenOffer]>
+    var reputation: LoadState<PublicVendorViewModel.Reputation> = .idle
+    var bestPrices: [String: Cents] = [:]
+    var rate: () -> Void = {}
 
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 28) {
                 VendorHero(profile: profile)
-                VendorIdentity(profile: profile)
+                VendorIdentity(profile: profile, summary: reputation.value?.summary)
                     .padding(.horizontal)
+                if profile.photoURLs.count > 1 {
+                    VendorGallery(photos: profile.photoURLs, vendorName: profile.name)
+                }
 
                 VStack(alignment: .leading, spacing: 28) {
+                    if let reputation = reputation.value {
+                        TrustSection(trust: reputation.trust)
+                    }
+                    OpenOffersSection(state: openOffers)
+                    if let reputation = reputation.value {
+                        ReviewsSection(reputation: reputation, fallbackAverage: profile.averageRating, rate: rate)
+                    }
                     if !profile.description.isEmpty {
                         AboutCard(text: profile.description)
                     }
+                    CatalogSectionView(state: catalog, bestPrices: bestPrices)
                     if !profile.zones.isEmpty {
                         ZonesSection(zones: profile.zones)
                     }
-                    OpenOffersSection(state: openOffers)
-                    CatalogSectionView(state: catalog)
                 }
                 .padding(.horizontal)
             }
@@ -118,13 +146,7 @@ private struct VendorHero: View {
     var body: some View {
         Group {
             if let url = profile.coverPhotoURL {
-                AsyncImage(url: url) { phase in
-                    if let image = phase.image {
-                        image.resizable().scaledToFill()
-                    } else {
-                        SymbolComposition(kind: profile.kind)
-                    }
-                }
+                MediaImage(url: url) { SymbolComposition(kind: profile.kind) }
             } else {
                 SymbolComposition(kind: profile.kind)
             }
@@ -180,28 +202,61 @@ private struct SymbolComposition: View {
 
 private struct VendorIdentity: View {
     let profile: PublicVendorViewModel.Profile
+    /// Note calculée des avis (T-157) ; nil pendant le chargement.
+    var summary: VendorReviewRules.Summary?
 
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
             Text(profile.name)
                 .font(.largeTitle.bold())
                 .foregroundStyle(.texte)
+            if let place = placeText {
+                Label(place, systemImage: "mappin.and.ellipse")
+                    .font(.subheadline)
+                    .symbolRenderingMode(.hierarchical)
+                    .foregroundStyle(.texteSecondaire)
+            }
+            if let summary, let average = summary.average {
+                HStack(spacing: 8) {
+                    StarRatingView(rating: average, font: .headline)
+                    Text("\(StarRatingText.average(average)) · \(FrenchPlural.count(summary.count, String(localized: "avis"), plural: String(localized: "avis")))")
+                        .font(.subheadline.weight(.semibold))
+                        .foregroundStyle(.texte)
+                        .monospacedDigit()
+                        .contentTransition(.numericText())
+                }
+                .accessibilityElement(children: .ignore)
+                .accessibilityLabel("Note moyenne \(StarRatingText.average(average)) sur 5, \(FrenchPlural.count(summary.count, String(localized: "avis"), plural: String(localized: "avis")))")
+            }
             FlowLayout(spacing: 8) {
                 Pill(title: profile.kind.title, systemImage: profile.kind.systemImage, tint: .grenier)
                 if profile.isVerified {
                     Pill(title: String(localized: "Vérifié"), systemImage: "checkmark.seal.fill", tint: .economie)
                         .accessibilityLabel("Producteur vérifié par LeGrenier")
                 }
-                if let rating = profile.averageRating {
-                    let text = rating.formatted(.number.precision(.fractionLength(1)).locale(Locale(identifier: "fr_CA")))
-                    Pill(title: "\(text) / 5", systemImage: "star.fill", tint: .orange)
-                        .accessibilityLabel("Note moyenne \(text) sur 5")
-                } else {
-                    Pill(title: String(localized: "Nouveau"), systemImage: "sparkles", tint: .solidarite)
+                if summary?.average == nil {
+                    if let rating = profile.averageRating {
+                        let text = StarRatingText.average(rating)
+                        Pill(title: "\(text) / 5", systemImage: "star.fill", tint: .orange)
+                            .accessibilityLabel("Note moyenne \(text) sur 5")
+                    } else {
+                        Pill(title: String(localized: "Nouveau"), systemImage: "sparkles", tint: .solidarite)
+                    }
                 }
             }
         }
         .accessibilityElement(children: .contain)
+    }
+
+    /// « Mirabel · comptoir à Saint-Michel ».
+    private var placeText: String? {
+        switch (profile.city, profile.neighborhood) {
+        case let (city?, neighborhood?) where city != neighborhood:
+            String(localized: "\(city) · comptoir à \(neighborhood)")
+        case let (city?, _): city
+        case let (nil, neighborhood?): String(localized: "Comptoir à \(neighborhood)")
+        case (nil, nil): nil
+        }
     }
 }
 
@@ -223,7 +278,7 @@ private struct Pill: View {
 
 // MARK: - Sections
 
-private struct SectionHeader: View {
+struct VendorSectionHeader: View {
     let title: String
     let systemImage: String
     var count: Int?
@@ -255,7 +310,7 @@ private struct AboutCard: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
-            SectionHeader(title: String(localized: "À propos"), systemImage: "text.quote")
+            VendorSectionHeader(title: String(localized: "À propos"), systemImage: "text.quote")
             Text(text)
                 .font(.body)
                 .foregroundStyle(.texte)
@@ -270,7 +325,7 @@ private struct ZonesSection: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
-            SectionHeader(title: String(localized: "Livre dans"), systemImage: "map.fill")
+            VendorSectionHeader(title: String(localized: "Livre dans"), systemImage: "map.fill")
             FlowLayout(spacing: 8) {
                 ForEach(zones) { zone in
                     Label(zone.label, systemImage: "mappin.circle.fill")
@@ -293,7 +348,7 @@ private struct OpenOffersSection: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
-            SectionHeader(title: String(localized: "Lots en cours"), systemImage: GrenierSymbol.offers, count: state.value?.count)
+            VendorSectionHeader(title: String(localized: "Lots en cours"), systemImage: GrenierSymbol.offers, count: state.value?.count)
             switch state {
             case .loaded(let offers):
                 ForEach(Array(offers.enumerated()), id: \.element.id) { index, item in
@@ -387,15 +442,16 @@ private struct OpenOfferCard: View {
 
 private struct CatalogSectionView: View {
     let state: LoadState<[PublicVendorViewModel.CatalogSection]>
+    var bestPrices: [String: Cents] = [:]
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
-            SectionHeader(title: String(localized: "Catalogue"), systemImage: "basket.fill",
+            VendorSectionHeader(title: String(localized: "Catalogue"), systemImage: "basket.fill",
                           count: state.value?.reduce(0) { $0 + $1.products.count })
             switch state {
             case .loaded(let sections):
                 ForEach(sections) { section in
-                    CategoryCard(section: section)
+                    CategoryCard(section: section, bestPrices: bestPrices)
                 }
             case .empty:
                 ContentUnavailableView {
@@ -415,6 +471,7 @@ private struct CatalogSectionView: View {
 
 private struct CategoryCard: View {
     let section: PublicVendorViewModel.CatalogSection
+    var bestPrices: [String: Cents] = [:]
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
@@ -425,7 +482,7 @@ private struct CategoryCard: View {
                 .accessibilityAddTraits(.isHeader)
             ForEach(section.products) { product in
                 if product.id != section.products.first?.id { Divider() }
-                ProductRow(product: product)
+                ProductRow(product: product, bestPrice: bestPrices[product.id])
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
@@ -435,12 +492,26 @@ private struct CategoryCard: View {
 
 private struct ProductRow: View {
     let product: Product
+    /// Meilleur prix d'une part dans un lot ouvert (T-157) ; nil sans lot ouvert.
+    var bestPrice: Cents?
 
     var body: some View {
         VStack(alignment: .leading, spacing: 4) {
-            Text(product.name)
-                .font(.body.weight(.semibold))
-                .foregroundStyle(.texte)
+            ViewThatFits(in: .horizontal) {
+                HStack(alignment: .firstTextBaseline) {
+                    Text(product.name)
+                        .font(.body.weight(.semibold))
+                        .foregroundStyle(.texte)
+                    Spacer(minLength: 8)
+                    price
+                }
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(product.name)
+                        .font(.body.weight(.semibold))
+                        .foregroundStyle(.texte)
+                    price
+                }
+            }
             FlowLayout(spacing: 12) {
                 Label(product.unit, systemImage: "scalemass.fill")
                 Label(product.origin, systemImage: "mappin")
@@ -453,6 +524,27 @@ private struct ProductRow: View {
             .foregroundStyle(.texteSecondaire)
         }
         .accessibilityElement(children: .combine)
+    }
+
+    @ViewBuilder private var price: some View {
+        if let bestPrice {
+            VStack(alignment: .trailing, spacing: 0) {
+                Text("dès \(Money.format(bestPrice))")
+                    .font(.subheadline.weight(.bold))
+                    .monospacedDigit()
+                    .foregroundStyle(Color.economie)
+                if product.referenceGroceryPriceCents > bestPrice {
+                    Text("épicerie \(Money.format(product.referenceGroceryPriceCents))")
+                        .font(.caption)
+                        .strikethrough()
+                        .foregroundStyle(.texteSecondaire)
+                }
+            }
+        } else if product.referenceGroceryPriceCents > 0 {
+            Text("épicerie \(Money.format(product.referenceGroceryPriceCents))")
+                .font(.caption)
+                .foregroundStyle(.texteSecondaire)
+        }
     }
 }
 

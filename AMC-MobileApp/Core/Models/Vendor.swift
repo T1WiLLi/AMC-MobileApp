@@ -25,4 +25,8 @@ nonisolated struct Vendor: Identifiable, Codable, Sendable, Hashable {
     /// Comptoir ou kiosque du producteur en ville (marché, entrepôt), en geohash, pour la carte des familles (T-091).
     /// nil : le producteur ne vend qu'aux points de cueillette et n'apparaît pas sur la carte.
     var storefrontGeohash: String? = nil
+    /// Ville du producteur (« Mirabel »), affichée sur sa page publique (T-157). Posée par le seed, pas par le client.
+    var city: String? = nil
+    /// Arrivée sur LeGrenier, pour l'ancienneté affichée aux familles (T-157). Posée par le seed, pas par le client.
+    var memberSince: Date? = nil
 }

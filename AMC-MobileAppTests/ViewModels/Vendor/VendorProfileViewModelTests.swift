@@ -16,8 +16,15 @@ struct VendorProfileViewModelTests {
         }
     }
 
+    /// Données de démo sans les photos de vitrine de la Ferme Bio-Rive (T-157), pour compter les photos ajoutées.
+    private static func withoutPhotos() -> AppRepositories {
+        var data = FakeData.montreal
+        for index in data.vendors.indices { data.vendors[index].photoURLs = [] }
+        return .fake(behavior: .instant, data: data)
+    }
+
     private func makeModel(
-        repositories: AppRepositories = .fake(behavior: .instant),
+        repositories: AppRepositories = Self.withoutPhotos(),
         photoStore: StubPhotoStore = StubPhotoStore()
     ) -> VendorProfileViewModel {
         VendorProfileViewModel(repositories: repositories, vendorId: ID.fermeRive, photoStore: photoStore)
@@ -53,7 +60,7 @@ struct VendorProfileViewModelTests {
     }
 
     @Test func savesEditableFieldsAndPersistsThem() async throws {
-        let repositories = AppRepositories.fake(behavior: .instant)
+        let repositories = Self.withoutPhotos()
         let model = makeModel(repositories: repositories)
         await model.load()
 

@@ -13,6 +13,7 @@ rules_version = '2';
 //                                        seul householdCount bouge, avec l'adhésion (T-099)
 //   groups/{id}/members/{householdId}    adhésion ; un ménage s'ajoute ou se retire lui-même
 //   vendors/{id}                         vendeur ; lecture connectée, le vendeur modifie sa vitrine
+//   vendorReviews/{vendorId}_{household} avis d'une famille (T-157) ; lecture connectée, écrit par le ménage acheteur
 //   products/{id}, offers/{id}           catalogue ; lecture connectée, écrit par le vendeur propriétaire
 //   groupOrders/{id}                     commande groupée ; lecture connectée, écriture serveur/seed seulement
 //   groupOrders/{id}/shares/{householdId} part d'un ménage ; le ménage la crée, change sa quantité, la retire
@@ -424,6 +425,55 @@ service cloud.firestore {
         && isStringList(request.resource.data.photoURLs, 10)
         && isStringList(request.resource.data.servedZones, 20);
       allow create, delete: if false;
+    }
+
+    // ---------------------------------------------------------------
+    // vendorReviews/{vendorId}_{householdId} — avis des familles sur un producteur (T-157)
+    // ---------------------------------------------------------------
+    // Champs : id (= id du doc), vendorId, householdId, authorName (prénom + initiale, 1..60),
+    //   rating (int 1..5), comment (string 0..500, optionnel), groupOrderId (commande livrée qui rend éligible),
+    //   createdAt, updatedAt (timestamps).
+    // Un avis par ménage et par producteur : l'id du doc est `${vendorId}_${householdId}`.
+    // Écrit seulement par un membre du ménage auteur, qui a reçu un lot de ce producteur : sa part existe dans
+    // une commande livrée (ou cueillie) d'un lot du vendeur. Modifiable (note, commentaire, nom, updatedAt),
+    // jamais réattribuable. Lisible par tout connecté (page producteur), supprimable par le ménage auteur.
+    // ---------------------------------------------------------------
+    function isValidReview(data, reviewId) {
+      return data.keys().hasOnly(['id', 'vendorId', 'householdId', 'authorName', 'rating', 'comment',
+                                  'groupOrderId', 'createdAt', 'updatedAt'])
+        && data.keys().hasAll(['id', 'vendorId', 'householdId', 'authorName', 'rating', 'groupOrderId',
+                               'createdAt', 'updatedAt'])
+        && isShortString(data.vendorId, 1, 128)
+        && isShortString(data.householdId, 1, 128)
+        && isShortString(data.groupOrderId, 1, 128)
+        && data.id == reviewId
+        && reviewId == data.vendorId + '_' + data.householdId
+        && isShortString(data.authorName, 1, 60)
+        && isIntIn(data.rating, 1, 5)
+        && isOptionalString(data, 'comment', 500)
+        && data.createdAt is timestamp
+        && data.updatedAt is timestamp;
+    }
+
+    // Le ménage a reçu un lot de ce vendeur via cette commande.
+    function hasReceivedLot(data) {
+      let orderPath = /databases/$(database)/documents/groupOrders/$(data.groupOrderId);
+      let sharePath = /databases/$(database)/documents/groupOrders/$(data.groupOrderId)/shares/$(data.householdId);
+      let order = get(orderPath).data;
+      return exists(orderPath) && exists(sharePath)
+        && get(/databases/$(database)/documents/offers/$(order.offerId)).data.vendorId == data.vendorId
+        && (order.status == 'delivered' || get(sharePath).data.get('isPickedUp', false) == true);
+    }
+
+    match /vendorReviews/{reviewId} {
+      allow read: if isAuthenticated();
+      allow create: if isValidReview(request.resource.data, reviewId)
+        && isMemberOfHousehold(request.resource.data.householdId)
+        && hasReceivedLot(request.resource.data);
+      allow update: if isValidReview(request.resource.data, reviewId)
+        && isMemberOfHousehold(resource.data.householdId)
+        && onlyChanges(['authorName', 'rating', 'comment', 'updatedAt']);
+      allow delete: if isMemberOfHousehold(resource.data.householdId);
     }
 
     // ---------------------------------------------------------------

@@ -869,3 +869,104 @@ describe('créer un groupe depuis l’app (B-059)', () => {
     await assertFails(createBatch(amina()))
   })
 })
+
+describe('vendorReviews (T-157)', () => {
+  const reviewId = 'vendor-lafleur_household-amina'
+  const review = (overrides: Record<string, unknown> = {}) => ({
+    id: reviewId, vendorId: 'vendor-lafleur', householdId: 'household-amina', authorName: 'Amina B.', rating: 5,
+    comment: 'Carottes très fraîches', groupOrderId: 'order-livree',
+    createdAt: Timestamp.fromMillis(Date.now()), updatedAt: Timestamp.fromMillis(Date.now()), ...overrides
+  })
+
+  beforeEach(async () => {
+    await env.withSecurityRulesDisabled(async (context) => {
+      const db = context.firestore()
+      await setDoc(doc(db, 'offers/offer-autre'), { ...offer, id: 'offer-autre', vendorId: 'vendor-autre' })
+      const order = { groupId: 'group-parc-extension', offerId: 'offer-carottes', committedShares: 2, committedHouseholds: 1, pickupSlots: [] }
+      await setDoc(doc(db, 'groupOrders/order-livree'), { ...order, id: 'order-livree', status: 'delivered' })
+      await setDoc(doc(db, 'groupOrders/order-livree/shares/household-amina'), share)
+      await setDoc(doc(db, 'groupOrders/order-cueillie'), { ...order, id: 'order-cueillie', status: 'closed' })
+      await setDoc(doc(db, 'groupOrders/order-cueillie/shares/household-amina'), { ...share, isPickedUp: true })
+      await setDoc(doc(db, 'groupOrders/order-attente'), { ...order, id: 'order-attente', status: 'closed' })
+      await setDoc(doc(db, 'groupOrders/order-attente/shares/household-amina'), share)
+      await setDoc(doc(db, 'groupOrders/order-sans-moi'), { ...order, id: 'order-sans-moi', status: 'delivered' })
+      await setDoc(doc(db, 'groupOrders/order-autre-vendeur'), { ...order, id: 'order-autre-vendeur', offerId: 'offer-autre', status: 'delivered' })
+      await setDoc(doc(db, 'groupOrders/order-autre-vendeur/shares/household-amina'), share)
+      await setDoc(doc(db, 'vendorReviews/vendor-lafleur_household-tremblay'), {
+        ...review(), id: 'vendor-lafleur_household-tremblay', householdId: 'household-tremblay', authorName: 'Julie T.'
+      })
+    })
+  })
+
+  test('connecté lit les avis d’un producteur', async () => {
+    await assertSucceeds(getDocs(query(collection(intruder(), 'vendorReviews'), where('vendorId', '==', 'vendor-lafleur'))))
+  })
+  test('anonyme ne lit pas les avis', async () => {
+    await assertFails(getDoc(doc(anonymous(), 'vendorReviews/vendor-lafleur_household-tremblay')))
+  })
+  test('le ménage qui a reçu le lot laisse un avis', async () => {
+    await assertSucceeds(setDoc(doc(amina(), `vendorReviews/${reviewId}`), review()))
+  })
+  test('sans commentaire, c’est permis', async () => {
+    const { comment: _comment, ...withoutComment } = review()
+    await assertSucceeds(setDoc(doc(amina(), `vendorReviews/${reviewId}`), withoutComment))
+  })
+  test('part cueillie d’une commande close : éligible', async () => {
+    await assertSucceeds(setDoc(doc(amina(), `vendorReviews/${reviewId}`), review({ groupOrderId: 'order-cueillie' })))
+  })
+  test('lot pas encore reçu : refusé', async () => {
+    await assertFails(setDoc(doc(amina(), `vendorReviews/${reviewId}`), review({ groupOrderId: 'order-attente' })))
+  })
+  test('commande livrée sans part du ménage : refusé', async () => {
+    await assertFails(setDoc(doc(amina(), `vendorReviews/${reviewId}`), review({ groupOrderId: 'order-sans-moi' })))
+  })
+  test('lot d’un autre producteur : refusé', async () => {
+    await assertFails(setDoc(doc(amina(), `vendorReviews/${reviewId}`), review({ groupOrderId: 'order-autre-vendeur' })))
+  })
+  test('commande inconnue : refusé', async () => {
+    await assertFails(setDoc(doc(amina(), `vendorReviews/${reviewId}`), review({ groupOrderId: 'order-fantome' })))
+  })
+  for (const rating of [0, 6, 4.5, '5']) {
+    test(`note ${JSON.stringify(rating)} refusée`, async () => {
+      await assertFails(setDoc(doc(amina(), `vendorReviews/${reviewId}`), review({ rating })))
+    })
+  }
+  test('commentaire de plus de 500 caractères refusé', async () => {
+    await assertFails(setDoc(doc(amina(), `vendorReviews/${reviewId}`), review({ comment: 'x'.repeat(501) })))
+  })
+  test('champ inconnu refusé', async () => {
+    await assertFails(setDoc(doc(amina(), `vendorReviews/${reviewId}`), review({ isVerified: true })))
+  })
+  test('un seul avis par ménage : id libre refusé', async () => {
+    await assertFails(setDoc(doc(amina(), 'vendorReviews/avis-2'), review({ id: 'avis-2' })))
+  })
+  test('un autre ne signe pas au nom du ménage', async () => {
+    await assertFails(setDoc(doc(intruder(), `vendorReviews/${reviewId}`), review()))
+  })
+  test('le vendeur ne s’écrit pas d’avis', async () => {
+    await assertFails(setDoc(doc(lafleur(), `vendorReviews/${reviewId}`), review()))
+  })
+  test('le ménage modifie sa note et son commentaire', async () => {
+    await assertSucceeds(setDoc(doc(amina(), `vendorReviews/${reviewId}`), review()))
+    await assertSucceeds(updateDoc(doc(amina(), `vendorReviews/${reviewId}`), {
+      rating: 3, comment: 'Finalement moyen', updatedAt: Timestamp.fromMillis(Date.now())
+    }))
+  })
+  test('modification : note hors limites refusée', async () => {
+    await assertSucceeds(setDoc(doc(amina(), `vendorReviews/${reviewId}`), review()))
+    await assertFails(updateDoc(doc(amina(), `vendorReviews/${reviewId}`), { rating: 9 }))
+  })
+  test('modification : commande ou date de création figées', async () => {
+    await assertSucceeds(setDoc(doc(amina(), `vendorReviews/${reviewId}`), review()))
+    await assertFails(updateDoc(doc(amina(), `vendorReviews/${reviewId}`), { groupOrderId: 'order-cueillie' }))
+    await assertFails(updateDoc(doc(amina(), `vendorReviews/${reviewId}`), { createdAt: Timestamp.fromMillis(0) }))
+  })
+  test('on ne modifie pas l’avis d’un autre ménage', async () => {
+    await assertFails(updateDoc(doc(amina(), 'vendorReviews/vendor-lafleur_household-tremblay'), { rating: 1 }))
+    await assertFails(deleteDoc(doc(amina(), 'vendorReviews/vendor-lafleur_household-tremblay')))
+  })
+  test('le ménage retire son avis', async () => {
+    await assertSucceeds(setDoc(doc(amina(), `vendorReviews/${reviewId}`), review()))
+    await assertSucceeds(deleteDoc(doc(amina(), `vendorReviews/${reviewId}`)))
+  })
+})

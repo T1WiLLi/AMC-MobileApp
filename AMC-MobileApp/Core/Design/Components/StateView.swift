@@ -34,11 +34,10 @@ struct StateView<Value: Sendable, Content: View>: View {
     var body: some View {
         switch state {
         case .idle, .loading:
-            ProgressView("Chargement…")
-                .accessibilityLabel("Chargement en cours")
+            LoadingStateView()
                 .modifier(StateBackground())
         case .empty:
-            ContentUnavailableView(empty.title, systemImage: empty.systemImage, description: Text(empty.message))
+            EmptyStateView(title: empty.title, systemImage: empty.systemImage, message: empty.message)
                 .modifier(StateBackground())
         case .failed(let error):
             ErrorStateView(error: error, retry: retry)
@@ -63,17 +62,96 @@ private struct StateBackground: ViewModifier {
     }
 }
 
+/// Illustration d'état : un symbole hiérarchique dans une pastille teintée (96 pt, suit Dynamic Type).
+struct StateIllustration: View {
+    let systemImage: String
+    var tint: Color = .grenier
+
+    @ScaledMetric(relativeTo: .largeTitle) private var side: CGFloat = 96
+
+    var body: some View {
+        Image(systemName: systemImage)
+            .font(.system(size: min(side, 160) * 0.44))
+            .symbolRenderingMode(.hierarchical)
+            .foregroundStyle(tint)
+            .frame(width: min(side, 160), height: min(side, 160))
+            .background(tint.opacity(0.12), in: .circle)
+            .overlay(Circle().strokeBorder(tint.opacity(0.18), lineWidth: 1))
+            .accessibilityHidden(true)
+    }
+}
+
+/// Chargement illustré : le lot « respire » (pulse, coupé sous Reduce Motion) au-dessus d'un indicateur.
+struct LoadingStateView: View {
+    var message: LocalizedStringKey = "Chargement…"
+
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
+    var body: some View {
+        VStack(spacing: 16) {
+            StateIllustration(systemImage: GrenierSymbol.offers)
+                .symbolEffect(.pulse, options: .repeating, isActive: !reduceMotion)
+            Label {
+                Text(message)
+            } icon: {
+                ProgressView()
+            }
+            .font(.subheadline)
+            .foregroundStyle(.texteSecondaire)
+        }
+        .padding()
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel("Chargement en cours")
+    }
+}
+
+/// État vide illustré : symbole dans une pastille Grenier, qui rebondit à l'apparition.
+struct EmptyStateView: View {
+    let title: LocalizedStringKey
+    let systemImage: String
+    let message: LocalizedStringKey
+
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @State private var appeared = false
+
+    var body: some View {
+        ContentUnavailableView {
+            VStack(spacing: 12) {
+                StateIllustration(systemImage: systemImage)
+                    .symbolEffect(.bounce, value: appeared && !reduceMotion)
+                Text(title)
+                    .font(.title2.bold())
+                    .foregroundStyle(.texte)
+                    .multilineTextAlignment(.center)
+                    .accessibilityAddTraits(.isHeader)
+            }
+        } description: {
+            Text(message)
+        }
+        .onAppear { appeared = true }
+    }
+}
+
 /// Vue d'erreur réutilisable : titre, explication et bouton Réessayer si l'erreur est passagère.
 struct ErrorStateView: View {
     let error: AppError
     var retry: (() async -> Void)?
 
     @State private var isRetrying = false
+    @State private var appeared = false
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     var body: some View {
         ContentUnavailableView {
-            Label(error.title, systemImage: error.systemImage)
-                .symbolRenderingMode(.hierarchical)
+            VStack(spacing: 12) {
+                StateIllustration(systemImage: error.systemImage)
+                    .symbolEffect(.wiggle, value: appeared && !reduceMotion)
+                Text(error.title)
+                    .font(.title2.bold())
+                    .foregroundStyle(.texte)
+                    .multilineTextAlignment(.center)
+                    .accessibilityAddTraits(.isHeader)
+            }
         } description: {
             Text(error.message)
         } actions: {
@@ -90,13 +168,17 @@ struct ErrorStateView: View {
                             .accessibilityLabel("Nouvel essai en cours")
                     } else {
                         Label("Réessayer", systemImage: "arrow.clockwise")
+                            .symbolRenderingMode(.hierarchical)
                     }
                 }
                 .buttonStyle(.glass)
+                .tint(.grenier)
                 .disabled(isRetrying)
                 .accessibilityHint("Relance le chargement")
             }
         }
+        .onAppear { appeared = true }
+        .grenierHaptic(.error, trigger: appeared) { _, new in new }
     }
 }
 

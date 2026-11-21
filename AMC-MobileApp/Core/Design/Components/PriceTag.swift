@@ -43,10 +43,16 @@ struct PriceTag: View {
     @ViewBuilder
     private var reference: some View {
         if let referenceCents, referenceCents > priceCents {
-            Text(Money.format(referenceCents))
-                .font(.subheadline)
-                .strikethrough()
-                .foregroundStyle(.texteSecondaire)
+            // Panier d'épicerie : le prix barré est celui du magasin, pas un ancien prix Grenier.
+            HStack(alignment: .firstTextBaseline, spacing: 3) {
+                Image(systemName: "cart.fill")
+                    .imageScale(.small)
+                    .symbolRenderingMode(.hierarchical)
+                Text(Money.format(referenceCents))
+                    .strikethrough()
+            }
+            .font(.subheadline)
+            .foregroundStyle(.texteSecondaire)
         }
     }
 

@@ -21,9 +21,10 @@ struct OfferCard: View {
                     Text("\(product.name) · \(offer.shareUnit)")
                         .font(.headline)
                         .foregroundStyle(.texte)
-                    Text("\(vendor.legalName) · ferme \(deadlineText)")
+                    Text("\(Image(systemName: vendor.isVerified ? "checkmark.seal.fill" : "storefront.fill")) \(vendor.legalName) · \(Image(systemName: "clock.fill")) ferme \(deadlineText)")
                         .font(.subheadline)
                         .foregroundStyle(.texteSecondaire)
+                        .symbolRenderingMode(.hierarchical)
                 }
                 if !isAccessibilityLayout { Spacer(minLength: 8) }
                 if savingsPercent > 0 {
@@ -35,14 +36,16 @@ struct OfferCard: View {
 
             footerLayout {
                 if let nudge = progressBar.shortNudge {
-                    Text(nudge)
+                    Label(nudge, systemImage: "arrow.up.forward.circle.fill")
                         .font(.subheadline.weight(.semibold))
                         .foregroundStyle(Color.grenier)
+                        .symbolRenderingMode(.hierarchical)
                         .monospacedDigit()
                 } else {
-                    Text(progressText)
+                    Label(progressText, systemImage: "person.2.fill")
                         .font(.subheadline)
                         .foregroundStyle(.texteSecondaire)
+                        .symbolRenderingMode(.hierarchical)
                         .monospacedDigit()
                 }
                 if !isAccessibilityLayout { Spacer(minLength: 8) }

@@ -34,6 +34,7 @@ struct PortalCard: View {
         }
         .buttonStyle(PortalCardButtonStyle())
         .grenierAnimation(.smooth, value: isSelected)
+        .grenierHaptic(.selection, trigger: isSelected)
         .accessibilityElement(children: .ignore)
         .accessibilityLabel(portal.title)
         .accessibilityValue(portal.tagline)

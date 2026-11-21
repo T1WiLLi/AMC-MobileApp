@@ -106,7 +106,6 @@ private struct GroupRow: View {
 
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
-    @ScaledMetric(relativeTo: .body) private var avatarSize: CGFloat = 34
 
     private var group: NeighborhoodGroup { item.group }
 
@@ -118,8 +117,7 @@ private struct GroupRow: View {
             NavigationLink(value: GroupRoute(groupId: group.id)) {
                 HStack(spacing: 12) {
                     AvatarStack(initials: [Self.initials(of: group.neighborhood)],
-                                extraCount: max(group.householdCount - 1, 0),
-                                size: avatarSize)
+                                extraCount: max(group.householdCount - 1, 0))
                     VStack(alignment: .leading, spacing: 2) {
                         Text(group.name)
                             .font(.headline)

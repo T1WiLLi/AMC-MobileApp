@@ -216,7 +216,7 @@ nonisolated final class FirestoreVolunteerDeliveryRepository: VolunteerDeliveryR
     }
 }
 
-private extension VolunteerDelivery.PrivateAddress {
+private nonisolated extension VolunteerDelivery.PrivateAddress {
     /// Le document s'appelle « address » : l'id de la demande vient du chemin, pas du nom du document.
     func withRequestId(_ id: String) -> Self {
         var copy = self

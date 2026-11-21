@@ -150,7 +150,8 @@ struct VolunteerDeliveryTests {
         let delivered = try VolunteerDelivery.deliver(onTheWay, by: "v1", now: now)
         let confirmed = try VolunteerDelivery.confirmReceipt(delivered, by: "h1", now: now)
         #expect(confirmed.receiptConfirmedAt == now)
-        #expect(VolunteerDelivery.steps(of: confirmed).allSatisfy(\.isDone))
+        let allDone = VolunteerDelivery.steps(of: confirmed).allSatisfy { $0.isDone }
+        #expect(allDone)
     }
 
     @Test func releaseAndCancel() throws {

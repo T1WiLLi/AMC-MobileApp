@@ -24,7 +24,11 @@ struct AMCMobileApp: App {
         _session = State(initialValue: SessionViewModel(auth: FirebaseSetup.makeAuthService(mode: mode)))
         let demo = DemoEnvironment(context: .launch(mode: mode), mode: mode)
         _demo = State(initialValue: demo)
-        let sessionContext = SessionContextStore()
+        // Démo de l'onboarding d'après l'inscription (T-156) : seulement sur les données fake, jamais avec Firebase.
+        let sessionContext = SessionContextStore(
+            forcesOnboarding: mode == .fake
+                && ProcessInfo.processInfo.arguments.contains(OnboardingKeys.demoOnboardingArgument)
+        )
         _sessionContext = State(initialValue: sessionContext)
         // Notifications locales sans serveur (T-107) : iOS réveille l'app, qui compare au dernier état connu.
         // Enregistré pendant le lancement, comme l'exige BGTaskScheduler ; le gestionnaire garde l'objet en vie.

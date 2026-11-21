@@ -26,12 +26,15 @@ final class SessionContextStore {
     private var user: AuthUser?
     private var base: AppContext = .unresolved
     private let defaults: UserDefaults
+    /// Démo (`-demoOnboarding`, mode `.fake` seulement) : rejoue l'onboarding sur le contexte de démo déjà résolu.
+    private let forcesOnboarding: Bool
 
     /// Groupe choisi en dernier (mémorisé par appareil) ; repris s'il fait encore partie des groupes du ménage.
     static let preferredGroupKey = "preferredGroupId"
 
-    init(defaults: UserDefaults = .standard) {
+    init(defaults: UserDefaults = .standard, forcesOnboarding: Bool = false) {
         self.defaults = defaults
+        self.forcesOnboarding = forcesOnboarding
     }
 
     /// Ménage actif de la session, `nil` sans contexte résolu ou sans ménage (rafraîchissement en arrière-plan).
@@ -47,6 +50,7 @@ final class SessionContextStore {
             self.user = user
             self.base = base
             context = base
+            if forcesOnboarding { context.needsOnboarding = true }
             phase = .ready
             return
         }
@@ -82,6 +86,17 @@ final class SessionContextStore {
             phase = .ready
         } catch {
             householdCreationError = AppError(error)
+        }
+    }
+
+    /// Onboarding fini (T-156) : préférences et ménage enregistrés par `OnboardingViewModel`.
+    /// Ouvre l'app avec le ménage choisi (créé si le compte n'en avait pas).
+    func completeOnboarding(householdId: String) {
+        guard context.isResolved else { return }
+        context.needsOnboarding = false
+        if !householdId.isEmpty, householdId != context.householdId {
+            context.householdId = householdId
+            context.groupId = nil
         }
     }
 

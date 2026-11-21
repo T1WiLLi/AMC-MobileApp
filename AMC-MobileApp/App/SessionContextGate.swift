@@ -17,6 +17,14 @@ struct SessionContextGate: View {
     var body: some View {
         Group {
             switch store.phase {
+            case .ready where store.context.needsOnboarding:
+                // Compte tout neuf (T-156) : préférences et ménage, puis le tableau de bord Familles.
+                PostSignupOnboardingScreen(model: PostSignupOnboardingViewModel(context: store.context)) { householdId in
+                    PostSignupOnboardingViewModel.openFamilyPortalIfChosen()
+                    store.completeOnboarding(householdId: householdId)
+                }
+                .id(store.context.userId)
+                .transition(.opacity)
             case .ready:
                 RootView()
                     .environment(\.appContext, store.context)
@@ -32,6 +40,7 @@ struct SessionContextGate: View {
             }
         }
         .grenierAnimation(.smooth, value: store.phase)
+        .grenierAnimation(.smooth, value: store.context.needsOnboarding)
         .environment(store)
         .task(id: user.id) { await store.load(for: user, base: base) }
     }
@@ -70,6 +79,13 @@ struct SessionLoadingView: View {
 
 #Preview("Chargement") {
     SessionLoadingView()
+}
+
+#Preview("Onboarding après l'inscription") {
+    SessionContextGate(user: .sample)
+        .environment(\.appContext, .instant)
+        .environment(SessionContextStore(defaults: UserDefaults(suiteName: "preview-onboarding")!, forcesOnboarding: true))
+        .environment(NetworkMonitor(startsMonitoring: false))
 }
 
 #Preview("Démo résolue") {

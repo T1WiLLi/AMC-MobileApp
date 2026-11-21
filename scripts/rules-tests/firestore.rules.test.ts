@@ -143,6 +143,52 @@ describe('households', () => {
   })
 })
 
+describe('onboarding après l’inscription (T-156)', () => {
+  const nouveau = () => env.authenticatedContext('nouveau').firestore()
+  const nouveauUser = { ...aminaUser, id: 'nouveau', displayName: 'Nouvelle', neighborhood: '', dietaryPreferences: [], householdId: 'household-nouveau' }
+  const nouveauHousehold = { id: 'household-nouveau', name: 'Ménage de Nouvelle', size: 1, geohash: '', userIds: ['nouveau'] }
+
+  test('compte neuf : ménage puis profil avec onboardingCompleted false', async () => {
+    const db = nouveau()
+    await assertSucceeds(setDoc(doc(db, 'households/household-nouveau'), nouveauHousehold))
+    await assertSucceeds(setDoc(doc(db, 'users/nouveau'), { ...nouveauUser, onboardingCompleted: false }))
+  })
+  test('fin de l’onboarding : ménage (nom, taille, geohash) puis profil (goûts, quartier, drapeau)', async () => {
+    await env.withSecurityRulesDisabled(async (context) => {
+      const db = context.firestore()
+      await setDoc(doc(db, 'households/household-nouveau'), nouveauHousehold)
+      await setDoc(doc(db, 'users/nouveau'), { ...nouveauUser, onboardingCompleted: false })
+    })
+    const db = nouveau()
+    await assertSucceeds(setDoc(doc(db, 'households/household-nouveau'),
+      { ...nouveauHousehold, name: 'Famille Benali', size: 4, geohash: 'f25dv' }, { merge: true }))
+    await assertSucceeds(setDoc(doc(db, 'users/nouveau'), {
+      ...nouveauUser, neighborhood: 'Saint-Michel', dietaryPreferences: ['halal', 'glutenFree'],
+      favoriteCategories: ['grains', 'eggs', 'produce'], onboardingCompleted: true
+    }, { merge: true }))
+  })
+  test('profil d’avant T-156 sans les nouveaux champs : toujours valide', async () => {
+    await assertSucceeds(updateDoc(doc(amina(), 'users/amina'), { neighborhood: 'Villeray' }))
+  })
+  test('catégorie inconnue refusée', async () => {
+    await assertFails(updateDoc(doc(amina(), 'users/amina'), { favoriteCategories: ['grains', 'alcool'] }))
+  })
+  test('catégories en liste seulement, 9 au plus', async () => {
+    await assertFails(updateDoc(doc(amina(), 'users/amina'), { favoriteCategories: 'grains' }))
+    await assertFails(updateDoc(doc(amina(), 'users/amina'), { favoriteCategories: Array(10).fill('grains') }))
+  })
+  test('onboardingCompleted booléen seulement', async () => {
+    await assertFails(updateDoc(doc(amina(), 'users/amina'), { onboardingCompleted: 'oui' }))
+    await assertSucceeds(updateDoc(doc(amina(), 'users/amina'), { onboardingCompleted: true }))
+  })
+  test('n’écrit pas l’onboarding d’un autre', async () => {
+    await assertFails(updateDoc(doc(intruder(), 'users/amina'), { onboardingCompleted: true }))
+  })
+  test('étranger ne renomme pas le ménage d’un autre', async () => {
+    await assertFails(updateDoc(doc(intruder(), 'households/household-amina'), { name: 'Pirates', size: 2 }))
+  })
+})
+
 describe('groups/members', () => {
   const groupPath = 'groups/group-parc-extension'
   const memberPath = `${groupPath}/members/household-amina`

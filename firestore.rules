@@ -97,7 +97,7 @@ service cloud.firestore {
     function isValidUser(data) {
       return data.keys().hasOnly(['id', 'displayName', 'photoURL', 'language', 'roles', 'neighborhood',
                                   'dietaryPreferences', 'seniorMode', 'householdId', 'vendorId',
-                                  'photoUpdatedAt'])
+                                  'photoUpdatedAt', 'favoriteCategories', 'onboardingCompleted'])
         && data.keys().hasAll(['id', 'displayName', 'language', 'roles', 'neighborhood',
                                'dietaryPreferences', 'seniorMode'])
         && isShortString(data.displayName, 1, 80)
@@ -110,7 +110,13 @@ service cloud.firestore {
         && isOptionalString(data, 'photoURL', 2048)
         && isOptionalString(data, 'householdId', 128)
         // Avatar en bytes (T-132) : horodatage posé avec l'image, pour invalider le cache des autres appareils.
-        && (!('photoUpdatedAt' in data) || data.photoUpdatedAt == null || data.photoUpdatedAt is timestamp);
+        && (!('photoUpdatedAt' in data) || data.photoUpdatedAt == null || data.photoUpdatedAt is timestamp)
+        // Onboarding après l'inscription (T-156) : catégories aimées (Product.Category) et drapeau « fini ».
+        && (!('favoriteCategories' in data) || data.favoriteCategories == null
+            || (isStringList(data.favoriteCategories, 9)
+                && data.favoriteCategories.toSet().difference(['grains', 'legumes', 'oils', 'flour', 'canned',
+                                                               'eggs', 'meat', 'produce', 'household'].toSet()).size() == 0))
+        && (!('onboardingCompleted' in data) || data.onboardingCompleted == null || data.onboardingCompleted is bool);
     }
 
     match /users/{userId} {

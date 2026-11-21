@@ -12,6 +12,8 @@ struct GroupDetailScreen: View {
     @State private var viewModel: GroupDetailViewModel?
     /// T-122 : photo et bannière du groupe (proposées au coordinateur seulement).
     @State private var imageEditor: GroupImageEditorViewModel?
+    /// B-036 : feuille « Marque du groupe » (coordinateur seulement).
+    @State private var brandingEditor: GroupBrandingEditorViewModel?
 
     /// Thème du groupe chargé (Grenier tant qu'il charge).
     private var theme: GroupTheme {
@@ -54,6 +56,15 @@ struct GroupDetailScreen: View {
         .navigationTitle(theme.displayName ?? "Groupe")
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
+            if let group = viewModel?.state.value?.group, viewModel?.isCoordinator == true {
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button("Marque du groupe", systemImage: "paintpalette") {
+                        brandingEditor = GroupBrandingEditorViewModel(
+                            repositories: context.repositories, group: group, userId: context.userId
+                        )
+                    }
+                }
+            }
             if let group = viewModel?.state.value?.group {
                 ToolbarItem(placement: .topBarTrailing) {
                     ShareLink(item: GroupInvite.message(for: group)) {
@@ -63,6 +74,11 @@ struct GroupDetailScreen: View {
             }
         }
         .refreshable { await viewModel?.load() }
+        .sheet(item: $brandingEditor) { editor in
+            GroupBrandingEditorScreen(viewModel: editor) { updated in
+                viewModel?.replaceGroup(updated)
+            }
+        }
         .alert(
             viewModel?.actionError?.title ?? "",
             isPresented: Binding(

@@ -167,6 +167,18 @@ nonisolated struct CachedGroupRepository: GroupRepository {
         }
     }
 
+    /// B-036 : la fiche et les listes qui contiennent le groupe sont relues avec la nouvelle marque.
+    func updateBranding(_ branding: GroupBranding, ofGroup groupId: String, byUserId userId: String) async throws {
+        try await base.updateBranding(branding, ofGroup: groupId, byUserId: userId)
+        await cache.invalidate(.group(groupId))
+        await cache.invalidate { key in
+            switch key {
+            case .groupsInNeighborhood, .groupsOfHousehold: true
+            default: false
+            }
+        }
+    }
+
     func observeGroup(id: String) async -> AsyncThrowingStream<NeighborhoodGroup, any Error> {
         let cache = cache
         return relayingSnapshots(

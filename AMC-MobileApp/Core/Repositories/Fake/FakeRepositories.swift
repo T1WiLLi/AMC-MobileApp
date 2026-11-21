@@ -131,6 +131,15 @@ actor FakeGroupRepository: GroupRepository {
         update(group)
     }
 
+    func updateBranding(_ branding: GroupBranding, ofGroup groupId: String, byUserId userId: String) async throws {
+        try await behavior.simulate()
+        guard var group = groups[groupId] else { throw AppError.notFound }
+        // Même règle que firestore.rules (B-036) : seul un coordinateur change la marque.
+        guard group.coordinatorIds.contains(userId) else { throw AppError.permissionDenied }
+        group.branding = branding == GroupBranding() ? nil : branding
+        update(group)
+    }
+
     private func update(_ group: NeighborhoodGroup) {
         groups[group.id] = group
         broadcaster.send(group, for: group.id)

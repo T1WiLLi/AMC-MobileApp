@@ -131,6 +131,18 @@ nonisolated final class FirestoreGroupRepository: GroupRepository, @unchecked Se
         }
     }
 
+    /// B-036 : remplace tout le champ `branding` (les champs nil sont omis = valeur par défaut).
+    /// firestore.rules : coordinateur seulement, rien d'autre ne bouge.
+    func updateBranding(_ branding: GroupBranding, ofGroup groupId: String, byUserId userId: String) async throws {
+        _ = try await group(id: groupId)
+        do {
+            let data = try Firestore.Encoder().encode(branding)
+            try await groupRef(groupId).updateData(["branding": data])
+        } catch {
+            throw FirestoreGroupOrderRepository.appError(from: error)
+        }
+    }
+
     /// Adhésion + compteur dans un seul batch : les règles refusent l'un sans l'autre.
     private func changeMembership(groupId: String, householdId: String, joining: Bool) async throws {
         _ = try await group(id: groupId)

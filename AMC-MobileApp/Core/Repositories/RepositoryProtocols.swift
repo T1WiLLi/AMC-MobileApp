@@ -31,9 +31,17 @@ nonisolated protocol GroupRepository: Sendable {
     /// (`coordinatorIds`) le peut : `.permissionDenied` sinon, `.notFound` si le groupe n'existe pas.
     /// L'image elle-même est dans `AppRepositories.images` ; `url` est son URL versionnée.
     func updateImage(_ kind: GroupImageKind, url: URL?, ofGroup groupId: String, byUserId userId: String) async throws
+    /// B-036 : remplace la marque du groupe (`branding`). Seul un coordinateur le peut :
+    /// `.permissionDenied` sinon, `.notFound` si le groupe n'existe pas. `GroupBranding()` = marque par défaut.
+    func updateBranding(_ branding: GroupBranding, ofGroup groupId: String, byUserId userId: String) async throws
 }
 
 extension GroupRepository {
+    /// Par défaut (dépôt qui ne l'implémente pas encore) : refus explicite plutôt qu'un succès silencieux.
+    func updateBranding(_ branding: GroupBranding, ofGroup groupId: String, byUserId userId: String) async throws {
+        throw AppError.unknown("updateBranding n'est pas encore branché sur ce dépôt.")
+    }
+
     /// Par défaut (dépôt qui ne l'implémente pas encore) : refus explicite plutôt qu'un succès silencieux.
     func updateImage(_ kind: GroupImageKind, url: URL?, ofGroup groupId: String, byUserId userId: String) async throws {
         throw AppError.unknown("updateImage n'est pas encore branché sur ce dépôt.")

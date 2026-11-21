@@ -1,12 +1,13 @@
 // FirestoreGroupRepository.swift
 // Dépôt Firestore des groupes de quartier (`groups/{id}`) et de leurs membres
 // (`groups/{id}/members/{householdId}`) — B-017.
-// Même comportement que `FakeGroupRepository`, à une différence près (voir `join`).
+// Même comportement que `FakeGroupRepository`.
 //
 // Règles (`firestore.rules`) : tout utilisateur connecté lit les groupes et leurs membres ;
-// un ménage s'ajoute (rôle `member`) ou se retire lui-même ; le document du groupe n'est jamais
-// écrit par le client. Conséquence : `householdCount` est tenu par le seed (ou un futur processus
-// de confiance), pas par `join` / `leave`.
+// un ménage s'ajoute (rôle `member`) ou se retire lui-même. Sans serveur, `join` / `leave` tiennent
+// `householdCount` eux-mêmes (T-099) : un batch atomique écrit l'adhésion et `householdCount` ±1,
+// avec `lastMembershipChange` = le ménage concerné, que les règles vérifient. Le compteur et les
+// adhésions ne peuvent donc pas diverger.
 
 #if canImport(FirebaseFirestore)
 import Foundation
@@ -103,32 +104,39 @@ nonisolated final class FirestoreGroupRepository: GroupRepository, @unchecked Se
 
     // MARK: - Écritures
 
-    /// Ajoute le ménage au groupe ; sans effet s'il en fait déjà partie.
-    /// Contrairement au fake, `householdCount` ne bouge pas : les règles interdisent au client
-    /// d'écrire le document du groupe.
+    /// Ajoute le ménage au groupe et incrémente `householdCount` ; sans effet s'il en fait déjà partie.
     func join(groupId: String, householdId: String) async throws {
-        _ = try await group(id: groupId)
-        let ref = membersRef(groupId).document(householdId)
-        do {
-            if try await ref.getDocument().exists { return }
-            // `joinedAt` doit valoir `request.time` pour les règles : horodatage du serveur.
-            try await ref.setData([
-                "householdId": householdId,
-                "role": GroupMember.Role.member.rawValue,
-                "joinedAt": FieldValue.serverTimestamp(),
-            ])
-        } catch {
-            throw FirestoreGroupOrderRepository.appError(from: error)
-        }
+        try await changeMembership(groupId: groupId, householdId: householdId, joining: true)
     }
 
-    /// Retire le ménage du groupe ; sans effet s'il n'en fait pas partie.
+    /// Retire le ménage du groupe et décrémente `householdCount` ; sans effet s'il n'en fait pas partie.
     func leave(groupId: String, householdId: String) async throws {
+        try await changeMembership(groupId: groupId, householdId: householdId, joining: false)
+    }
+
+    /// Adhésion + compteur dans un seul batch : les règles refusent l'un sans l'autre.
+    private func changeMembership(groupId: String, householdId: String, joining: Bool) async throws {
         _ = try await group(id: groupId)
-        let ref = membersRef(groupId).document(householdId)
+        let memberRef = membersRef(groupId).document(householdId)
         do {
-            guard try await ref.getDocument().exists else { return }
-            try await ref.delete()
+            let isMember = try await memberRef.getDocument().exists
+            guard isMember != joining else { return }
+            let batch = db.batch()
+            if joining {
+                // `joinedAt` doit valoir `request.time` pour les règles : horodatage du serveur.
+                batch.setData([
+                    "householdId": householdId,
+                    "role": GroupMember.Role.member.rawValue,
+                    "joinedAt": FieldValue.serverTimestamp(),
+                ], forDocument: memberRef)
+            } else {
+                batch.deleteDocument(memberRef)
+            }
+            batch.updateData([
+                "householdCount": FieldValue.increment(Int64(joining ? 1 : -1)),
+                "lastMembershipChange": householdId,
+            ], forDocument: groupRef(groupId))
+            try await batch.commit()
         } catch {
             throw FirestoreGroupOrderRepository.appError(from: error)
         }

@@ -102,6 +102,7 @@ struct FirestoreUserGroupRepositoryTests {
     }
 
     @Test func joinIsIdempotentAndLeaveRemovesTheMembership() async throws {
+        // T-099 : join / leave tiennent aussi householdCount (batch atomique avec l'adhésion).
         let suffix = UUID().uuidString.prefix(6).lowercased()
         let groupId = "g-\(suffix)"
         try await Self.seedGroup(groupId, name: "Parc-Ex Nord", neighborhood: "Parc-Extension")
@@ -118,11 +119,13 @@ struct FirestoreUserGroupRepositoryTests {
         #expect(members.map(\.householdId) == [householdId])
         #expect(members.first?.role == .member)
         #expect(try await groups.groups(ofHousehold: householdId).map(\.id) == [groupId])
+        #expect(try await groups.group(id: groupId).householdCount == 1)
 
         try await groups.leave(groupId: groupId, householdId: householdId)
         try await groups.leave(groupId: groupId, householdId: householdId)
         #expect(try await groups.members(ofGroup: groupId).isEmpty)
         #expect(try await groups.groups(ofHousehold: householdId).isEmpty)
+        #expect(try await groups.group(id: groupId).householdCount == 0)
     }
 
     @Test func joiningForAnotherHouseholdIsDenied() async throws {

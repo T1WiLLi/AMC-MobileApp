@@ -1,23 +1,7 @@
 import SwiftUI
 
-/// Les 7 sphères de Montréal que Grenier bonifie, avec ce qu'on en mesure dans un `ImpactSnapshot`.
-enum ImpactSphere: String, CaseIterable, Identifiable, Sendable {
-    case foodSecurity, localEconomy, neighborhoodLife, environment, mobility, inclusion, health
-
-    var id: String { rawValue }
-
-    var title: String {
-        switch self {
-        case .foodSecurity: "Sécurité alimentaire"
-        case .localEconomy: "Économie locale"
-        case .neighborhoodLife: "Vie de quartier"
-        case .environment: "Environnement"
-        case .mobility: "Mobilité"
-        case .inclusion: "Inclusion"
-        case .health: "Santé"
-        }
-    }
-
+/// Présentation des 7 sphères (`ImpactSphere`, défini dans `ImpactMetrics.swift`) : icône, teinte et mesure d'un `ImpactSnapshot`.
+extension ImpactSphere {
     var systemImage: String {
         switch self {
         case .foodSecurity: "basket.fill"

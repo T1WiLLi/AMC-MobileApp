@@ -26,6 +26,34 @@ struct ProfileScreen: View {
                     Text("Un même compte peut acheter en famille et vendre comme producteur.")
                 }
 
+                // T-075 : profil famille (RQ-015, RQ-017 à RQ-020), écrans dans Features/Profile/.
+                Section("Ma famille") {
+                    NavigationLink {
+                        HouseholdProfileLink()
+                    } label: {
+                        Label("Mon ménage", systemImage: "house.fill")
+                    }
+                    NavigationLink {
+                        PreferencesLink()
+                    } label: {
+                        Label("Préférences", systemImage: "slider.horizontal.3")
+                    }
+                }
+
+                if portal == .family {
+                    // T-105 (RQ-099, RQ-100) : planificateur de besoins du mois.
+                    Section {
+                        NavigationLink {
+                            NeedsPlannerScreen()
+                        } label: {
+                            Label("Planifier mon mois", systemImage: "list.bullet.clipboard.fill")
+                                .symbolRenderingMode(.hierarchical)
+                        }
+                    } footer: {
+                        Text("Tes besoins et ton budget, et les lots qui y répondent.")
+                    }
+                }
+
                 if let appLock {
                     SecuritySection(lock: appLock)
                 }

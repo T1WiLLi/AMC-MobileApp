@@ -7,19 +7,19 @@ struct ProfileScreen: View {
     @Environment(SessionViewModel.self) private var session: SessionViewModel?
     /// Optionnel : absent dans les previews sans verrou.
     @Environment(AppLock.self) private var appLock: AppLock?
+    @Environment(\.dismiss) private var dismiss
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    /// Portail touché, pour l'haptique (part avant la fermeture de la feuille).
+    @State private var pendingPortal: Portal?
 
     var body: some View {
         NavigationStack {
             Form {
                 Section {
-                    Picker("Portail actif", selection: $portal) {
-                        ForEach(Portal.allCases) { portal in
-                            Label(portal.title, systemImage: portal.systemImage)
-                                .tag(portal)
-                        }
-                    }
-                    .pickerStyle(.inline)
-                    .labelsHidden()
+                    portalCards
+                        .listRowInsets(EdgeInsets(top: 4, leading: 0, bottom: 4, trailing: 0))
+                        .listRowBackground(Color.clear)
                 } header: {
                     Text("Portail")
                 } footer: {
@@ -48,7 +48,39 @@ struct ProfileScreen: View {
                 }
             }
             .navigationTitle("Profil")
-            .sensoryFeedback(.selection, trigger: portal)
+            .sensoryFeedback(.selection, trigger: pendingPortal) { _, new in new != nil }
+        }
+    }
+
+    /// Cartes compactes côte à côte, empilées sous Dynamic Type accessibilité.
+    private var portalCards: some View {
+        let layout = dynamicTypeSize.isAccessibilitySize
+            ? AnyLayout(VStackLayout(spacing: 12))
+            : AnyLayout(HStackLayout(alignment: .top, spacing: 12))
+        return layout {
+            ForEach(Portal.allCases) { item in
+                PortalCard(portal: item, isSelected: (pendingPortal ?? portal) == item, size: .compact) {
+                    switchPortal(to: item)
+                }
+            }
+        }
+        // Deux cartes de même hauteur côte à côte.
+        .fixedSize(horizontal: false, vertical: true)
+    }
+
+    /// Haptique et coche tout de suite, puis fermeture animée de la feuille, puis bascule.
+    /// Basculer d'abord détruirait la barre d'onglets qui présente la feuille : elle disparaîtrait d'un coup.
+    private func switchPortal(to newPortal: Portal) {
+        guard newPortal != portal, pendingPortal == nil else { return }
+        withAnimation(.smooth) { pendingPortal = newPortal }
+        Task { @MainActor in
+            try? await Task.sleep(for: .milliseconds(250))
+            dismiss()
+            try? await Task.sleep(for: .milliseconds(reduceMotion ? 150 : 400))
+            withAnimation(reduceMotion ? nil : .smooth) {
+                portal = newPortal
+            }
+            pendingPortal = nil
         }
     }
 }

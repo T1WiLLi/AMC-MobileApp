@@ -158,6 +158,11 @@ actor FakeVendorRepository: VendorRepository {
         products[product.id] = product
     }
 
+    func deleteProduct(id: String) async throws {
+        try await behavior.simulate()
+        guard products.removeValue(forKey: id) != nil else { throw AppError.notFound }
+    }
+
     func saveVendor(_ vendor: Vendor) async throws {
         try await behavior.simulate()
         guard let current = vendors[vendor.id] else { throw AppError.notFound }

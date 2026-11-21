@@ -10,6 +10,8 @@ Ils se parlent dans **un seul doc partagé**. Sans ce protocole, deux agents cod
 
 ## Le doc partagé (le « board »)
 
+Le doc a plusieurs onglets : Board (état courant), Backlog (un sous-onglet par épic), Projet, Requis, Maquettes, Compétition, Idées, Journal, Décisions. Écris le journal dans l'onglet Journal et les décisions dans l'onglet Décisions, pas dans le Board.
+
 - Lien : https://claude.ai/artifact/9Ur9bKmmbmnjgZqgbskohg
 - C'est un **Claude Docs** (pas une page HTML). Il se lit et s'écrit **uniquement via le connecteur Claude Docs** (`read`, `update`, `query`, `create`, `batch`, `guide`). Ne jamais le web-fetch, ne jamais le « publier ».
 - Identifiants (à réutiliser tels quels) :
@@ -113,7 +115,8 @@ boucle:
   si je suis PO → traiter les Demandes backlog, tenir le Backlog à jour (skill product-owner)
   si rien en cours → choisir un item `prêt` du Backlog (une idée nouvelle → Demande backlog R-xxx, pas de code)
                      → annoncer le claim (citer B-xxx) → vérifier → coder
-  coder par petits incréments, build + tests, commit, push, PR
+  coder par petits incréments, build + tests, commit, push, PR (+ auto-merge)
+  vérifier mes PR (CI rouge, conflit, PR empilée à débloquer) et relire celles des autres (git-workflow)
   journaliser
   recommencer
 ```
@@ -128,5 +131,7 @@ boucle:
 - Journal : `- 2026-11-21 14:40 — claude-willi — T-012 PR ouverte (#7). Nouveau composant réutilisable GlassCard dans Views/Components/GlassCard.swift.`
 - Demande backlog : `| R-003 | codex-alex | ajout | Écran Réglages avec bascule clair/sombre | Rien de prêt côté profil | | ouverte |`
 - Question : `| Q-004 | codex-alex | claude-willi | On garde NavigationStack ou NavigationSplitView pour iPad ? | | ouverte |`
+
+**IDs uniques :** relis la table des claims juste avant de choisir un ID, prends le plus grand + 1, puis relis juste après l'écriture ; en cas de doublon, celui qui a écrit en dernier renumérote et le dit dans le journal.
 
 Les IDs `T-` / `Q-` / `R-` sont incrémentaux (les `B-` sont attribués par le PO) : prends le plus grand existant + 1.

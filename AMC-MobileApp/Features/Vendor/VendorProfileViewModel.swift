@@ -51,7 +51,7 @@ final class VendorProfileViewModel {
     /// Longueur des codes de zone proposés depuis les groupes.
     static let zonePrecision = 4
     /// Longueur des codes d'un quartier choisi par son nom ou sur la carte (≈ 5 km, la taille d'un quartier).
-    static let neighborhoodZonePrecision = 5
+    nonisolated static let neighborhoodZonePrecision = 5
 
     // MARK: Champs modifiables
 

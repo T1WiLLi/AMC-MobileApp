@@ -1,186 +1,3211 @@
 {
-  "sourceLanguage": "fr",
-  "strings": {
-    "Changer d'adresse": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Use another address"
+  "sourceLanguage" : "fr",
+  "strings" : {
+    "" : {
+
+    },
+    "·" : {
+
+    },
+    "« %@ »" : {
+
+    },
+    "/%@" : {
+
+    },
+    "%@ : %@" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$@ : %2$@"
           }
         }
       }
     },
-    "Courriel": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Email"
+    "%@ : %@, %@" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$@ : %2$@, %3$@"
           }
         }
       }
     },
-    "Créer un compte": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Create account"
+    "%@ · %@" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$@ · %2$@"
           }
         }
       }
     },
-    "C’est reparti ! Regarde aussi dans tes courriels indésirables.": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Sent again! Check your spam folder too."
+    "%@ · %@ · %@" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$@ · %2$@ · %3$@"
           }
         }
       }
     },
-    "J'ai vérifié mon courriel": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "I've verified my email"
+    "%@ · %@ sur %lld" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$@ · %2$@ sur %3$lld"
           }
         }
       }
     },
-    "Mot de passe": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Password"
+    "%@ · %lld × %@" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$@ · %2$lld × %3$@"
           }
         }
       }
     },
-    "Mot de passe oublié ?": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Forgot password?"
+    "%@ · %lld parts sur %lld" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$@ · %2$lld parts sur %3$lld"
           }
         }
       }
     },
-    "On t'a envoyé un lien à %@. Touche-le pour activer ton compte, puis reviens ici.": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "We sent a link to %@. Tap it to activate your account, then come back here."
+    "%@ · payé à la cueillette" : {
+
+    },
+    "%@ %@ · %@ %@" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$@ %2$@ · %3$@ %4$@"
           }
         }
       }
     },
-    "Ouvrir Mail": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Open Mail"
+    "%@ %@ · %@ se termine %@" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$@ %2$@ · %3$@ se termine %4$@"
           }
         }
       }
     },
-    "Pas encore vérifié. Touche le lien dans le courriel, puis reviens ici.": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Not verified yet. Tap the link in the email, then come back here."
+    "%@ à %@" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$@ à %2$@"
           }
         }
       }
     },
-    "Possible dans %lld secondes": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Available in %lld seconds"
+    "%@ d'économie prévue, besoins couverts à %lld %%" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$@ d'économie prévue, besoins couverts à %2$lld %%"
           }
         }
       }
     },
-    "Prénom": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "First name"
+    "%@ dans le fonds de %@" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$@ dans le fonds de %2$@"
           }
         }
       }
     },
-    "Renvoyer dans %lld s": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Resend in %lld s"
+    "%@ économisés avec ton groupe, %@" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$@ économisés avec ton groupe, %2$@"
           }
         }
       }
     },
-    "Renvoyer le courriel": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Resend email"
+    "%@ en épicerie" : {
+
+    },
+    "%@ est enregistré" : {
+
+    },
+    "%@ L'app ne vide jamais Firestore elle-même : relance-la ensuite pour repartir de l'accueil." : {
+
+    },
+    "%@ le panier" : {
+
+    },
+    "%@ manquent" : {
+
+    },
+    "%@ n'ont pas assez dans leur fonds pour leurs familles aidées." : {
+
+    },
+    "%@ par demande" : {
+
+    },
+    "%@ par mois" : {
+
+    },
+    "%@ pour %@" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$@ pour %2$@"
           }
         }
       }
     },
-    "Se connecter": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Sign in"
+    "%@ recevront leur panier à la prochaine commande, sans que personne sache qui." : {
+
+    },
+    "%@ sur %@" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$@ sur %2$@"
           }
         }
       }
     },
-    "Te déconnecte pour utiliser un autre courriel": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Signs you out to use another email"
+    "%@ utilisés · reste %@" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$@ utilisés · reste %2$@"
           }
         }
       }
     },
-    "Vérifie ton courriel": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Check your email"
+    "%@, %@" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$@, %2$@"
           }
         }
       }
     },
-    "ou": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "or"
+    "%@, %@. %@ · %@" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$@, %2$@. %3$@ · %4$@"
           }
         }
       }
+    },
+    "%@, %@%@" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$@, %2$@%3$@"
+          }
+        }
+      }
+    },
+    "%@, %lld" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$@, %2$lld"
+          }
+        }
+      }
+    },
+    "%@, ferme %@, %@." : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$@, ferme %2$@, %3$@."
+          }
+        }
+      }
+    },
+    "%@. %@ %@" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$@. %2$@ %3$@"
+          }
+        }
+      }
+    },
+    "%lld" : {
+
+    },
+    "%lld / %lld" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$lld / %2$lld"
+          }
+        }
+      }
+    },
+    "%lld %@" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$lld %2$@"
+          }
+        }
+      }
+    },
+    "%lld %@ en forte demande" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$lld %2$@ en forte demande"
+          }
+        }
+      }
+    },
+    "%lld %%" : {
+
+    },
+    "%lld × %@" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$lld × %2$@"
+          }
+        }
+      }
+    },
+    "%lld $" : {
+
+    },
+    "%lld caractères" : {
+
+    },
+    "%lld caractères au plus." : {
+
+    },
+    "%lld caractères sur %lld" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$lld caractères sur %2$lld"
+          }
+        }
+      }
+    },
+    "%lld familles" : {
+
+    },
+    "%lld kg" : {
+
+    },
+    "%lld ménages au plus" : {
+
+    },
+    "%lld ménages ont déjà réservé. Retirer leur créneau annule leur réservation." : {
+
+    },
+    "%lld paliers" : {
+
+    },
+    "%lld paniers" : {
+
+    },
+    "%lld paniers sur %lld" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$lld paniers sur %2$lld"
+          }
+        }
+      }
+    },
+    "%lld paniers suspendus" : {
+
+    },
+    "%lld parts" : {
+
+    },
+    "%lld personnes" : {
+
+    },
+    "%lld pour cent moins cher qu'en épicerie" : {
+
+    },
+    "%lld sur %lld" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$lld sur %2$lld"
+          }
+        }
+      }
+    },
+    "%lld sur %lld récupérés" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$lld sur %2$lld récupérés"
+          }
+        }
+      }
+    },
+    "%lld/%lld" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$lld/%2$lld"
+          }
+        }
+      }
+    },
+    "%lld%@ : %@, %lld parts, %@" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$lld%2$@ : %3$@, %4$lld parts, %5$@"
+          }
+        }
+      }
+    },
+    "−%@ vs épicerie" : {
+
+    },
+    "−%lld %%" : {
+
+    },
+    "≈ %@ par mois" : {
+
+    },
+    "$" : {
+
+    },
+    "0" : {
+
+    },
+    "0,00" : {
+
+    },
+    "1 234,56 $" : {
+
+    },
+    "1 part" : {
+
+    },
+    "1 personne" : {
+
+    },
+    "2 km" : {
+
+    },
+    "2,60 $/kg" : {
+
+    },
+    "3 lots ouverts · surtout les pommes" : {
+
+    },
+    "3,50" : {
+
+    },
+    "5 taps ou appui long sur la version, dans le Profil" : {
+
+    },
+    "12 familles · 24 parts sur 40 · 480 $" : {
+
+    },
+    "12 ménages · 3 lots ouverts" : {
+
+    },
+    "27 familles · Quartier · 900 m" : {
+
+    },
+    "42" : {
+
+    },
+    "7420 rue Ogilvy, Montréal" : {
+
+    },
+    "à %@ chacun" : {
+
+    },
+    "À jour" : {
+
+    },
+    "À lancer depuis la racine du repo" : {
+
+    },
+    "À partir de" : {
+
+    },
+    "À partir de %@ la part" : {
+
+    },
+    "À payer à la cueillette" : {
+
+    },
+    "À récupérer" : {
+
+    },
+    "À toucher quand l'hôte t'a remis la part." : {
+
+    },
+    "À toucher quand la part est remise au voisin." : {
+
+    },
+    "À venir" : {
+
+    },
+    "Abandonner les modifications" : {
+
+    },
+    "Accessibilité" : {
+
+    },
+    "Accueil" : {
+
+    },
+    "Accueille les livraisons du quartier" : {
+
+    },
+    "Achète en gros avec tes voisins" : {
+
+    },
+    "Actif" : {
+
+    },
+    "Activation en cours" : {
+
+    },
+    "Active-les dans Réglages pour savoir quand ton prix baisse et quand passer chercher ta commande." : {
+
+    },
+    "Activer" : {
+
+    },
+    "Activité en direct" : {
+
+    },
+    "Actualiser" : {
+
+    },
+    "Adresse" : {
+
+    },
+    "Adresse et appartement" : {
+
+    },
+    "Affiche ce produit dans le graphique de tendance" : {
+
+    },
+    "Affiche ces lieux" : {
+
+    },
+    "Affiche la demande d'autorisation d'iOS." : {
+
+    },
+    "Affiche la demande de ce point" : {
+
+    },
+    "Affiche les détails" : {
+
+    },
+    "Affiche les produits voulus" : {
+
+    },
+    "Afficher la carte" : {
+
+    },
+    "Afficher la liste des quartiers" : {
+
+    },
+    "Afficher le mot de passe" : {
+
+    },
+    "affichés" : {
+
+    },
+    "Agrandit tout le texte et garde seulement l'essentiel : ta commande, ta cueillette et ton groupe." : {
+
+    },
+    "Aide alimentaire" : {
+
+    },
+    "Aide les voisins à reconnaître la porte. Évite les visages et le numéro d'appartement." : {
+
+    },
+    "Ajoute ce dont ton ménage a besoin ce mois-ci." : {
+
+    },
+    "Ajoute cette zone." : {
+
+    },
+    "Ajoute le produit à ton catalogue." : {
+
+    },
+    "Ajoute ta famille à ce groupe d'achat" : {
+
+    },
+    "Ajoute ton premier produit avec sa photo : tu pourras ensuite en faire un lot." : {
+
+    },
+    "Ajoute un besoin pour voir les lots qui y répondent." : {
+
+    },
+    "Ajoute un produit à ton catalogue ou publie un lot : ils apparaîtront ici, avec la demande des quartiers." : {
+
+    },
+    "Ajoute un produit à ton catalogue, avec sa photo." : {
+
+    },
+    "Ajoute une envie dans « Ce que le groupe veut » : les offres qui y répondent apparaîtront ici." : {
+
+    },
+    "Ajouter" : {
+
+    },
+    "Ajouter au catalogue" : {
+
+    },
+    "Ajouter ce secteur" : {
+
+    },
+    "Ajouter un besoin" : {
+
+    },
+    "Ajouter un palier" : {
+
+    },
+    "Ajouter une disponibilité" : {
+
+    },
+    "Ajouter une envie" : {
+
+    },
+    "Ajouter une photo" : {
+
+    },
+    "Amina" : {
+
+    },
+    "Annuler" : {
+
+    },
+    "Annuler la demande" : {
+
+    },
+    "Annuler la livraison" : {
+
+    },
+    "Annuler la livraison ?" : {
+
+    },
+    "Annuler ma part" : {
+
+    },
+    "Anonyme : le groupe voit le total du fonds, jamais qui est aidé." : {
+
+    },
+    "Aperçu du thème %@ : un lot avec son palier et le bouton Rejoindre." : {
+
+    },
+    "Apple n'a pas renvoyé d'identifiant. Réessaie." : {
+
+    },
+    "Appui long sur la carte pour signaler." : {
+
+    },
+    "Au" : {
+
+    },
+    "Aucun argent réel n'est prélevé : les financements servent à la démonstration." : {
+
+    },
+    "Aucun créneau" : {
+
+    },
+    "Aucun groupe ici" : {
+
+    },
+    "Aucun groupe pour l'instant" : {
+
+    },
+    "Aucun groupe trouvé" : {
+
+    },
+    "Aucun lot à suggérer" : {
+
+    },
+    "Aucun lot du quartier ne répond encore à tes envies. Les producteurs voient la demande du groupe." : {
+
+    },
+    "Aucun lot ne ferme dans les 3 prochains jours." : {
+
+    },
+    "Aucun lot ouvert" : {
+
+    },
+    "Aucun lot ouvert ne répond à tes besoins pour l'instant. Reviens dans quelques jours." : {
+
+    },
+    "Aucun lot ouvert pour l'instant" : {
+
+    },
+    "Aucun produit trouvé" : {
+
+    },
+    "Aucun quartier de ce nom. Essaie la carte." : {
+
+    },
+    "Aucun résultat" : {
+
+    },
+    "Aucun revenu prévu" : {
+
+    },
+    "Aucune activité en cours" : {
+
+    },
+    "Aucune commande ni aucun lot dans ton quartier. Reviens un peu plus tard." : {
+
+    },
+    "Aucune commande pour l'instant" : {
+
+    },
+    "Aucune cueillette prévue" : {
+
+    },
+    "Aucune demande ici" : {
+
+    },
+    "Aucune disponibilité" : {
+
+    },
+    "aucune économie" : {
+
+    },
+    "Aucune famille n'a encore commandé ni exprimé d'envie avec ces filtres. Essaie un autre produit ou toute la demande." : {
+
+    },
+    "Aucune part engagée — %@." : {
+
+    },
+    "Aucune photo" : {
+
+    },
+    "Aucune photo, icône de la catégorie %@" : {
+
+    },
+    "Aucune vente sur cette période" : {
+
+    },
+    "Aucune zone : tes lots n'apparaissent nulle part." : {
+
+    },
+    "Autorise la position « pendant l'utilisation » dans les Réglages pour centrer la carte sur toi." : {
+
+    },
+    "Autre créneau" : {
+
+    },
+    "Autre montant, en dollars" : {
+
+    },
+    "Avant le 1er palier" : {
+
+    },
+    "Avatar avec tes initiales, %@" : {
+
+    },
+    "Backend actif" : {
+
+    },
+    "Bascule vers le portail %@" : {
+
+    },
+    "Besoin" : {
+
+    },
+    "Besoin : %@" : {
+
+    },
+    "Bienvenue !" : {
+
+    },
+    "Bienvenue, %@" : {
+
+    },
+    "Bouncy : célébration" : {
+
+    },
+    "Budget du mois" : {
+
+    },
+    "C'est irréversible : tu ne pourras pas récupérer ce compte." : {
+
+    },
+    "C’est reparti ! Regarde aussi dans tes courriels indésirables." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sent again! Check your spam folder too."
+          }
+        }
+      }
+    },
+    "Ça arrive très bientôt." : {
+
+    },
+    "Capacité" : {
+
+    },
+    "Carottes du Québec · 5 kg" : {
+
+    },
+    "Carte : déplace-la pour placer l'épingle sur le secteur à desservir" : {
+
+    },
+    "Carte de la demande" : {
+
+    },
+    "Carte des lieux autour de chez toi" : {
+
+    },
+    "Carte du quartier" : {
+
+    },
+    "Carte du quartier : %@" : {
+
+    },
+    "Carte du quartier %@, rayon de %@" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Carte du quartier %1$@, rayon de %2$@"
+          }
+        }
+      }
+    },
+    "Catalogue en préparation" : {
+
+    },
+    "Catégorie" : {
+
+    },
+    "Ce groupe n'est plus disponible." : {
+
+    },
+    "Ce lot n'est plus disponible. D'autres lots t'attendent dans l'onglet Lots." : {
+
+    },
+    "Ce mois-ci" : {
+
+    },
+    "Ce montant paie une partie de la part d'une famille du groupe. Elle ne sait pas que c'est toi, et personne ne sait qui elle est." : {
+
+    },
+    "Ce producteur n'a pas de lot en cours. Reviens bientôt : les nouveaux lots arrivent chaque semaine." : {
+
+    },
+    "Ce producteur n'a pas encore ajouté ses produits." : {
+
+    },
+    "Ce producteur n'est plus sur Grenier." : {
+
+    },
+    "Ce que ça change" : {
+
+    },
+    "Ce que le groupe veut" : {
+
+    },
+    "Ce que le quartier a économisé par rapport à l'épicerie" : {
+
+    },
+    "Ce que tu cultives ou vends, d'où ça vient, ce qui te rend fier…" : {
+
+    },
+    "Ce qui sera remis à zéro" : {
+
+    },
+    "Centre la carte sur ta position" : {
+
+    },
+    "Changement non enregistré" : {
+
+    },
+    "Changer" : {
+
+    },
+    "Changer d'adresse" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Use another address"
+          }
+        }
+      }
+    },
+    "Changer de palier" : {
+
+    },
+    "Changer de portail" : {
+
+    },
+    "Chaque achat groupé fait avancer ta ville." : {
+
+    },
+    "Chaque famille aidée a son panier réservé. Merci !" : {
+
+    },
+    "Chaque producteur est vérifié avant de vendre aux familles." : {
+
+    },
+    "Chargement" : {
+
+    },
+    "Chargement de l'accueil" : {
+
+    },
+    "Chargement de la demande…" : {
+
+    },
+    "Chargement de ton impact" : {
+
+    },
+    "Chargement de ton profil" : {
+
+    },
+    "Chargement des disponibilités…" : {
+
+    },
+    "Chargement des groupes" : {
+
+    },
+    "Chargement des lieux…" : {
+
+    },
+    "Chargement des lots" : {
+
+    },
+    "Chargement des revenus" : {
+
+    },
+    "Chargement des statistiques" : {
+
+    },
+    "Chargement du lot…" : {
+
+    },
+    "Chargement du producteur" : {
+
+    },
+    "Chargement du profil" : {
+
+    },
+    "Chargement du tableau de bord" : {
+
+    },
+    "Chargement en cours" : {
+
+    },
+    "Chargement…" : {
+
+    },
+    "Chercher un produit" : {
+
+    },
+    "Chercher un quartier (ex. Villeray)" : {
+
+    },
+    "Chez Amina, rue Jarry" : {
+
+    },
+    "Choisir" : {
+
+    },
+    "Choisir sur la carte" : {
+
+    },
+    "Choisir un secteur" : {
+
+    },
+    "Choisir…" : {
+
+    },
+    "Choisis d'abord un motif." : {
+
+    },
+    "Choisis d'abord un portail" : {
+
+    },
+    "Choisis ton thème" : {
+
+    },
+    "Choisis un lot ci-dessous pour te lancer" : {
+
+    },
+    "Choisis un point pour reprendre ses horaires, ou ajoute un créneau." : {
+
+    },
+    "Classés selon tes besoins, l'économie vs l'épicerie, ton budget et la date limite." : {
+
+    },
+    "Code %@" : {
+
+    },
+    "Code d'invitation" : {
+
+    },
+    "Code d'invitation %@" : {
+
+    },
+    "Code d'organisme" : {
+
+    },
+    "Code postal" : {
+
+    },
+    "Code QR de la commande %@" : {
+
+    },
+    "Combien ce mois-ci" : {
+
+    },
+    "Commande" : {
+
+    },
+    "Commande : %@" : {
+
+    },
+    "Commande copiée" : {
+
+    },
+    "Commande fermée" : {
+
+    },
+    "Commande groupée · plus on est, moins c'est cher" : {
+
+    },
+    "Commencer" : {
+
+    },
+    "Comment veux-tu utiliser Grenier ?" : {
+
+    },
+    "Commentaire" : {
+
+    },
+    "Compte de démo déconnecté" : {
+
+    },
+    "Configure Face ID ou un code dans les Réglages de l'iPhone pour activer le verrou." : {
+
+    },
+    "Confirmer le point" : {
+
+    },
+    "Connecte-toi" : {
+
+    },
+    "Connecte-toi à ton compte Apple dans Réglages, puis réessaie." : {
+
+    },
+    "Contenu d'une part" : {
+
+    },
+    "Continuer" : {
+
+    },
+    "Continuer avec Google" : {
+
+    },
+    "Continuer l'édition" : {
+
+    },
+    "Copier la commande" : {
+
+    },
+    "Courriel" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Email"
+          }
+        }
+      }
+    },
+    "Courriel : %@" : {
+
+    },
+    "Couvert à %lld %%" : {
+
+    },
+    "Couverture du fonds" : {
+
+    },
+    "Couvrir les %@ en attente" : {
+
+    },
+    "Crée ton compte" : {
+
+    },
+    "Crée ton ménage" : {
+
+    },
+    "Crée ton premier lot : fixe tes paliers, les groupes du quartier font baisser le prix." : {
+
+    },
+    "Crée ton premier lot : les familles du quartier pourront s'y joindre et faire baisser le prix ensemble." : {
+
+    },
+    "Crée ton profil producteur" : {
+
+    },
+    "Crée ton profil vendeur" : {
+
+    },
+    "Créer mon compte" : {
+
+    },
+    "Créer mon ménage" : {
+
+    },
+    "Créer mon premier lot" : {
+
+    },
+    "Créer un autre lot" : {
+
+    },
+    "Créer un compte" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Create account"
+          }
+        }
+      }
+    },
+    "Créer un lot" : {
+
+    },
+    "Créer un lot à paliers" : {
+
+    },
+    "Créer un lot ciblé" : {
+
+    },
+    "Créneau %@, %@" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Créneau %1$@, %2$@"
+          }
+        }
+      }
+    },
+    "Créneaux" : {
+
+    },
+    "Créneaux proposés" : {
+
+    },
+    "Cueillette" : {
+
+    },
+    "Cueillette %@" : {
+
+    },
+    "d'économie prévue vs l'épicerie" : {
+
+    },
+    "Date limite" : {
+
+    },
+    "Débloquer le palier" : {
+
+    },
+    "Début" : {
+
+    },
+    "Déjà membre ?" : {
+
+    },
+    "Demande" : {
+
+    },
+    "Demande affichée : %@" : {
+
+    },
+    "Demande deux confirmations avant d'effacer ton compte" : {
+
+    },
+    "Demande une confirmation avant d'effacer la démo en cours." : {
+
+    },
+    "Demander mon profil producteur" : {
+
+    },
+    "Demander une livraison" : {
+
+    },
+    "Démo activité en direct" : {
+
+    },
+    "Démo réinitialisée" : {
+
+    },
+    "Dernière confirmation" : {
+
+    },
+    "dès" : {
+
+    },
+    "Des produits d'ici, achetés en gros entre voisins." : {
+
+    },
+    "Description" : {
+
+    },
+    "Devenir hôte" : {
+
+    },
+    "Déverrouille avec %@ pour voir tes commandes et ton code de cueillette." : {
+
+    },
+    "Déverrouiller avec %@" : {
+
+    },
+    "Dire ce que ma famille veut" : {
+
+    },
+    "Dis ce que ta famille veut acheter, vois la demande du quartier." : {
+
+    },
+    "Dis ce que tu peux livrer et quand : les groupes qui en veulent le verront, même sans lot." : {
+
+    },
+    "Dis ce que tu veux" : {
+
+    },
+    "Donne un prix à tes paliers pour voir le revenu estimé." : {
+
+    },
+    "Du" : {
+
+    },
+    "Durée" : {
+
+    },
+    "Économie" : {
+
+    },
+    "Économies" : {
+
+    },
+    "Économies par produit" : {
+
+    },
+    "Économisé avec ton groupe" : {
+
+    },
+    "Écran réservé aux répétitions et à la démo du jury. Il n'apparaît pas dans l'app publiée." : {
+
+    },
+    "Efface ton profil, te retire de ton ménage et supprime ton compte de connexion. C'est irréversible." : {
+
+    },
+    "Effacer la recherche" : {
+
+    },
+    "Élargir le rayon à 2 km" : {
+
+    },
+    "Élargis le rayon ou affiche d'autres sortes de lieux." : {
+
+    },
+    "En attente" : {
+
+    },
+    "En cours" : {
+
+    },
+    "En Release : argument de lancement %@" : {
+
+    },
+    "En route, de façon anonyme" : {
+
+    },
+    "Encore 1 famille" : {
+
+    },
+    "Enregistré" : {
+
+    },
+    "Enregistre tes changements." : {
+
+    },
+    "Enregistre ton nom et ta photo" : {
+
+    },
+    "Enregistrement en cours" : {
+
+    },
+    "Enregistrement…" : {
+
+    },
+    "Enregistrer" : {
+
+    },
+    "Enregistrer l'objectif" : {
+
+    },
+    "Entre ton courriel : on t'envoie un lien pour choisir un nouveau mot de passe." : {
+
+    },
+    "Entre ton courriel." : {
+
+    },
+    "Entre ton mot de passe." : {
+
+    },
+    "Envies des familles" : {
+
+    },
+    "Environnement" : {
+
+    },
+    "Envoi en cours" : {
+
+    },
+    "Envoie ta demande" : {
+
+    },
+    "Envoyer" : {
+
+    },
+    "Envoyer au Mac" : {
+
+    },
+    "Envoyer le lien" : {
+
+    },
+    "Envoyer le signalement" : {
+
+    },
+    "Erreur : %@" : {
+
+    },
+    "Espace vendeur" : {
+
+    },
+    "Essaie un autre produit ou le nom d'un producteur." : {
+
+    },
+    "Essaie un autre quartier." : {
+
+    },
+    "Étape %lld : %@" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Étape %1$lld : %2$@"
+          }
+        }
+      }
+    },
+    "Étiquettes" : {
+
+    },
+    "Ex. Farine de blé intégrale" : {
+
+    },
+    "Ex. Mirabel, QC" : {
+
+    },
+    "Ex. sac de 10 kg" : {
+
+    },
+    "Explique en quelques mots" : {
+
+    },
+    "f25d, f25e" : {
+
+    },
+    "Facultatif." : {
+
+    },
+    "Fait" : {
+
+    },
+    "Famille Benali" : {
+
+    },
+    "Familles servies" : {
+
+    },
+    "ferme %@" : {
+
+    },
+    "Ferme %@" : {
+
+    },
+    "ferme bientôt · %@" : {
+
+    },
+    "Ferme de la Rive" : {
+
+    },
+    "Ferme la célébration" : {
+
+    },
+    "Ferme Rive-Nord · ferme dans 2 j" : {
+
+    },
+    "ferme vendredi 17 h" : {
+
+    },
+    "Fermer" : {
+
+    },
+    "Fermer les détails" : {
+
+    },
+    "fermeture %@" : {
+
+    },
+    "Filtre" : {
+
+    },
+    "Filtre la carte sur ce produit" : {
+
+    },
+    "Filtres" : {
+
+    },
+    "Finance un premier panier pour commencer." : {
+
+    },
+    "Financement par mois" : {
+
+    },
+    "Financer" : {
+
+    },
+    "Financer %@" : {
+
+    },
+    "Financer des paniers" : {
+
+    },
+    "Fonds solidaire" : {
+
+    },
+    "Forte demande" : {
+
+    },
+    "Garder" : {
+
+    },
+    "Garder mon compte" : {
+
+    },
+    "Glisse un palier vers la gauche pour le supprimer." : {
+
+    },
+    "Glisse une ligne vers la gauche pour la retirer." : {
+
+    },
+    "Graphique du prix selon la demande" : {
+
+    },
+    "Gratuit, sans engagement" : {
+
+    },
+    "Grenier" : {
+
+    },
+    "Grenier est verrouillé" : {
+
+    },
+    "Grenier se verrouille quand tu quittes l'app. Ton code de cueillette et tes paiements restent protégés." : {
+
+    },
+    "Grenier utilise ta position seulement quand la carte est ouverte, pour trouver les groupes, les points de cueillette et les producteurs autour de toi. Elle n'est jamais montrée à tes voisins." : {
+
+    },
+    "Groupe du quartier" : {
+
+    },
+    "Groupe introuvable" : {
+
+    },
+    "Groupe ou quartier" : {
+
+    },
+    "Groupes" : {
+
+    },
+    "Groupes de quartier" : {
+
+    },
+    "Groupes intéressés" : {
+
+    },
+    "Groupes près de toi" : {
+
+    },
+    "Groupes, points de cueillette et producteurs autour de chez toi" : {
+
+    },
+    "H2A 1B3" : {
+
+    },
+    "Hors budget" : {
+
+    },
+    "Hors ligne" : {
+
+    },
+    "Impact" : {
+
+    },
+    "Impossible tant qu'un lot ouvert ou en pause utilise ce produit." : {
+
+    },
+    "Indications (sonnette, étage…)" : {
+
+    },
+    "Indisponible" : {
+
+    },
+    "Invite tes voisins" : {
+
+    },
+    "Inviter" : {
+
+    },
+    "Itinéraire" : {
+
+    },
+    "Itinéraire à pied" : {
+
+    },
+    "J'ai bien reçu ma part" : {
+
+    },
+    "J'ai une mobilité réduite" : {
+
+    },
+    "J'ai vérifié mon courriel" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "I've verified my email"
+          }
+        }
+      }
+    },
+    "Je livre" : {
+
+    },
+    "Je ne peux plus livrer" : {
+
+    },
+    "Jusqu'à %@." : {
+
+    },
+    "L'adresse exacte n'est montrée qu'aux membres des groupes qui choisissent ton point." : {
+
+    },
+    "L'équipe Grenier va examiner %@. La personne signalée ne voit pas qui a signalé." : {
+
+    },
+    "L'équipe Grenier vérifie" : {
+
+    },
+    "La connexion avec Apple a expiré. Réessaie." : {
+
+    },
+    "La connexion avec Apple n'a pas abouti. Réessaie dans un instant." : {
+
+    },
+    "La livraison par un voisin est réservée aux aînés et aux personnes à mobilité réduite." : {
+
+    },
+    "La première photo sert de couverture sur tes lots. Touche longuement une photo pour la gérer · %lld sur %lld." : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "La première photo sert de couverture sur tes lots. Touche longuement une photo pour la gérer · %1$lld sur %2$lld."
+          }
+        }
+      }
+    },
+    "La taille aide l'organisateur à prévoir les quantités. Ton groupe voit le nom du ménage." : {
+
+    },
+    "Langue" : {
+
+    },
+    "Langue de l'app" : {
+
+    },
+    "Le coordonnateur du groupe n'a pas encore proposé d'horaires. Reviens bientôt." : {
+
+    },
+    "Le fonds est prêt pour les prochaines familles qui en auront besoin." : {
+
+    },
+    "Le graphique apparaît dès qu'un palier a un prix." : {
+
+    },
+    "Le gros, à petit prix, entre voisins." : {
+
+    },
+    "Le groupe n'a pas de commande en cours. Les nouveaux lots du quartier apparaîtront ici." : {
+
+    },
+    "Le nom que voient tes voisins." : {
+
+    },
+    "Le prix baisse quand d'autres familles se joignent au lot." : {
+
+    },
+    "Le prix passe de %@ à %@ le %@" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Le prix passe de %1$@ à %2$@ le %3$@"
+          }
+        }
+      }
+    },
+    "Le thème change l'accent, le fond et les coins des cartes, en clair comme en sombre. Dans un groupe, sa marque passe devant." : {
+
+    },
+    "Le vendeur dépose les lots chez toi, les voisins passent les chercher pendant les créneaux." : {
+
+    },
+    "Légumes de saison · Parc-Ex" : {
+
+    },
+    "Les 7 sphères de Montréal" : {
+
+    },
+    "Les données affichées sont les dernières connues." : {
+
+    },
+    "Les familles la lisent sur chaque lot." : {
+
+    },
+    "Les familles ne le verront plus et tu ne pourras plus l'utiliser pour un lot. Cette action est définitive." : {
+
+    },
+    "Les familles peuvent filtrer les lots selon ces étiquettes." : {
+
+    },
+    "Les familles peuvent prendre une part jusqu'à cette date. Le prix final est celui du palier atteint." : {
+
+    },
+    "Les groupes du quartier voient tes paliers." : {
+
+    },
+    "Les lots se commandent à plusieurs : rejoins le groupe de ton quartier pour débloquer les meilleurs prix." : {
+
+    },
+    "Les messages de ton groupe et des producteurs te parviennent dans cette langue." : {
+
+    },
+    "Les notifications sont coupées" : {
+
+    },
+    "Les paniers déjà financés restent dans le fonds du groupe." : {
+
+    },
+    "Les producteurs en ajoutent chaque semaine : tire vers le bas pour actualiser." : {
+
+    },
+    "Lien envoyé ! Ouvre le courriel pour choisir un nouveau mot de passe." : {
+
+    },
+    "Lieu" : {
+
+    },
+    "Lisibilité" : {
+
+    },
+    "Livraison entre voisins" : {
+
+    },
+    "Livrée !" : {
+
+    },
+    "Lot" : {
+
+    },
+    "Lot enregistré" : {
+
+    },
+    "Lot introuvable" : {
+
+    },
+    "Lot n° %lld" : {
+
+    },
+    "Lots" : {
+
+    },
+    "Lots indisponibles" : {
+
+    },
+    "Lots ouverts" : {
+
+    },
+    "Lots suggérés" : {
+
+    },
+    "Lots, commandes et parts rechargés depuis les données de démo" : {
+
+    },
+    "Ma livraison" : {
+
+    },
+    "Majuscule ou symbole" : {
+
+    },
+    "Masque ces lieux" : {
+
+    },
+    "Masquer le mot de passe" : {
+
+    },
+    "masqués" : {
+
+    },
+    "Maximum" : {
+
+    },
+    "Meilleur prix atteint" : {
+
+    },
+    "Meilleurs vendeurs" : {
+
+    },
+    "Membre" : {
+
+    },
+    "Ménage" : {
+
+    },
+    "Merci : %@ font ça avec toi." : {
+
+    },
+    "Merci : chaque part compte." : {
+
+    },
+    "Merci !" : {
+
+    },
+    "Merci d'avoir cueilli chez %@ !" : {
+
+    },
+    "Merci, bonne cuisine !" : {
+
+    },
+    "Merci, on regarde ça" : {
+
+    },
+    "Mes besoins" : {
+
+    },
+    "Mes disponibilités" : {
+
+    },
+    "Mes livraisons en cours" : {
+
+    },
+    "Mes livraisons passées" : {
+
+    },
+    "Mes lots" : {
+
+    },
+    "Mettre en couverture" : {
+
+    },
+    "Mettre fin" : {
+
+    },
+    "Mettre fin au parrainage" : {
+
+    },
+    "Mettre fin au parrainage ?" : {
+
+    },
+    "Mode aîné" : {
+
+    },
+    "Mode aîné activé : tu as droit à la livraison." : {
+
+    },
+    "Modifie ce produit" : {
+
+    },
+    "Modifie les paliers de ce lot" : {
+
+    },
+    "Modifie ta description, tes photos et tes zones desservies." : {
+
+    },
+    "Modifier" : {
+
+    },
+    "Modifier cette disponibilité" : {
+
+    },
+    "Modifier cette envie" : {
+
+    },
+    "Modifier l'envie" : {
+
+    },
+    "Modifier le lot" : {
+
+    },
+    "Modifier le parrainage" : {
+
+    },
+    "Modifier le produit" : {
+
+    },
+    "Modifier les paliers" : {
+
+    },
+    "Modifier ou supprimer mon compte" : {
+
+    },
+    "Mois" : {
+
+    },
+    "Mon catalogue" : {
+
+    },
+    "Mon compte" : {
+
+    },
+    "Mon créneau" : {
+
+    },
+    "Mon ménage" : {
+
+    },
+    "Mon mois" : {
+
+    },
+    "Mon parrainage" : {
+
+    },
+    "Mon point de cueillette" : {
+
+    },
+    "Montant" : {
+
+    },
+    "Montant du panier suspendu" : {
+
+    },
+    "Montre ce code à %@" : {
+
+    },
+    "Montre-le à %@ pour récupérer ta part." : {
+
+    },
+    "Mot au bénévole" : {
+
+    },
+    "Mot de passe" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Password"
+          }
+        }
+      }
+    },
+    "Mot de passe : aucune règle remplie" : {
+
+    },
+    "Mot de passe oublié" : {
+
+    },
+    "Mot de passe oublié ?" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Forgot password?"
+          }
+        }
+      }
+    },
+    "Mot de passe, règles remplies : %@" : {
+
+    },
+    "Motif" : {
+
+    },
+    "Moyenne" : {
+
+    },
+    "Nom affiché" : {
+
+    },
+    "Nom du groupe de quartier" : {
+
+    },
+    "Nom du ménage" : {
+
+    },
+    "Nom du point" : {
+
+    },
+    "Nom du produit" : {
+
+    },
+    "nom@exemple.ca" : {
+
+    },
+    "Nombre de parts que tu peux garder chez toi en même temps (sacs, caisses)." : {
+
+    },
+    "Non connecté" : {
+
+    },
+    "Note moyenne %@ sur 5" : {
+
+    },
+    "Notifications" : {
+
+    },
+    "Notre impact" : {
+
+    },
+    "Nouveau besoin" : {
+
+    },
+    "Nouveau ici ?" : {
+
+    },
+    "Nouveau lot" : {
+
+    },
+    "Nouveau lot près de toi" : {
+
+    },
+    "Nouveau prix par %@" : {
+
+    },
+    "Nouveau produit" : {
+
+    },
+    "Nouvel essai en cours" : {
+
+    },
+    "Nouvelle disponibilité" : {
+
+    },
+    "Nouvelle envie" : {
+
+    },
+    "Objectif du mois" : {
+
+    },
+    "Objectif du mois atteint" : {
+
+    },
+    "Obligatoire pour le motif Autre." : {
+
+    },
+    "Offres pour toi" : {
+
+    },
+    "Offres qui correspondent à vos souhaits" : {
+
+    },
+    "Offrir un panier suspendu" : {
+
+    },
+    "OK" : {
+
+    },
+    "On compte tes parts et tes familles…" : {
+
+    },
+    "On garde seulement ton quartier, jamais ton adresse. Il sert à te proposer les groupes près de chez toi." : {
+
+    },
+    "On t'a envoyé un lien à" : {
+
+    },
+    "On t'a envoyé un lien à %@. Touche-le pour activer ton compte, puis reviens ici." : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "We sent a link to %@. Tap it to activate your account, then come back here."
+          }
+        }
+      }
+    },
+    "On te prévient quand un palier est débloqué, quand ta commande est prête et 1 h avant ta cueillette. Rien d'autre." : {
+
+    },
+    "ORG-CB-00427" : {
+
+    },
+    "Organiser la cueillette" : {
+
+    },
+    "ou" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "or"
+          }
+        }
+      }
+    },
+    "Où" : {
+
+    },
+    "ou avec ton courriel" : {
+
+    },
+    "Où les voisins viennent chercher" : {
+
+    },
+    "Outils de démo" : {
+
+    },
+    "Ouvre Grenier" : {
+
+    },
+    "Ouvre l'éditeur de paliers de ce lot." : {
+
+    },
+    "Ouvre l'éditeur de paliers pour un nouveau lot." : {
+
+    },
+    "Ouvre la connexion Apple" : {
+
+    },
+    "Ouvre la connexion Google" : {
+
+    },
+    "Ouvre la fiche du groupe." : {
+
+    },
+    "Ouvre la fiche du lot." : {
+
+    },
+    "Ouvre le formulaire d'un nouveau produit." : {
+
+    },
+    "Ouvre le lot" : {
+
+    },
+    "Ouvre le lot %@ pour choisir ta part" : {
+
+    },
+    "Ouvre les groupes de ton quartier" : {
+
+    },
+    "Ouvre les lots actifs près de chez toi" : {
+
+    },
+    "Ouvre les réglages de Grenier pour activer les notifications." : {
+
+    },
+    "Ouvre les statistiques de ventes de chaque produit" : {
+
+    },
+    "Ouvre Plans" : {
+
+    },
+    "Ouvre Plans avec l'itinéraire à pied" : {
+
+    },
+    "Ouvre Plans avec l'itinéraire vers %@" : {
+
+    },
+    "Ouvre Plans avec le trajet à pied." : {
+
+    },
+    "Ouvre ta photothèque." : {
+
+    },
+    "Ouvre ton profil. Maintiens le doigt pour changer de portail." : {
+
+    },
+    "Ouvre un courriel prérempli pour demander ton profil producteur." : {
+
+    },
+    "Ouvrir cet écran" : {
+
+    },
+    "Ouvrir le signalement" : {
+
+    },
+    "Ouvrir les outils de démo" : {
+
+    },
+    "Ouvrir les Réglages" : {
+
+    },
+    "Ouvrir les Réglages de Grenier" : {
+
+    },
+    "Ouvrir Mail" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Open Mail"
+          }
+        }
+      }
+    },
+    "Ouvrir mon profil" : {
+
+    },
+    "Ouvrir Réglages" : {
+
+    },
+    "P%lld" : {
+
+    },
+    "Page %lld sur %lld" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Page %1$lld sur %2$lld"
+          }
+        }
+      }
+    },
+    "Page suivante" : {
+
+    },
+    "Palier %lld" : {
+
+    },
+    "Palier %lld sur %lld" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Palier %1$lld sur %2$lld"
+          }
+        }
+      }
+    },
+    "Palier %lld sur %lld · %@" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Palier %1$lld sur %2$lld · %3$@"
+          }
+        }
+      }
+    },
+    "Palier 2 sur 3 · 14 familles" : {
+
+    },
+    "Palier débloqué !" : {
+
+    },
+    "Paliers de prix" : {
+
+    },
+    "Par lot" : {
+
+    },
+    "Par produit" : {
+
+    },
+    "Par quartier" : {
+
+    },
+    "Parrain depuis le %@" : {
+
+    },
+    "Parrainages" : {
+
+    },
+    "Parrainé" : {
+
+    },
+    "Parraine un groupe dans l'onglet Parrainages." : {
+
+    },
+    "Parraine un groupe pour lui promettre des paniers chaque mois." : {
+
+    },
+    "Parrainer" : {
+
+    },
+    "Parrainer ce groupe" : {
+
+    },
+    "part" : {
+
+    },
+    "Part récupérée" : {
+
+    },
+    "Partager" : {
+
+    },
+    "Partager l'invitation" : {
+
+    },
+    "Partager le groupe" : {
+
+    },
+    "Partager le lot" : {
+
+    },
+    "Partager le producteur" : {
+
+    },
+    "parts" : {
+
+    },
+    "Parts" : {
+
+    },
+    "Pas besoin d'y aller seul" : {
+
+    },
+    "Pas de nouveau lot pour l'instant" : {
+
+    },
+    "Pas encore d'histoire" : {
+
+    },
+    "Pas encore d'impact" : {
+
+    },
+    "Pas encore d'offre" : {
+
+    },
+    "Pas encore de créneau" : {
+
+    },
+    "Pas encore de groupe" : {
+
+    },
+    "Pas encore de ventes" : {
+
+    },
+    "Pas encore vérifié. Touche le lien dans le courriel, puis reviens ici." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Not verified yet. Tap the link in the email, then come back here."
+          }
+        }
+      }
+    },
+    "Passe la présentation et va à la connexion" : {
+
+    },
+    "Passer" : {
+
+    },
+    "Payé à la cueillette" : {
+
+    },
+    "Payé à la cueillette." : {
+
+    },
+    "Pendant" : {
+
+    },
+    "Période" : {
+
+    },
+    "Personne n'a encore dit ce qu'il veut. Lance le mouvement !" : {
+
+    },
+    "Personne ne sait qui donne ni qui reçoit." : {
+
+    },
+    "Photo" : {
+
+    },
+    "Photo de couverture" : {
+
+    },
+    "Photo de l'entrée" : {
+
+    },
+    "Photo de vitrine" : {
+
+    },
+    "Photo du point de cueillette" : {
+
+    },
+    "Photo du produit" : {
+
+    },
+    "Planifier mon mois" : {
+
+    },
+    "plus de parts, prix plus bas" : {
+
+    },
+    "Plus les familles s'engagent, plus le palier monte." : {
+
+    },
+    "Plus tard" : {
+
+    },
+    "Plus vous êtes de familles, plus le prix baisse." : {
+
+    },
+    "Plus vous êtes nombreux, plus le prix baisse. Partage le code du groupe :" : {
+
+    },
+    "Point de cueillette" : {
+
+    },
+    "Point du groupe" : {
+
+    },
+    "Pommes Cortland · 480 $" : {
+
+    },
+    "Portail" : {
+
+    },
+    "Portail %@" : {
+
+    },
+    "Portail actif" : {
+
+    },
+    "Portail actif : %@" : {
+
+    },
+    "Position désactivée" : {
+
+    },
+    "Possible dans %lld secondes" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Available in %lld seconds"
+          }
+        }
+      }
+    },
+    "Pour les aînés et les personnes à mobilité réduite. C'est gratuit, et c'est un voisin du groupe." : {
+
+    },
+    "Pour protéger ton compte, Grenier demande une connexion récente avant de le supprimer. Reconnecte-toi, puis reviens ici." : {
+
+    },
+    "Pour publier : %@" : {
+
+    },
+    "Pourquoi signales-tu %@ ?" : {
+
+    },
+    "Précisions (facultatif)" : {
+
+    },
+    "Préférences" : {
+
+    },
+    "Préfixes geohash séparés par des virgules ; préremplis avec les zones de ton profil." : {
+
+    },
+    "Prénom" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "First name"
+          }
+        }
+      }
+    },
+    "Prénom et nom" : {
+
+    },
+    "Présentation et choix du portail rejoués" : {
+
+    },
+    "Pressable : carte tapable" : {
+
+    },
+    "Prêt à récupérer" : {
+
+    },
+    "prêtes à acheter · %@" : {
+
+    },
+    "prévus" : {
+
+    },
+    "Prix" : {
+
+    },
+    "Prix d'épicerie pour une unité : %@. Les familles y comparent le prix de tes lots." : {
+
+    },
+    "Prix d'épicerie pour une unité, comme « 3,49 ». Il sert à montrer l'économie aux familles." : {
+
+    },
+    "Prix de base" : {
+
+    },
+    "Prix en épicerie" : {
+
+    },
+    "Prix en épicerie, en dollars" : {
+
+    },
+    "prix par %@" : {
+
+    },
+    "Prix selon la demande" : {
+
+    },
+    "Prochaines livraisons" : {
+
+    },
+    "Producteur introuvable" : {
+
+    },
+    "Producteur vérifié par Grenier" : {
+
+    },
+    "Producteurs" : {
+
+    },
+    "Produit" : {
+
+    },
+    "Produit, lot, quartier ou groupe" : {
+
+    },
+    "Produits voulus" : {
+
+    },
+    "Profil" : {
+
+    },
+    "Profil vendeur" : {
+
+    },
+    "Proposer un lot ici" : {
+
+    },
+    "Provenance" : {
+
+    },
+    "Publie le lot pour les groupes de ton secteur." : {
+
+    },
+    "Publie ton premier lot" : {
+
+    },
+    "Publie un lot : ses parts vendues, ses revenus et les économies offertes apparaîtront ici." : {
+
+    },
+    "Publie un lot depuis l'onglet Lots : tes revenus s'afficheront ici dès que des familles s'engagent." : {
+
+    },
+    "Quand" : {
+
+    },
+    "Quand des familles de tes zones voudront ce que tu as, leurs groupes apparaîtront ici." : {
+
+    },
+    "Quantité" : {
+
+    },
+    "Quantité disponible" : {
+
+    },
+    "Quartier" : {
+
+    },
+    "Quartiers" : {
+
+    },
+    "Quartiers des groupes" : {
+
+    },
+    "Quitter %@ ?" : {
+
+    },
+    "Quitter le groupe" : {
+
+    },
+    "Quitter sans enregistrer ?" : {
+
+    },
+    "Quoi" : {
+
+    },
+    "Quoi livrer" : {
+
+    },
+    "Raison sociale et type : modifiables par l'équipe Grenier." : {
+
+    },
+    "Raison sociale, type de commerce et quartiers desservis." : {
+
+    },
+    "Rayon" : {
+
+    },
+    "Rayon autour de chez toi" : {
+
+    },
+    "Recentre la carte sur ta position" : {
+
+    },
+    "Recherche" : {
+
+    },
+    "Recherche des groupes…" : {
+
+    },
+    "Recherche des offres…" : {
+
+    },
+    "Rechercher" : {
+
+    },
+    "Reconnecte-toi d'abord" : {
+
+    },
+    "Récupéré" : {
+
+    },
+    "Réessayer" : {
+
+    },
+    "Réessayer l'envoi" : {
+
+    },
+    "Regrouper par" : {
+
+    },
+    "Réinitialiser" : {
+
+    },
+    "Réinitialiser la démo" : {
+
+    },
+    "Réinitialiser la démo ?" : {
+
+    },
+    "Rejoindre" : {
+
+    },
+    "Rejoindre %@" : {
+
+    },
+    "Rejoindre le groupe" : {
+
+    },
+    "Rejoins %@ sur Grenier" : {
+
+    },
+    "Rejoins un groupe" : {
+
+    },
+    "Rejoins un groupe de ton quartier pour acheter en gros avec tes voisins." : {
+
+    },
+    "Rejoins un groupe de ton quartier pour réserver ta première part." : {
+
+    },
+    "Rejoins un groupe de ton quartier pour voir ce que vous changez ensemble." : {
+
+    },
+    "Rejoins un groupe près de toi, juste en dessous" : {
+
+    },
+    "Rejouer la célébration" : {
+
+    },
+    "Relance le chargement" : {
+
+    },
+    "Remis ce mois-ci, sans nom" : {
+
+    },
+    "Remplis les champs pour continuer" : {
+
+    },
+    "Renvoyer dans %lld s" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Resend in %lld s"
+          }
+        }
+      }
+    },
+    "Renvoyer le courriel" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Resend email"
+          }
+        }
+      }
+    },
+    "Réservation en cours" : {
+
+    },
+    "Réservé aux coordonnateurs" : {
+
+    },
+    "Réserve ce créneau" : {
+
+    },
+    "Réserve ta part d'un lot : ton code QR et ton créneau apparaîtront ici." : {
+
+    },
+    "Réserve ta première part : tes économies apparaîtront ici." : {
+
+    },
+    "Réserver %@" : {
+
+    },
+    "Réserver %@ pour %@" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Réserver %1$@ pour %2$@"
+          }
+        }
+      }
+    },
+    "Rester %@" : {
+
+    },
+    "Rester sur mon quartier" : {
+
+    },
+    "Retire ce produit du graphique" : {
+
+    },
+    "Retire cette zone." : {
+
+    },
+    "Retirer" : {
+
+    },
+    "Retirer « %@ » du catalogue ?" : {
+
+    },
+    "Retirer du catalogue" : {
+
+    },
+    "Retirer la photo" : {
+
+    },
+    "Retirer le créneau du %@" : {
+
+    },
+    "Retirer le produit" : {
+
+    },
+    "Retirer mon statut" : {
+
+    },
+    "Revenir au portail Familles" : {
+
+    },
+    "Revenu estimé : %@ pour %lld %@" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Revenu estimé : %1$@ pour %2$lld %3$@"
+          }
+        }
+      }
+    },
+    "Revenu prévu" : {
+
+    },
+    "Revenu prévu %@" : {
+
+    },
+    "Revenus" : {
+
+    },
+    "Revenus prévus" : {
+
+    },
+    "Reviens un peu plus tard." : {
+
+    },
+    "Rien à chercher pour l'instant" : {
+
+    },
+    "Rien à livrer d'ici 3 jours" : {
+
+    },
+    "Rien à moins de %@" : {
+
+    },
+    "Rien dans ton catalogue, tes lots ou la demande ne correspond à « %@ »." : {
+
+    },
+    "Rien de neuf" : {
+
+    },
+    "Rien pour l'instant" : {
+
+    },
+    "Riz basmati" : {
+
+    },
+    "Riz basmati · 10 kg" : {
+
+    },
+    "Riz basmati · sac de 10 kg" : {
+
+    },
+    "Riz, farine, œufs…" : {
+
+    },
+    "Riz, pommes, producteur…" : {
+
+    },
+    "Rôle" : {
+
+    },
+    "Rythme" : {
+
+    },
+    "S'inscrire avec Google" : {
+
+    },
+    "sac de 10 kg" : {
+
+    },
+    "Sache quand ton prix baisse" : {
+
+    },
+    "Salut %@ !" : {
+
+    },
+    "Se connecter" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sign in"
+          }
+        }
+      }
+    },
+    "Se déconnecter" : {
+
+    },
+    "Se reconnecter" : {
+
+    },
+    "Sem. du %@" : {
+
+    },
+    "Semaine" : {
+
+    },
+    "Seul le voisin qui te livre verra ton adresse, et seulement jusqu'à la livraison." : {
+
+    },
+    "Seule l'équipe Grenier verra ton signalement." : {
+
+    },
+    "Seuls les coordonnateurs de %@ choisissent le point de cueillette." : {
+
+    },
+    "Seuls ton ménage et ton organisme voient ce statut. Ton groupe ne le sait jamais." : {
+
+    },
+    "Signaler" : {
+
+    },
+    "Signaler %@" : {
+
+    },
+    "Simulation" : {
+
+    },
+    "Simulation : aucun argent réel n'est prélevé." : {
+
+    },
+    "Simuler Reduce Motion" : {
+
+    },
+    "Simuler un paiement refusé" : {
+
+    },
+    "Smooth : changement d'état" : {
+
+    },
+    "Snappy : sélection" : {
+
+    },
+    "Statut : actif" : {
+
+    },
+    "Statut subventionné actif" : {
+
+    },
+    "Super !" : {
+
+    },
+    "Suppression impossible" : {
+
+    },
+    "Supprimer" : {
+
+    },
+    "Supprimer définitivement" : {
+
+    },
+    "Supprimer mon compte" : {
+
+    },
+    "Supprimer ton compte ?" : {
+
+    },
+    "Surtout : %@" : {
+
+    },
+    "Ta part" : {
+
+    },
+    "Ta part : %@" : {
+
+    },
+    "Ta part fait tomber le prochain palier pour tout le groupe !" : {
+
+    },
+    "Ta photo de profil" : {
+
+    },
+    "Ta photo et ton nom apparaissent aux membres de ton groupe et à ton point de cueillette." : {
+
+    },
+    "Ta porte, ton hall ou ton balcon" : {
+
+    },
+    "Tableau" : {
+
+    },
+    "Te déconnecte pour utiliser un autre courriel" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Signs you out to use another email"
+          }
+        }
+      }
+    },
+    "Tendance" : {
+
+    },
+    "Tendances, meilleurs vendeurs et économies offertes" : {
+
+    },
+    "Terminé" : {
+
+    },
+    "Terminer l'activité en direct" : {
+
+    },
+    "Tes besoins et ton budget, et les lots qui y répondent." : {
+
+    },
+    "Tes économies" : {
+
+    },
+    "Tes économies apparaîtront ici après ta première cueillette." : {
+
+    },
+    "Tes lots en vente" : {
+
+    },
+    "Tes lots suggérés montrent d'abord ce qui te convient : %@." : {
+
+    },
+    "Tes nouveaux lots sont proposés aux familles de ces quartiers. %lld sur %lld." : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Tes nouveaux lots sont proposés aux familles de ces quartiers. %1$lld sur %2$lld."
+          }
+        }
+      }
+    },
+    "Tes paliers de prix, ta date limite, et c'est parti." : {
+
+    },
+    "Tes parts déjà réservées restent valides. Tu pourras revenir quand tu veux." : {
+
+    },
+    "Texte très grand et parcours simplifié activés." : {
+
+    },
+    "Thème" : {
+
+    },
+    "Ticket de la semaine" : {
+
+    },
+    "Ticket de la semaine : lait, riz, œufs et poulet, total %@" : {
+
+    },
+    "Ton catalogue est vide" : {
+
+    },
+    "Ton code de cueillette" : {
+
+    },
+    "Ton compte n'est pas encore rattaché à une ferme ou à un commerce. L'équipe Grenier vérifie chaque producteur avant d'ouvrir son portail." : {
+
+    },
+    "Ton compte n'est pas encore relié à un profil producteur. Une fois ton profil vérifié, tu publies des lots et tu vois la demande des quartiers." : {
+
+    },
+    "Ton groupe te verra avec ce prénom." : {
+
+    },
+    "Ton mot de passe" : {
+
+    },
+    "Ton nom ne peut pas être vide." : {
+
+    },
+    "Ton point de cueillette" : {
+
+    },
+    "Ton prénom, pour que ton groupe te reconnaisse." : {
+
+    },
+    "Ton profil et ta place dans le ménage seront effacés. Ton ménage et ses commandes restent pour les autres membres." : {
+
+    },
+    "Ton profil Grenier" : {
+
+    },
+    "Ton quartier" : {
+
+    },
+    "Total" : {
+
+    },
+    "Total %@ pour %@, payé à la cueillette" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Total %1$@ pour %2$@, payé à la cueillette"
+          }
+        }
+      }
+    },
+    "Totaux anonymes : personne ne voit ce que ta famille a demandé." : {
+
+    },
+    "Touché %lld fois" : {
+
+    },
+    "Touche deux fois pour choisir ce portail." : {
+
+    },
+    "Touche deux fois pour retirer ce choix." : {
+
+    },
+    "Touche un produit pour le modifier, changer sa photo ou le retirer." : {
+
+    },
+    "Touche une disponibilité pour la modifier, glisse pour la retirer." : {
+
+    },
+    "Tous les groupes ont de quoi couvrir leurs familles aidées. Bravo !" : {
+
+    },
+    "Tous les groupes sont couverts pour l'instant." : {
+
+    },
+    "Tous les produits" : {
+
+    },
+    "Tout afficher" : {
+
+    },
+    "Tout ce qui a été fait pendant la démo sera perdu et l'app repartira de l'accueil." : {
+
+    },
+    "Tout est couvert" : {
+
+    },
+    "Tout est récupéré" : {
+
+    },
+    "Tout juste enregistré" : {
+
+    },
+    "Transitions" : {
+
+    },
+    "Trouver un groupe" : {
+
+    },
+    "Tu as économisé" : {
+
+    },
+    "Tu économises %@ sur ta part." : {
+
+    },
+    "Tu en fais partie" : {
+
+    },
+    "Tu es membre" : {
+
+    },
+    "Tu es membre de %@" : {
+
+    },
+    "Tu iras chercher ta part toi-même chez l'hôte." : {
+
+    },
+    "Tu n'as pas encore de part dans une commande." : {
+
+    },
+    "Tu pourras changer d'avis à tout moment dans ton profil." : {
+
+    },
+    "Tu seras averti dès qu'un groupe franchit un palier." : {
+
+    },
+    "Tu signales %@ : %@" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Tu signales %1$@ : %2$@"
+          }
+        }
+      }
+    },
+    "Tu t'engages à apporter la part de %@ pendant son créneau." : {
+
+    },
+    "Tu vois ses lots et l'horaire de cueillette en premier." : {
+
+    },
+    "Type de financement" : {
+
+    },
+    "Un chiffre" : {
+
+    },
+    "Un même compte peut acheter en famille et vendre comme producteur." : {
+
+    },
+    "Un ménage regroupe les personnes qui partagent tes achats. Il te faut un ménage pour rejoindre un groupe de quartier." : {
+
+    },
+    "Un mot pour ton bénévole (facultatif)" : {
+
+    },
+    "Un panier suspendu voyage de ta maison à une famille du groupe, de façon anonyme. %lld paniers offerts ce mois-ci." : {
+
+    },
+    "Un voisin t'apporte ta part" : {
+
+    },
+    "Une belle photo aide les familles à choisir. Elle est redimensionnée automatiquement." : {
+
+    },
+    "Une commande groupée en cours près de chez toi" : {
+
+    },
+    "Une part" : {
+
+    },
+    "Une partie de ta part a été offerte par tes voisins" : {
+
+    },
+    "Unité" : {
+
+    },
+    "Unité de vente" : {
+
+    },
+    "Unités suggérées" : {
+
+    },
+    "Utiliser ma position" : {
+
+    },
+    "Va à la connexion" : {
+
+    },
+    "Valider le code" : {
+
+    },
+    "Valider sans quantité" : {
+
+    },
+    "Ventes par produit" : {
+
+    },
+    "vérifié" : {
+
+    },
+    "Vérifié" : {
+
+    },
+    "Vérifie ton courriel" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Check your email"
+          }
+        }
+      }
+    },
+    "Verrouiller avec %@" : {
+
+    },
+    "Version de Grenier" : {
+
+    },
+    "Vitrine" : {
+
+    },
+    "Voir ce qui est près de toi" : {
+
+    },
+    "Voir la page du producteur" : {
+
+    },
+    "Voir le lot" : {
+
+    },
+    "Voir les lots" : {
+
+    },
+    "Voir les suggestions" : {
+
+    },
+    "Voir ma part" : {
+
+    },
+    "Voir sa tendance" : {
+
+    },
+    "Voir tous les groupes" : {
+
+    },
+    "Voir tous les produits" : {
+
+    },
+    "Voir tout l'historique" : {
+
+    },
+    "Voisins qui attendent" : {
+
+    },
+    "Zone desservie : %@" : {
+
+    },
+    "Zone sensible" : {
+
+    },
+    "Zones desservies" : {
+
     }
   },
-  "version": "1.0"
+  "version" : "1.0"
 }

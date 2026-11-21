@@ -22,7 +22,7 @@ struct SignInScreen: View {
                     .font(.largeTitle.bold())
                     .fontDesign(.rounded)
 
-                Text("Achetez en gros avec les familles de votre quartier, directement aux producteurs.")
+                Text("Achète en gros avec les familles de ton quartier, directement aux producteurs.")
                     .font(.body)
                     .foregroundStyle(.secondary)
                     .multilineTextAlignment(.center)
@@ -71,7 +71,7 @@ struct SignInScreen: View {
 }
 
 #Preview("Erreur, sombre") {
-    let session = SessionViewModel(auth: FakeAuthService(nextError: .failed("Réseau indisponible. Réessayez.")))
+    let session = SessionViewModel(auth: FakeAuthService(nextError: .failed("Réseau indisponible. Réessaie.")))
     return SignInScreen(session: session)
         .task { await session.signInWithGoogle() }
         .preferredColorScheme(.dark)

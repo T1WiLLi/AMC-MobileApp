@@ -62,6 +62,14 @@ actor FakeGroupRepository: GroupRepository {
         return group
     }
 
+    func groups(ofHousehold householdId: String) async throws -> [NeighborhoodGroup] {
+        try await behavior.simulate()
+        return members
+            .filter { _, groupMembers in groupMembers.contains { $0.householdId == householdId } }
+            .compactMap { groupId, _ in groups[groupId] }
+            .sorted { $0.name < $1.name }
+    }
+
     func members(ofGroup groupId: String) async throws -> [GroupMember] {
         try await behavior.simulate()
         guard groups[groupId] != nil else { throw AppError.notFound }
@@ -190,15 +198,18 @@ actor FakeGroupOrderRepository: GroupOrderRepository {
     private var groupOrders: [String: GroupOrder]
     private var shares: [String: [Share]]
     private let offers: [String: Offer]
+    private let now: @Sendable () -> Date
     private var broadcaster = FakeBroadcaster<GroupOrder>()
 
     init(
         behavior: FakeBehavior = .instant,
         groupOrders: [GroupOrder] = [],
         shares: [String: [Share]] = [:],
-        offers: [Offer] = []
+        offers: [Offer] = [],
+        now: @escaping @Sendable () -> Date = { .now }
     ) {
         self.behavior = behavior
+        self.now = now
         self.groupOrders = Dictionary(uniqueKeysWithValues: groupOrders.map { ($0.id, $0) })
         self.shares = shares
         self.offers = Dictionary(uniqueKeysWithValues: offers.map { ($0.id, $0) })
@@ -207,6 +218,36 @@ actor FakeGroupOrderRepository: GroupOrderRepository {
     func groupOrders(ofGroup groupId: String) async throws -> [GroupOrder] {
         try await behavior.simulate()
         return groupOrders.values.filter { $0.groupId == groupId }.sorted { $0.id < $1.id }
+    }
+
+    func groupOrders(ofOffer offerId: String) async throws -> [GroupOrder] {
+        try await behavior.simulate()
+        return groupOrders.values.filter { $0.offerId == offerId }.sorted { $0.id < $1.id }
+    }
+
+    @discardableResult
+    func openGroupOrder(groupId: String, offerId: String) async throws -> GroupOrder {
+        try await behavior.simulate()
+        guard let offer = offers[offerId] else { throw AppError.notFound }
+        if let existing = groupOrders.values.first(where: {
+            $0.groupId == groupId && $0.offerId == offerId && ($0.status == .open || $0.status == .reached)
+        }) {
+            return existing
+        }
+        guard offer.status == .active, offer.deadline > now() else { throw AppError.orderClosed }
+        var id = "order-\(groupId)-\(offerId)"
+        var suffix = 2
+        while groupOrders[id] != nil {
+            id = "order-\(groupId)-\(offerId)-\(suffix)"
+            suffix += 1
+        }
+        let order = GroupOrder(
+            id: id, groupId: groupId, offerId: offerId, status: .open, currentTierIndex: nil,
+            committedShares: 0, committedHouseholds: 0, pickupPointId: nil, pickupSlots: []
+        )
+        groupOrders[id] = order
+        shares[id] = []
+        return order
     }
 
     func groupOrder(id: String) async throws -> GroupOrder {
@@ -235,11 +276,16 @@ actor FakeGroupOrderRepository: GroupOrderRepository {
         }
 
         if let index = orderShares.firstIndex(where: { $0.householdId == householdId }) {
-            if quantity == 0 { orderShares.remove(at: index) } else { orderShares[index].quantity = quantity }
+            if quantity == 0 {
+                orderShares.remove(at: index)
+            } else {
+                orderShares[index].quantity = quantity
+                orderShares[index].updatedAt = now()
+            }
         } else if quantity > 0 {
             orderShares.append(Share(
                 householdId: householdId, quantity: quantity, finalPriceCents: nil, isPaid: false,
-                suspendedAmountCents: 0, subsidyCents: 0, qrCode: nil, isPickedUp: false
+                suspendedAmountCents: 0, subsidyCents: 0, qrCode: nil, isPickedUp: false, updatedAt: now()
             ))
         }
         // Même recalcul que la transaction Firestore (RQ-051).

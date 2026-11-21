@@ -38,6 +38,8 @@ nonisolated struct Share: Identifiable, Codable, Sendable, Hashable {
     var subsidyCents: Cents
     var qrCode: String?
     var isPickedUp: Bool
+    /// Dernière modification de la part (réservation ou changement de quantité) ; nil dans les anciennes données.
+    var updatedAt: Date? = nil
 
     var id: String { householdId }
 }

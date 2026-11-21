@@ -12,10 +12,12 @@ final class OfferDetailViewModel {
         var offer: Offer
         var product: Product
         var vendor: Vendor
-        /// Commande du groupe sur ce lot, nil si le groupe ne l'a pas lancée (réservation impossible).
+        /// Commande du groupe sur ce lot, nil si personne du groupe n'a encore réservé.
         var groupOrder: GroupOrder?
         /// Parts déjà réservées par le ménage (0 si aucune).
         var myShareQuantity: Int
+        /// Sans commande du groupe : la première réservation l'ouvrira (lot actif, date limite future, ménage dans un groupe).
+        var canStartOrder: Bool = false
 
         var committedShares: Int { groupOrder?.committedShares ?? 0 }
         /// Prix, palier et économie actuels du groupe.
@@ -23,7 +25,7 @@ final class OfferDetailViewModel {
         /// Parts encore disponibles dans le lot (en plus de celles du ménage).
         var remainingShares: Int { max(0, offer.totalShares - committedShares) }
         /// Le groupe peut encore modifier les parts.
-        var isOpen: Bool { groupOrder.map(OfferSummaryLoader.isActive) ?? false }
+        var isOpen: Bool { groupOrder.map(OfferSummaryLoader.isActive) ?? canStartOrder }
     }
 
     /// Ce que montre F4 quand la réservation fait franchir un palier.
@@ -124,7 +126,11 @@ final class OfferDetailViewModel {
                     )
                 }
             }
-            return Content(offer: offer, product: product, vendor: vendor, groupOrder: order, myShareQuantity: myQuantity)
+            let canStartOrder = order == nil && groupId != nil && offer.status == .active && offer.deadline > .now
+            return Content(
+                offer: offer, product: product, vendor: vendor, groupOrder: order, myShareQuantity: myQuantity,
+                canStartOrder: canStartOrder
+            )
         }
         if let content = state.value, content.myShareQuantity > 0 {
             selectedQuantity = content.myShareQuantity
@@ -161,14 +167,21 @@ final class OfferDetailViewModel {
 
     private func setShare(quantity: Int) async {
         guard let content = state.value, !isSaving else { return }
-        guard let order = content.groupOrder else {
-            actionError = .invalidInput("Ton groupe n'a pas encore lancé de commande pour ce lot.")
+        guard content.groupOrder != nil || (content.canStartOrder && quantity > 0), let groupId else {
+            actionError = .invalidInput("Rejoins un groupe de quartier pour réserver ce lot.")
             return
         }
         isSaving = true
         defer { isSaving = false }
         let before = content.pricing
         do {
+            // Première réservation du groupe sur ce lot : on ouvre la commande (T-033).
+            let order: GroupOrder
+            if let existing = content.groupOrder {
+                order = existing
+            } else {
+                order = try await repositories.groupOrders.openGroupOrder(groupId: groupId, offerId: offerId)
+            }
             let updated = try await repositories.groupOrders.setShare(
                 quantity: quantity, householdId: householdId, groupOrderId: order.id
             )

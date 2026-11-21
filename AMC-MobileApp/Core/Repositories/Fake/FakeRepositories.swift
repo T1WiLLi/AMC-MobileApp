@@ -35,6 +35,16 @@ actor FakeUserRepository: UserRepository {
         try await behavior.simulate()
         households[household.id] = household
     }
+
+    /// Suppression du compte (`FakeAuthService.deleteAccount()`) : retire l'uid du ménage, puis efface l'utilisateur.
+    /// Le ménage reste (les règles interdisent de le supprimer).
+    func removeUserAndLeaveHousehold(id: String) {
+        if let householdId = users[id]?.householdId, var household = households[householdId] {
+            household.userIds.removeAll { $0 == id }
+            households[householdId] = household
+        }
+        users[id] = nil
+    }
 }
 
 actor FakeGroupRepository: GroupRepository {

@@ -8,6 +8,7 @@ struct ProfileScreen: View {
     /// Optionnel : absent dans les previews sans verrou.
     @Environment(AppLock.self) private var appLock: AppLock?
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.appContext) private var appContext
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     /// Portail touché, pour l'haptique (part avant la fermeture de la feuille).
@@ -65,6 +66,15 @@ struct ProfileScreen: View {
                                 .foregroundStyle(.secondary)
                         } label: {
                             Label(user.displayName, systemImage: "person.crop.circle.fill")
+                        }
+                        if let session {
+                            NavigationLink {
+                                AccountScreen(model: AccountViewModel(
+                                    repositories: appContext.repositories, userId: appContext.userId, auth: session.auth
+                                ))
+                            } label: {
+                                Label("Modifier ou supprimer mon compte", systemImage: "person.crop.circle.badge.gearshape")
+                            }
                         }
                         Button("Se déconnecter", systemImage: "rectangle.portrait.and.arrow.right", role: .destructive) {
                             session?.signOut()

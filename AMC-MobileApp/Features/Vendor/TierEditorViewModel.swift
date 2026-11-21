@@ -60,8 +60,13 @@ final class TierEditorViewModel {
 
     var productId: String?
     var totalShares: Int = 20
-    /// Ce que contient une part (« sac de 10 kg ») ; prérempli avec l'unité du produit choisi.
-    var shareUnit: String = ""
+    /// Ce que contient une part (B-050) : contenant, poids, valeur ; prérempli avec l'unité du produit choisi.
+    var share: ShareSpec = .default
+    /// Texte de la part (« sac de 10 kg ») ; l'écrire relit la chaîne en `ShareSpec`.
+    var shareUnit: String {
+        get { share.label }
+        set { share = ShareSpec(parsing: newValue) }
+    }
     var deadline: Date
     var zones: [String] = []
     var tiers: [TierDraft] = [TierDraft(minShares: 1, priceCents: 0)]
@@ -187,7 +192,11 @@ final class TierEditorViewModel {
     /// Choisit le produit du lot et préremplit l'unité de part.
     func selectProduct(id: String) {
         productId = id
-        if let product = products.first(where: { $0.id == id }) { shareUnit = product.unit }
+        if let product = products.first(where: { $0.id == id }) {
+            var parsed = ShareSpec(parsing: product.unit)
+            parsed.valueCents = product.referenceGroceryPriceCents
+            share = parsed
+        }
     }
 
     /// Ajoute un palier après le dernier : seuil +10 parts (borné au total), prix −10 %.
@@ -236,8 +245,8 @@ final class TierEditorViewModel {
     func validatedOffer() throws(AppError) -> Offer {
         guard let productId else { throw .invalidInput(String(localized: "Choisis un produit pour ce lot.")) }
         guard totalShares > 0 else { throw .invalidInput(String(localized: "Le lot doit contenir au moins une part.")) }
-        guard !shareUnit.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
-            throw .invalidInput(String(localized: "Indique ce que contient une part (par exemple « sac de 10 kg »)."))
+        guard share.isValid else {
+            throw .invalidInput(String(localized: "Indique ce que contient une part : un poids plus grand que 0 (par exemple « sac de 10 kg »)."))
         }
         guard !tiers.isEmpty else { throw .invalidInput(String(localized: "Ajoute au moins un palier de prix.")) }
         for (index, tier) in tiers.enumerated() {
@@ -278,7 +287,7 @@ final class TierEditorViewModel {
             vendorId: vendorId,
             productId: productId,
             totalShares: totalShares,
-            shareUnit: shareUnit.trimmingCharacters(in: .whitespacesAndNewlines),
+            share: share,
             tiers: tiers.map { PriceTier(minShares: $0.minShares, priceCents: $0.priceCents) },
             minimumSharesToLaunch: tiers[0].minShares,
             deadline: deadline,
@@ -291,7 +300,7 @@ final class TierEditorViewModel {
         original = offer
         productId = offer.productId
         totalShares = offer.totalShares
-        shareUnit = offer.shareUnit
+        share = offer.share
         deadline = offer.deadline
         zones = offer.zones
         tiers = offer.sortedTiers.map { TierDraft(minShares: $0.minShares, priceCents: $0.priceCents) }

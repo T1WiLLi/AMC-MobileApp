@@ -436,8 +436,16 @@ private struct OfferDetailContent: View {
                     Text(content.product.origin)
                 }
                 rowDivider
-                infoRow(String(localized: "Unité de part"), systemImage: OfferDetailSymbol.shareUnit) {
-                    Text(content.offer.shareUnit)
+                // B-050 : contenant, poids et valeur d'une part, lus dans `Offer.share`.
+                infoRow(String(localized: "Une part"), systemImage: content.offer.share.container.systemImage) {
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text(content.offer.shareUnit)
+                        if let valueCents = content.offer.share.valueCents {
+                            Text("Valeur \(Money.format(valueCents))")
+                                .font(.subheadline)
+                                .foregroundStyle(.texteSecondaire)
+                        }
+                    }
                 }
                 rowDivider
                 infoRow(

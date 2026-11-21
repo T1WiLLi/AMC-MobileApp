@@ -318,15 +318,31 @@ service cloud.firestore {
         && isValidTier(tiers, 8, totalShares) && isValidTier(tiers, 9, totalShares);
     }
 
+    // B-050 : part structurée (optionnelle, `shareUnit` reste le texte affiché).
+    function isValidShare(share) {
+      return share is map
+        && share.keys().hasOnly(['container', 'count', 'weight', 'valueCents'])
+        && share.keys().hasAll(['container', 'count', 'weight'])
+        && share.container in ['sac', 'caisse', 'boite', 'palette', 'botte', 'bouteille', 'filet', 'plateau', 'vrac']
+        && isIntIn(share.count, 1, 1000)
+        && share.weight is map
+        && share.weight.keys().hasOnly(['value', 'unit'])
+        && share.weight.keys().hasAll(['value', 'unit'])
+        && share.weight.value is number && share.weight.value > 0 && share.weight.value <= 1000000
+        && share.weight.unit in ['kg', 'g', 'lb', 'L', 'mL', 'unité']
+        && (!('valueCents' in share) || isIntIn(share.valueCents, 0, 10000000));
+    }
+
     function isValidOffer(data) {
       let productPath = /databases/$(database)/documents/products/$(data.productId);
-      return data.keys().hasOnly(['id', 'vendorId', 'productId', 'totalShares', 'shareUnit', 'tiers',
+      return data.keys().hasOnly(['id', 'vendorId', 'productId', 'totalShares', 'shareUnit', 'share', 'tiers',
                                   'minimumSharesToLaunch', 'deadline', 'zones', 'status'])
         && data.keys().hasAll(['id', 'vendorId', 'productId', 'totalShares', 'shareUnit', 'tiers',
                                'minimumSharesToLaunch', 'deadline', 'zones', 'status'])
         && isIntIn(data.totalShares, 1, 10000)
         && isIntIn(data.minimumSharesToLaunch, 1, data.totalShares)
         && isShortString(data.shareUnit, 1, 60)
+        && (!('share' in data) || isValidShare(data.share))
         && areValidTiers(data.tiers, data.totalShares)
         && data.deadline is timestamp
         && isStringList(data.zones, 20)

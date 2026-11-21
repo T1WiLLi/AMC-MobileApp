@@ -242,6 +242,25 @@ describe('vendeur : products et offers', () => {
   test('le vendeur crée un lot sur son produit', async () => {
     await assertSucceeds(setDoc(doc(lafleur(), 'offers/offer-2'), { ...offer, id: 'offer-2' }))
   })
+  test('le vendeur crée un lot avec une part structurée (B-050)', async () => {
+    const structured = { container: 'sac', count: 1, weight: { value: 5, unit: 'kg' }, valueCents: 899 }
+    await assertSucceeds(setDoc(doc(lafleur(), 'offers/offer-3'), { ...offer, id: 'offer-3', share: structured }))
+    await assertSucceeds(updateDoc(doc(lafleur(), 'offers/offer-carottes'), { share: { container: 'vrac', count: 1, weight: { value: 2.5, unit: 'kg' } } }))
+  })
+  test('part structurée invalide refusée (B-050)', async () => {
+    const bad = [
+      { container: 'camion', count: 1, weight: { value: 5, unit: 'kg' } },
+      { container: 'sac', count: 0, weight: { value: 5, unit: 'kg' } },
+      { container: 'sac', count: 1, weight: { value: 0, unit: 'kg' } },
+      { container: 'sac', count: 1, weight: { value: 5, unit: 'tonne' } },
+      { container: 'sac', count: 1, weight: { value: 5, unit: 'kg' }, valueCents: -1 },
+      { container: 'sac', count: 1, weight: { value: 5, unit: 'kg' }, extra: true },
+      'sac de 5 kg'
+    ]
+    for (const share of bad) {
+      await assertFails(updateDoc(doc(lafleur(), 'offers/offer-carottes'), { share }))
+    }
+  })
   test('pas de produit pour un autre vendeur', async () => {
     await assertFails(setDoc(doc(lafleur(), 'products/p-x'), { ...product, id: 'p-x', vendorId: 'vendor-autre' }))
   })

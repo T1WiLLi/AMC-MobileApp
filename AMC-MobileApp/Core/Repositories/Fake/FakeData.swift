@@ -63,7 +63,8 @@ nonisolated struct FakeData: Sendable {
         }
 
         let potatoOffer = Offer(
-            id: ID.potatoOffer, vendorId: ID.fermeRive, productId: ID.potatoes, totalShares: 40, shareUnit: "sac de 10 kg",
+            id: ID.potatoOffer, vendorId: ID.fermeRive, productId: ID.potatoes, totalShares: 40,
+            share: ShareSpec(container: .bag, weight: .init(10, .kilogram), valueCents: 1_599),
             tiers: [PriceTier(minShares: 10, priceCents: 1_150), PriceTier(minShares: 20, priceCents: 990),
                     PriceTier(minShares: 30, priceCents: 850)],
             minimumSharesToLaunch: 10, deadline: now.addingTimeInterval(2 * day), zones: ["f25d", "f25e"], status: .active
@@ -128,11 +129,11 @@ nonisolated struct FakeData: Sendable {
             offers: [
                 potatoOffer,
                 Offer(id: ID.riceOffer, vendorId: ID.moulinsDuNord, productId: ID.rice, totalShares: 30,
-                      shareUnit: "sac de 10 kg",
+                      share: ShareSpec(container: .bag, weight: .init(10, .kilogram), valueCents: 2_899),
                       tiers: [PriceTier(minShares: 8, priceCents: 2_300), PriceTier(minShares: 16, priceCents: 1_990)],
                       minimumSharesToLaunch: 8, deadline: now.addingTimeInterval(4 * day), zones: ["f25d"], status: .active),
                 Offer(id: ID.appleOffer, vendorId: ID.fermeRive, productId: ID.apples, totalShares: 25,
-                      shareUnit: "caisse de 5 kg",
+                      share: ShareSpec(container: .crate, weight: .init(5, .kilogram), valueCents: 1_499),
                       tiers: [PriceTier(minShares: 5, priceCents: 1_100), PriceTier(minShares: 15, priceCents: 950)],
                       minimumSharesToLaunch: 5, deadline: now.addingTimeInterval(6 * day), zones: ["f25e"], status: .active),
             ],

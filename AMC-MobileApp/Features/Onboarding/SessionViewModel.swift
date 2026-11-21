@@ -1,7 +1,8 @@
+import AuthenticationServices
 import Foundation
 import Observation
 
-/// État de session : qui est connecté, connexion Google ou courriel, vérification du courriel, déconnexion.
+/// État de session : qui est connecté, connexion Google, Apple ou courriel, vérification du courriel, déconnexion.
 /// Partagé dans l'environnement SwiftUI (`.environment(session)`).
 @MainActor
 @Observable
@@ -28,6 +29,9 @@ final class SessionViewModel {
     private(set) var isSendingVerification = false
     /// Moment du dernier envoi du lien de vérification (base du délai de renvoi).
     private(set) var verificationSentAt: Date?
+
+    /// Nonce brut de la requête Apple en cours (son SHA-256 est dans la requête).
+    private var appleNonce: String?
 
     private let auth: AuthService
     private let now: () -> Date
@@ -79,6 +83,62 @@ final class SessionViewModel {
             state = .signedOut
             errorMessage = error.localizedDescription
         }
+    }
+
+    // MARK: Apple
+
+    /// `onRequest` de `SignInWithAppleButton` : demande le nom et le courriel, attache le SHA-256 d'un nonce neuf.
+    func prepareAppleSignIn(_ request: ASAuthorizationAppleIDRequest) {
+        let nonce = AppleSignIn.randomNonce()
+        appleNonce = nonce
+        request.requestedScopes = [.fullName, .email]
+        request.nonce = AppleSignIn.sha256(nonce)
+    }
+
+    /// `onCompletion` de `SignInWithAppleButton`. Feuille fermée par l'utilisateur : rien ne s'affiche.
+    func completeAppleSignIn(_ result: Result<ASAuthorization, any Error>) async {
+        switch result {
+        case .success(let authorization):
+            do {
+                await signInWithApple(try AppleSignIn.credential(from: authorization))
+            } catch {
+                failAppleSignIn(error)
+            }
+        case .failure(let error):
+            failAppleSignIn(error)
+        }
+    }
+
+    /// Envoie à Firebase le jeton d'Apple avec le nonce brut de `prepareAppleSignIn`.
+    func signInWithApple(_ credential: AppleSignIn.Credential) async {
+        guard state != .signingIn else { return }
+        guard let nonce = appleNonce else {
+            failAppleSignIn(AuthError.failed(String(localized: "La connexion avec Apple a expiré. Réessaie.")))
+            return
+        }
+        appleNonce = nil
+        errorMessage = nil
+        emailAuthError = nil
+        state = .signingIn
+        do {
+            let user = try await auth.signInWithApple(
+                idToken: credential.idToken,
+                rawNonce: nonce,
+                fullName: credential.fullName
+            )
+            state = Self.state(for: user)
+        } catch AuthError.cancelled {
+            state = .signedOut
+        } catch {
+            state = .signedOut
+            errorMessage = AppleSignIn.authError(from: error).errorDescription
+        }
+    }
+
+    private func failAppleSignIn(_ error: any Error) {
+        appleNonce = nil
+        if AppleSignIn.isCancellation(error) || (error as? AuthError) == .cancelled { return }
+        errorMessage = AppleSignIn.authError(from: error).errorDescription
     }
 
     // MARK: Courriel et mot de passe

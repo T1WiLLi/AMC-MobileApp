@@ -68,6 +68,35 @@ final class FirebaseAuthService: AuthService {
         }
     }
 
+    // MARK: Apple
+
+    func signInWithApple(idToken: String, rawNonce: String, fullName: PersonNameComponents?) async throws -> AuthUser {
+        let credential = OAuthProvider.appleCredential(withIDToken: idToken, rawNonce: rawNonce, fullName: fullName)
+        do {
+            let result = try await Auth.auth().signIn(with: credential)
+            // Apple ne donne le nom qu'une fois : on le garde dans le profil Firebase s'il manque.
+            if result.user.displayName?.isEmpty ?? true, let name = Self.displayName(from: fullName) {
+                let change = result.user.createProfileChangeRequest()
+                change.displayName = name
+                try? await change.commitChanges()
+            }
+            return AuthUser(firebaseUser: Auth.auth().currentUser ?? result.user)
+        } catch {
+            if (error as NSError).domain == AuthErrorDomain,
+               AuthErrorCode(rawValue: (error as NSError).code) == .operationNotAllowed {
+                throw AuthError.failed("La connexion avec Apple n'est pas encore activée. Utilise Google ou ton courriel.")
+            }
+            throw Self.authError(from: error)
+        }
+    }
+
+    private static func displayName(from components: PersonNameComponents?) -> String? {
+        guard let components else { return nil }
+        let name = PersonNameComponentsFormatter.localizedString(from: components, style: .default)
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+        return name.isEmpty ? nil : name
+    }
+
     // MARK: Courriel et mot de passe
 
     func signUp(email: String, password: String, displayName: String) async throws -> AuthUser {

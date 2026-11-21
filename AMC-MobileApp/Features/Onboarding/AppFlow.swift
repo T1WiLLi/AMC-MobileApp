@@ -145,14 +145,14 @@ final class PortalChoiceViewModel {
 
     /// Phrase sous les cartes, qui suit la sélection.
     var hint: String {
-        guard let choice else { return "Choisis une carte, ou plusieurs." }
+        guard let choice else { return String(localized: "Choisis une carte, ou plusieurs.") }
         switch choice {
-        case .family: return "Tu pourras aussi vendre plus tard, depuis ton profil."
-        case .vendor: return "Tu pourras aussi acheter avec ton quartier, depuis ton profil."
-        case .organization: return "Tu pourras aussi acheter ou vendre plus tard, depuis ton profil."
-        case .both: return "Les deux : tu passeras de l'un à l'autre dans ton profil."
+        case .family: return String(localized: "Tu pourras aussi vendre plus tard, depuis ton profil.")
+        case .vendor: return String(localized: "Tu pourras aussi acheter avec ton quartier, depuis ton profil.")
+        case .organization: return String(localized: "Tu pourras aussi acheter ou vendre plus tard, depuis ton profil.")
+        case .both: return String(localized: "Les deux : tu passeras de l'un à l'autre dans ton profil.")
         default:
-            return "\(FrenchPlural.count(choice.portals.count, "portail")) : tu passeras de l'un à l'autre dans ton profil."
+            return String(localized: "\(FrenchPlural.count(choice.portals.count, "portail")) : tu passeras de l'un à l'autre dans ton profil.")
         }
     }
 

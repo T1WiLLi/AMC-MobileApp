@@ -15,9 +15,9 @@ final class PreferencesViewModel {
 
         var title: String {
             switch self {
-            case .diet: "Régime"
-            case .allergies: "Allergies et intolérances"
-            case .sourcing: "Provenance"
+            case .diet: String(localized: "Régime")
+            case .allergies: String(localized: "Allergies et intolérances")
+            case .sourcing: String(localized: "Provenance")
             }
         }
 
@@ -83,7 +83,7 @@ final class PreferencesViewModel {
     /// « Halal, Sans gluten » ou « Aucune ».
     var dietarySummary: String {
         let tags = user?.dietaryPreferences ?? []
-        guard !tags.isEmpty else { return "Aucune" }
+        guard !tags.isEmpty else { return String(localized: "Aucune") }
         return tags.map(Self.title(of:)).formatted(.list(type: .and))
     }
 

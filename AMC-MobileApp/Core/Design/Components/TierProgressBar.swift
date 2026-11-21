@@ -108,15 +108,15 @@ struct TierProgressBar: View {
 
     private func nudge(short: Bool) -> String? {
         if committedShares < launchThreshold {
-            return "Encore \(count(launchThreshold - committedShares)) pour lancer la commande"
+            return String(localized: "Encore \(count(launchThreshold - committedShares)) pour lancer la commande")
         }
         guard let next = sorted.first(where: { committedShares < $0.minShares }) else { return nil }
         let missing = count(next.minShares - committedShares)
         // Économie du palier suivant par rapport au palier atteint (ou au premier palier).
         let reference = currentIndex.map { sorted[$0].priceCents } ?? sorted.first?.priceCents ?? next.priceCents
         let percent = Money.savingsPercent(price: next.priceCents, reference: reference)
-        guard percent > 0 else { return "Encore \(missing) pour le palier suivant" }
-        return short ? "Encore \(missing) pour −\(percent) %" : "Encore \(missing) pour débloquer −\(percent) %"
+        guard percent > 0 else { return String(localized: "Encore \(missing) pour le palier suivant") }
+        return short ? String(localized: "Encore \(missing) pour −\(percent) %") : String(localized: "Encore \(missing) pour débloquer −\(percent) %")
     }
 
     private func count(_ value: Int) -> String {
@@ -126,7 +126,7 @@ struct TierProgressBar: View {
     var accessibilityText: String {
         var text = "\(count(committedShares)) \(FrenchPlural.word(committedShares, "engagée"))"
         if let currentIndex {
-            text += ", prix actuel \(Money.spoken(sorted[currentIndex].priceCents))"
+            text += String(localized: ", prix actuel \(Money.spoken(sorted[currentIndex].priceCents))")
         }
         if let nudge { text += ". \(nudge)" }
         return text

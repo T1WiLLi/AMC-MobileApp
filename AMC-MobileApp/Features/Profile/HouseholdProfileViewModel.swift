@@ -86,17 +86,17 @@ final class HouseholdProfileViewModel {
     var postalMessage: String? {
         switch postalLookup {
         case .empty, .incomplete: nil
-        case .invalid: "Un code postal a la forme H2A 1B3."
-        case .notServed: "Grenier n'est pas encore offert dans ce secteur. Choisis le quartier le plus proche."
-        case .found(let found): "Quartier trouvé : \(found.name)."
+        case .invalid: String(localized: "Un code postal a la forme H2A 1B3.")
+        case .notServed: String(localized: "Grenier n'est pas encore offert dans ce secteur. Choisis le quartier le plus proche.")
+        case .found(let found): String(localized: "Quartier trouvé : \(found.name).")
         }
     }
 
     var trimmedName: String { name.trimmingCharacters(in: .whitespacesAndNewlines) }
 
     var nameError: String? {
-        if trimmedName.isEmpty { return "Donne un nom à ton ménage (ex. « Famille Benali »)." }
-        if trimmedName.count > 40 { return "40 caractères au plus." }
+        if trimmedName.isEmpty { return String(localized: "Donne un nom à ton ménage (ex. « Famille Benali »).") }
+        if trimmedName.count > 40 { return String(localized: "40 caractères au plus.") }
         return nil
     }
 

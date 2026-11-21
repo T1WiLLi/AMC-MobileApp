@@ -45,7 +45,7 @@ nonisolated struct PaymentSimulator: Sendable {
         case declined
     }
 
-    static let methodLabel = "Apple Pay (démo)"
+    static let methodLabel = String(localized: "Apple Pay (démo)")
 
     var outcome: Outcome
     var now: @Sendable () -> Date
@@ -58,11 +58,11 @@ nonisolated struct PaymentSimulator: Sendable {
     /// Ce que le ménage doit payer pour une part répartie par `ShareAllocator.allocate`.
     static func amountDue(for share: Share) throws -> Cents {
         guard let finalPrice = share.finalPriceCents else {
-            throw AppError.invalidInput("Le prix de cette part n'est pas encore fixé.")
+            throw AppError.invalidInput(String(localized: "Le prix de cette part n'est pas encore fixé."))
         }
         guard finalPrice >= 0, share.subsidyCents >= 0, share.suspendedAmountCents >= 0,
               share.subsidyCents <= finalPrice else {
-            throw AppError.invalidInput("Montants invalides pour cette part.")
+            throw AppError.invalidInput(String(localized: "Montants invalides pour cette part."))
         }
         return finalPrice - share.subsidyCents + share.suspendedAmountCents
     }
@@ -72,11 +72,11 @@ nonisolated struct PaymentSimulator: Sendable {
     /// - Returns: un reçu de transaction réussi ou refusé, selon `outcome`.
     func pay(share: Share, order: GroupOrder, existing: [PaymentRecord] = []) throws -> PaymentRecord {
         guard order.status == .closed || order.status == .delivered else {
-            throw AppError.invalidInput("La commande n'est pas encore fermée : rien à payer pour l'instant.")
+            throw AppError.invalidInput(String(localized: "La commande n'est pas encore fermée : rien à payer pour l'instant."))
         }
         let previous = existing.filter { $0.groupOrderId == order.id && $0.householdId == share.householdId }
         guard !share.isPaid, !previous.contains(where: { $0.status == .succeeded }) else {
-            throw AppError.invalidInput("Cette part est déjà payée.")
+            throw AppError.invalidInput(String(localized: "Cette part est déjà payée."))
         }
         let amount = try Self.amountDue(for: share)
         return PaymentRecord(
@@ -125,7 +125,7 @@ nonisolated struct PaymentSimulator: Sendable {
         existingRefunds: [RefundRecord] = []
     ) throws -> [RefundRecord] {
         guard order.status == .cancelled else {
-            throw AppError.invalidInput("Seule une commande annulée peut être remboursée.")
+            throw AppError.invalidInput(String(localized: "Seule une commande annulée peut être remboursée."))
         }
         let refunded = Set(existingRefunds.map(\.paymentId))
         let date = now()

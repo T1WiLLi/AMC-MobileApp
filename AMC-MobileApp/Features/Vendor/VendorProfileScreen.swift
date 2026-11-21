@@ -139,7 +139,7 @@ struct VendorProfileScreen: View {
         defer { pickedItem = nil }
         do {
             guard let data = try await item.loadTransferable(type: Data.self) else {
-                reject(.invalidInput("Impossible de lire cette image."))
+                reject(.invalidInput(String(localized: "Impossible de lire cette image.")))
                 return
             }
             if let error = await viewModel.addPhoto(data: data) { reject(error) }
@@ -153,7 +153,7 @@ struct VendorProfileScreen: View {
     private var descriptionSection: some View {
         Section {
             TextField(
-                "Ce que tu cultives ou vends, d'où ça vient, ce qui te rend fier…",
+                String(localized: "Ce que tu cultives ou vends, d'où ça vient, ce qui te rend fier…"),
                 text: $viewModel.description,
                 axis: .vertical
             )
@@ -332,7 +332,7 @@ struct VendorProfileScreen: View {
             .buttonStyle(.glassProminent)
             .tint(.grenier)
             .disabled(!viewModel.hasChanges || viewModel.isSaving)
-            .accessibilityHint(viewModel.validationError?.message ?? "Enregistre la description, les photos et les zones.")
+            .accessibilityHint(viewModel.validationError?.message ?? String(localized: "Enregistre la description, les photos et les zones."))
         }
     }
 }
@@ -450,7 +450,7 @@ private struct PhotoThumbnail: View {
             }
         }
         .accessibilityElement()
-        .accessibilityLabel(isCover ? "Photo de couverture" : "Photo de vitrine")
+        .accessibilityLabel(isCover ? String(localized: "Photo de couverture") : String(localized: "Photo de vitrine"))
         .accessibilityAddTraits(.isImage)
     }
 }
@@ -513,7 +513,7 @@ private struct ZoneChip: View {
         }
         .buttonStyle(.plain)
         .accessibilityLabel(title)
-        .accessibilityHint(style == .selected ? "Retire cette zone." : "Ajoute cette zone.")
+        .accessibilityHint(style == .selected ? String(localized: "Retire cette zone.") : String(localized: "Ajoute cette zone."))
     }
 }
 
@@ -637,7 +637,7 @@ private extension Vendor {
     /// Contenu du squelette de chargement.
     static let profilePlaceholder = Vendor(
         id: "placeholder", legalName: "Ferme du quartier", kind: .farm,
-        description: "Légumes cultivés à quelques kilomètres de Montréal.",
+        description: String(localized: "Légumes cultivés à quelques kilomètres de Montréal."),
         photoURLs: [], servedZones: ["f25d", "f25e"], averageRating: 4.5, isVerified: true
     )
 }

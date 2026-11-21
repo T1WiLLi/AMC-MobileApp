@@ -36,7 +36,7 @@ struct MinimumRiskBadge: View {
     private var tint: Color { assessment.level == .high ? .red : .orange }
 
     private var levelLabel: String {
-        assessment.level == .high ? "Minimum en danger" : "Attention au minimum"
+        assessment.level == .high ? String(localized: "Minimum en danger") : String(localized: "Attention au minimum")
     }
 
     private var shortLabel: String {

@@ -78,7 +78,7 @@ nonisolated extension NeighborhoodGroup {
         return ResolvedGroupBranding(
             displayName: name,
             emblem: branding.emblem ?? GroupBranding.defaultEmblem,
-            welcomeMessage: branding.welcomeMessage ?? "Bienvenue chez \(name)",
+            welcomeMessage: branding.welcomeMessage ?? String(localized: "Bienvenue chez \(name)"),
             branding: branding
         )
     }

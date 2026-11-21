@@ -25,9 +25,9 @@ final class DemandMapViewModel {
         var id: String { rawValue }
         var title: String {
             switch self {
-            case .group: "Groupes"
-            case .neighborhood: "Quartiers"
-            case .geohash: "Zones"
+            case .group: String(localized: "Groupes")
+            case .neighborhood: String(localized: "Quartiers")
+            case .geohash: String(localized: "Zones")
             }
         }
     }
@@ -42,8 +42,8 @@ final class DemandMapViewModel {
         var id: String { rawValue }
         var title: String {
             switch self {
-            case .allOffers: "Toute la demande"
-            case .myOffers: "Mes lots"
+            case .allOffers: String(localized: "Toute la demande")
+            case .myOffers: String(localized: "Mes lots")
             }
         }
     }

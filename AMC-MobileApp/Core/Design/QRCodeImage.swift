@@ -108,7 +108,7 @@ struct QRCodeImage: View {
     init(
         _ payload: String,
         correction: QRMatrix.Correction = .medium,
-        accessibilityLabel: String = "Code QR",
+        accessibilityLabel: String = String(localized: "Code QR"),
         foreground: Color = .texte,
         background: Color = .surface
     ) {

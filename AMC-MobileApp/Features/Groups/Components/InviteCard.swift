@@ -40,7 +40,7 @@ struct InviteCard: View {
             .frame(maxWidth: .infinity)
 
             QRCodeImage(Self.inviteURL(for: group).absoluteString,
-                        accessibilityLabel: "Code QR pour rejoindre \(group.name)")
+                        accessibilityLabel: String(localized: "Code QR pour rejoindre \(group.name)"))
                 .padding(12)
                 .background(Color.surface, in: .rect(cornerRadius: 20))
                 .overlay(RoundedRectangle(cornerRadius: 20).stroke(Color.piste, lineWidth: 1.5))
@@ -65,7 +65,7 @@ struct InviteCard: View {
             ShareLink(
                 item: shareMessage,
                 subject: Text("Rejoins \(group.name) sur Grenier"),
-                preview: SharePreview("Rejoins \(group.name) sur Grenier", image: Image(systemName: GrenierSymbol.groups))
+                preview: SharePreview(String(localized: "Rejoins \(group.name) sur Grenier"), image: Image(systemName: GrenierSymbol.groups))
             ) {
                 Label("Partager l'invitation", systemImage: "square.and.arrow.up")
                     .frame(maxWidth: .infinity)
@@ -83,7 +83,7 @@ struct InviteCard: View {
         if let line = Self.urgencyLine(missingFamilies: missingFamilies, discountPercent: discountPercent) {
             return line.prefix(1).uppercased() + line.dropFirst()
         }
-        return "Plus on est de familles, plus le prix baisse."
+        return String(localized: "Plus on est de familles, plus le prix baisse.")
     }
 
     var shareMessage: String {
@@ -98,19 +98,19 @@ struct InviteCard: View {
         guard let missingFamilies, missingFamilies > 0 else { return nil }
         let unit = missingFamilies > 1 ? "familles" : "famille"
         guard let discountPercent, discountPercent > 0 else {
-            return "il manque \(missingFamilies) \(unit) pour le prochain palier"
+            return String(localized: "il manque \(missingFamilies) \(unit) pour le prochain palier")
         }
-        return "il manque \(missingFamilies) \(unit) pour débloquer −\(discountPercent) %"
+        return String(localized: "il manque \(missingFamilies) \(unit) pour débloquer −\(discountPercent) %")
     }
 
     /// « Rejoins Parc-Ex Ouest sur Grenier : il manque 1 famille pour débloquer −19 %. Code d'invitation : PARCEX »
     static func shareMessage(groupName: String, inviteCode: String, missingFamilies: Int?, discountPercent: Int?) -> String {
         let head = if let line = urgencyLine(missingFamilies: missingFamilies, discountPercent: discountPercent) {
-            "Rejoins \(groupName) sur Grenier : \(line)."
+            String(localized: "Rejoins \(groupName) sur Grenier : \(line).")
         } else {
-            "Rejoins \(groupName) sur Grenier : on achète en gros entre voisins, directement aux producteurs."
+            String(localized: "Rejoins \(groupName) sur Grenier : on achète en gros entre voisins, directement aux producteurs.")
         }
-        return "\(head) Code d'invitation : \(inviteCode)"
+        return String(localized: "\(head) Code d'invitation : \(inviteCode)")
     }
 
     /// Lien d'invitation encodé dans le QR : `grenier://rejoindre?code=PARCEX`.

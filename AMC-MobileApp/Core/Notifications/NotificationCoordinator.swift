@@ -30,8 +30,8 @@ nonisolated struct GroupOrderNotificationContext: Sendable, Hashable {
         var pickupPoint: PickupPoint?
         if let id = order.pickupPointId { pickupPoint = try? await repositories.pickupPoints.pickupPoint(id: id) }
         return GroupOrderNotificationContext(
-            groupName: group?.name ?? "ton groupe",
-            productName: product.map { Self.withArticle($0.name) } ?? "ta commande",
+            groupName: group?.name ?? String(localized: "ton groupe"),
+            productName: product.map { Self.withArticle($0.name) } ?? String(localized: "ta commande"),
             unit: product?.unit ?? offer?.shareUnit ?? "part",
             offer: offer,
             pickupPoint: pickupPoint

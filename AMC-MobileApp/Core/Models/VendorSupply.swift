@@ -50,15 +50,15 @@ nonisolated struct VendorSupply: Identifiable, Codable, Sendable, Hashable {
 
     /// Mêmes contrôles que `firestore.rules`, pour échouer tôt avec un message clair.
     func validate() throws {
-        guard !vendorId.isEmpty else { throw AppError.invalidInput("La disponibilité doit avoir un vendeur.") }
+        guard !vendorId.isEmpty else { throw AppError.invalidInput(String(localized: "La disponibilité doit avoir un vendeur.")) }
         guard quantity > 0, quantity <= 1_000_000 else {
-            throw AppError.invalidInput("Indique une quantité entre 0 et 1 000 000.")
+            throw AppError.invalidInput(String(localized: "Indique une quantité entre 0 et 1 000 000."))
         }
         guard availableTo >= availableFrom else {
-            throw AppError.invalidInput("La fin de la disponibilité doit suivre son début.")
+            throw AppError.invalidInput(String(localized: "La fin de la disponibilité doit suivre son début."))
         }
         guard !servedZones.isEmpty, servedZones.count <= 20, servedZones.allSatisfy({ !$0.isEmpty }) else {
-            throw AppError.invalidInput("Choisis entre 1 et 20 zones desservies.")
+            throw AppError.invalidInput(String(localized: "Choisis entre 1 et 20 zones desservies."))
         }
     }
 }

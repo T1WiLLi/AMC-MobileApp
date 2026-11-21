@@ -14,7 +14,7 @@ struct PickupPointPickerScreen: View {
                 PickerContent(viewModel: viewModel, content: content)
             } else {
                 ContentUnavailableView(
-                    "Réservé aux coordonnateurs",
+                    String(localized: "Réservé aux coordonnateurs"),
                     systemImage: "person.badge.key.fill",
                     description: Text("Seuls les coordonnateurs de \(content.group.name) choisissent le point de cueillette.")
                 )
@@ -111,7 +111,7 @@ private struct PickerContent: View {
             }
             Task { showsValidation = await viewModel.save() == nil }
         } label: {
-            Label(viewModel.savedOrder != nil && !viewModel.hasChanges ? "Enregistré" : "Confirmer le point",
+            Label(viewModel.savedOrder != nil && !viewModel.hasChanges ? String(localized: "Enregistré") : String(localized: "Confirmer le point"),
                   systemImage: viewModel.savedOrder != nil && !viewModel.hasChanges ? "checkmark.seal.fill" : "checkmark")
                 .font(.headline)
                 .frame(maxWidth: .infinity, minHeight: 44)
@@ -171,7 +171,7 @@ private struct PointChoiceCard: View {
     private var tooSmall: Bool { point.capacity < demand }
 
     private var capacityText: String {
-        tooSmall ? "\(point.capacity) parts max · \(demand) déjà engagées" : "Jusqu'à \(point.capacity) parts"
+        tooSmall ? String(localized: "\(point.capacity) parts max · \(demand) déjà engagées") : String(localized: "Jusqu'à \(point.capacity) parts")
     }
 }
 
@@ -185,7 +185,7 @@ private struct SlotEditorCard: View {
         VStack(alignment: .leading, spacing: 12) {
             HStack {
                 DatePicker(
-                    "Début",
+                    String(localized: "Début"),
                     selection: Binding(get: { slot.start }, set: { viewModel.moveSlot(start: slot.start, to: $0) }),
                     displayedComponents: [.date, .hourAndMinute]
                 )

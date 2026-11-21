@@ -174,7 +174,7 @@ private struct PickupHeroCard: View {
                 )
                 VStack(alignment: .leading, spacing: 8) {
                     Label {
-                        Text(done ? "Cueillette terminée" : PickupFormat.countdown(minutes: minutes))
+                        Text(done ? String(localized: "Cueillette terminée") : PickupFormat.countdown(minutes: minutes))
                             .font(.title3.bold())
                             .foregroundStyle(.texte)
                             .contentTransition(.numericText())
@@ -210,7 +210,7 @@ private struct PickupHeroCard: View {
 
     private var hostLine: String {
         if let host = content.hostFirstName {
-            return "Chez \(host) · \(content.pickupPoint.address)"
+            return String(localized: "Chez \(host) · \(content.pickupPoint.address)")
         }
         return content.pickupPoint.address
     }
@@ -231,7 +231,7 @@ private struct PickupAllDoneCard: View {
                         .symbolRenderingMode(.hierarchical)
                         .foregroundStyle(Color.economie)
                 }
-                Text(hostFirstName.map { "Merci d'avoir cueilli chez \($0) !" } ?? "Merci, bonne cuisine !")
+                Text(hostFirstName.map { String(localized: "Merci d'avoir cueilli chez \($0) !") } ?? String(localized: "Merci, bonne cuisine !"))
                     .font(.subheadline)
                     .foregroundStyle(.texteSecondaire)
             }
@@ -275,14 +275,14 @@ private struct PickupCodeCard: View {
                 HStack(spacing: 16) { orderLabel; articlesLabel }
                 VStack(spacing: 6) { orderLabel; articlesLabel }
             }
-            PickupInfoLabel(text: "Luminosité au maximum pour le scan", systemImage: "sun.max.fill", font: .caption)
+            PickupInfoLabel(text: String(localized: "Luminosité au maximum pour le scan"), systemImage: "sun.max.fill", font: .caption)
         }
         .frame(maxWidth: .infinity)
         .grenierCard(padding: 20)
     }
 
     private var orderLabel: some View {
-        PickupInfoLabel(text: "Commande \(content.orderCode)", systemImage: "number.circle.fill")
+        PickupInfoLabel(text: String(localized: "Commande \(content.orderCode)"), systemImage: "number.circle.fill")
             .monospacedDigit()
             .textSelection(.enabled)
     }
@@ -292,11 +292,11 @@ private struct PickupCodeCard: View {
     }
 
     private var hostInstruction: String {
-        content.hostFirstName.map { "Montre ce code à \($0)" } ?? "Montre ce code à ton hôte"
+        content.hostFirstName.map { String(localized: "Montre ce code à \($0)") } ?? String(localized: "Montre ce code à ton hôte")
     }
 
     private var articles: String {
-        content.items.count == 1 ? "1 article" : "\(content.items.count) articles"
+        content.items.count == 1 ? String(localized: "1 article") : "\(content.items.count) articles"
     }
 }
 
@@ -382,7 +382,7 @@ private struct PickupItemsCard: View {
     private func statusBadge(_ item: PickupViewModel.Item) -> some View {
         let tint: Color = item.isPickedUp ? .economie : .grenier
         return Label {
-            Text(item.isPickedUp ? "Récupéré" : "Prêt à récupérer")
+            Text(item.isPickedUp ? String(localized: "Récupéré") : String(localized: "Prêt à récupérer"))
         } icon: {
             Image(systemName: item.isPickedUp ? "checkmark.circle.fill" : "shippingbox.and.arrow.backward.fill")
                 .contentTransition(reduceMotion ? .identity : .symbolEffect(.replace))
@@ -565,14 +565,14 @@ private enum PickupFormat {
 
     /// « Cueillette dans 25 min », « Cueillette dans 3 h », « Cueillette dans 2 jours ».
     static func countdown(minutes: Int?) -> String {
-        guard let minutes else { return "Créneau à confirmer" }
+        guard let minutes else { return String(localized: "Créneau à confirmer") }
         switch minutes {
-        case 0: return "C'est l'heure de ta cueillette"
-        case ..<60: return "Cueillette dans \(minutes) min"
-        case ..<(24 * 60): return "Cueillette dans \(minutes / 60) h"
+        case 0: return String(localized: "C'est l'heure de ta cueillette")
+        case ..<60: return String(localized: "Cueillette dans \(minutes) min")
+        case ..<(24 * 60): return String(localized: "Cueillette dans \(minutes / 60) h")
         default:
             let days = minutes / (24 * 60)
-            return days == 1 ? "Cueillette demain" : "Cueillette dans \(days) jours"
+            return days == 1 ? String(localized: "Cueillette demain") : String(localized: "Cueillette dans \(days) jours")
         }
     }
 
@@ -632,11 +632,11 @@ private enum PickupFormat {
 
     static func title(for accessibility: PickupPoint.Accessibility) -> String {
         switch accessibility {
-        case .wheelchair: "Accessible en fauteuil"
-        case .stepFree: "Sans marche"
-        case .elevator: "Ascenseur"
-        case .nearMetro: "Près du métro"
-        case .parking: "Stationnement"
+        case .wheelchair: String(localized: "Accessible en fauteuil")
+        case .stepFree: String(localized: "Sans marche")
+        case .elevator: String(localized: "Ascenseur")
+        case .nearMetro: String(localized: "Près du métro")
+        case .parking: String(localized: "Stationnement")
         }
     }
 }

@@ -29,7 +29,7 @@ struct ReportSheet: View {
                 }
             }
             .grenierAnimation(.smooth, value: model.phase)
-            .navigationTitle(model.phase == .sent ? "" : "Signaler")
+            .navigationTitle(model.phase == .sent ? "" : String(localized: "Signaler"))
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 if model.phase != .sent {
@@ -47,7 +47,7 @@ struct ReportSheet: View {
         }
         .onChange(of: model.phase) { _, new in
             if new == .sent {
-                AccessibilityNotification.Announcement("Signalement envoyé. Merci, on regarde ça.").post()
+                AccessibilityNotification.Announcement(String(localized: "Signalement envoyé. Merci, on regarde ça.")).post()
             }
         }
     }
@@ -83,14 +83,14 @@ struct ReportSheet: View {
 
             Section {
                 TextField(
-                    model.reason?.requiresComment == true ? "Explique en quelques mots" : "Précisions (facultatif)",
+                    model.reason?.requiresComment == true ? String(localized: "Explique en quelques mots") : String(localized: "Précisions (facultatif)"),
                     text: $model.comment,
                     axis: .vertical
                 )
                 .lineLimit(2...5)
                 .focused($commentFocused)
                 .accessibilityLabel("Commentaire")
-                .accessibilityHint(model.reason?.requiresComment == true ? "Obligatoire pour le motif Autre." : "Facultatif.")
+                .accessibilityHint(model.reason?.requiresComment == true ? String(localized: "Obligatoire pour le motif Autre.") : String(localized: "Facultatif."))
             } footer: {
                 footer
             }
@@ -160,7 +160,7 @@ struct ReportSheet: View {
                     ProgressView()
                 } else {
                     Label(
-                        model.phase.isFailure ? "Réessayer" : "Envoyer le signalement",
+                        model.phase.isFailure ? String(localized: "Réessayer") : String(localized: "Envoyer le signalement"),
                         systemImage: model.phase.isFailure ? "arrow.clockwise" : "flag.fill"
                     )
                 }
@@ -170,8 +170,8 @@ struct ReportSheet: View {
         }
         .buttonStyle(.glassProminent)
         .disabled(!model.canSubmit)
-        .accessibilityLabel(model.isSending ? "Envoi en cours" : (model.phase.isFailure ? "Réessayer l'envoi" : "Envoyer le signalement"))
-        .accessibilityHint(model.reason == nil ? "Choisis d'abord un motif." : "")
+        .accessibilityLabel(model.isSending ? String(localized: "Envoi en cours") : (model.phase.isFailure ? String(localized: "Réessayer l'envoi") : String(localized: "Envoyer le signalement")))
+        .accessibilityHint(model.reason == nil ? String(localized: "Choisis d'abord un motif.") : "")
         .padding(.horizontal)
         .padding(.bottom, 8)
     }

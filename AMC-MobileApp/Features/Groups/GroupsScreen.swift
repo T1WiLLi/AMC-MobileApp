@@ -28,8 +28,8 @@ struct GroupsScreen: View {
                                     .init(systemImage: GrenierSymbol.offers, tint: .grenier, degrees: 145)
                                 ]
                             ),
-                            title: "Aucun groupe près de toi",
-                            message: "Aucun groupe de quartier n'est ouvert pour l'instant. Reviens bientôt."
+                            title: String(localized: "Aucun groupe près de toi"),
+                            message: String(localized: "Aucun groupe de quartier n'est ouvert pour l'instant. Reviens bientôt.")
                         ) {
                             Button {
                                 Task { await viewModel.load() }
@@ -107,7 +107,7 @@ private struct GroupList: View {
 
                 VStack(alignment: .leading, spacing: 12) {
                     GroupsSectionHeader(
-                        title: mine.count > 1 ? "Tes groupes" : "Ton groupe",
+                        title: mine.count > 1 ? String(localized: "Tes groupes") : String(localized: "Ton groupe"),
                         systemImage: "checkmark.seal.fill",
                         tint: .economie,
                         count: mine.isEmpty ? nil : mine.count
@@ -122,7 +122,7 @@ private struct GroupList: View {
                 if !others.isEmpty {
                     VStack(alignment: .leading, spacing: 12) {
                         GroupsSectionHeader(
-                            title: "Groupes près de toi",
+                            title: String(localized: "Groupes près de toi"),
                             systemImage: "location.circle.fill",
                             tint: .grenier,
                             count: others.count
@@ -206,9 +206,9 @@ private struct GroupsHeroCard: View {
 
     @ViewBuilder
     private var tiles: some View {
-        GroupsStatTile(value: "\(myGroupCount)", caption: myGroupCount > 1 ? "tes groupes" : "ton groupe",
+        GroupsStatTile(value: "\(myGroupCount)", caption: myGroupCount > 1 ? String(localized: "tes groupes") : String(localized: "ton groupe"),
                        systemImage: "checkmark.seal.fill", tint: .economie)
-        GroupsStatTile(value: "\(nearbyCount)", caption: "à rejoindre",
+        GroupsStatTile(value: "\(nearbyCount)", caption: String(localized: "à rejoindre"),
                        systemImage: "location.fill", tint: .grenier)
         GroupsStatTile(value: "\(familyCount)", caption: familyCount > 1 ? "familles" : "famille",
                        systemImage: "person.2.fill", tint: .solidarite)
@@ -394,7 +394,7 @@ private struct GroupRow: View {
 
     /// « 27 familles · Hochelaga · rayon 900 m »
     private var detailText: String {
-        "\(familiesText) · \(group.neighborhood) · rayon \(GroupCard.distanceText(group.radiusMeters))"
+        String(localized: "\(familiesText) · \(group.neighborhood) · rayon \(GroupCard.distanceText(group.radiusMeters))")
     }
 }
 

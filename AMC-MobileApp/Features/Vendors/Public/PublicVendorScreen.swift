@@ -60,12 +60,12 @@ private struct PublicVendorContent: View {
                     .refreshable { await viewModel.refresh() }
             }
         }
-        .navigationTitle(viewModel.profile?.name ?? "Producteur")
+        .navigationTitle(viewModel.profile?.name ?? String(localized: "Producteur"))
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             if let profile = viewModel.profile {
                 ToolbarItem(placement: .topBarTrailing) {
-                    ShareLink(item: "Découvre \(profile.name) sur Grenier : des produits locaux achetés en groupe, moins cher.") {
+                    ShareLink(item: String(localized: "Découvre \(profile.name) sur Grenier : des produits locaux achetés en groupe, moins cher.")) {
                         Label("Partager le producteur", systemImage: "square.and.arrow.up")
                     }
                 }
@@ -189,7 +189,7 @@ private struct VendorIdentity: View {
             FlowLayout(spacing: 8) {
                 Pill(title: profile.kind.title, systemImage: profile.kind.systemImage, tint: .grenier)
                 if profile.isVerified {
-                    Pill(title: "Vérifié", systemImage: "checkmark.seal.fill", tint: .economie)
+                    Pill(title: String(localized: "Vérifié"), systemImage: "checkmark.seal.fill", tint: .economie)
                         .accessibilityLabel("Producteur vérifié par Grenier")
                 }
                 if let rating = profile.averageRating {
@@ -197,7 +197,7 @@ private struct VendorIdentity: View {
                     Pill(title: "\(text) / 5", systemImage: "star.fill", tint: .orange)
                         .accessibilityLabel("Note moyenne \(text) sur 5")
                 } else {
-                    Pill(title: "Nouveau", systemImage: "sparkles", tint: .solidarite)
+                    Pill(title: String(localized: "Nouveau"), systemImage: "sparkles", tint: .solidarite)
                 }
             }
         }
@@ -243,7 +243,7 @@ private struct SectionHeader: View {
                     .padding(.horizontal, 8)
                     .padding(.vertical, 2)
                     .background(Color.grenier, in: .capsule)
-                    .accessibilityLabel(FrenchPlural.count(count, "élément"))
+                    .accessibilityLabel(FrenchPlural.count(count, String(localized: "élément")))
             }
         }
         .accessibilityAddTraits(.isHeader)
@@ -255,7 +255,7 @@ private struct AboutCard: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
-            SectionHeader(title: "À propos", systemImage: "text.quote")
+            SectionHeader(title: String(localized: "À propos"), systemImage: "text.quote")
             Text(text)
                 .font(.body)
                 .foregroundStyle(.texte)
@@ -270,7 +270,7 @@ private struct ZonesSection: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
-            SectionHeader(title: "Livre dans", systemImage: "map.fill")
+            SectionHeader(title: String(localized: "Livre dans"), systemImage: "map.fill")
             FlowLayout(spacing: 8) {
                 ForEach(zones) { zone in
                     Label(zone.label, systemImage: "mappin.circle.fill")
@@ -293,7 +293,7 @@ private struct OpenOffersSection: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
-            SectionHeader(title: "Lots en cours", systemImage: GrenierSymbol.offers, count: state.value?.count)
+            SectionHeader(title: String(localized: "Lots en cours"), systemImage: GrenierSymbol.offers, count: state.value?.count)
             switch state {
             case .loaded(let offers):
                 ForEach(Array(offers.enumerated()), id: \.element.id) { index, item in
@@ -381,7 +381,7 @@ private struct OpenOfferCard: View {
 
     private var deadlineText: String {
         let relative = item.offer.deadline.formatted(.relative(presentation: .named).locale(Locale(identifier: "fr_CA")))
-        return "Clôture \(relative)"
+        return String(localized: "Clôture \(relative)")
     }
 }
 
@@ -390,7 +390,7 @@ private struct CatalogSectionView: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
-            SectionHeader(title: "Catalogue", systemImage: "basket.fill",
+            SectionHeader(title: String(localized: "Catalogue"), systemImage: "basket.fill",
                           count: state.value?.reduce(0) { $0 + $1.products.count })
             switch state {
             case .loaded(let sections):
@@ -483,13 +483,13 @@ private struct ComposedSymbol: View {
 private extension DietaryTag {
     var publicTitle: String {
         switch self {
-        case .organic: "Bio"
-        case .halal: "Halal"
-        case .kosher: "Casher"
-        case .vegetarian: "Végétarien"
-        case .vegan: "Végane"
-        case .glutenFree: "Sans gluten"
-        case .local: "Local"
+        case .organic: String(localized: "Bio")
+        case .halal: String(localized: "Halal")
+        case .kosher: String(localized: "Casher")
+        case .vegetarian: String(localized: "Végétarien")
+        case .vegan: String(localized: "Végane")
+        case .glutenFree: String(localized: "Sans gluten")
+        case .local: String(localized: "Local")
         }
     }
 
@@ -511,7 +511,7 @@ private struct PublicVendorSkeleton: View {
     var body: some View {
         PublicVendorPage(
             profile: .init(id: "skeleton", name: "Ferme du quartier", kind: .farm,
-                           description: "Une courte description du producteur, de ses cultures et de sa région.",
+                           description: String(localized: "Une courte description du producteur, de ses cultures et de sa région."),
                            coverPhotoURL: nil, zones: [.init(id: "a", label: "Saint-Michel"), .init(id: "b", label: "Hochelaga")],
                            averageRating: 4.5, isVerified: true),
             catalog: .loaded([

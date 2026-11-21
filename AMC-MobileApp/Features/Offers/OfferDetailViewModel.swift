@@ -220,7 +220,7 @@ final class OfferDetailViewModel {
     private func setShare(quantity: Int) async {
         guard let content = state.value, !isSaving else { return }
         guard content.groupOrder != nil || (content.canStartOrder && quantity > 0), let groupId else {
-            actionError = .invalidInput("Rejoins un groupe de quartier pour réserver ce lot.")
+            actionError = .invalidInput(String(localized: "Rejoins un groupe de quartier pour réserver ce lot."))
             return
         }
         isSaving = true

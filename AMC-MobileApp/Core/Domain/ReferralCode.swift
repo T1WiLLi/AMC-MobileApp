@@ -19,10 +19,10 @@ nonisolated struct ReferralCode: Sendable, Equatable, Hashable, CustomStringConv
     init(organisation: String, serial: Int) throws {
         let prefix = organisation.uppercased()
         guard prefix.count == 2, prefix.allSatisfy({ $0.isASCII && $0.isLetter }) else {
-            throw AppError.invalidInput("Le préfixe d'organisme doit compter 2 lettres.")
+            throw AppError.invalidInput(String(localized: "Le préfixe d'organisme doit compter 2 lettres."))
         }
         guard (0...Self.maxSerial).contains(serial) else {
-            throw AppError.invalidInput("Le numéro de série doit être entre 0 et \(Self.maxSerial).")
+            throw AppError.invalidInput(String(localized: "Le numéro de série doit être entre 0 et \(Self.maxSerial)."))
         }
         self.organisation = prefix
         self.serial = serial
@@ -36,11 +36,11 @@ nonisolated struct ReferralCode: Sendable, Equatable, Hashable, CustomStringConv
         let digits = parts.count == 3 ? parts[2].prefix(4) : ""
         guard parts.count == 3, parts[0] == "ORG", parts[2].count == 5,
               digits.allSatisfy({ $0.isASCII && $0.isNumber }), let serial = Int(digits) else {
-            throw AppError.invalidInput("Ce code n'a pas le bon format. Le format attendu est ORG-XX-00000.")
+            throw AppError.invalidInput(String(localized: "Ce code n'a pas le bon format. Le format attendu est ORG-XX-00000."))
         }
         let code = try ReferralCode(organisation: parts[1], serial: serial)
         guard String(parts[2].suffix(1)) == code.checkCharacter else {
-            throw AppError.invalidInput("Ce code contient une faute de frappe. Vérifie-le avec ton organisme.")
+            throw AppError.invalidInput(String(localized: "Ce code contient une faute de frappe. Vérifie-le avec ton organisme."))
         }
         self = code
     }
@@ -80,7 +80,7 @@ nonisolated extension ReferralCode {
     static func subsidizedProfile(redeeming text: String, issuedCodes: Set<String> = []) throws -> HouseholdPrivate {
         let code = try ReferralCode(validating: text)
         guard issuedCodes.isEmpty || issuedCodes.contains(code.description) else {
-            throw AppError.invalidInput("Ce code n'est pas reconnu. Vérifie-le avec ton organisme.")
+            throw AppError.invalidInput(String(localized: "Ce code n'est pas reconnu. Vérifie-le avec ton organisme."))
         }
         return HouseholdPrivate(isSubsidized: true, referralCode: code.description)
     }

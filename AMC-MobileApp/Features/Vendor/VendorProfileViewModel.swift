@@ -194,11 +194,11 @@ final class VendorProfileViewModel {
     @discardableResult
     func addZone(_ rawZone: String) -> AppError? {
         let zone = rawZone.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
-        guard !zone.isEmpty else { return .invalidInput("Choisis un quartier.") }
-        guard zone.count <= 40 else { return .invalidInput("Cette zone n'est pas valide.") }
-        guard !servedZones.contains(zone) else { return .invalidInput("Tu dessers déjà ce quartier.") }
+        guard !zone.isEmpty else { return .invalidInput(String(localized: "Choisis un quartier.")) }
+        guard zone.count <= 40 else { return .invalidInput(String(localized: "Cette zone n'est pas valide.")) }
+        guard !servedZones.contains(zone) else { return .invalidInput(String(localized: "Tu dessers déjà ce quartier.")) }
         guard servedZones.count < Self.maxZones else {
-            return .invalidInput("Tu peux desservir \(Self.maxZones) zones au plus.")
+            return .invalidInput(String(localized: "Tu peux desservir \(Self.maxZones) zones au plus."))
         }
         servedZones.append(zone)
         return nil
@@ -212,9 +212,9 @@ final class VendorProfileViewModel {
     @discardableResult
     func addPhoto(data: Data) async -> AppError? {
         guard photoURLs.count < Self.maxPhotos else {
-            return .invalidInput("Tu peux ajouter \(Self.maxPhotos) photos au plus.")
+            return .invalidInput(String(localized: "Tu peux ajouter \(Self.maxPhotos) photos au plus."))
         }
-        guard !data.isEmpty else { return .invalidInput("Cette image est vide.") }
+        guard !data.isEmpty else { return .invalidInput(String(localized: "Cette image est vide.")) }
         isAddingPhoto = true
         defer { isAddingPhoto = false }
         do {
@@ -278,19 +278,19 @@ final class VendorProfileViewModel {
         guard var vendor else { throw .notFound }
         let text = trimmedDescription
         guard text.count >= Self.descriptionMinLength else {
-            throw .invalidInput("Décris ton entreprise en \(Self.descriptionMinLength) caractères au moins.")
+            throw .invalidInput(String(localized: "Décris ton entreprise en \(Self.descriptionMinLength) caractères au moins."))
         }
         guard text.count <= Self.descriptionMaxLength else {
-            throw .invalidInput("La description dépasse \(Self.descriptionMaxLength) caractères.")
+            throw .invalidInput(String(localized: "La description dépasse \(Self.descriptionMaxLength) caractères."))
         }
         guard !servedZones.isEmpty else {
-            throw .invalidInput("Choisis au moins une zone desservie : c'est là que tes lots apparaîtront.")
+            throw .invalidInput(String(localized: "Choisis au moins une zone desservie : c'est là que tes lots apparaîtront."))
         }
         guard servedZones.count <= Self.maxZones else {
-            throw .invalidInput("Tu peux desservir \(Self.maxZones) zones au plus.")
+            throw .invalidInput(String(localized: "Tu peux desservir \(Self.maxZones) zones au plus."))
         }
         guard photoURLs.count <= Self.maxPhotos else {
-            throw .invalidInput("Tu peux ajouter \(Self.maxPhotos) photos au plus.")
+            throw .invalidInput(String(localized: "Tu peux ajouter \(Self.maxPhotos) photos au plus."))
         }
         vendor.description = text
         vendor.servedZones = servedZones
@@ -313,11 +313,11 @@ extension Vendor.Kind {
     /// Nom affiché du type de vendeur.
     var title: String {
         switch self {
-        case .farm: "Ferme"
-        case .wholesaler: "Grossiste"
-        case .cooperative: "Coopérative"
-        case .bakery: "Boulangerie"
-        case .other: "Autre commerce"
+        case .farm: String(localized: "Ferme")
+        case .wholesaler: String(localized: "Grossiste")
+        case .cooperative: String(localized: "Coopérative")
+        case .bakery: String(localized: "Boulangerie")
+        case .other: String(localized: "Autre commerce")
         }
     }
 

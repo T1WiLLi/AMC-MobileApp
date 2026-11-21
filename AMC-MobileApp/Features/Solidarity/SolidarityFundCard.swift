@@ -96,21 +96,21 @@ struct SolidarityFundCard: View {
     }
 
     private var capacityText: String {
-        guard let basketCostCents else { return "disponibles ce mois-ci" }
+        guard let basketCostCents else { return String(localized: "disponibles ce mois-ci") }
         let count = SolidarityMath.basketsCovered(balanceCents: balanceCents, basketCostCents: basketCostCents)
         switch count {
-        case 0: return "disponibles, de quoi aider une part de plus bientôt"
-        case 1: return "disponibles, de quoi offrir encore 1 panier"
-        default: return "disponibles, de quoi offrir encore \(count) paniers"
+        case 0: return String(localized: "disponibles, de quoi aider une part de plus bientôt")
+        case 1: return String(localized: "disponibles, de quoi offrir encore 1 panier")
+        default: return String(localized: "disponibles, de quoi offrir encore \(count) paniers")
         }
     }
 
     /// « 12 paniers suspendus offerts à Parc-Ex Ouest » ; ne nomme jamais un ménage.
     static func basketsSentence(count: Int, groupName: String) -> String {
         switch max(0, count) {
-        case 0: "Aucun panier offert ce mois-ci : le premier peut venir de toi."
-        case 1: "1 panier suspendu offert à \(groupName) ce mois-ci"
-        default: "\(count) paniers suspendus offerts à \(groupName) ce mois-ci"
+        case 0: String(localized: "Aucun panier offert ce mois-ci : le premier peut venir de toi.")
+        case 1: String(localized: "1 panier suspendu offert à \(groupName) ce mois-ci")
+        default: String(localized: "\(count) paniers suspendus offerts à \(groupName) ce mois-ci")
         }
     }
 }

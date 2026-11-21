@@ -45,8 +45,8 @@ struct NextTierWidget: Widget {
             NextTierWidgetView(entry: entry)
                 .containerBackground(GrenierPalette.fond, for: .widget)
         }
-        .configurationDisplayName("Prochain palier")
-        .description("Combien de familles il manque à ton groupe pour faire baisser le prix.")
+        .configurationDisplayName(String(localized: "Prochain palier"))
+        .description(String(localized: "Combien de familles il manque à ton groupe pour faire baisser le prix."))
         .supportedFamilies([.systemSmall, .systemMedium])
     }
 }
@@ -190,8 +190,8 @@ struct NextTierWidgetView: View {
     }
 
     private var discountLine: String {
-        if let percent = presentation.nextDiscountPercent { return "pour le prochain palier (−\(percent) %)" }
-        return "pour le prochain palier"
+        if let percent = presentation.nextDiscountPercent { return String(localized: "pour le prochain palier (−\(percent) %)") }
+        return String(localized: "pour le prochain palier")
     }
 
     private var priceLine: String {
@@ -201,10 +201,10 @@ struct NextTierWidgetView: View {
 
     private var accessibilityText: String {
         guard presentation.familiesMissing > 0 else {
-            return "\(presentation.attributes.groupName) : meilleur prix atteint, \(presentation.priceText) le \(presentation.attributes.unit)."
+            return String(localized: "\(presentation.attributes.groupName) : meilleur prix atteint, \(presentation.priceText) le \(presentation.attributes.unit).")
         }
-        return "\(presentation.attributes.groupName) : encore \(OrderActivityPresentation.families(presentation.familiesMissing)) "
-            + "pour le prochain palier. \(priceLine)."
+        return String(localized: "\(presentation.attributes.groupName) : encore \(OrderActivityPresentation.families(presentation.familiesMissing)) ")
+            + String(localized: "pour le prochain palier. \(priceLine).")
     }
 }
 

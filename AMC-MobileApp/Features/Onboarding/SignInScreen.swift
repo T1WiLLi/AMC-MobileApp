@@ -58,7 +58,7 @@ struct SignInScreen: View {
     private var sheet: some View {
         VStack(spacing: 12) {
             HStack(alignment: .firstTextBaseline) {
-                Text(mode == .signIn ? "Connecte-toi" : "Crée ton compte")
+                Text(mode == .signIn ? "Connecte-toi" : String(localized: "Crée ton compte"))
                     .font(.title2.bold())
                     .fontDesign(.rounded)
                     .foregroundStyle(Color.texte)
@@ -130,7 +130,7 @@ struct SignInScreen: View {
                             .symbolRenderingMode(.hierarchical)
                             .foregroundStyle(Color.grenier)
                     }
-                    Text(mode == .signIn ? "Continuer avec Google" : "S'inscrire avec Google")
+                    Text(mode == .signIn ? String(localized: "Continuer avec Google") : String(localized: "S'inscrire avec Google"))
                         .font(.headline)
                         .foregroundStyle(Color.texte)
                 }
@@ -153,9 +153,9 @@ struct SignInScreen: View {
             mode = mode == .signIn ? .signUp : .signIn
         } label: {
             HStack(spacing: 4) {
-                Text(mode == .signIn ? "Nouveau ici ?" : "Déjà membre ?")
+                Text(mode == .signIn ? String(localized: "Nouveau ici ?") : String(localized: "Déjà membre ?"))
                     .foregroundStyle(Color.texteSecondaire)
-                Text(mode == .signIn ? "Créer un compte" : "Se connecter")
+                Text(mode == .signIn ? String(localized: "Créer un compte") : String(localized: "Se connecter"))
                     .fontWeight(.bold)
                     .foregroundStyle(Color.grenier)
             }

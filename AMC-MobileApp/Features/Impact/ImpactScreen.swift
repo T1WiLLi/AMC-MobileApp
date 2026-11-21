@@ -107,12 +107,12 @@ private struct ImpactContentView: View {
                 LazyVGrid(columns: columns, spacing: 12) {
                     ImpactStatTile(symbol: "scalemass.fill", tint: .grenier,
                                    value: AnimatedCounter(value: snapshot.kilogramsBought, format: .integer(unit: "kg")),
-                                   caption: "achetés en direct par \(ImpactFormat.plural(snapshot.households, "famille"))",
+                                   caption: String(localized: "achetés en direct par \(ImpactFormat.plural(snapshot.households, "famille"))"),
                                    captionSymbol: "person.2.fill",
                                    trigger: snapshot.kilogramsBought)
                     ImpactStatTile(symbol: "storefront.fill", tint: .economie,
                                    value: AnimatedCounter(value: snapshot.paidToProducersCents, format: .money),
-                                   caption: "versés à \(ImpactFormat.plural(snapshot.producers, "producteur")) d'ici",
+                                   caption: String(localized: "versés à \(ImpactFormat.plural(snapshot.producers, "producteur")) d'ici"),
                                    captionSymbol: "tractor.fill",
                                    trigger: Double(snapshot.paidToProducersCents))
                 }
@@ -279,7 +279,7 @@ private struct ImpactHeroHeader: View {
     let monthName: String
 
     private var title: String {
-        neighborhoodName.isEmpty ? "Ensemble, on change ton quartier" : "Ensemble, on change \(neighborhoodName)"
+        neighborhoodName.isEmpty ? String(localized: "Ensemble, on change ton quartier") : String(localized: "Ensemble, on change \(neighborhoodName)")
     }
 
     private var capitalizedMonth: String {
@@ -342,8 +342,8 @@ private struct ImpactThanksFooter: View {
                 .accessibilityHidden(true)
             Label {
                 Text(households > 1
-                     ? "Merci : \(ImpactFormat.plural(households, "famille")) font ça avec toi."
-                     : "Merci : chaque part compte.")
+                     ? String(localized: "Merci : \(ImpactFormat.plural(households, "famille")) font ça avec toi.")
+                     : String(localized: "Merci : chaque part compte."))
             } icon: {
                 Image(systemName: GrenierSymbol.solidarity)
                     .symbolRenderingMode(.hierarchical)
@@ -466,8 +466,8 @@ private struct ProductSavingsChart: View {
     private var chart: some View {
         Chart(products) { item in
             BarMark(
-                x: .value("Économie", Double(item.savingsCents) / 100),
-                y: .value("Produit", item.product.name)
+                x: .value(String(localized: "Économie"), Double(item.savingsCents) / 100),
+                y: .value(String(localized: "Produit"), item.product.name)
             )
             .foregroundStyle(item.id == products.first?.id ? Color.economie : Color.economie.opacity(0.35))
             .clipShape(.rect(cornerRadius: 8))
@@ -520,15 +520,15 @@ private struct ProductSavingsDescriptor: AXChartDescriptorRepresentable {
 
     func makeChartDescriptor() -> AXChartDescriptor {
         let maxValue = max(1, Double(products.map(\.savingsCents).max() ?? 0) / 100)
-        let xAxis = AXCategoricalDataAxisDescriptor(title: "Produit", categoryOrder: products.map(\.product.name))
-        let yAxis = AXNumericDataAxisDescriptor(title: "Économie du quartier", range: 0...maxValue, gridlinePositions: []) {
+        let xAxis = AXCategoricalDataAxisDescriptor(title: String(localized: "Produit"), categoryOrder: products.map(\.product.name))
+        let yAxis = AXNumericDataAxisDescriptor(title: String(localized: "Économie du quartier"), range: 0...maxValue, gridlinePositions: []) {
             Money.formatRounded(Cents(($0 * 100).rounded()))
         }
-        let series = AXDataSeriesDescriptor(name: "Économies par produit", isContinuous: false, dataPoints: products.map {
+        let series = AXDataSeriesDescriptor(name: String(localized: "Économies par produit"), isContinuous: false, dataPoints: products.map {
             AXDataPoint(x: $0.product.name, y: Double($0.savingsCents) / 100)
         })
-        return AXChartDescriptor(title: "Économies du quartier par produit",
-                                 summary: "Économie par rapport à l'épicerie, du produit qui fait économiser le plus au moins.",
+        return AXChartDescriptor(title: String(localized: "Économies du quartier par produit"),
+                                 summary: String(localized: "Économie par rapport à l'épicerie, du produit qui fait économiser le plus au moins."),
                                  xAxis: xAxis, yAxis: yAxis, additionalAxes: [], series: [series])
     }
 }

@@ -80,7 +80,7 @@ struct PortalSegmentedControl: View {
             .contentShape(.capsule)
         }
         .buttonStyle(.plain)
-        .accessibilityHint(isSelected ? "Portail actif" : "Bascule vers le portail \(portal.title.lowercased())")
+        .accessibilityHint(isSelected ? String(localized: "Portail actif") : String(localized: "Bascule vers le portail \(portal.title.lowercased())"))
         .accessibilityAddTraits(isSelected ? [.isSelected] : [])
     }
 }

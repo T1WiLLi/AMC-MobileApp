@@ -16,8 +16,8 @@ nonisolated enum EmailAuthValidation {
         let trimmed = email.trimmingCharacters(in: .whitespaces)
         guard !trimmed.isEmpty, !isValidEmail(trimmed) else { return nil }
         return trimmed.contains("@")
-            ? "Il manque le domaine, par exemple @gmail.com."
-            : "Il manque le « @ » dans ton courriel."
+            ? String(localized: "Il manque le domaine, par exemple @gmail.com.")
+            : String(localized: "Il manque le « @ » dans ton courriel.")
     }
 
     /// Message sous le champ mot de passe, ou nil s'il est vide ou assez long.
@@ -25,8 +25,8 @@ nonisolated enum EmailAuthValidation {
         guard !password.isEmpty, password.count < minimumPasswordLength else { return nil }
         let missing = minimumPasswordLength - password.count
         return missing == 1
-            ? "Encore 1 caractère (6 minimum)."
-            : "Encore \(missing) caractères (6 minimum)."
+            ? String(localized: "Encore 1 caractère (6 minimum).")
+            : String(localized: "Encore \(missing) caractères (6 minimum).")
     }
 }
 
@@ -55,10 +55,10 @@ enum PasswordStrength: Int, Comparable, Sendable {
 
     var label: String {
         switch self {
-        case .tooShort: "Trop court"
-        case .weak: "Faible"
-        case .fair: "Correct"
-        case .strong: "Solide"
+        case .tooShort: String(localized: "Trop court")
+        case .weak: String(localized: "Faible")
+        case .fair: String(localized: "Correct")
+        case .strong: String(localized: "Solide")
         }
     }
 

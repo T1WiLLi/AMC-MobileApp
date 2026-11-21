@@ -34,7 +34,7 @@ nonisolated final class FirestoreOfferRepository: OfferRepository, @unchecked Se
     }
 
     func saveOffer(_ offer: Offer) async throws {
-        guard !offer.tiers.isEmpty else { throw AppError.invalidInput("Ajoute au moins un palier de prix.") }
+        guard !offer.tiers.isEmpty else { throw AppError.invalidInput(String(localized: "Ajoute au moins un palier de prix.")) }
         do {
             try await offersRef.document(offer.id).setData(try Firestore.Encoder().encode(offer))
         } catch {

@@ -172,10 +172,10 @@ struct HeroValue: View {
                         .foregroundStyle(onDark ? Color.white.opacity(0.7) : GrenierPalette.texteSecondaire)
                 }
             } else {
-                Text(presentation.state.stage == .recuperee ? "Merci" : presentation.pickupTimeText)
+                Text(presentation.state.stage == .recuperee ? String(localized: "Merci") : presentation.pickupTimeText)
                     .font(.title2.bold())
                     .contentTransition(.numericText())
-                Text(presentation.state.stage == .recuperee ? "récupérée" : "cueillette")
+                Text(presentation.state.stage == .recuperee ? String(localized: "récupérée") : "cueillette")
                     .font(.caption.weight(.semibold))
                     .foregroundStyle(onDark ? Color.white.opacity(0.7) : GrenierPalette.texteSecondaire)
             }

@@ -14,8 +14,8 @@ enum BiometryKind: Equatable, Sendable {
         case .faceID: "Face ID"
         case .touchID: "Touch ID"
         case .opticID: "Optic ID"
-        case .passcodeOnly: "le code de l'appareil"
-        case .unavailable: "aucune méthode"
+        case .passcodeOnly: String(localized: "le code de l'appareil")
+        case .unavailable: String(localized: "aucune méthode")
         }
     }
 
@@ -58,8 +58,8 @@ struct DeviceBiometricAuthenticator: BiometricAuthenticator {
 
     func authenticate(reason: String) async throws {
         let context = LAContext()
-        context.localizedCancelTitle = "Annuler"
-        context.localizedFallbackTitle = "Utiliser le code"
+        context.localizedCancelTitle = String(localized: "Annuler")
+        context.localizedFallbackTitle = String(localized: "Utiliser le code")
         do {
             _ = try await context.evaluatePolicy(.deviceOwnerAuthentication, localizedReason: reason)
         } catch let error as LAError {
@@ -72,7 +72,7 @@ struct DeviceBiometricAuthenticator: BiometricAuthenticator {
     static func map(_ error: LAError) -> AppError {
         switch error.code {
         case .userCancel, .systemCancel, .appCancel:
-            .invalidInput("Déverrouillage annulé.")
+            .invalidInput(String(localized: "Déverrouillage annulé."))
         case .biometryLockout:
             .permissionDenied
         case .passcodeNotSet, .biometryNotAvailable, .biometryNotEnrolled:

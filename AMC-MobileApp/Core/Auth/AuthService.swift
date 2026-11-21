@@ -51,17 +51,17 @@ enum AuthError: LocalizedError, Equatable {
 
     var errorDescription: String? {
         switch self {
-        case .cancelled: "Connexion annulée."
-        case .missingConfiguration: "Configuration Firebase introuvable (GoogleService-Info.plist)."
-        case .noPresentingScreen: "Impossible d'afficher la connexion Google pour le moment."
-        case .invalidEmail: "Ce courriel n'a pas l'air valide. Vérifie-le."
-        case .emailAlreadyInUse: "Un compte existe déjà avec ce courriel. Connecte-toi plutôt."
-        case .weakPassword: "Ton mot de passe doit avoir au moins 6 caractères."
-        case .wrongPassword: "Courriel ou mot de passe incorrect."
-        case .tooManyRequests: "Trop de tentatives. Attends quelques minutes, puis réessaie."
-        case .network: "Pas de connexion. Vérifie ton Internet, puis réessaie."
-        case .notSignedIn: "Ta session a expiré. Connecte-toi de nouveau."
-        case .requiresRecentLogin: "Pour protéger ton compte, reconnecte-toi, puis supprime-le de nouveau."
+        case .cancelled: String(localized: "Connexion annulée.")
+        case .missingConfiguration: String(localized: "Configuration Firebase introuvable (GoogleService-Info.plist).")
+        case .noPresentingScreen: String(localized: "Impossible d'afficher la connexion Google pour le moment.")
+        case .invalidEmail: String(localized: "Ce courriel n'a pas l'air valide. Vérifie-le.")
+        case .emailAlreadyInUse: String(localized: "Un compte existe déjà avec ce courriel. Connecte-toi plutôt.")
+        case .weakPassword: String(localized: "Ton mot de passe doit avoir au moins 6 caractères.")
+        case .wrongPassword: String(localized: "Courriel ou mot de passe incorrect.")
+        case .tooManyRequests: String(localized: "Trop de tentatives. Attends quelques minutes, puis réessaie.")
+        case .network: String(localized: "Pas de connexion. Vérifie ton Internet, puis réessaie.")
+        case .notSignedIn: String(localized: "Ta session a expiré. Connecte-toi de nouveau.")
+        case .requiresRecentLogin: String(localized: "Pour protéger ton compte, reconnecte-toi, puis supprime-le de nouveau.")
         case .failed(let message): message
         }
     }
@@ -175,7 +175,7 @@ final class FakeAuthService: AuthService {
         let name = displayName.trimmingCharacters(in: .whitespaces)
         let user = AuthUser(
             id: "fake-\(key)",
-            displayName: name.isEmpty ? "Utilisateur" : name,
+            displayName: name.isEmpty ? String(localized: "Utilisateur") : name,
             email: key,
             photoURL: nil,
             isEmailVerified: false,

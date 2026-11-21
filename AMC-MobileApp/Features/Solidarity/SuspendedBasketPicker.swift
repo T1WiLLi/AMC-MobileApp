@@ -79,13 +79,13 @@ struct SuspendedBasketPicker: View {
         LazyVGrid(columns: [GridItem(.adaptive(minimum: chipMinWidth), spacing: 8)], spacing: 8) {
             ForEach(SolidarityMath.presetsCents, id: \.self) { cents in
                 chip(
-                    title: cents == 0 ? "Aucun" : Money.formatRounded(cents),
+                    title: cents == 0 ? String(localized: "Aucun") : Money.formatRounded(cents),
                     systemImage: cents == 0 ? "xmark" : nil,
-                    accessibility: cents == 0 ? "Aucun panier suspendu" : "Ajouter \(Money.formatRounded(cents))",
+                    accessibility: cents == 0 ? String(localized: "Aucun panier suspendu") : String(localized: "Ajouter \(Money.formatRounded(cents))"),
                     isSelected: !isCustom && amountCents == cents
                 ) { selectPreset(cents) }
             }
-            chip(title: "Autre", systemImage: "pencil", accessibility: "Autre montant", isSelected: isCustom) {
+            chip(title: String(localized: "Autre"), systemImage: "pencil", accessibility: String(localized: "Autre montant"), isSelected: isCustom) {
                 isCustom = true
                 validate(customText)
                 isFieldFocused = true
@@ -155,9 +155,9 @@ struct SuspendedBasketPicker: View {
     private func summary(_ shareTotal: Cents) -> some View {
         VStack(alignment: .leading, spacing: 6) {
             Divider()
-            row("Ta part", symbol: "basket.fill", Money.format(shareTotal))
-            row("Panier suspendu", symbol: GrenierSymbol.solidarity, Money.format(amountCents), tint: .solidarite)
-            row("Total à payer", symbol: "creditcard.fill", Money.format(SolidarityMath.amountToPay(dueCents: shareTotal, subsidyCents: 0, suspendedCents: amountCents)), bold: true)
+            row(String(localized: "Ta part"), symbol: "basket.fill", Money.format(shareTotal))
+            row(String(localized: "Panier suspendu"), symbol: GrenierSymbol.solidarity, Money.format(amountCents), tint: .solidarite)
+            row(String(localized: "Total à payer"), symbol: "creditcard.fill", Money.format(SolidarityMath.amountToPay(dueCents: shareTotal, subsidyCents: 0, suspendedCents: amountCents)), bold: true)
         }
     }
 

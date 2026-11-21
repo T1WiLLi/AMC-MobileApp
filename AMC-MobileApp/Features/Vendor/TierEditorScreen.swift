@@ -66,7 +66,7 @@ struct TierEditorScreen: View {
             editor
         }
         .grenierBackground()
-        .navigationTitle(model.isEditing ? "Modifier le lot" : "Nouveau lot")
+        .navigationTitle(model.isEditing ? String(localized: "Modifier le lot") : String(localized: "Nouveau lot"))
         .navigationBarTitleDisplayMode(.inline)
         .toolbarVisibility(.hidden, for: .tabBar)
         .task {
@@ -104,7 +104,7 @@ struct TierEditorScreen: View {
             .contentMargins(.bottom, 8, for: .scrollContent)
             .safeAreaInset(edge: .bottom) {
                 PublishBar(
-                    title: model.isEditing ? "Enregistrer le lot" : "Publier le lot",
+                    title: model.isEditing ? String(localized: "Enregistrer le lot") : String(localized: "Publier le lot"),
                     reason: model.validationError?.message,
                     showsReasonAsError: showsErrors,
                     isSaving: model.isSaving,
@@ -144,7 +144,7 @@ struct TierEditorScreen: View {
 
             LabeledContent {
                 HStack(spacing: 6) {
-                    IntegerField(label: "Nombre de parts", value: $model.totalShares)
+                    IntegerField(label: String(localized: "Nombre de parts"), value: $model.totalShares)
                         .focused($focus, equals: .totalShares)
                         .fieldBox(isInvalid: isInvalid(.quantity))
                     Text(model.totalShares > 1 ? "parts" : "part")
@@ -383,7 +383,7 @@ struct TierEditorScreen: View {
         Task {
             if let offer = await model.save() {
                 successTrigger += 1
-                AccessibilityNotification.Announcement(model.isEditing ? "Lot enregistré" : "Lot publié").post()
+                AccessibilityNotification.Announcement(model.isEditing ? String(localized: "Lot enregistré") : String(localized: "Lot publié")).post()
                 try? await Task.sleep(for: .milliseconds(reduceMotion ? 300 : 700))
                 onSaved?(offer)
                 dismiss()
@@ -493,7 +493,7 @@ private struct TierRow: View {
                                 .fixedSize()
                             // Largeur fixe calée sur « 999 » : les champs des paliers restent alignés
                             // d'une rangée à l'autre, quel que soit le seuil (1 à 999).
-                            IntegerField(label: "Seuil du palier \(rank)", value: $tier.minShares)
+                            IntegerField(label: String(localized: "Seuil du palier \(rank)"), value: $tier.minShares)
                                 .frame(width: thresholdWidth)
                                 .focused(focus, equals: .threshold(tier.id))
                                 .fieldBox(isInvalid: isInvalid, compact: true)
@@ -507,7 +507,7 @@ private struct TierRow: View {
                     }
                 }
                 if !isStacked { Spacer(minLength: 4) }
-                PriceField(label: "Prix du palier \(rank)", value: $tier.price)
+                PriceField(label: String(localized: "Prix du palier \(rank)"), value: $tier.price)
                     .frame(minWidth: priceWidth)
                     .focused(focus, equals: .price(tier.id))
                     .fieldBox(isInvalid: isInvalid)
@@ -567,7 +567,7 @@ private struct TierRow: View {
     private var rangeText: String {
         guard let preview else { return "" }
         let unit = (preview.maxShares ?? preview.minShares) > 1 ? "parts" : "part"
-        guard let max = preview.maxShares else { return "\(preview.minShares) \(unit) et +" }
+        guard let max = preview.maxShares else { return String(localized: "\(preview.minShares) \(unit) et +") }
         if max <= preview.minShares { return "\(preview.minShares) \(unit)" }
         return "\(preview.minShares) à \(max) \(unit)"
     }
@@ -609,13 +609,13 @@ private struct TierStepChart: View {
         } else {
             Chart {
                 ForEach(steps) { step in
-                    LineMark(x: .value("Parts", step.shares), y: .value("Prix", step.price))
+                    LineMark(x: .value(String(localized: "Parts"), step.shares), y: .value(String(localized: "Prix"), step.price))
                         .interpolationMethod(.stepEnd)
                         .lineStyle(StrokeStyle(lineWidth: 3, lineCap: .round, lineJoin: .round))
                         .foregroundStyle(Color.grenier)
                 }
                 if steps.count > 2, let last = steps.dropLast().last {
-                    PointMark(x: .value("Parts", last.shares), y: .value("Prix", last.price))
+                    PointMark(x: .value(String(localized: "Parts"), last.shares), y: .value(String(localized: "Prix"), last.price))
                         .foregroundStyle(Color.grenier)
                         .symbolSize(60)
                 }
@@ -645,8 +645,8 @@ private struct TierStepChart: View {
 
     private var summary: String {
         previews.filter { $0.priceCents > 0 }.map { preview in
-            let range = preview.maxShares.map { "de \(preview.minShares) à \($0) parts" } ?? "à partir de \(preview.minShares) parts"
-            return "\(range), \(Money.format(preview.priceCents)) la part"
+            let range = preview.maxShares.map { String(localized: "de \(preview.minShares) à \($0) parts") } ?? String(localized: "à partir de \(preview.minShares) parts")
+            return String(localized: "\(range), \(Money.format(preview.priceCents)) la part")
         }
         .joined(separator: " ; ")
     }
@@ -682,7 +682,7 @@ private struct PublishBar: View {
                         Image(systemName: "checkmark.seal.fill")
                             .symbolEffect(.bounce, value: succeeded)
                     }
-                    Text(succeeded ? "Publié !" : title)
+                    Text(succeeded ? String(localized: "Publié !") : title)
                 }
                 .font(.headline)
                 .frame(maxWidth: .infinity, minHeight: 32)
@@ -692,8 +692,8 @@ private struct PublishBar: View {
             .controlSize(.large)
             .allowsHitTesting(!isSaving && !succeeded)
             .accessibilityLabel(title)
-            .accessibilityValue(reason == nil ? "" : "Indisponible")
-            .accessibilityHint(reason.map { "Pour publier : \($0)" } ?? "Publie le lot pour les groupes de ton secteur.")
+            .accessibilityValue(reason == nil ? "" : String(localized: "Indisponible"))
+            .accessibilityHint(reason.map { String(localized: "Pour publier : \($0)") } ?? String(localized: "Publie le lot pour les groupes de ton secteur."))
         }
         .padding(.horizontal, 16)
         .padding(.top, 8)

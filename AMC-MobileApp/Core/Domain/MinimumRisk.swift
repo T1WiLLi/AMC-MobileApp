@@ -60,7 +60,7 @@ nonisolated enum MinimumRisk {
         // Date limite passée, commande encore ouverte sous le minimum : elle sera annulée à la clôture.
         guard remaining > 0 else {
             return result(.high, projected: committed,
-                          message: "Date limite passée : il manquait \(FrenchPlural.count(missing, "part"))")
+                          message: String(localized: "Date limite passée : il manquait \(FrenchPlural.count(missing, "part"))"))
         }
 
         let start = min(openedAt ?? offer.deadline.addingTimeInterval(-defaultCollectionDuration), now)
@@ -79,8 +79,8 @@ nonisolated enum MinimumRisk {
             level = .high
         }
 
-        let lead = "Encore \(FrenchPlural.count(missing, "part")) \(durationPhrase(remaining))"
-        let advice = level == .high ? "partage la commande" : "invite tes voisins"
+        let lead = String(localized: "Encore \(FrenchPlural.count(missing, "part")) \(durationPhrase(remaining))")
+        let advice = level == .high ? String(localized: "partage la commande") : String(localized: "invite tes voisins")
         return result(level, projected: projected, message: "\(lead) : \(advice)")
     }
 
@@ -89,6 +89,6 @@ nonisolated enum MinimumRisk {
         let hours = Int(interval / 3600)
         if hours >= 24 { return "en " + FrenchPlural.count(hours / 24, "jour") }
         if hours >= 1 { return "en " + FrenchPlural.count(hours, "heure") }
-        return "en moins d'une heure"
+        return String(localized: "en moins d'une heure")
     }
 }

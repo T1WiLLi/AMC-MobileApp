@@ -53,7 +53,7 @@ struct PortalChoiceScreen: View {
             .buttonStyle(.glassProminent)
             .tint(.grenier)
             .disabled(!model.canContinue)
-            .accessibilityHint(model.canContinue ? "Ouvre Grenier" : "Choisis d'abord un portail")
+            .accessibilityHint(model.canContinue ? String(localized: "Ouvre Grenier") : String(localized: "Choisis d'abord un portail"))
             .padding(.horizontal, 24)
             .padding(.vertical, 12)
         }

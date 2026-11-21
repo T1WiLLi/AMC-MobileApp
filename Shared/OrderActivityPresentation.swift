@@ -64,18 +64,18 @@ nonisolated struct OrderActivityPresentation: Hashable, Sendable {
     var headline: String {
         switch state.stage {
         case .ouverte:
-            guard familiesMissing > 0 else { return "Meilleur prix atteint pour \(attributes.groupName)" }
-            let who = "Encore \(Self.families(familiesMissing))"
-            if let percent = nextDiscountPercent { return "\(who) pour −\(percent) %" }
-            return "\(who) pour le prochain palier"
+            guard familiesMissing > 0 else { return String(localized: "Meilleur prix atteint pour \(attributes.groupName)") }
+            let who = String(localized: "Encore \(Self.families(familiesMissing))")
+            if let percent = nextDiscountPercent { return String(localized: "\(who) pour −\(percent) %") }
+            return String(localized: "\(who) pour le prochain palier")
         case .palierFranchi:
-            return "Palier débloqué : \(priceText)/\(attributes.unit) pour tout le groupe"
+            return String(localized: "Palier débloqué : \(priceText)/\(attributes.unit) pour tout le groupe")
         case .enRoute:
-            return "Ta commande arrive à \(pickupTimeText) au \(attributes.pickupAddress)"
+            return String(localized: "Ta commande arrive à \(pickupTimeText) au \(attributes.pickupAddress)")
         case .arrivee:
-            return "Ta commande t'attend au \(attributes.pickupAddress)"
+            return String(localized: "Ta commande t'attend au \(attributes.pickupAddress)")
         case .recuperee:
-            return "Commande récupérée, bon appétit !"
+            return String(localized: "Commande récupérée, bon appétit !")
         }
     }
 
@@ -85,24 +85,24 @@ nonisolated struct OrderActivityPresentation: Hashable, Sendable {
         case .ouverte:
             "\(Self.families(state.committedFamilies)) · \(attributes.vendorName)"
         case .palierFranchi:
-            "Tu es la \(state.committedFamilies)e famille · ta part \(attributes.shareLabel)"
+            String(localized: "Tu es la \(state.committedFamilies)e famille · ta part \(attributes.shareLabel)")
         case .enRoute:
             "\(attributes.vendorName) → \(attributes.pickupPlaceName)"
         case .arrivee:
-            "Montre le code \(attributes.orderCode) à \(attributes.pickupHost)"
+            String(localized: "Montre le code \(attributes.orderCode) à \(attributes.pickupHost)")
         case .recuperee:
-            "\(attributes.shareLabel) de \(attributes.productName.lowercased()) · merci \(attributes.pickupHost)"
+            String(localized: "\(attributes.shareLabel) de \(attributes.productName.lowercased()) · merci \(attributes.pickupHost)")
         }
     }
 
     /// Libellé court de l'étape (Dynamic Island étendue, accessibilité).
     var stageLabel: String {
         switch state.stage {
-        case .ouverte: "Groupe ouvert"
-        case .palierFranchi: "Palier débloqué"
-        case .enRoute: "En route"
-        case .arrivee: "Arrivée"
-        case .recuperee: "Récupérée"
+        case .ouverte: String(localized: "Groupe ouvert")
+        case .palierFranchi: String(localized: "Palier débloqué")
+        case .enRoute: String(localized: "En route")
+        case .arrivee: String(localized: "Arrivée")
+        case .recuperee: String(localized: "Récupérée")
         }
     }
 
@@ -128,7 +128,7 @@ nonisolated struct OrderActivityPresentation: Hashable, Sendable {
         switch state.stage {
         case .ouverte, .palierFranchi: priceText
         case .enRoute: pickupTimeText
-        case .arrivee: "Prête"
+        case .arrivee: String(localized: "Prête")
         case .recuperee: "OK"
         }
     }
@@ -161,7 +161,7 @@ nonisolated struct OrderActivityPresentation: Hashable, Sendable {
 
     /// Libellés sous la barre : « 1–10 · 3,20 $ » … ou « En route », « Arrivée », « Récupérée ».
     var segmentLabels: [String] {
-        guard showsTierBar else { return ["En route", "Arrivée", "Récupérée"] }
+        guard showsTierBar else { return ["En route", String(localized: "Arrivée"), String(localized: "Récupérée")] }
         let tiers = sortedTiers
         return tiers.indices.map { index in
             let tier = tiers[index]
@@ -188,12 +188,12 @@ nonisolated struct OrderActivityPresentation: Hashable, Sendable {
         case .ouverte, .recuperee:
             nil
         case .palierFranchi:
-            ("Palier débloqué !",
-             "\(attributes.productName) à \(priceText)/\(attributes.unit) pour tout \(attributes.groupName).")
+            (String(localized: "Palier débloqué !"),
+             String(localized: "\(attributes.productName) à \(priceText)/\(attributes.unit) pour tout \(attributes.groupName)."))
         case .enRoute:
-            ("Ta commande est en route", headline + ".")
+            (String(localized: "Ta commande est en route"), headline + ".")
         case .arrivee:
-            ("Ta commande est arrivée", "Montre le code \(attributes.orderCode) à \(attributes.pickupHost).")
+            (String(localized: "Ta commande est arrivée"), String(localized: "Montre le code \(attributes.orderCode) à \(attributes.pickupHost)."))
         }
     }
 

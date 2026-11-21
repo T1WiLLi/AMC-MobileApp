@@ -19,16 +19,16 @@ nonisolated enum NeedUnit: String, Codable, Sendable, CaseIterable, Hashable {
         switch self {
         case .kilograms: "kg"
         case .liters: "L"
-        case .units: "unités"
+        case .units: String(localized: "unités")
         }
     }
 
     /// Libellé du sélecteur.
     var title: String {
         switch self {
-        case .kilograms: "Kilos"
-        case .liters: "Litres"
-        case .units: "Unités"
+        case .kilograms: String(localized: "Kilos")
+        case .liters: String(localized: "Litres")
+        case .units: String(localized: "Unités")
         }
     }
 

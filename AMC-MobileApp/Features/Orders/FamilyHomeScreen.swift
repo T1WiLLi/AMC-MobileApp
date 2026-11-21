@@ -82,8 +82,8 @@ struct FamilyHomeScreen: View {
     private var usesInlineTitle: Bool { dynamicTypeSize.isAccessibilitySize }
 
     private var title: String {
-        if let firstName = viewModel?.state.value?.firstName, !firstName.isEmpty { return "Bonjour \(firstName)" }
-        return "Accueil"
+        if let firstName = viewModel?.state.value?.firstName, !firstName.isEmpty { return String(localized: "Bonjour \(firstName)") }
+        return String(localized: "Accueil")
     }
 
     private func isIdle(_ state: LoadState<FamilyHomeViewModel.Content>) -> Bool {
@@ -182,7 +182,7 @@ private struct FamilyHomeContent: View {
         return VStack(alignment: .leading, spacing: 24) {
             VStack(alignment: .leading, spacing: 12) {
                 GrenierSectionHeader(
-                    mine.count > 1 ? "Tes commandes en cours" : "Ta commande en cours",
+                    mine.count > 1 ? String(localized: "Tes commandes en cours") : String(localized: "Ta commande en cours"),
                     systemImage: "cart.fill"
                 )
                 if mine.isEmpty {
@@ -197,7 +197,7 @@ private struct FamilyHomeContent: View {
 
             if !others.isEmpty {
                 VStack(alignment: .leading, spacing: 12) {
-                    GrenierSectionHeader("Commandes ouvertes de \(content.group.name)", systemImage: GrenierSymbol.groups)
+                    GrenierSectionHeader(String(localized: "Commandes ouvertes de \(content.group.name)"), systemImage: GrenierSymbol.groups)
                     ForEach(Array(others.enumerated()), id: \.element.id) { index, summary in
                         OrderLink(summary: summary)
                             .grenierAppear(index: mine.count + index)
@@ -211,7 +211,7 @@ private struct FamilyHomeContent: View {
 
     private var newOffersSection: some View {
         VStack(alignment: .leading, spacing: 12) {
-            GrenierSectionHeader("Nouveaux lots près de toi", systemImage: "sparkles")
+            GrenierSectionHeader(String(localized: "Nouveaux lots près de toi"), systemImage: "sparkles")
             if content.newOffers.isEmpty {
                 NoNewOfferCard()
             } else {
@@ -303,7 +303,7 @@ private struct GroupBanner: View {
             )
             StatChip(
                 value: newOfferCount,
-                label: FrenchPlural.word(newOfferCount, "nouveau lot", plural: "nouveaux lots"),
+                label: FrenchPlural.word(newOfferCount, String(localized: "nouveau lot"), plural: String(localized: "nouveaux lots")),
                 systemImage: "shippingbox.fill",
                 tint: .economie
             )
@@ -360,7 +360,7 @@ private struct OrderLink: View {
                 .grenierZoomSource(OfferRoute(offerId: summary.offer.id))
                 if summary.hasMyShare {
                     Label(
-                        "Ta part : \(FrenchPlural.count(summary.myShareQuantity, "part"))",
+                        String(localized: "Ta part : \(FrenchPlural.count(summary.myShareQuantity, "part"))"),
                         systemImage: "checkmark.circle.fill"
                     )
                     .font(.subheadline.weight(.semibold))
@@ -387,7 +387,7 @@ private struct OrderLink: View {
         guard let missing = pricing.sharesToNextTier, let percent = pricing.nextTierDiscountPercent, percent > 0 else {
             return nil
         }
-        return "Encore \(missing) \(missing > 1 ? "parts" : "part") pour débloquer −\(percent) %"
+        return String(localized: "Encore \(missing) \(missing > 1 ? "parts" : "part") pour débloquer −\(percent) %")
     }
 }
 
@@ -486,8 +486,8 @@ private struct SavingsCard: View {
     }
 
     private var detail: String {
-        if orderCount == 0 { return "vs l'épicerie du coin" }
-        return "sur \(orderCount) \(orderCount > 1 ? "commandes" : "commande"), vs l'épicerie du coin"
+        if orderCount == 0 { return String(localized: "vs l'épicerie du coin") }
+        return String(localized: "sur \(orderCount) \(orderCount > 1 ? "commandes" : "commande"), vs l'épicerie du coin")
     }
 }
 

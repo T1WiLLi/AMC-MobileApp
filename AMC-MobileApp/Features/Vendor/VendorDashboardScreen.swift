@@ -48,7 +48,7 @@ struct VendorDashboardScreen: View {
                 showsInlineTitle = isPastHeader
             }
             .grenierBackground()
-            .navigationTitle(showsInlineTitle ? (vendor?.legalName ?? "Tableau") : "")
+            .navigationTitle(showsInlineTitle ? (vendor?.legalName ?? String(localized: "Tableau")) : "")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {
@@ -291,7 +291,7 @@ private struct DashboardHeader: View {
                 .font(.footnote.weight(.bold))
                 .tracking(0.6)
                 .foregroundStyle(Color.grenier)
-            Text(vendor?.legalName ?? "Ferme du Québec")
+            Text(vendor?.legalName ?? String(localized: "Ferme du Québec"))
                 .font(.largeTitle.bold())
                 .foregroundStyle(.texte)
                 .redacted(reason: vendor == nil ? .placeholder : [])
@@ -328,7 +328,7 @@ private struct DashboardHeader: View {
     }
 
     private var subtitle: String {
-        let kind = vendor.map { VendorKindText.title(for: $0.kind) } ?? "Vendeur"
+        let kind = vendor.map { VendorKindText.title(for: $0.kind) } ?? String(localized: "Vendeur")
         guard let openOffers else { return kind }
         return "\(kind) · \(openOffers) \(openOffers > 1 ? "lots ouverts" : "lot ouvert")"
     }
@@ -337,11 +337,11 @@ private struct DashboardHeader: View {
 private enum VendorKindText {
     static func title(for kind: Vendor.Kind) -> String {
         switch kind {
-        case .farm: "Ferme"
-        case .wholesaler: "Grossiste"
-        case .cooperative: "Coopérative"
-        case .bakery: "Boulangerie"
-        case .other: "Vendeur"
+        case .farm: String(localized: "Ferme")
+        case .wholesaler: String(localized: "Grossiste")
+        case .cooperative: String(localized: "Coopérative")
+        case .bakery: String(localized: "Boulangerie")
+        case .other: String(localized: "Vendeur")
         }
     }
 
@@ -372,11 +372,11 @@ private struct DashboardContent: View {
             }
 
             if !dashboard.closingSoon.isEmpty {
-                SectionTitle("Se termine bientôt", systemImage: "hourglass", pulses: true)
+                SectionTitle(String(localized: "Se termine bientôt"), systemImage: "hourglass", pulses: true)
                 ClosingSoonCard(offers: dashboard.closingSoon)
             }
 
-            SectionTitle("Lots ouverts", systemImage: "shippingbox.fill")
+            SectionTitle(String(localized: "Lots ouverts"), systemImage: "shippingbox.fill")
             VStack(spacing: 12) {
                 ForEach(dashboard.offers) { summary in
                     VendorOfferCard(summary: summary)
@@ -445,18 +445,18 @@ private struct StatTiles: View {
 
     private var revenueTile: some View {
         StatTile(
-            title: "Revenus prévus",
+            title: String(localized: "Revenus prévus"),
             systemImage: "dollarsign.circle.fill",
             value: Money.formatRounded(dashboard.projectedRevenueCents),
             numericValue: Double(dashboard.projectedRevenueCents),
-            caption: "selon les parts engagées",
-            accessibilityText: "Revenus prévus : \(Money.formatRounded(dashboard.projectedRevenueCents)), selon les parts engagées."
+            caption: String(localized: "selon les parts engagées"),
+            accessibilityText: String(localized: "Revenus prévus : \(Money.formatRounded(dashboard.projectedRevenueCents)), selon les parts engagées.")
         )
     }
 
     private var sharesTile: some View {
         StatTile(
-            title: "Parts engagées",
+            title: String(localized: "Parts engagées"),
             systemImage: "square.stack.3d.up.fill",
             value: "\(dashboard.totalCommittedShares)",
             numericValue: Double(dashboard.totalCommittedShares),
@@ -464,29 +464,29 @@ private struct StatTiles: View {
             progress: dashboard.totalShares > 0
                 ? min(Double(dashboard.totalCommittedShares) / Double(dashboard.totalShares), 1)
                 : nil,
-            accessibilityText: "\(dashboard.totalCommittedShares) parts engagées sur \(dashboard.totalShares)."
+            accessibilityText: String(localized: "\(dashboard.totalCommittedShares) parts engagées sur \(dashboard.totalShares).")
         )
     }
 
     private var householdsTile: some View {
         StatTile(
-            title: "Familles servies",
+            title: String(localized: "Familles servies"),
             systemImage: "person.3.fill",
             value: "\(dashboard.committedHouseholds)",
             numericValue: Double(dashboard.committedHouseholds),
             caption: neighborhoodsText,
-            accessibilityText: "\(dashboard.committedHouseholds) familles servies, \(neighborhoodsText)."
+            accessibilityText: String(localized: "\(dashboard.committedHouseholds) familles servies, \(neighborhoodsText).")
         )
     }
 
     private var offersTile: some View {
         StatTile(
-            title: "Lots actifs",
+            title: String(localized: "Lots actifs"),
             systemImage: "shippingbox.fill",
             value: "\(dashboard.offers.count)",
             numericValue: Double(dashboard.offers.count),
             caption: closingSoonText,
-            accessibilityText: "\(dashboard.offers.count) lots actifs, \(closingSoonText)."
+            accessibilityText: String(localized: "\(dashboard.offers.count) lots actifs, \(closingSoonText).")
         )
     }
 
@@ -495,13 +495,13 @@ private struct StatTiles: View {
     }
 
     private var neighborhoodsText: String {
-        neighborhoodCount > 1 ? "dans \(neighborhoodCount) quartiers" : "dans \(neighborhoodCount) quartier"
+        neighborhoodCount > 1 ? String(localized: "dans \(neighborhoodCount) quartiers") : String(localized: "dans \(neighborhoodCount) quartier")
     }
 
     private var closingSoonText: String {
         let count = dashboard.closingSoon.count
-        if count == 0 { return "aucun ne ferme bientôt" }
-        return "\(count) \(FrenchPlural.word(count, "ferme", plural: "ferment")) bientôt"
+        if count == 0 { return String(localized: "aucun ne ferme bientôt") }
+        return String(localized: "\(count) \(FrenchPlural.word(count, "ferme", plural: "ferment")) bientôt")
     }
 }
 
@@ -603,18 +603,18 @@ private struct HighlightBanner: View {
     private var detail: String {
         var text = "\(highlight.offer.title)"
         if let priceText { text += " à \(priceText)" }
-        text += " pour \(households) \(households > 1 ? "familles" : "famille")."
+        text += String(localized: " pour \(households) \(households > 1 ? "familles" : "famille").")
         return text
     }
 
     private var message: AttributedString {
-        var bold = AttributedString("Palier \(highlight.tierNumber) atteint")
+        var bold = AttributedString(String(localized: "Palier \(highlight.tierNumber) atteint"))
         bold.inlinePresentationIntent = .stronglyEmphasized
         return bold + AttributedString(" à \(highlight.groupName) : \(detail)")
     }
 
     private var plainMessage: String {
-        "Palier \(highlight.tierNumber) atteint à \(highlight.groupName) : \(detail)"
+        String(localized: "Palier \(highlight.tierNumber) atteint à \(highlight.groupName) : \(detail)")
     }
 }
 
@@ -831,15 +831,15 @@ private struct VendorOfferCard: View {
     }
 
     private var placeText: String {
-        guard let first = summary.linkedOrders.first else { return "Aucun groupe encore" }
+        guard let first = summary.linkedOrders.first else { return String(localized: "Aucun groupe encore") }
         let others = summary.linkedOrders.count - 1
         return others > 0 ? "\(first.group.name) +\(others)" : first.group.name
     }
 
     private var progressText: String {
         let households = summary.committedHouseholds
-        if households == 0 { return "Aucune famille encore · \(summary.totalShares) parts" }
-        return "\(households) \(households > 1 ? "familles" : "famille") · \(summary.committedShares) parts sur \(summary.totalShares)"
+        if households == 0 { return String(localized: "Aucune famille encore · \(summary.totalShares) parts") }
+        return String(localized: "\(households) \(households > 1 ? "familles" : "famille") · \(summary.committedShares) parts sur \(summary.totalShares)")
     }
 
     /// Pire risque parmi les commandes du lot (niveau, puis parts manquantes) ; nil sans commande.
@@ -852,14 +852,14 @@ private struct VendorOfferCard: View {
     private var accessibilityText: String {
         var parts = [summary.title]
         if let number = summary.bestTierNumber {
-            parts.append("palier \(number) atteint")
+            parts.append(String(localized: "palier \(number) atteint"))
         } else {
-            parts.append("aucun palier atteint")
+            parts.append(String(localized: "aucun palier atteint"))
         }
         parts.append(progressText)
         if let message = minimumRisk?.message { parts.append(message) }
-        parts.append("\(Money.formatRounded(summary.projectedRevenueCents)) prévus")
-        parts.append("\(placeText), ferme \(VendorDeadline.weekday(summary.offer.deadline))")
+        parts.append(String(localized: "\(Money.formatRounded(summary.projectedRevenueCents)) prévus"))
+        parts.append(String(localized: "\(placeText), ferme \(VendorDeadline.weekday(summary.offer.deadline))"))
         return parts.joined(separator: ", ") + "."
     }
 }
@@ -875,7 +875,7 @@ private struct VendorNotificationsSheet: View {
             Group {
                 if items.isEmpty {
                     ContentUnavailableView(
-                        "Rien de neuf",
+                        String(localized: "Rien de neuf"),
                         systemImage: "bell.slash",
                         description: Text("Tu seras averti dès qu'un groupe franchit un palier.")
                     )
@@ -909,10 +909,10 @@ private struct VendorNotificationsSheet: View {
         guard let dashboard else { return [] }
         var result: [(symbol: String, text: String)] = []
         if let highlight = dashboard.highlight {
-            result.append(("checkmark.seal.fill", "Palier \(highlight.tierNumber) atteint à \(highlight.groupName) pour \(highlight.offer.title)."))
+            result.append(("checkmark.seal.fill", String(localized: "Palier \(highlight.tierNumber) atteint à \(highlight.groupName) pour \(highlight.offer.title).")))
         }
         for summary in dashboard.closingSoon {
-            result.append(("clock.fill", "\(summary.title) ferme \(VendorDeadline.relative(summary.offer.deadline))."))
+            result.append(("clock.fill", String(localized: "\(summary.title) ferme \(VendorDeadline.relative(summary.offer.deadline)).")))
         }
         return result
     }

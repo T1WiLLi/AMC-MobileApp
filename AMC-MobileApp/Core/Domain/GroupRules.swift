@@ -47,19 +47,19 @@ nonisolated enum GroupRules {
         clean.centerGeohash = draft.centerGeohash.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
 
         if clean.name.count < nameLengthRange.lowerBound {
-            throw AppError.invalidInput("Donne un nom d'au moins \(nameLengthRange.lowerBound) caractères à ton groupe.")
+            throw AppError.invalidInput(String(localized: "Donne un nom d'au moins \(nameLengthRange.lowerBound) caractères à ton groupe."))
         }
         if clean.name.count > nameLengthRange.upperBound {
-            throw AppError.invalidInput("Le nom de ton groupe doit faire \(nameLengthRange.upperBound) caractères au maximum.")
+            throw AppError.invalidInput(String(localized: "Le nom de ton groupe doit faire \(nameLengthRange.upperBound) caractères au maximum."))
         }
         if clean.neighborhood.isEmpty {
-            throw AppError.invalidInput("Choisis le quartier de ton groupe.")
+            throw AppError.invalidInput(String(localized: "Choisis le quartier de ton groupe."))
         }
         if clean.centerGeohash.isEmpty {
-            throw AppError.invalidInput("Indique le centre de ton groupe sur la carte.")
+            throw AppError.invalidInput(String(localized: "Indique le centre de ton groupe sur la carte."))
         }
         if !radiusRangeMeters.contains(clean.radiusMeters) {
-            throw AppError.invalidInput("Choisis un rayon entre 1 et 2 km.")
+            throw AppError.invalidInput(String(localized: "Choisis un rayon entre 1 et 2 km."))
         }
         return clean
     }
@@ -140,7 +140,7 @@ nonisolated enum GroupRules {
     /// Normalise et valide un code saisi ; lève `AppError.invalidInput` sinon.
     static func validatedInviteCode(_ input: String) throws -> String {
         guard isValidInviteCode(input) else {
-            throw AppError.invalidInput("Un code d'invitation compte \(inviteCodeLength) lettres ou chiffres. Vérifie celui qu'on t'a envoyé.")
+            throw AppError.invalidInput(String(localized: "Un code d'invitation compte \(inviteCodeLength) lettres ou chiffres. Vérifie celui qu'on t'a envoyé."))
         }
         return normalizedInviteCode(input)
     }
@@ -201,7 +201,7 @@ nonisolated enum GroupRules {
     static func joining(householdGroupIds: [String], groupId: String) throws -> [String] {
         if householdGroupIds.contains(groupId) { return householdGroupIds }
         guard canJoin(householdGroupIds: householdGroupIds, groupId: groupId) else {
-            throw AppError.invalidInput("Ton ménage fait déjà partie de \(maxGroupsPerHousehold) groupes. Quittes-en un pour rejoindre celui-ci.")
+            throw AppError.invalidInput(String(localized: "Ton ménage fait déjà partie de \(maxGroupsPerHousehold) groupes. Quittes-en un pour rejoindre celui-ci."))
         }
         return householdGroupIds + [groupId]
     }
@@ -260,7 +260,7 @@ nonisolated enum GroupRules {
     }
 
     private static let lastCoordinatorError = AppError.invalidInput(
-        "Ton groupe doit garder au moins un coordonnateur. Nomme quelqu'un d'autre avant de laisser ce rôle."
+        String(localized: "Ton groupe doit garder au moins un coordonnateur. Nomme quelqu'un d'autre avant de laisser ce rôle.")
     )
 
     private static func requireCoordinator(_ actorId: String, in members: [GroupMember]) throws {

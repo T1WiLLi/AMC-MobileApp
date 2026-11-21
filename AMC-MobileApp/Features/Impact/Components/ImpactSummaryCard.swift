@@ -60,12 +60,12 @@ struct ImpactSummaryCard: View {
                 stat(
                     value: snapshot.neighborhoodSavedCents, format: .money, tint: .economie,
                     systemImage: GrenierSymbol.savings,
-                    caption: "économisés par ton quartier"
+                    caption: String(localized: "économisés par ton quartier")
                 )
                 stat(
                     value: snapshot.suspendedBasketsOffered, format: .integer(), tint: .solidarite,
                     systemImage: GrenierSymbol.solidarity,
-                    caption: snapshot.suspendedBasketsOffered > 1 ? "paniers suspendus offerts" : "panier suspendu offert"
+                    caption: snapshot.suspendedBasketsOffered > 1 ? String(localized: "paniers suspendus offerts") : String(localized: "panier suspendu offert")
                 )
             }
         }
@@ -100,9 +100,9 @@ struct ImpactSummaryCard: View {
     var greeting: String {
         let name = snapshot.firstName.trimmingCharacters(in: .whitespaces)
         if snapshot.currentMonthSavedCents > 0 {
-            return name.isEmpty ? "Bravo !" : "Bravo \(name) !"
+            return name.isEmpty ? String(localized: "Bravo !") : String(localized: "Bravo \(name) !")
         }
-        return name.isEmpty ? "Ta première économie t'attend" : "\(name), ta première économie t'attend"
+        return name.isEmpty ? String(localized: "Ta première économie t'attend") : String(localized: "\(name), ta première économie t'attend")
     }
 
     /// « ce mois-ci, par rapport à l'épicerie », ou la marche à suivre quand rien n'est encore économisé.
@@ -124,10 +124,13 @@ struct ImpactSummaryCard: View {
     /// « Amina, tu as économisé 48 $ ce mois-ci. Ton quartier a économisé 3 900 $. 12 paniers suspendus offerts. »
     var accessibilitySummary: String {
         let s = snapshot
-        let baskets = ImpactFormat.plural(s.suspendedBasketsOffered, "panier suspendu offert", "paniers suspendus offerts")
-        let opening = s.firstName.isEmpty ? "Tu as économisé" : "\(s.firstName), tu as économisé"
-        return "\(opening) \(Money.formatRounded(s.currentMonthSavedCents)) ce mois-ci. "
-            + "Ton quartier a économisé \(Money.formatRounded(s.neighborhoodSavedCents)). \(baskets)."
+        let baskets = ImpactFormat.plural(s.suspendedBasketsOffered, String(localized: "panier suspendu offert"), String(localized: "paniers suspendus offerts"))
+        let saved = Money.formatRounded(s.currentMonthSavedCents)
+        let opening = s.firstName.isEmpty
+            ? String(localized: "Tu as économisé \(saved) ce mois-ci. ")
+            : String(localized: "\(s.firstName), tu as économisé \(saved) ce mois-ci. ")
+        return opening
+            + String(localized: "Ton quartier a économisé \(Money.formatRounded(s.neighborhoodSavedCents)). \(baskets).")
     }
 }
 

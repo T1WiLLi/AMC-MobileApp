@@ -10,28 +10,28 @@ enum IntroPage: Int, CaseIterable, Identifiable, Sendable {
 
     var eyebrow: String {
         switch self {
-        case .problem: "Le problème"
-        case .solution: "La solution"
-        case .solidarity: "La solidarité"
+        case .problem: String(localized: "Le problème")
+        case .solution: String(localized: "La solution")
+        case .solidarity: String(localized: "La solidarité")
         }
     }
 
     var title: String {
         switch self {
-        case .problem: "L'épicerie coûte de plus en plus cher"
-        case .solution: "Ensemble, on paie moins cher"
-        case .solidarity: "Personne n'est laissé de côté"
+        case .problem: String(localized: "L'épicerie coûte de plus en plus cher")
+        case .solution: String(localized: "Ensemble, on paie moins cher")
+        case .solidarity: String(localized: "Personne n'est laissé de côté")
         }
     }
 
     var message: String {
         switch self {
         case .problem:
-            "Beaucoup de familles qui travaillent n'arrivent plus à remplir le frigo. Et l'aide alimentaire déborde."
+            String(localized: "Beaucoup de familles qui travaillent n'arrivent plus à remplir le frigo. Et l'aide alimentaire déborde.")
         case .solution:
-            "Ton quartier achète en gros, directement aux fermes du Québec. À chaque palier franchi, le prix baisse pour tout le monde."
+            String(localized: "Ton quartier achète en gros, directement aux fermes du Québec. À chaque palier franchi, le prix baisse pour tout le monde.")
         case .solidarity:
-            "Offre un panier suspendu : une famille de ton groupe le reçoit, sans savoir de qui. Avec dignité."
+            String(localized: "Offre un panier suspendu : une famille de ton groupe le reçoit, sans savoir de qui. Avec dignité.")
         }
     }
 
@@ -47,9 +47,9 @@ enum IntroPage: Int, CaseIterable, Identifiable, Sendable {
     /// Description de la photo pour VoiceOver.
     var photoDescription: String {
         switch self {
-        case .problem: "Une balance au rayon des fruits et légumes d'une épicerie"
-        case .solution: "Du maïs, des pommes de terre et des légumes frais dans un marché"
-        case .solidarity: "Des bénévoles souriants remettent des denrées à une distribution alimentaire"
+        case .problem: String(localized: "Une balance au rayon des fruits et légumes d'une épicerie")
+        case .solution: String(localized: "Du maïs, des pommes de terre et des légumes frais dans un marché")
+        case .solidarity: String(localized: "Des bénévoles souriants remettent des denrées à une distribution alimentaire")
         }
     }
 
@@ -75,16 +75,16 @@ enum IntroPage: Int, CaseIterable, Identifiable, Sendable {
     var chips: [IntroChip] {
         switch self {
         case .problem: [
-            IntroChip(id: 0, symbol: "cart.badge.questionmark", value: "1,25 million", caption: "demandes d'aide par mois"),
-            IntroChip(id: 1, symbol: "refrigerator.fill", value: "Frigo vide", caption: "avant la fin du mois")
+            IntroChip(id: 0, symbol: "cart.badge.questionmark", value: String(localized: "1,25 million"), caption: String(localized: "demandes d'aide par mois")),
+            IntroChip(id: 1, symbol: "refrigerator.fill", value: String(localized: "Frigo vide"), caption: String(localized: "avant la fin du mois"))
         ]
         case .solution: [
-            IntroChip(id: 0, symbol: "leaf.fill", value: "Fermes du Québec", caption: "sans intermédiaire"),
-            IntroChip(id: 1, symbol: GrenierSymbol.savings, value: "−19 %", caption: "dès le 2ᵉ palier")
+            IntroChip(id: 0, symbol: "leaf.fill", value: String(localized: "Fermes du Québec"), caption: String(localized: "sans intermédiaire")),
+            IntroChip(id: 1, symbol: GrenierSymbol.savings, value: "−19 %", caption: String(localized: "dès le 2ᵉ palier"))
         ]
         case .solidarity: [
-            IntroChip(id: 0, symbol: "eye.slash.fill", value: "Anonyme", caption: "personne ne sait qui donne"),
-            IntroChip(id: 1, symbol: "eye.slash.fill", value: "Anonyme", caption: "personne ne sait qui donne")
+            IntroChip(id: 0, symbol: "eye.slash.fill", value: String(localized: "Anonyme"), caption: String(localized: "personne ne sait qui donne")),
+            IntroChip(id: 1, symbol: "eye.slash.fill", value: String(localized: "Anonyme"), caption: String(localized: "personne ne sait qui donne"))
         ]
         }
     }
@@ -149,7 +149,7 @@ struct IntroScreen: View {
     private var bottomBar: some View {
         VStack(spacing: 18) {
             Button(action: advance) {
-                Label(page.isLast ? "Commencer" : "Continuer",
+                Label(page.isLast ? String(localized: "Commencer") : String(localized: "Continuer"),
                       systemImage: page.isLast ? "checkmark" : "arrow.right")
                     .labelStyle(TrailingIconLabelStyle())
                     .font(.headline)
@@ -159,7 +159,7 @@ struct IntroScreen: View {
             }
             .buttonStyle(.glassProminent)
             .tint(page.accent)
-            .accessibilityHint(page.isLast ? "Va à la connexion" : "Page suivante")
+            .accessibilityHint(page.isLast ? String(localized: "Va à la connexion") : String(localized: "Page suivante"))
 
             PageIndicator(page: $page)
         }
@@ -403,10 +403,10 @@ private struct ReceiptScene: View {
     let isActive: Bool
 
     private static let items: [(name: String, symbol: String, cents: Cents)] = [
-        ("Lait 2 L", "waterbottle.fill", 589),
-        ("Riz 2 kg", "takeoutbag.and.cup.and.straw.fill", 899),
-        ("Œufs ×12", "oval.portrait.fill", 529),
-        ("Poulet entier", "fork.knife", 1499)
+        (String(localized: "Lait 2 L"), "waterbottle.fill", 589),
+        (String(localized: "Riz 2 kg"), "takeoutbag.and.cup.and.straw.fill", 899),
+        (String(localized: "Œufs ×12"), "oval.portrait.fill", 529),
+        (String(localized: "Poulet entier"), "fork.knife", 1499)
     ]
 
     @State private var printed = Self.items.count
@@ -615,9 +615,9 @@ private struct BasketScene: View {
                         ArcPath()
                             .trim(from: 0, to: progress)
                             .stroke(Color.solidarite, style: StrokeStyle(lineWidth: 3, lineCap: .round))
-                        house(symbol: "house.fill", label: "Toi")
+                        house(symbol: "house.fill", label: String(localized: "Toi"))
                             .position(x: 22, y: height - 18)
-                        house(symbol: "house.lodge.fill", label: "Une famille")
+                        house(symbol: "house.lodge.fill", label: String(localized: "Une famille"))
                             .position(x: width - 22, y: height - 18)
                         Image(systemName: "basket.fill")
                             .font(.title3)
@@ -646,7 +646,7 @@ private struct BasketScene: View {
                             .foregroundStyle(Color.texte)
                             .contentTransition(.numericText(value: Double(delivered)))
                             .monospacedDigit()
-                        Text(arrived ? "Remis ce mois-ci, sans nom" : "En route, de façon anonyme")
+                        Text(arrived ? String(localized: "Remis ce mois-ci, sans nom") : String(localized: "En route, de façon anonyme"))
                             .font(.caption)
                             .foregroundStyle(Color.texteSecondaire)
                             .id(arrived)

@@ -17,7 +17,7 @@ nonisolated enum MeasureUnit: String, Codable, Sendable, CaseIterable {
         case .kilogram: "kg"
         case .liter: "L"
         case .dozen: "douzaine"
-        case .unit: "unité"
+        case .unit: String(localized: "unité")
         }
     }
 }

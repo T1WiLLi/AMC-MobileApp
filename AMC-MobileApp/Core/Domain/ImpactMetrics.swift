@@ -21,13 +21,13 @@ nonisolated enum ImpactSphere: String, Sendable, Equatable, Hashable, CaseIterab
     /// Nom de la sphère, en français.
     var title: String {
         switch self {
-        case .foodSecurity: "Sécurité alimentaire"
-        case .localEconomy: "Économie locale"
-        case .neighborhoodLife: "Vie de quartier"
-        case .environment: "Environnement"
-        case .mobility: "Mobilité"
-        case .inclusion: "Inclusion"
-        case .health: "Santé"
+        case .foodSecurity: String(localized: "Sécurité alimentaire")
+        case .localEconomy: String(localized: "Économie locale")
+        case .neighborhoodLife: String(localized: "Vie de quartier")
+        case .environment: String(localized: "Environnement")
+        case .mobility: String(localized: "Mobilité")
+        case .inclusion: String(localized: "Inclusion")
+        case .health: String(localized: "Santé")
         }
     }
 }
@@ -83,8 +83,8 @@ nonisolated enum ImpactScope: Sendable, Equatable, Hashable {
     /// Titre de la section (« Impact sur Montréal », « Impact sur Rosemont »).
     var title: String {
         switch self {
-        case .neighborhood(let name): "Impact sur \(name)"
-        case .city: "Impact sur Montréal"
+        case .neighborhood(let name): String(localized: "Impact sur \(name)")
+        case .city: String(localized: "Impact sur Montréal")
         }
     }
 }
@@ -152,51 +152,51 @@ nonisolated enum ImpactMetrics {
         case .foodSecurity:
             let baskets = max(0, context.subsidizedBaskets)
             return ImpactIndicator(
-                sphere: sphere, title: "Paniers solidaires", value: Double(baskets),
+                sphere: sphere, title: String(localized: "Paniers solidaires"), value: Double(baskets),
                 unit: baskets > 1 ? "paniers" : "panier",
-                explanation: "Paniers payés par le fonds de solidarité ou offerts par tes voisins."
+                explanation: String(localized: "Paniers payés par le fonds de solidarité ou offerts par tes voisins.")
             )
         case .localEconomy:
             let local = min(max(0, context.localVendorSpendCents), savings.spentCents)
             let percent = percentage(local, of: savings.spentCents)
             return ImpactIndicator(
-                sphere: sphere, title: "Achats chez des producteurs d'ici", value: Double(local) / 100, unit: "$",
-                explanation: "\(percent) % des achats vont à des fermes et commerces du Québec."
+                sphere: sphere, title: String(localized: "Achats chez des producteurs d'ici"), value: Double(local) / 100, unit: "$",
+                explanation: String(localized: "\(percent) % des achats vont à des fermes et commerces du Québec.")
             )
         case .neighborhoodLife:
             return ImpactIndicator(
-                sphere: sphere, title: "Ménages qui achètent ensemble", value: Double(savings.householdCount),
-                unit: savings.householdCount > 1 ? "ménages" : "ménage",
-                explanation: "Familles qui ont réservé au moins une part avec leurs voisins."
+                sphere: sphere, title: String(localized: "Ménages qui achètent ensemble"), value: Double(savings.householdCount),
+                unit: savings.householdCount > 1 ? String(localized: "ménages") : String(localized: "ménage"),
+                explanation: String(localized: "Familles qui ont réservé au moins une part avec leurs voisins.")
             )
         case .environment:
             let packaging = savings.packagingKilogramsAvoided
             return ImpactIndicator(
-                sphere: sphere, title: "Emballages évités", value: Double(savings.packagesAvoided),
+                sphere: sphere, title: String(localized: "Emballages évités"), value: Double(savings.packagesAvoided),
                 unit: savings.packagesAvoided > 1 ? "emballages" : "emballage",
-                explanation: "Acheter en vrac remplace les formats de 1 kg : environ \(decimal(packaging)) kg d'emballage en moins."
+                explanation: String(localized: "Acheter en vrac remplace les formats de 1 kg : environ \(decimal(packaging)) kg d'emballage en moins.")
             )
         case .mobility:
             let trips = max(0, savings.participations - max(0, context.pickupTrips))
             let kilometers = Double(trips) * averageGroceryTripKilometers
             return ImpactIndicator(
-                sphere: sphere, title: "Trajets d'épicerie évités", value: Double(trips),
+                sphere: sphere, title: String(localized: "Trajets d'épicerie évités"), value: Double(trips),
                 unit: trips > 1 ? "trajets" : "trajet",
-                explanation: "Une cueillette groupée près de chez toi remplace des allers-retours : environ \(decimal(kilometers)) km en moins."
+                explanation: String(localized: "Une cueillette groupée près de chez toi remplace des allers-retours : environ \(decimal(kilometers)) km en moins.")
             )
         case .inclusion:
             let households = max(0, context.subsidizedHouseholds)
             let percent = percentage(households, of: savings.householdCount)
             return ImpactIndicator(
-                sphere: sphere, title: "Ménages subventionnés servis", value: Double(households),
-                unit: households > 1 ? "ménages" : "ménage",
-                explanation: "\(percent) % des ménages actifs ont eu accès aux mêmes prix grâce à la solidarité."
+                sphere: sphere, title: String(localized: "Ménages subventionnés servis"), value: Double(households),
+                unit: households > 1 ? String(localized: "ménages") : String(localized: "ménage"),
+                explanation: String(localized: "\(percent) % des ménages actifs ont eu accès aux mêmes prix grâce à la solidarité.")
             )
         case .health:
             let kilograms = healthyCategories.reduce(0) { $0 + (savings.kilogramsByCategory[$1] ?? 0) }
             return ImpactIndicator(
-                sphere: sphere, title: "Aliments frais et légumineuses", value: kilograms, unit: "kg",
-                explanation: "Fruits, légumes, légumineuses et céréales achetés en vrac par le quartier."
+                sphere: sphere, title: String(localized: "Aliments frais et légumineuses"), value: kilograms, unit: "kg",
+                explanation: String(localized: "Fruits, légumes, légumineuses et céréales achetés en vrac par le quartier.")
             )
         }
     }

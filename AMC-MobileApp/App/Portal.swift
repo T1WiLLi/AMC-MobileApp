@@ -15,9 +15,9 @@ enum Portal: String, CaseIterable, Identifiable, Sendable {
 
     var title: String {
         switch self {
-        case .family: "Familles"
-        case .vendor: "Vendeurs"
-        case .organization: "Organismes"
+        case .family: String(localized: "Familles")
+        case .vendor: String(localized: "Vendeurs")
+        case .organization: String(localized: "Organismes")
         }
     }
 
@@ -32,30 +32,30 @@ enum Portal: String, CaseIterable, Identifiable, Sendable {
     /// Phrase courte sous le titre d'une `PortalCard` (RQ-014).
     var tagline: String {
         switch self {
-        case .family: "J'achète avec mon quartier"
-        case .vendor: "Je vends aux quartiers"
-        case .organization: "Je soutiens les quartiers"
+        case .family: String(localized: "J'achète avec mon quartier")
+        case .vendor: String(localized: "Je vends aux quartiers")
+        case .organization: String(localized: "Je soutiens les quartiers")
         }
     }
 
     /// Sous-titre de l'écran de bascule (T-123), sous le nom du portail.
     var splashTagline: String {
         switch self {
-        case .family: "Côté familles"
-        case .vendor: "Côté producteurs"
-        case .organization: "Côté organismes"
+        case .family: String(localized: "Côté familles")
+        case .vendor: String(localized: "Côté producteurs")
+        case .organization: String(localized: "Côté organismes")
         }
     }
 
     /// Phrase lue par VoiceOver quand ce portail devient actif.
-    var switchAnnouncement: String { "Portail \(title), \(splashTagline.lowercased())" }
+    var switchAnnouncement: String { String(localized: "Portail \(title), \(splashTagline.lowercased())") }
 
     /// Détail affiché dans la grande carte du choix du portail.
     var detail: String {
         switch self {
-        case .family: "Rejoins un groupe, réserve ta part et paie moins cher à chaque palier."
-        case .vendor: "Publie tes lots, fixe tes paliers et vois la demande quartier par quartier."
-        case .organization: "Finance des paniers suspendus, parraine des groupes et suis ton impact dans les quartiers."
+        case .family: String(localized: "Rejoins un groupe, réserve ta part et paie moins cher à chaque palier.")
+        case .vendor: String(localized: "Publie tes lots, fixe tes paliers et vois la demande quartier par quartier.")
+        case .organization: String(localized: "Finance des paniers suspendus, parraine des groupes et suis ton impact dans les quartiers.")
         }
     }
 

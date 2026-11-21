@@ -29,9 +29,9 @@ final class VendorOffersViewModel {
 
         var title: String {
             switch self {
-            case .active: "Actifs"
-            case .paused: "En pause et brouillons"
-            case .ended: "Terminés et retirés"
+            case .active: String(localized: "Actifs")
+            case .paused: String(localized: "En pause et brouillons")
+            case .ended: String(localized: "Terminés et retirés")
             }
         }
 
@@ -222,32 +222,32 @@ final class VendorOffersViewModel {
 
     private func checkPause(_ row: OfferRow) throws(AppError) {
         guard row.status == .active else {
-            throw .invalidInput("Seul un lot actif peut être mis en pause.")
+            throw .invalidInput(String(localized: "Seul un lot actif peut être mis en pause."))
         }
         guard row.deadline > now() else {
-            throw .invalidInput("La date limite de ce lot est passée : il ne peut plus être mis en pause.")
+            throw .invalidInput(String(localized: "La date limite de ce lot est passée : il ne peut plus être mis en pause."))
         }
     }
 
     private func checkResume(_ row: OfferRow) throws(AppError) {
         guard row.status == .draft else {
-            throw .invalidInput("Seul un lot en pause ou un brouillon peut être republié.")
+            throw .invalidInput(String(localized: "Seul un lot en pause ou un brouillon peut être republié."))
         }
         guard !row.offer.tiers.isEmpty else {
-            throw .invalidInput("Ajoute au moins un palier de prix avant de republier ce lot.")
+            throw .invalidInput(String(localized: "Ajoute au moins un palier de prix avant de republier ce lot."))
         }
         guard row.deadline > now() else {
-            throw .invalidInput("La date limite de ce lot est passée : change-la avant de le republier.")
+            throw .invalidInput(String(localized: "La date limite de ce lot est passée : change-la avant de le republier."))
         }
     }
 
     private func checkWithdraw(_ row: OfferRow) throws(AppError) {
         guard row.status == .active || row.status == .draft else {
-            throw .invalidInput("Ce lot est déjà terminé ou retiré.")
+            throw .invalidInput(String(localized: "Ce lot est déjà terminé ou retiré."))
         }
         guard row.confirmedOrderCount == 0 else {
             throw .invalidInput(
-                "Des commandes de ce lot sont déjà confirmées : il ne peut plus être retiré."
+                String(localized: "Des commandes de ce lot sont déjà confirmées : il ne peut plus être retiré.")
             )
         }
     }

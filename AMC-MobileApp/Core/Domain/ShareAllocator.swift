@@ -32,12 +32,12 @@ nonisolated enum ShareAllocator {
         solidarityFundCents: Cents = 0
     ) throws -> Allocation {
         guard unitPriceCents >= 0, solidarityFundCents >= 0 else {
-            throw AppError.invalidInput("Montants négatifs.")
+            throw AppError.invalidInput(String(localized: "Montants négatifs."))
         }
         let active = shares.filter { $0.quantity > 0 }.sorted { $0.householdId < $1.householdId }
         let committed = active.reduce(0) { $0 + $1.quantity }
         guard committed <= offer.totalShares else {
-            throw AppError.invalidInput("Ce lot ne compte que \(offer.totalShares) parts.")
+            throw AppError.invalidInput(String(localized: "Ce lot ne compte que \(offer.totalShares) parts."))
         }
 
         // Prix final de chaque part.

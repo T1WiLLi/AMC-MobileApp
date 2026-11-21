@@ -117,7 +117,7 @@ struct EmailAuthForm: View {
                             .contentShape(.rect)
                     }
                     .buttonStyle(.plain)
-                    .accessibilityLabel(showsPassword ? "Masquer le mot de passe" : "Afficher le mot de passe")
+                    .accessibilityLabel(showsPassword ? String(localized: "Masquer le mot de passe") : String(localized: "Afficher le mot de passe"))
                     .sensoryFeedback(.selection, trigger: showsPassword)
                 }
 
@@ -162,7 +162,7 @@ struct EmailAuthForm: View {
             }
             .buttonStyle(.glassProminent)
             .disabled(!canSubmit)
-            .accessibilityHint(canSubmit ? "" : "Remplis les champs pour continuer")
+            .accessibilityHint(canSubmit ? "" : String(localized: "Remplis les champs pour continuer"))
         }
         .animation(reduceMotion ? nil : .smooth, value: serverError)
         .animation(reduceMotion ? nil : .smooth, value: mode)
@@ -322,7 +322,7 @@ private struct WelcomeAvatar: View {
             .shadow(color: .black.opacity(0.08), radius: 6, y: 2)
 
             VStack(alignment: .leading, spacing: 2) {
-                Text(firstName.isEmpty ? "Bienvenue !" : "Salut \(firstName) !")
+                Text(firstName.isEmpty ? String(localized: "Bienvenue !") : String(localized: "Salut \(firstName) !"))
                     .font(.title3.bold())
                     .fontDesign(.rounded)
                     .foregroundStyle(Color.texte)
@@ -425,7 +425,7 @@ private struct PasswordResetSheet: View {
                 .id(sent)
                 .transition(.opacity)
 
-                Text(sent ? "Lien envoyé ! Ouvre le courriel pour choisir un nouveau mot de passe." : "Entre ton courriel : on t'envoie un lien pour choisir un nouveau mot de passe.")
+                Text(sent ? String(localized: "Lien envoyé ! Ouvre le courriel pour choisir un nouveau mot de passe.") : String(localized: "Entre ton courriel : on t'envoie un lien pour choisir un nouveau mot de passe."))
                     .font(.body)
                     .foregroundStyle(Color.texteSecondaire)
                     .multilineTextAlignment(.center)
@@ -467,7 +467,7 @@ private struct PasswordResetSheet: View {
                         } else {
                             Image(systemName: sent ? "checkmark" : "paperplane.fill")
                         }
-                        Text(sent ? "OK" : "Envoyer le lien")
+                        Text(sent ? "OK" : String(localized: "Envoyer le lien"))
                             .font(.headline)
                     }
                     .frame(maxWidth: .infinity, minHeight: 44)

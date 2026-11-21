@@ -728,6 +728,11 @@ private struct VendorOfferCard: View {
                 compact: true
             )
 
+            // RQ-050 (T-104) : la commande de groupe la plus en retard sur le minimum de lancement.
+            if let minimumRisk {
+                MinimumRiskBadge(assessment: minimumRisk, compact: true)
+            }
+
             footer
         }
         .grenierCard()
@@ -837,6 +842,13 @@ private struct VendorOfferCard: View {
         return "\(households) \(households > 1 ? "familles" : "famille") · \(summary.committedShares) parts sur \(summary.totalShares)"
     }
 
+    /// Pire risque parmi les commandes du lot (niveau, puis parts manquantes) ; nil sans commande.
+    private var minimumRisk: MinimumRisk.Assessment? {
+        summary.linkedOrders
+            .map { MinimumRisk.assess(offer: summary.offer, order: $0.order) }
+            .max { ($0.level, $0.missingShares) < ($1.level, $1.missingShares) }
+    }
+
     private var accessibilityText: String {
         var parts = [summary.title]
         if let number = summary.bestTierNumber {
@@ -845,6 +857,7 @@ private struct VendorOfferCard: View {
             parts.append("aucun palier atteint")
         }
         parts.append(progressText)
+        if let message = minimumRisk?.message { parts.append(message) }
         parts.append("\(Money.formatRounded(summary.projectedRevenueCents)) prévus")
         parts.append("\(placeText), ferme \(VendorDeadline.weekday(summary.offer.deadline))")
         return parts.joined(separator: ", ") + "."

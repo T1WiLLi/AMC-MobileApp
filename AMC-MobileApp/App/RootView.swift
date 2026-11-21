@@ -43,7 +43,14 @@ struct RootView: View {
                 }
             case .organization:
                 // T-116 : organisme de la session ; en démo fake, l'organisme de démo (AppContext.demo).
-                OrganizationTabView()
+                if context.hasOrganization {
+                    OrganizationTabView()
+                } else {
+                    // Sans organisme rattaché, le portail planterait sur un chemin Firestore vide.
+                    ContextRequirementView(.organization) {
+                        portalSwitch.switchPortal(from: .organization, to: .family, reduceMotion: reduceMotion)
+                    }
+                }
             }
         }
         .animation(.smooth, value: portal)

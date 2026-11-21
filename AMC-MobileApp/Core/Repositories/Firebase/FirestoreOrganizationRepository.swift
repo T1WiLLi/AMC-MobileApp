@@ -39,8 +39,10 @@ nonisolated final class FirestoreOrganizationRepository: OrganizationRepository,
 
     // MARK: - Lecture
 
+    // Un id vide ferait planter Firestore (« Document path cannot be empty ») : on répond « introuvable ».
     func organization(id: String) async throws -> Organization {
-        try await FirestoreVendorRepository.fetchOne(Organization.self, organizationsRef.document(id))
+        guard !id.isEmpty else { throw AppError.notFound }
+        return try await FirestoreVendorRepository.fetchOne(Organization.self, organizationsRef.document(id))
     }
 
     func solidarityProfiles() async throws -> [GroupSolidarityProfile] {
@@ -60,12 +62,14 @@ nonisolated final class FirestoreOrganizationRepository: OrganizationRepository,
     }
 
     func donations(ofOrganization organizationId: String) async throws -> [OrganizationDonation] {
-        try await FirestoreVendorRepository.fetch(OrganizationDonation.self, donationsRef(organizationId))
+        guard !organizationId.isEmpty else { throw AppError.notFound }
+        return try await FirestoreVendorRepository.fetch(OrganizationDonation.self, donationsRef(organizationId))
             .sorted { $0.date > $1.date }
     }
 
     func sponsorships(ofOrganization organizationId: String) async throws -> [Sponsorship] {
-        try await FirestoreVendorRepository.fetch(Sponsorship.self, sponsorshipsRef(organizationId))
+        guard !organizationId.isEmpty else { throw AppError.notFound }
+        return try await FirestoreVendorRepository.fetch(Sponsorship.self, sponsorshipsRef(organizationId))
             .sorted { $0.startedAt < $1.startedAt }
     }
 

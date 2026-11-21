@@ -29,6 +29,21 @@ nonisolated final class FirestoreVendorRepository: VendorRepository, @unchecked 
         try await Self.fetchOne(Vendor.self, vendorsRef.document(id))
     }
 
+    /// Profil vendeur (T-076, RQ-016). `firestore.rules` n'accepte que `description`, `photoURLs` et
+    /// `servedZones` : on met à jour ces trois champs seulement, sans réécrire le document.
+    /// Lève `.notFound` si le vendeur n'existe pas.
+    func saveVendor(_ vendor: Vendor) async throws {
+        do {
+            try await vendorsRef.document(vendor.id).updateData([
+                "description": vendor.description,
+                "photoURLs": vendor.photoURLs.map(\.absoluteString),
+                "servedZones": vendor.servedZones,
+            ])
+        } catch {
+            throw FirestoreGroupOrderRepository.appError(from: error)
+        }
+    }
+
     // MARK: - Produits
 
     func products(ofVendor vendorId: String) async throws -> [Product] {

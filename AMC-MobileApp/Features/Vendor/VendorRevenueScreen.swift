@@ -5,8 +5,7 @@ struct VendorRevenueScreen: View {
         PlaceholderScreen(
             title: "Revenus",
             systemImage: "dollarsign.circle.fill",
-            message: "Tes ventes par lot et par quartier, et tes livraisons à venir.",
-            epic: "E07, E09"
+            message: "Tes ventes par lot et par quartier, et tes livraisons à venir."
         )
     }
 }

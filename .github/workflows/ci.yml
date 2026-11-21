@@ -8,7 +8,8 @@ on:
 
 concurrency:
   group: ci-${{ github.ref }}
-  cancel-in-progress: true
+  # Sur main, on laisse finir : c'est la seule exécution qui sauve le cache partagé.
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
   build-and-test:
@@ -36,8 +37,9 @@ jobs:
           if [ -z "$UDID" ]; then echo "Aucun simulateur iPhone iOS 26 disponible" >&2; exit 1; fi
           echo "udid=$UDID" >> "$GITHUB_OUTPUT"
 
-      - name: Cache des paquets Swift et du build
-        uses: actions/cache@v4
+      - name: Restaurer le cache des paquets Swift et du build
+        id: cache
+        uses: actions/cache/restore@v4
         with:
           path: |
             SourcePackages
@@ -58,3 +60,12 @@ jobs:
             -derivedDataPath DerivedData \
             CODE_SIGNING_ALLOWED=NO \
             | tee xcodebuild.log | grep -E "error:|warning:|Test run|\*\* "
+
+      - name: Sauver le cache (main seulement, partagé avec toutes les PR)
+        if: always() && github.ref == 'refs/heads/main' && steps.cache.outputs.cache-hit != 'true'
+        uses: actions/cache/save@v4
+        with:
+          path: |
+            SourcePackages
+            DerivedData
+          key: spm-dd-${{ runner.os }}-${{ hashFiles('AMC-MobileApp.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved') }}

@@ -109,4 +109,23 @@ struct VendorDashboardViewModelTests {
         #expect(potato.bestTierIndex == 1)
         #expect(potato.projectedRevenueCents == 20 * 990)
     }
+
+    @Test func countsOrdersOfPrivateGroups() async throws {
+        let privateGroup = NeighborhoodGroup(
+            id: "group-prive", name: "Immeuble Jarry", neighborhood: "Saint-Michel", centerGeohash: "f25dv",
+            radiusMeters: 200, coordinatorIds: [], householdCount: 4, isPublic: false, inviteCode: "IJ-1"
+        )
+        var data = VendorTestData.data(adding: [
+            VendorTestData.order(id: "order-prive", group: privateGroup.id, offer: ID.appleOffer,
+                                 shares: 3, households: 2, tierIndex: nil)
+        ])
+        data.groups.append(privateGroup)
+        let model = VendorDashboardViewModel(repositories: .fake(behavior: .instant, data: data), vendorId: ID.fermeRive)
+        await model.load()
+        let apple = try #require(model.state.value?.offers.first { $0.id == ID.appleOffer })
+        #expect(apple.linkedOrders.map(\.id) == ["order-prive"])
+        #expect(apple.linkedOrders.first?.group.isPublic == false)
+        #expect(apple.committedShares == 3)
+        #expect(apple.committedHouseholds == 2)
+    }
 }

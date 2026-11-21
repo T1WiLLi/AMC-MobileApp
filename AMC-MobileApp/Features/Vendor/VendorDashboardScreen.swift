@@ -11,6 +11,8 @@ struct VendorDashboardScreen: View {
     @State private var showsInlineTitle = false
     @State private var showsNotifications = false
     @State private var showsVendorProfile = false
+    @State private var showsLayoutEditor = false
+    @AppStorage(DashboardSection.storageKey) private var rawLayout = ""
 
     private let repositories: AppRepositories
     private let vendorId: String
@@ -57,6 +59,14 @@ struct VendorDashboardScreen: View {
                     }
                     .accessibilityHint("Modifie ta description, tes photos et tes zones desservies.")
                 }
+                // B-037 : sections réorganisables du tableau (ordre, masquage, Réinitialiser).
+                if viewModel.state.value != nil {
+                    ToolbarItem(placement: .topBarLeading) {
+                        Button("Modifier le tableau", systemImage: "square.3.layers.3d.down.right") {
+                            showsLayoutEditor = true
+                        }
+                    }
+                }
                 ToolbarItem(placement: .topBarTrailing) {
                     Button("Notifications", systemImage: "bell") {
                         showsNotifications = true
@@ -85,6 +95,9 @@ struct VendorDashboardScreen: View {
             }) {
                 VendorProfileScreen(repositories: repositories, vendorId: vendorId)
                     .presentationDetents([.large])
+            }
+            .sheet(isPresented: $showsLayoutEditor) {
+                SectionLayoutEditor(title: "Modifier le tableau", sections: DashboardSection.infos, raw: $rawLayout)
             }
             .sheet(isPresented: $showsNotifications) {
                 VendorNotificationsSheet(dashboard: viewModel.state.value)
@@ -358,29 +371,71 @@ private enum VendorKindText {
 
 // MARK: - Contenu
 
+/// Sections du tableau vendeur, dans l'ordre par défaut (B-037).
+enum DashboardSection: String, CaseIterable {
+    case stats, highlight, closingSoon, offers
+
+    static let storageKey = "vendorDashboard.sectionLayout"
+
+    static var infos: [SectionInfo] {
+        allCases.map { section in
+            switch section {
+            case .stats: SectionInfo(id: section.rawValue, title: "Chiffres clés", systemImage: "chart.bar.fill", tint: .grenier)
+            case .highlight: SectionInfo(id: section.rawValue, title: "À la une", systemImage: "star.fill", tint: .economie)
+            case .closingSoon: SectionInfo(id: section.rawValue, title: "Se termine bientôt", systemImage: "hourglass", tint: .solidarite)
+            case .offers: SectionInfo(id: section.rawValue, title: "Lots ouverts", systemImage: "shippingbox.fill", tint: .grenier)
+            }
+        }
+    }
+}
+
 private struct DashboardContent: View {
     let dashboard: VendorDashboardScreen.Dashboard
     let animatesHighlight: Bool
 
+    @AppStorage(DashboardSection.storageKey) private var rawLayout = ""
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
+    private var sections: [DashboardSection] {
+        SectionLayout(raw: rawLayout, defaults: DashboardSection.allCases.map(\.rawValue))
+            .visible.compactMap(DashboardSection.init(rawValue:))
+    }
+
     var body: some View {
         VStack(alignment: .leading, spacing: 20) {
-            StatTiles(dashboard: dashboard)
+            ForEach(sections, id: \.self) { section in
+                view(for: section)
+                    .transition(.opacity.combined(with: .scale(scale: 0.96)))
+            }
+        }
+        .animation(reduceMotion ? nil : .smooth, value: sections)
+    }
 
+    @ViewBuilder
+    private func view(for section: DashboardSection) -> some View {
+        switch section {
+        case .stats:
+            StatTiles(dashboard: dashboard)
+        case .highlight:
             if let highlight = dashboard.highlight {
                 HighlightBanner(highlight: highlight, animates: animatesHighlight)
                     .grenierTransition(.banner)
             }
-
+        case .closingSoon:
             if !dashboard.closingSoon.isEmpty {
-                SectionTitle(String(localized: "Se termine bientôt"), systemImage: "hourglass", pulses: true)
-                ClosingSoonCard(offers: dashboard.closingSoon)
+                VStack(alignment: .leading, spacing: 20) {
+                    SectionTitle(String(localized: "Se termine bientôt"), systemImage: "hourglass", pulses: true)
+                    ClosingSoonCard(offers: dashboard.closingSoon)
+                }
             }
-
-            SectionTitle(String(localized: "Lots ouverts"), systemImage: "shippingbox.fill")
-            VStack(spacing: 12) {
-                ForEach(dashboard.offers) { summary in
-                    VendorOfferCard(summary: summary)
-                        .grenierTransition(.cardAppear)
+        case .offers:
+            VStack(alignment: .leading, spacing: 20) {
+                SectionTitle(String(localized: "Lots ouverts"), systemImage: "shippingbox.fill")
+                VStack(spacing: 12) {
+                    ForEach(dashboard.offers) { summary in
+                        VendorOfferCard(summary: summary)
+                            .grenierTransition(.cardAppear)
+                    }
                 }
             }
         }

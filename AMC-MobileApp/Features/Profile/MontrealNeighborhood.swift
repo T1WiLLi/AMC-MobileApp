@@ -18,7 +18,7 @@ nonisolated struct MontrealNeighborhood: Identifiable, Sendable, Hashable {
     var geohash: String { Geohash.encode(latitude: latitude, longitude: longitude, precision: 5) }
 
     /// Résultat de la lecture d'un code postal.
-    enum Lookup: Equatable, Sendable {
+    nonisolated enum Lookup: Equatable, Sendable {
         /// Rien de saisi.
         case empty
         /// Saisie en cours (moins de 3 caractères utiles).
@@ -80,11 +80,11 @@ nonisolated struct MontrealNeighborhood: Identifiable, Sendable, Hashable {
     ]
 }
 
-private extension Character {
+nonisolated private extension Character {
     enum Kind { case letter, digit }
 }
 
-private extension Character.Kind {
+nonisolated private extension Character.Kind {
     func matches(_ character: Character) -> Bool {
         switch self {
         case .letter: character.isASCII && character.isLetter

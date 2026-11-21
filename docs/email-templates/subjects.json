@@ -1,0 +1,20 @@
+[
+  {
+    "name": "verify",
+    "fr": "Vérifie ton adresse courriel Grenier",
+    "en": "Verify your Grenier email address",
+    "bilingual": "Vérifie ton adresse courriel Grenier · Verify your Grenier email address"
+  },
+  {
+    "name": "reset",
+    "fr": "Choisis un nouveau mot de passe Grenier",
+    "en": "Choose a new Grenier password",
+    "bilingual": "Choisis un nouveau mot de passe Grenier · Choose a new Grenier password"
+  },
+  {
+    "name": "change-email",
+    "fr": "Ton adresse de connexion Grenier a changé",
+    "en": "Your Grenier sign-in email changed",
+    "bilingual": "Ton adresse de connexion Grenier a changé · Your Grenier sign-in email changed"
+  }
+]

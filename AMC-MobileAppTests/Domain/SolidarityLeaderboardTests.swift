@@ -82,7 +82,7 @@ struct SolidarityLeaderboardTests {
         let vsp = borough("vsp", households: 100, neighborhoods: ["Villeray", "Saint-Michel", "Parc-Extension"])
         let hochelaga = borough("hm", households: 100, neighborhoods: ["Hochelaga"])
         let entries = SolidarityLeaderboard.ranking([vsp, hochelaga], homeNeighborhood: "saint michel")
-        #expect(entries.filter(\.isHome).map(\.id) == ["vsp"])
+        #expect(entries.filter { $0.isHome }.map { $0.id } == ["vsp"])
         #expect(SolidarityLeaderboard.ranking([vsp], homeNeighborhood: nil).allSatisfy { !$0.isHome })
         let accented = borough("cdn", households: 10, neighborhoods: ["Côte-des-Neiges"])
         #expect(SolidarityLeaderboard.ranking([accented], homeNeighborhood: "Cote-des-Neiges").first?.isHome == true)
@@ -103,7 +103,7 @@ struct SolidarityLeaderboardTests {
             #expect(!text.contains("dernier"))
             #expect(!text.isEmpty)
         }
-        #expect(entries.contains(where: \.isHome))
+        #expect(entries.contains { $0.isHome })
     }
 
     /// Le jeu de démo met un petit arrondissement (Lachine, 64 ménages) dans le haut du classement.
@@ -115,7 +115,8 @@ struct SolidarityLeaderboardTests {
 
     @Test func fakeRepositoryReturnsStats() async throws {
         let repository = FakeBoroughStatsRepository(stats: FakeData.montrealBoroughs)
-        #expect(try await repository.boroughStats().count == FakeData.montrealBoroughs.count)
+        let stats = try await repository.boroughStats()
+        #expect(stats.count == FakeData.montrealBoroughs.count)
         let failing = FakeBoroughStatsRepository(behavior: .failing(), stats: FakeData.montrealBoroughs)
         await #expect(throws: AppError.offline) { try await failing.boroughStats() }
     }

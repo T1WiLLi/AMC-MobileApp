@@ -48,6 +48,9 @@ jobs:
           restore-keys: |
             spm-dd-${{ runner.os }}-
 
+      - name: Sonde T-100 — forcer la recompilation de l'app et des tests
+        run: rm -rf DerivedData/Build/Intermediates.noindex/AMC-MobileApp.build
+
       - name: Build et tests
         run: |
           set -o pipefail

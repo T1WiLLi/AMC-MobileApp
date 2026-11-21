@@ -1,0 +1,129 @@
+[
+  {
+    "id": "user-amina",
+    "displayName": "Amina",
+    "language": "fr",
+    "roles": [
+      "family"
+    ],
+    "neighborhood": "parc-extension",
+    "dietaryPreferences": [
+      "halal",
+      "local"
+    ],
+    "seniorMode": false,
+    "householdId": "household-amina"
+  },
+  {
+    "id": "user-ferme-lafleur",
+    "displayName": "Ferme Lafleur",
+    "language": "fr",
+    "roles": [
+      "vendor"
+    ],
+    "neighborhood": "saint-remi",
+    "dietaryPreferences": [],
+    "seniorMode": false,
+    "vendorId": "vendor-ferme-lafleur"
+  },
+  {
+    "id": "user-jean",
+    "displayName": "Jean",
+    "language": "fr",
+    "roles": [
+      "host"
+    ],
+    "neighborhood": "parc-extension",
+    "dietaryPreferences": [],
+    "seniorMode": false,
+    "householdId": "household-jean"
+  },
+  {
+    "id": "user-hote-parc-extension",
+    "displayName": "Priya",
+    "language": "fr",
+    "roles": [
+      "host"
+    ],
+    "neighborhood": "parc-extension",
+    "dietaryPreferences": [],
+    "seniorMode": false
+  },
+  {
+    "id": "user-hote-rosemont",
+    "displayName": "Sophie",
+    "language": "fr",
+    "roles": [
+      "host"
+    ],
+    "neighborhood": "rosemont",
+    "dietaryPreferences": [],
+    "seniorMode": false
+  },
+  {
+    "id": "user-hote-hochelaga",
+    "displayName": "Marc",
+    "language": "fr",
+    "roles": [
+      "host"
+    ],
+    "neighborhood": "hochelaga",
+    "dietaryPreferences": [],
+    "seniorMode": false
+  },
+  {
+    "id": "user-hote-saint-michel",
+    "displayName": "Fatima",
+    "language": "fr",
+    "roles": [
+      "host"
+    ],
+    "neighborhood": "saint-michel",
+    "dietaryPreferences": [],
+    "seniorMode": false
+  },
+  {
+    "id": "user-hote-verdun",
+    "displayName": "Julie",
+    "language": "fr",
+    "roles": [
+      "host"
+    ],
+    "neighborhood": "verdun",
+    "dietaryPreferences": [],
+    "seniorMode": false
+  },
+  {
+    "id": "user-hote-cote-des-neiges",
+    "displayName": "David",
+    "language": "fr",
+    "roles": [
+      "host"
+    ],
+    "neighborhood": "cote-des-neiges",
+    "dietaryPreferences": [],
+    "seniorMode": false
+  },
+  {
+    "id": "user-hote-montreal-nord",
+    "displayName": "Nadège",
+    "language": "fr",
+    "roles": [
+      "host"
+    ],
+    "neighborhood": "montreal-nord",
+    "dietaryPreferences": [],
+    "seniorMode": false
+  },
+  {
+    "id": "user-hote-villeray",
+    "displayName": "Luc",
+    "language": "fr",
+    "roles": [
+      "host"
+    ],
+    "neighborhood": "villeray",
+    "dietaryPreferences": [],
+    "seniorMode": false
+  }
+]

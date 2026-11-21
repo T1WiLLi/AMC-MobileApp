@@ -14,13 +14,13 @@ import FirebaseFirestore
 
 /// Transporte un `ListenerRegistration` (non Sendable) dans `onTermination`.
 /// Sûr : `remove()` est thread-safe et n'est appelé qu'une fois, à la fin du flux.
-private struct ListenerRegistrationBox: @unchecked Sendable {
+private nonisolated struct ListenerRegistrationBox: @unchecked Sendable {
     let registration: any ListenerRegistration
 }
 
 /// Résultat d'une transaction : le bloc peut tourner plusieurs fois, on garde le dernier passage.
 /// Sûr : le bloc et la complétion s'exécutent l'un après l'autre, jamais en même temps.
-private final class TransactionOutcome<Value>: @unchecked Sendable {
+private nonisolated final class TransactionOutcome<Value>: @unchecked Sendable {
     var value: Value?
     var error: (any Error)?
 }

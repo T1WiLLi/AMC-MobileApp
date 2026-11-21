@@ -212,7 +212,7 @@ private struct GroupMapHeader: View {
     @ScaledMetric(relativeTo: .title) private var height: CGFloat = 240
 
     var body: some View {
-        let center = Geohash.center(of: group.centerGeohash)
+        let center = GroupGeohash.center(of: group.centerGeohash)
         let span = Double(group.radiusMeters) * 3
         Map(initialPosition: .region(MKCoordinateRegion(center: center, latitudinalMeters: span, longitudinalMeters: span)),
             interactionModes: []) {
@@ -358,7 +358,7 @@ enum PickupTime {
 }
 
 /// Décodage d'un geohash vers le centre de sa cellule (pour placer la carte du groupe).
-enum Geohash {
+enum GroupGeohash {
     private static let alphabet = Array("0123456789bcdefghjkmnpqrstuvwxyz")
 
     static func center(of hash: String) -> CLLocationCoordinate2D {

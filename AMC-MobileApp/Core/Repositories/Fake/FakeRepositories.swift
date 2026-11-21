@@ -157,6 +157,16 @@ actor FakeVendorRepository: VendorRepository {
         guard vendors[product.vendorId] != nil else { throw AppError.notFound }
         products[product.id] = product
     }
+
+    func saveVendor(_ vendor: Vendor) async throws {
+        try await behavior.simulate()
+        guard let current = vendors[vendor.id] else { throw AppError.notFound }
+        // Comme firestore.rules : raison sociale, type, note et vérification restent en lecture seule.
+        guard current.legalName == vendor.legalName, current.kind == vendor.kind,
+              current.averageRating == vendor.averageRating, current.isVerified == vendor.isVerified
+        else { throw AppError.permissionDenied }
+        vendors[vendor.id] = vendor
+    }
 }
 
 actor FakeOfferRepository: OfferRepository {

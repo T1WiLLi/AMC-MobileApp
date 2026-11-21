@@ -133,6 +133,10 @@ private struct FamilyHomeContent: View {
 
     @AppStorage(HomeSection.storageKey) private var rawLayout = ""
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    /// Type de produit choisi dans « Nouveaux lots près de toi » (nil : tous).
+    @State private var offerCategory: Product.Category?
+    /// La liste des nouveaux lots est dépliée au-delà des premiers.
+    @State private var showsAllOffers = false
 
     private var sections: [HomeSection] {
         SectionLayout(raw: rawLayout, defaults: HomeSection.allCases.map(\.rawValue))
@@ -219,13 +223,31 @@ private struct FamilyHomeContent: View {
     // MARK: Nouveaux lots
 
     private var newOffersSection: some View {
-        VStack(alignment: .leading, spacing: 12) {
+        let categories = content.newOffers.map(\.product.category)
+        // Une catégorie choisie qui n'a plus de lot (après un rechargement) retombe sur « Tous ».
+        let category = offerCategory.flatMap { categories.contains($0) ? $0 : nil }
+        let filtered = HomeOfferFilter.filter(content.newOffers, category: category)
+        let visibleCount = HomeOfferFilter.visibleCount(total: filtered.count, isExpanded: showsAllOffers)
+        return VStack(alignment: .leading, spacing: 12) {
             GrenierSectionHeader(String(localized: "Nouveaux lots près de toi"), systemImage: "sparkles")
             if content.newOffers.isEmpty {
                 NoNewOfferCard()
             } else {
+                if HomeOfferFilter.showsChips(categories) {
+                    OfferCategoryChips(
+                        counts: HomeOfferFilter.categoryCounts(categories),
+                        total: content.newOffers.count,
+                        selection: category,
+                        reduceMotion: reduceMotion
+                    ) { newValue in
+                        withAnimation(reduceMotion ? nil : .smooth) {
+                            offerCategory = newValue
+                            showsAllOffers = false
+                        }
+                    }
+                }
                 VStack(spacing: 0) {
-                    ForEach(Array(content.newOffers.enumerated()), id: \.element.id) { index, summary in
+                    ForEach(Array(filtered.prefix(visibleCount).enumerated()), id: \.element.id) { index, summary in
                         if index > 0 {
                             Divider().overlay(Color.piste).padding(.leading, 16)
                         }
@@ -234,11 +256,81 @@ private struct FamilyHomeContent: View {
                                 .grenierZoomSource(OfferRoute(offerId: summary.offer.id))
                         }
                         .buttonStyle(.plain)
+                        .transition(.opacity)
                     }
                 }
                 .background(Color.surface, in: .rect(cornerRadius: 24))
+                if filtered.count > HomeOfferFilter.collapsedLimit {
+                    Button {
+                        withAnimation(reduceMotion ? nil : .smooth) { showsAllOffers.toggle() }
+                    } label: {
+                        Label(
+                            showsAllOffers
+                                ? String(localized: "Voir moins de lots")
+                                : String(localized: "Voir les \(filtered.count - visibleCount) autres lots"),
+                            systemImage: showsAllOffers ? "chevron.up" : "chevron.down"
+                        )
+                        .font(.subheadline.weight(.semibold))
+                        .frame(maxWidth: .infinity, minHeight: 44)
+                    }
+                    .buttonStyle(.glass)
+                    .tint(.grenier)
+                }
             }
         }
+        .sensoryFeedback(.selection, trigger: offerCategory)
+    }
+}
+
+/// Puces « Tous · Céréales · Œufs… » au-dessus des nouveaux lots, avec le nombre de lots de chaque type.
+private struct OfferCategoryChips: View {
+    let counts: [(category: Product.Category, count: Int)]
+    let total: Int
+    let selection: Product.Category?
+    let reduceMotion: Bool
+    let select: (Product.Category?) -> Void
+
+    var body: some View {
+        ScrollView(.horizontal) {
+            GlassEffectContainer(spacing: 8) {
+                HStack(spacing: 8) {
+                    chip(title: String(localized: "Tous"), systemImage: "square.grid.2x2.fill", count: total, value: nil)
+                    ForEach(counts, id: \.category) { item in
+                        chip(title: item.category.title, systemImage: ProductIcon.symbol(for: item.category),
+                             count: item.count, value: item.category)
+                    }
+                }
+            }
+        }
+        .scrollIndicators(.hidden)
+        .scrollClipDisabled()
+        .accessibilityElement(children: .contain)
+        .accessibilityLabel("Filtrer par type de produit")
+    }
+
+    private func chip(title: String, systemImage: String, count: Int, value: Product.Category?) -> some View {
+        let isOn = selection == value
+        return Button { select(value) } label: {
+            HStack(spacing: 6) {
+                Image(systemName: systemImage)
+                    .symbolRenderingMode(.hierarchical)
+                    .symbolEffect(.bounce, value: reduceMotion ? false : isOn)
+                Text(title)
+                Text(count, format: .number)
+                    .monospacedDigit()
+                    .padding(.horizontal, 6)
+                    .background(isOn ? Color.onAccent.opacity(0.25) : Color.grenier.opacity(0.15), in: .capsule)
+            }
+            .font(.subheadline.weight(.semibold))
+            .foregroundStyle(isOn ? Color.onAccent : Color.texte)
+            .padding(.horizontal, 14)
+            .frame(minHeight: 44)
+            .contentShape(.capsule)
+        }
+        .buttonStyle(.plain)
+        .glassEffect(isOn ? .regular.tint(.grenier).interactive() : .regular.interactive(), in: .capsule)
+        .accessibilityLabel("\(title), \(count)")
+        .accessibilityAddTraits(isOn ? .isSelected : [])
     }
 }
 

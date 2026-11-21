@@ -19,12 +19,7 @@ struct AccountScreen: View {
         _model = State(initialValue: model)
     }
 
-    // Corps découpé en trois étapes : le vérificateur de types de la CI expirait sur une seule chaîne.
     var body: some View {
-        dialogs(haptics(content))
-    }
-
-    private var content: some View {
         StateView(state: model.loadState, retry: { await model.load() }) { _ in
             form
         }
@@ -51,20 +46,25 @@ struct AccountScreen: View {
             guard let item else { return }
             Task { await addPhoto(from: item) }
         }
-    }
-
-    private func haptics(_ view: some View) -> some View {
-        view
         .grenierHaptic(.success, trigger: model.saveCount) { old, new in new > old }
         .grenierHaptic(.warning, trigger: isConfirmingFirstStep) { _, new in new }
         .grenierHaptic(.error, trigger: model.deletionState) { _, new in
             if case .failed = new { true } else { new == .needsReauthentication }
         }
         .grenierHaptic(.success, trigger: model.deletionState) { _, new in new == .deleted }
+        .modifier(DeletionDialogs(model: model, session: session, isConfirmingFirstStep: $isConfirmingFirstStep))
     }
+}
 
-    private func dialogs(_ view: some View) -> some View {
-        view
+/// Confirmations et alertes de la suppression, sorties de `body` : la chaîne entière dépassait
+/// le temps de vérification de types du compilateur (« unable to type-check this expression »).
+private struct DeletionDialogs: ViewModifier {
+    let model: AccountViewModel
+    let session: SessionViewModel?
+    @Binding var isConfirmingFirstStep: Bool
+
+    func body(content: Content) -> some View {
+        content
         // Premier temps : on explique ce qui disparaît.
         .confirmationDialog(
             "Supprimer ton compte ?",
@@ -110,7 +110,9 @@ struct AccountScreen: View {
             if case .failed(let message) = model.deletionState { Text(message) }
         }
     }
+}
 
+extension AccountScreen {
     private var form: some View {
         Form {
             photoSection

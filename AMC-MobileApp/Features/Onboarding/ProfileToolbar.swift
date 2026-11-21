@@ -9,11 +9,18 @@ struct ProfileToolbarModifier: ViewModifier {
         content
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
-                    Button("Profil", systemImage: "person.crop.circle") {
+                    Button {
                         isPresented = true
+                    } label: {
+                        Label("Profil", systemImage: "person.crop.circle.fill")
+                            .symbolRenderingMode(.hierarchical)
+                            // Petit rebond au retour de la feuille : le profil « reprend sa place ».
+                            .symbolEffect(.bounce, options: .nonRepeating, value: isPresented)
                     }
+                    .accessibilityHint("Ouvre ton profil et la bascule de portail")
                 }
             }
+            .sensoryFeedback(.selection, trigger: isPresented) { _, new in new }
             .sheet(isPresented: $isPresented) {
                 ProfileSheet()
             }

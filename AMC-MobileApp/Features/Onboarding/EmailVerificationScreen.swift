@@ -8,6 +8,7 @@ struct EmailVerificationScreen: View {
     @Environment(\.scenePhase) private var scenePhase
     @Environment(\.openURL) private var openURL
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @ScaledMetric(relativeTo: .largeTitle) private var envelopeSize: CGFloat = 64
 
     private var email: String { session.pendingVerificationUser?.email ?? "" }
 
@@ -50,11 +51,25 @@ struct EmailVerificationScreen: View {
     private var header: some View {
         VStack(spacing: 16) {
             Image(systemName: "envelope.badge.fill")
-                .font(.system(size: 72))
+                .font(.system(size: min(envelopeSize, 96)))
                 .symbolRenderingMode(.palette)
                 .foregroundStyle(Color.red, Color.grenier)
                 .symbolEffect(.wiggle, options: reduceMotion ? .nonRepeating : .repeat(.periodic(delay: 2.5)), isActive: !reduceMotion)
                 .symbolEffect(.bounce, value: session.verificationSentAt)
+                .padding(min(envelopeSize, 96) * 0.4)
+                .background(Color.grenier.opacity(0.12), in: .circle)
+                .overlay(alignment: .topTrailing) {
+                    Image(systemName: "link.circle.fill")
+                        .font(.system(size: min(envelopeSize, 96) * 0.38))
+                        .symbolRenderingMode(.palette)
+                        .foregroundStyle(Color.onAccent, Color.economie)
+                }
+                .overlay(alignment: .bottomLeading) {
+                    Image(systemName: "checkmark.seal.fill")
+                        .font(.system(size: min(envelopeSize, 96) * 0.38))
+                        .symbolRenderingMode(.palette)
+                        .foregroundStyle(Color.onAccent, Color.grenier)
+                }
                 .accessibilityHidden(true)
 
             Text("Vérifie ton courriel")
@@ -62,12 +77,51 @@ struct EmailVerificationScreen: View {
                 .fontDesign(.rounded)
                 .multilineTextAlignment(.center)
 
-            Text("On t'a envoyé un lien à \(email). Touche-le pour activer ton compte, puis reviens ici.")
+            VStack(spacing: 6) {
+                Text("On t'a envoyé un lien à")
+                    .font(.body)
+                    .foregroundStyle(Color.texteSecondaire)
+                Label(email, systemImage: "at.circle.fill")
+                    .font(.body.weight(.semibold))
+                    .foregroundStyle(Color.texte)
+                    .symbolRenderingMode(.hierarchical)
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 6)
+                    .background(Color.surface, in: .capsule)
+            }
+            .multilineTextAlignment(.center)
+            .fixedSize(horizontal: false, vertical: true)
+            .accessibilityElement(children: .combine)
+
+            steps
+        }
+    }
+
+    /// Les trois gestes à faire, numérotés avec une icône chacun.
+    private var steps: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            step(1, "Ouvre le courriel de Grenier", systemImage: "envelope.open.fill")
+            step(2, "Touche le lien d'activation", systemImage: "link")
+            step(3, "Reviens ici : on vérifie tout seul", systemImage: "arrow.uturn.backward.circle.fill")
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .grenierCard()
+    }
+
+    private func step(_ number: Int, _ text: String, systemImage: String) -> some View {
+        HStack(alignment: .firstTextBaseline, spacing: 12) {
+            Image(systemName: systemImage)
+                .symbolRenderingMode(.hierarchical)
+                .foregroundStyle(Color.grenier)
+                .frame(minWidth: 28)
+                .accessibilityHidden(true)
+            Text(text)
                 .font(.body)
-                .foregroundStyle(Color.texteSecondaire)
-                .multilineTextAlignment(.center)
+                .foregroundStyle(Color.texte)
                 .fixedSize(horizontal: false, vertical: true)
         }
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel("Étape \(number) : \(text)")
     }
 
     private var actions: some View {

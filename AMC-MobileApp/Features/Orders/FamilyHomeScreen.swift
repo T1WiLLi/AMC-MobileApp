@@ -31,6 +31,8 @@ struct FamilyHomeScreen: View {
             .offerDestination()
             .refreshable { await viewModel?.load() }
         }
+        // Retour au premier plan ou du réseau : `load()` garde le contenu affiché pendant le rechargement.
+        .refreshOnForeground { await viewModel?.load() }
         .task {
             guard viewModel == nil, let groupId = context.groupId else { return }
             let model = FamilyHomeViewModel(

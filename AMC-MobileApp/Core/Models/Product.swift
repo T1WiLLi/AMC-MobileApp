@@ -19,15 +19,15 @@ nonisolated struct Product: Identifiable, Codable, Sendable, Hashable {
         /// Libellé affiché, en français.
         var title: String {
             switch self {
-            case .grains: "Céréales"
-            case .legumes: "Légumineuses"
-            case .oils: "Huiles"
-            case .flour: "Farine"
-            case .canned: "Conserves"
-            case .eggs: "Œufs"
-            case .meat: "Viande"
-            case .produce: "Fruits et légumes"
-            case .household: "Produits ménagers"
+            case .grains: String(localized: "Céréales")
+            case .legumes: String(localized: "Légumineuses")
+            case .oils: String(localized: "Huiles")
+            case .flour: String(localized: "Farine")
+            case .canned: String(localized: "Conserves")
+            case .eggs: String(localized: "Œufs")
+            case .meat: String(localized: "Viande")
+            case .produce: String(localized: "Fruits et légumes")
+            case .household: String(localized: "Produits ménagers")
             }
         }
     }

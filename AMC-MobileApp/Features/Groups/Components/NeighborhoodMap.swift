@@ -103,7 +103,7 @@ struct NeighborhoodMap: View {
         }
 
         if let pickupCoordinate {
-            Annotation("Point de cueillette", coordinate: pickupCoordinate, anchor: .bottom) {
+            Annotation(String(localized: "Point de cueillette"), coordinate: pickupCoordinate, anchor: .bottom) {
                 PickupPin(size: pinSize)
             }
             .annotationTitles(.hidden)
@@ -168,9 +168,9 @@ nonisolated enum NeighborhoodMapLayout {
 
     /// « Parc-Ex Ouest, 24 familles, rayon de 1,5 km, point de cueillette rue Ogilvy »
     static func summary(group: NeighborhoodGroup, pickupAddress: String?) -> String {
-        var parts = [group.name, familiesText(group.householdCount), "rayon de \(distanceText(group.radiusMeters))"]
+        var parts = [group.name, familiesText(group.householdCount), String(localized: "rayon de \(distanceText(group.radiusMeters))")]
         if let pickupAddress, let street = streetLabel(from: pickupAddress) {
-            parts.append("point de cueillette \(street)")
+            parts.append(String(localized: "point de cueillette \(street)"))
         }
         return parts.joined(separator: ", ")
     }

@@ -78,7 +78,7 @@ nonisolated final class FirestoreGroupWishRepository: GroupWishRepository, @unch
         do {
             // Id choisi par l'appelant : ne pas écraser une envie existante (un id auto est toujours neuf).
             if !wish.id.isEmpty, try await ref.getDocument().exists {
-                throw AppError.invalidInput("Cette envie existe déjà.")
+                throw AppError.invalidInput(String(localized: "Cette envie existe déjà."))
             }
             try await ref.setData(try Firestore.Encoder().encode(created))
             return created

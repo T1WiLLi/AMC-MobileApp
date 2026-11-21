@@ -66,15 +66,15 @@ nonisolated struct Waitlist: Codable, Sendable, Equatable {
         order: GroupOrder, offer: Offer, shares: [Share]
     ) throws -> Waitlist {
         guard TierEngine.isOpen(order) else { throw AppError.orderClosed }
-        guard quantity > 0 else { throw AppError.invalidInput("Choisis au moins une part.") }
+        guard quantity > 0 else { throw AppError.invalidInput(String(localized: "Choisis au moins une part.")) }
         guard quantity <= offer.totalShares else {
-            throw AppError.invalidInput("Ce lot ne compte que \(offer.totalShares) parts.")
+            throw AppError.invalidInput(String(localized: "Ce lot ne compte que \(offer.totalShares) parts."))
         }
         guard !contains(householdId: householdId) else {
-            throw AppError.invalidInput("Ton ménage est déjà sur la liste d'attente.")
+            throw AppError.invalidInput(String(localized: "Ton ménage est déjà sur la liste d'attente."))
         }
         guard quantity > Self.freeShares(offer: offer, shares: shares) else {
-            throw AppError.invalidInput("Il reste assez de parts : réserve-les directement.")
+            throw AppError.invalidInput(String(localized: "Il reste assez de parts : réserve-les directement."))
         }
         return Waitlist(entries: entries + [Entry(householdId: householdId, quantity: quantity, requestedAt: requestedAt)])
     }

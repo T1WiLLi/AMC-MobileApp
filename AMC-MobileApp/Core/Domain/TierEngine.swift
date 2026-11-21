@@ -55,11 +55,11 @@ nonisolated enum TierEngine {
         guard isOpen(order) else { throw AppError.orderClosed }
         // Une quantité négative ferait disparaître les parts des autres du total (T-093).
         guard shares.allSatisfy({ $0.quantity >= 0 }) else {
-            throw AppError.invalidInput("La quantité ne peut pas être négative.")
+            throw AppError.invalidInput(String(localized: "La quantité ne peut pas être négative."))
         }
         let committed = shares.reduce(0) { $0 + $1.quantity }
         guard committed <= offer.totalShares else {
-            throw AppError.invalidInput("Ce lot ne compte que \(offer.totalShares) parts.")
+            throw AppError.invalidInput(String(localized: "Ce lot ne compte que \(offer.totalShares) parts."))
         }
         var order = order
         order.committedShares = committed
@@ -104,9 +104,9 @@ nonisolated enum TierEngine {
     @MainActor
     static func nextTierSummary(_ progress: Progress) -> String {
         guard let missing = progress.sharesToNextTier, let next = progress.nextTier else {
-            return "Meilleur prix atteint"
+            return String(localized: "Meilleur prix atteint")
         }
-        let parts = missing == 1 ? "1 part" : "\(missing) parts"
-        return "Encore \(parts) pour passer à \(Money.format(next.priceCents)) la part"
+        let parts = missing == 1 ? String(localized: "1 part") : "\(missing) parts"
+        return String(localized: "Encore \(parts) pour passer à \(Money.format(next.priceCents)) la part")
     }
 }

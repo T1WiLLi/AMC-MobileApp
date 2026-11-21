@@ -223,21 +223,21 @@ private struct VendorOffersHero: View {
                     tint: .grenier,
                     value: Double(dashboard.offers.count),
                     valueText: "\(dashboard.offers.count)",
-                    caption: FrenchPlural.word(dashboard.offers.count, "lot ouvert", plural: "lots ouverts")
+                    caption: FrenchPlural.word(dashboard.offers.count, String(localized: "lot ouvert"), plural: String(localized: "lots ouverts"))
                 )
                 VendorOffersStatTile(
                     symbol: "person.2.fill",
                     tint: .solidarite,
                     value: Double(dashboard.totalCommittedShares),
                     valueText: "\(dashboard.totalCommittedShares)/\(dashboard.totalShares)",
-                    caption: FrenchPlural.word(dashboard.totalCommittedShares, "part engagée", plural: "parts engagées")
+                    caption: FrenchPlural.word(dashboard.totalCommittedShares, String(localized: "part engagée"), plural: String(localized: "parts engagées"))
                 )
                 VendorOffersStatTile(
                     symbol: "dollarsign.circle.fill",
                     tint: .economie,
                     value: Double(dashboard.projectedRevenueCents),
                     valueText: Money.formatRounded(dashboard.projectedRevenueCents),
-                    caption: "revenu prévu"
+                    caption: String(localized: "revenu prévu")
                 )
             }
         }
@@ -405,7 +405,7 @@ private struct VendorOfferCard: View {
 
     private var deadlineLabel: some View {
         Label {
-            Text(summary.isClosingSoon ? "ferme bientôt · \(deadlineText)" : "ferme \(deadlineText)")
+            Text(summary.isClosingSoon ? String(localized: "ferme bientôt · \(deadlineText)") : "ferme \(deadlineText)")
         } icon: {
             Image(systemName: summary.isClosingSoon ? "hourglass" : "calendar.badge.clock")
                 .symbolRenderingMode(.hierarchical)

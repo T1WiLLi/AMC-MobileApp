@@ -24,7 +24,7 @@ enum CounterFormat: Sendable, Hashable {
         case .decimal(let unit, let digits):
             return "\(ImpactFormat.decimal(value, fractionDigits: digits))\(nbsp)\(unit)"
         case .percent:
-            return "\(ImpactFormat.integer(Int((value * 100).rounded())))\(nbsp)%"
+            return String(localized: "\(ImpactFormat.integer(Int((value * 100).rounded())))\(nbsp)%")
         case .reduction(let unit):
             let number = ImpactFormat.integer(Int(value.rounded()))
             return value.rounded() == 0 ? "0\(nbsp)\(unit)" : "−\(number)\(nbsp)\(unit)"
@@ -35,7 +35,7 @@ enum CounterFormat: Sendable, Hashable {
     func accessibilityString(for value: Double) -> String {
         switch self {
         case .reduction(let unit):
-            "\(ImpactFormat.integer(Int(value.rounded()))) \(unit) en moins"
+            String(localized: "\(ImpactFormat.integer(Int(value.rounded()))) \(unit) en moins")
         default:
             string(for: value)
         }

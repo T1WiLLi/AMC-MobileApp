@@ -67,7 +67,7 @@ private struct DeletionDialogs: ViewModifier {
         content
         // Premier temps : on explique ce qui disparaît.
         .confirmationDialog(
-            "Supprimer ton compte ?",
+            String(localized: "Supprimer ton compte ?"),
             isPresented: $isConfirmingFirstStep,
             titleVisibility: .visible
         ) {
@@ -78,7 +78,7 @@ private struct DeletionDialogs: ViewModifier {
         }
         // Second temps : suppression définitive.
         .confirmationDialog(
-            "Dernière confirmation",
+            String(localized: "Dernière confirmation"),
             isPresented: Binding(
                 get: { model.deletionState == .confirming },
                 set: { if !$0 { model.cancelDeletion() } }
@@ -137,7 +137,7 @@ extension AccountScreen {
                     : AnyLayout(HStackLayout(spacing: 12))
                 layout {
                     PhotosPicker(selection: $pickedItem, matching: .images, photoLibrary: .shared()) {
-                        Label(model.photoURL == nil ? "Ajouter une photo" : "Changer", systemImage: "camera.fill")
+                        Label(model.photoURL == nil ? String(localized: "Ajouter une photo") : String(localized: "Changer"), systemImage: "camera.fill")
                     }
                     .buttonStyle(.glass)
                     .disabled(model.isAddingPhoto)
@@ -199,7 +199,7 @@ extension AccountScreen {
             }
         }
         .accessibilityElement()
-        .accessibilityLabel(model.photoURL == nil ? "Avatar avec tes initiales, \(model.initials)" : "Ta photo de profil")
+        .accessibilityLabel(model.photoURL == nil ? String(localized: "Avatar avec tes initiales, \(model.initials)") : String(localized: "Ta photo de profil"))
         .accessibilityAddTraits(.isImage)
     }
 

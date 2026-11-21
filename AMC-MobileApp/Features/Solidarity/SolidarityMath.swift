@@ -30,21 +30,21 @@ nonisolated enum SolidarityMath {
         }
         if text.isEmpty { return .success(0) }
         if text.hasPrefix("-") || text.hasPrefix("−") {
-            return .failure(.invalidInput("Le montant ne peut pas être négatif."))
+            return .failure(.invalidInput(String(localized: "Le montant ne peut pas être négatif.")))
         }
 
         let parts = text.replacingOccurrences(of: ",", with: ".")
             .split(separator: ".", omittingEmptySubsequences: false)
         let isDigits = { (part: Substring) in part.allSatisfy { $0.isASCII && $0.isNumber } }
         guard parts.count <= 2, parts.allSatisfy(isDigits), parts.contains(where: { !$0.isEmpty }) else {
-            return .failure(.invalidInput("Écris un montant en chiffres, par exemple 3,50."))
+            return .failure(.invalidInput(String(localized: "Écris un montant en chiffres, par exemple 3,50.")))
         }
 
         let fraction = parts.count == 2 ? parts[1] : ""
         guard fraction.count <= 2 else {
-            return .failure(.invalidInput("Au plus deux chiffres après la virgule."))
+            return .failure(.invalidInput(String(localized: "Au plus deux chiffres après la virgule.")))
         }
-        let tooLarge = AppError.invalidInput("Le maximum est \(maxSuspendedCents / 100)\u{00A0}$ par commande.")
+        let tooLarge = AppError.invalidInput(String(localized: "Le maximum est \(maxSuspendedCents / 100)\u{00A0}$ par commande."))
         guard parts[0].count <= 6 else { return .failure(tooLarge) }
 
         let dollars = Int(parts[0]) ?? 0

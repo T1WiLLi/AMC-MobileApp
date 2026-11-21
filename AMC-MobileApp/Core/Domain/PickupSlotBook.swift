@@ -38,16 +38,16 @@ nonisolated enum PickupSlotBook {
         var point = point
         point.name = point.name.trimmingCharacters(in: .whitespacesAndNewlines)
         point.address = point.address.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !point.name.isEmpty else { throw AppError.invalidInput("Donne un nom à ton point de cueillette.") }
+        guard !point.name.isEmpty else { throw AppError.invalidInput(String(localized: "Donne un nom à ton point de cueillette.")) }
         guard point.name.count <= nameLimit else {
-            throw AppError.invalidInput("Le nom fait au plus \(nameLimit) caractères.")
+            throw AppError.invalidInput(String(localized: "Le nom fait au plus \(nameLimit) caractères."))
         }
-        guard !point.address.isEmpty else { throw AppError.invalidInput("Indique l'adresse où les voisins viendront.") }
+        guard !point.address.isEmpty else { throw AppError.invalidInput(String(localized: "Indique l'adresse où les voisins viendront.")) }
         guard point.address.count <= addressLimit else {
-            throw AppError.invalidInput("L'adresse fait au plus \(addressLimit) caractères.")
+            throw AppError.invalidInput(String(localized: "L'adresse fait au plus \(addressLimit) caractères."))
         }
         guard (1...maxPointCapacity).contains(point.capacity) else {
-            throw AppError.invalidInput("La capacité va de 1 à \(maxPointCapacity) parts.")
+            throw AppError.invalidInput(String(localized: "La capacité va de 1 à \(maxPointCapacity) parts."))
         }
         point.accessibility = PickupPoint.Accessibility.allCases.filter(point.accessibility.contains)
         point.slots = try validatedSlots(point.slots)
@@ -58,18 +58,18 @@ nonisolated enum PickupSlotBook {
 
     /// Créneaux triés par début, ou `.invalidInput` : fin après début, capacité ≥ 1, pas de chevauchement.
     static func validatedSlots(_ slots: [PickupSlot]) throws -> [PickupSlot] {
-        guard slots.count <= maxSlots else { throw AppError.invalidInput("Au plus \(maxSlots) créneaux.") }
+        guard slots.count <= maxSlots else { throw AppError.invalidInput(String(localized: "Au plus \(maxSlots) créneaux.")) }
         let sorted = slots.sorted { $0.start < $1.start }
         for slot in sorted {
             guard slot.end > slot.start else {
-                throw AppError.invalidInput("Un créneau doit finir après son début.")
+                throw AppError.invalidInput(String(localized: "Un créneau doit finir après son début."))
             }
             if let capacity = slot.capacity, !(1...maxSlotCapacity).contains(capacity) {
-                throw AppError.invalidInput("Un créneau accueille de 1 à \(maxSlotCapacity) ménages.")
+                throw AppError.invalidInput(String(localized: "Un créneau accueille de 1 à \(maxSlotCapacity) ménages."))
             }
         }
         for (previous, next) in zip(sorted, sorted.dropFirst()) where next.start < previous.end {
-            throw AppError.invalidInput("Deux créneaux se chevauchent : décale-en un.")
+            throw AppError.invalidInput(String(localized: "Deux créneaux se chevauchent : décale-en un."))
         }
         return sorted
     }
@@ -114,13 +114,13 @@ nonisolated enum PickupSlotBook {
         }
         guard share.pickupSlotStart != start else { return share }
         guard let slot = slots.first(where: { $0.start == start }) else {
-            throw AppError.invalidInput("Ce créneau n'existe plus. Choisis-en un autre.")
+            throw AppError.invalidInput(String(localized: "Ce créneau n'existe plus. Choisis-en un autre."))
         }
-        guard slot.end > now else { throw AppError.invalidInput("Ce créneau est déjà passé.") }
+        guard slot.end > now else { throw AppError.invalidInput(String(localized: "Ce créneau est déjà passé.")) }
         let others = shares.filter { $0.householdId != householdId }
         let reserved = others.filter { $0.pickupSlotStart == start }.count
         if let capacity = slot.capacity, reserved >= capacity {
-            throw AppError.invalidInput("Ce créneau est complet. Choisis-en un autre.")
+            throw AppError.invalidInput(String(localized: "Ce créneau est complet. Choisis-en un autre."))
         }
         share.pickupSlotStart = start
         return share

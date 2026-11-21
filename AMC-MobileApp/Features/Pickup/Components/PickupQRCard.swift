@@ -35,7 +35,7 @@ struct PickupQRCard: View {
             }
 
             QRCodeImage(Self.qrPayload(for: share), correction: .quartile,
-                        accessibilityLabel: "Code de cueillette de ta part")
+                        accessibilityLabel: String(localized: "Code de cueillette de ta part"))
                 .padding(14)
                 .background(Color.surface, in: .rect(cornerRadius: 20))
                 .overlay(RoundedRectangle(cornerRadius: 20).stroke(Color.piste, lineWidth: 1.5))
@@ -67,7 +67,7 @@ struct PickupQRCard: View {
                 infoRow(symbol: "mappin.and.ellipse", title: pickupPoint.name, subtitle: pickupPoint.address)
                 infoRow(symbol: "calendar.badge.clock",
                         title: PickupSchedule.slotText(slot),
-                        subtitle: "Créneau de cueillette")
+                        subtitle: String(localized: "Créneau de cueillette"))
             }
             .frame(maxWidth: .infinity, alignment: .leading)
 
@@ -149,8 +149,8 @@ struct PickupQRCard: View {
     }
 
     private var directionsTitle: String {
-        guard let walkingMinutes else { return "Itinéraire" }
-        return "Itinéraire · \(walkingMinutes) min"
+        guard let walkingMinutes else { return String(localized: "Itinéraire") }
+        return String(localized: "Itinéraire · \(walkingMinutes) min")
     }
 
     /// Contenu du QR : le code de la part s'il existe, sinon un identifiant stable dérivé du ménage.
@@ -190,20 +190,20 @@ nonisolated enum PickupSchedule {
     static func countdownText(now: Date, slot: PickupSlot, calendar: Calendar = .current) -> String {
         switch state(now: now, slot: slot) {
         case .finished:
-            return "Créneau terminé"
+            return String(localized: "Créneau terminé")
         case .ongoing:
-            return "Cueillette en cours jusqu'à \(timeText(slot.end, calendar: calendar))"
+            return String(localized: "Cueillette en cours jusqu'à \(timeText(slot.end, calendar: calendar))")
         case .upcoming:
             let minutes = Int((slot.start.timeIntervalSince(now) / 60).rounded(.up))
             switch minutes {
-            case ...1: return "Cueillette dans 1 min"
-            case ..<60: return "Cueillette dans \(minutes) min"
+            case ...1: return String(localized: "Cueillette dans 1 min")
+            case ..<60: return String(localized: "Cueillette dans \(minutes) min")
             case ..<(24 * 60):
                 let rest = minutes % 60
-                return rest == 0 ? "Cueillette dans \(minutes / 60) h" : "Cueillette dans \(minutes / 60) h \(twoDigits(rest))"
+                return rest == 0 ? String(localized: "Cueillette dans \(minutes / 60) h") : String(localized: "Cueillette dans \(minutes / 60) h \(twoDigits(rest))")
             default:
                 let days = minutes / (24 * 60)
-                return "Cueillette dans \(days) \(days > 1 ? "jours" : "jour")"
+                return String(localized: "Cueillette dans \(days) \(days > 1 ? "jours" : "jour")")
             }
         }
     }
@@ -298,7 +298,7 @@ enum PickupPreviewData {
     static func card(slot: PickupSlot = soonSlot) -> some View {
         ScrollView {
             PickupQRCard(share: share, pickupPoint: point, slot: slot, hostName: "Fatima",
-                         detail: "Commande GRN-4821 · 2 articles", walkingMinutes: 6,
+                         detail: String(localized: "Commande GRN-4821 · 2 articles"), walkingMinutes: 6,
                          boostsBrightness: false, onChangeSlot: {})
                 .padding(16)
         }

@@ -16,7 +16,7 @@ struct HostSetupScreen: View {
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .grenierBackground()
-        .navigationTitle(viewModel.isEditing ? "Mon point de cueillette" : "Devenir hôte")
+        .navigationTitle(viewModel.isEditing ? String(localized: "Mon point de cueillette") : String(localized: "Devenir hôte"))
         .navigationBarTitleDisplayMode(.inline)
         .toolbarVisibility(.hidden, for: .tabBar)
         .task { if viewModel.loadState.value == nil { await viewModel.load() } }
@@ -126,7 +126,7 @@ private struct HostSetupForm: View {
                     showsValidation = await viewModel.save() == nil
                 }
             } label: {
-                Label(viewModel.isEditing ? "Enregistrer" : "Devenir hôte",
+                Label(viewModel.isEditing ? String(localized: "Enregistrer") : String(localized: "Devenir hôte"),
                       systemImage: viewModel.isEditing ? "checkmark" : "house.and.flag.fill")
                     .font(.headline)
                     .frame(maxWidth: .infinity, minHeight: 44)
@@ -165,7 +165,7 @@ private struct HostIntroRow: View {
                 .background(Color.grenier.opacity(0.12), in: .rect(cornerRadius: 14))
                 .accessibilityHidden(true)
             VStack(alignment: .leading, spacing: 4) {
-                Text(isEditing ? "Ton point de cueillette" : "Accueille les livraisons du quartier")
+                Text(isEditing ? String(localized: "Ton point de cueillette") : String(localized: "Accueille les livraisons du quartier"))
                     .font(.headline)
                     .foregroundStyle(.texte)
                 Text("Le vendeur dépose les lots chez toi, les voisins passent les chercher pendant les créneaux.")
@@ -188,8 +188,8 @@ private struct HostPhotoRow: View {
                 .frame(maxWidth: .infinity)
                 .frame(height: 180)
                 .clipShape(.rect(cornerRadius: 16))
-                .accessibilityLabel(hasPhoto ? "Photo du point de cueillette" : "Aucune photo")
-            let pickerTitle = hasPhoto ? "Changer" : "Choisir une photo"
+                .accessibilityLabel(hasPhoto ? String(localized: "Photo du point de cueillette") : String(localized: "Aucune photo"))
+            let pickerTitle = hasPhoto ? String(localized: "Changer") : String(localized: "Choisir une photo")
             HStack(spacing: 12) {
                 PhotosPicker(selection: $photoItem, matching: .images, photoLibrary: .shared()) {
                     Label(pickerTitle, systemImage: "photo.on.rectangle.angled")
@@ -271,9 +271,9 @@ private struct HostCapacityRow: View {
 
     private var hint: String {
         switch capacity {
-        case ..<10: "Un coin d'entrée suffit"
-        case ..<30: "Un placard ou un bout de garage"
-        default: "Un local, une salle ou un sous-sol"
+        case ..<10: String(localized: "Un coin d'entrée suffit")
+        case ..<30: String(localized: "Un placard ou un bout de garage")
+        default: String(localized: "Un local, une salle ou un sous-sol")
         }
     }
 }

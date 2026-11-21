@@ -6,21 +6,21 @@ import Foundation
 extension PickupPoint.Accessibility {
     var title: String {
         switch self {
-        case .wheelchair: "Accès fauteuil roulant"
-        case .stepFree: "Sans marche"
-        case .elevator: "Ascenseur"
-        case .nearMetro: "Près du métro"
-        case .parking: "Stationnement"
+        case .wheelchair: String(localized: "Accès fauteuil roulant")
+        case .stepFree: String(localized: "Sans marche")
+        case .elevator: String(localized: "Ascenseur")
+        case .nearMetro: String(localized: "Près du métro")
+        case .parking: String(localized: "Stationnement")
         }
     }
 
     var detail: String {
         switch self {
-        case .wheelchair: "Porte et passage assez larges"
-        case .stepFree: "Entrée de plain-pied"
-        case .elevator: "Si la cueillette est à l'étage"
-        case .nearMetro: "Station à moins de 10 min à pied"
-        case .parking: "Place pour se garer quelques minutes"
+        case .wheelchair: String(localized: "Porte et passage assez larges")
+        case .stepFree: String(localized: "Entrée de plain-pied")
+        case .elevator: String(localized: "Si la cueillette est à l'étage")
+        case .nearMetro: String(localized: "Station à moins de 10 min à pied")
+        case .parking: String(localized: "Place pour se garer quelques minutes")
         }
     }
 

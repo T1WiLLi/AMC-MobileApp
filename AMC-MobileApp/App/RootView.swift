@@ -47,7 +47,7 @@ struct RootView: View {
             network?.scenePhaseChanged(to: phase)
         }
         .onChange(of: isOffline) { _, offline in
-            AccessibilityNotification.Announcement(offline ? "Hors ligne" : "De retour en ligne").post()
+            AccessibilityNotification.Announcement(offline ? String(localized: "Hors ligne") : String(localized: "De retour en ligne")).post()
         }
     }
 }

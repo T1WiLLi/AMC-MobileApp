@@ -33,7 +33,7 @@ final class AppLock {
     /// Active le verrou après une vérification réussie (on ne verrouille pas quelqu'un qui ne peut pas déverrouiller).
     func enable() async -> Bool {
         do {
-            try await authenticator.authenticate(reason: "Active le verrou de Grenier.")
+            try await authenticator.authenticate(reason: String(localized: "Active le verrou de Grenier."))
             isEnabled = true
             lastError = nil
             return true
@@ -53,7 +53,7 @@ final class AppLock {
         isUnlocking = true
         defer { isUnlocking = false }
         do {
-            try await authenticator.authenticate(reason: "Déverrouille Grenier.")
+            try await authenticator.authenticate(reason: String(localized: "Déverrouille Grenier."))
             isLocked = false
             lastError = nil
         } catch {

@@ -34,8 +34,8 @@ final class NearbyGroupsViewModel {
         var meters: Double { Double(rawValue) }
         var title: String {
             switch self {
-            case .oneKilometer: "1 km"
-            case .twoKilometers: "2 km"
+            case .oneKilometer: String(localized: "1 km")
+            case .twoKilometers: String(localized: "2 km")
             }
         }
     }
@@ -54,7 +54,7 @@ final class NearbyGroupsViewModel {
         /// « à 650 m », « à 1,4 km ».
         var distanceText: String { NearbyGroupsViewModel.distanceText(meters: distanceMeters) }
         /// « 12 ménages ».
-        var memberCountText: String { memberCount <= 1 ? "\(memberCount) ménage" : "\(memberCount) ménages" }
+        var memberCountText: String { memberCount <= 1 ? String(localized: "\(memberCount) ménage") : String(localized: "\(memberCount) ménages") }
     }
 
     // MARK: Filtre (le résultat se recalcule à chaque changement)
@@ -152,8 +152,8 @@ final class NearbyGroupsViewModel {
         let roundedMeters = Int((meters / 10).rounded()) * 10
         if roundedMeters < 1_000 { return "à \(max(10, roundedMeters)) m" }
         let tenths = Int((meters / 100).rounded())
-        if tenths < 100 { return "à \(tenths / 10),\(tenths % 10) km" }
-        return "à \(Int((meters / 1_000).rounded())) km"
+        if tenths < 100 { return String(localized: "à \(tenths / 10),\(tenths % 10) km") }
+        return String(localized: "à \(Int((meters / 1_000).rounded())) km")
     }
 
     nonisolated private static func coordinate(
@@ -166,7 +166,7 @@ final class NearbyGroupsViewModel {
         case .household: geohash = try await repositories.users.household(id: householdId).geohash
         }
         guard let center = Geohash.center(of: geohash) else {
-            throw AppError.invalidInput("La position du ménage est inconnue.")
+            throw AppError.invalidInput(String(localized: "La position du ménage est inconnue."))
         }
         return center
     }

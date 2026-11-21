@@ -64,11 +64,11 @@ final class OrderHistoryViewModel {
 
     nonisolated static func statusLabel(_ status: GroupOrder.Status) -> String {
         switch status {
-        case .open: "Ouverte"
-        case .reached: "Palier atteint"
-        case .closed: "Confirmée"
-        case .delivered: "Livrée"
-        case .cancelled: "Annulée"
+        case .open: String(localized: "Ouverte")
+        case .reached: String(localized: "Palier atteint")
+        case .closed: String(localized: "Confirmée")
+        case .delivered: String(localized: "Livrée")
+        case .cancelled: String(localized: "Annulée")
         }
     }
 

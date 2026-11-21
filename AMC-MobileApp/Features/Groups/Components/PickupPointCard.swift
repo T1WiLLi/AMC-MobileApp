@@ -29,7 +29,7 @@ struct PickupPointCard: View {
             }
             if !point.accessibility.isEmpty {
                 row(symbol: "figure.roll", title: PickupPointFormatting.accessibilityText(point.accessibility),
-                    subtitle: "Accessibilité")
+                    subtitle: String(localized: "Accessibilité"))
             }
             Button(action: openDirections) {
                 Label("Itinéraire", systemImage: "arrow.triangle.turn.up.right.diamond.fill")
@@ -70,20 +70,20 @@ struct PickupPointCard: View {
     /// « Chez Fatima, 7420 rue Ogilvy »
     var title: String {
         let street = PickupPointFormatting.firstLine(of: point.address)
-        let place = hostName.map { "Chez \($0)" } ?? point.name
+        let place = hostName.map { String(localized: "Chez \($0)") } ?? point.name
         return street.isEmpty ? place : "\(place), \(street)"
     }
 
     /// « Point de cueillette · 450 m à pied »
     var placeSubtitle: String {
         var parts = ["Point de cueillette"]
-        if let distanceMeters { parts.append("\(NeighborhoodMapLayout.distanceText(distanceMeters)) à pied") }
+        if let distanceMeters { parts.append(String(localized: "\(NeighborhoodMapLayout.distanceText(distanceMeters)) à pied")) }
         return parts.joined(separator: " · ")
     }
 
     private var slotSubtitle: String {
-        point.slots.count > 1 ? "Prochain créneau · \(point.slots.count - 1) autre\(point.slots.count > 2 ? "s" : "")"
-                              : "Prochain créneau"
+        point.slots.count > 1 ? String(localized: "Prochain créneau · \(point.slots.count - 1) autre\(point.slots.count > 2 ? "s" : "")")
+                              : String(localized: "Prochain créneau")
     }
 
     /// Plans en mode à pied : sur la coordonnée si on l'a, sinon Plans cherche l'adresse.
@@ -126,11 +126,11 @@ enum PickupPointFormatting {
 
     static func label(for feature: PickupPoint.Accessibility) -> String {
         switch feature {
-        case .wheelchair: "Accessible en fauteuil roulant"
-        case .stepFree: "Sans marches"
-        case .elevator: "Ascenseur"
-        case .nearMetro: "Près du métro"
-        case .parking: "Stationnement"
+        case .wheelchair: String(localized: "Accessible en fauteuil roulant")
+        case .stepFree: String(localized: "Sans marches")
+        case .elevator: String(localized: "Ascenseur")
+        case .nearMetro: String(localized: "Près du métro")
+        case .parking: String(localized: "Stationnement")
         }
     }
 

@@ -21,35 +21,35 @@ enum AppError: Error, Equatable, Sendable {
 
     var title: String {
         switch self {
-        case .offline: "Pas de connexion"
-        case .unauthenticated: "Connexion requise"
-        case .permissionDenied: "Action non permise"
-        case .notFound: "Introuvable"
-        case .orderClosed: "Commande fermée"
-        case .liveActivitiesDisabled: "Activités en direct désactivées"
-        case .invalidInput: "Vérifie ta saisie"
-        case .unknown: "Oups, un problème est survenu"
+        case .offline: String(localized: "Pas de connexion")
+        case .unauthenticated: String(localized: "Connexion requise")
+        case .permissionDenied: String(localized: "Action non permise")
+        case .notFound: String(localized: "Introuvable")
+        case .orderClosed: String(localized: "Commande fermée")
+        case .liveActivitiesDisabled: String(localized: "Activités en direct désactivées")
+        case .invalidInput: String(localized: "Vérifie ta saisie")
+        case .unknown: String(localized: "Oups, un problème est survenu")
         }
     }
 
     var message: String {
         switch self {
         case .offline:
-            "Vérifie ta connexion Internet, puis réessaie."
+            String(localized: "Vérifie ta connexion Internet, puis réessaie.")
         case .unauthenticated:
-            "Connecte-toi pour continuer."
+            String(localized: "Connecte-toi pour continuer.")
         case .permissionDenied:
-            "Tu n'as pas les droits pour faire cette action."
+            String(localized: "Tu n'as pas les droits pour faire cette action.")
         case .notFound:
-            "Cet élément n'existe plus. Il a peut-être été retiré."
+            String(localized: "Cet élément n'existe plus. Il a peut-être été retiré.")
         case .orderClosed:
-            "La date limite est passée : les parts ne peuvent plus être modifiées."
+            String(localized: "La date limite est passée : les parts ne peuvent plus être modifiées.")
         case .liveActivitiesDisabled:
-            "Active-les dans Réglages > Grenier pour suivre ta commande sur l'écran verrouillé."
+            String(localized: "Active-les dans Réglages > Grenier pour suivre ta commande sur l'écran verrouillé.")
         case .invalidInput(let detail):
             detail
         case .unknown:
-            "Réessaie dans un instant."
+            String(localized: "Réessaie dans un instant.")
         }
     }
 
@@ -76,7 +76,7 @@ enum AppError: Error, Equatable, Sendable {
 
     /// Détail de `.unknown` pour un chargement annulé : la `.task` de l'écran s'est arrêtée parce que
     /// l'écran a disparu (onglet quitté avant la fin). Ce n'est pas une panne à montrer à l'utilisateur.
-    static let cancelledDetail = "Chargement annulé"
+    static let cancelledDetail = String(localized: "Chargement annulé")
 
     /// true si l'erreur vient d'une tâche annulée (voir `cancelledDetail`).
     var isCancellation: Bool { self == .unknown(Self.cancelledDetail) }

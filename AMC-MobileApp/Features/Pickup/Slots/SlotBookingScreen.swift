@@ -157,14 +157,14 @@ private struct ReservationBanner: View {
     }
 
     private var title: String {
-        if content.myShare == nil { return "Réserve d'abord une part" }
-        guard let reserved else { return "Choisis ton créneau" }
-        return "Ton créneau : \(SlotFormat.day(reserved.start))"
+        if content.myShare == nil { return String(localized: "Réserve d'abord une part") }
+        guard let reserved else { return String(localized: "Choisis ton créneau") }
+        return String(localized: "Ton créneau : \(SlotFormat.day(reserved.start))")
     }
 
     private var subtitle: String {
-        if content.myShare == nil { return "Les créneaux s'ouvrent aux ménages qui ont une part dans ce lot." }
-        guard let reserved else { return "Ton hôte saura quand t'attendre." }
+        if content.myShare == nil { return String(localized: "Les créneaux s'ouvrent aux ménages qui ont une part dans ce lot.") }
+        guard let reserved else { return String(localized: "Ton hôte saura quand t'attendre.") }
         return SlotFormat.range(reserved)
     }
 }
@@ -212,7 +212,7 @@ private struct SlotCard: View {
         .disabled(!canReserve)
         .accessibilityLabel("\(SlotFormat.day(availability.slot.start)), \(SlotFormat.range(availability.slot))")
         .accessibilityValue(statusText)
-        .accessibilityHint(canReserve ? "Réserve ce créneau" : "")
+        .accessibilityHint(canReserve ? String(localized: "Réserve ce créneau") : "")
         .accessibilityAddTraits(isMine ? .isSelected : [])
     }
 
@@ -232,11 +232,11 @@ private struct SlotCard: View {
     }
 
     private var statusText: String {
-        if isMine { return "Réservé" }
-        if isPast { return "Passé" }
-        if availability.isFull { return "Complet" }
-        guard let remaining = availability.remaining else { return "Places libres" }
-        return remaining == 1 ? "1 place" : "\(remaining) places"
+        if isMine { return String(localized: "Réservé") }
+        if isPast { return String(localized: "Passé") }
+        if availability.isFull { return String(localized: "Complet") }
+        guard let remaining = availability.remaining else { return String(localized: "Places libres") }
+        return remaining == 1 ? String(localized: "1 place") : "\(remaining) places"
     }
 
     private var statusSymbol: String {

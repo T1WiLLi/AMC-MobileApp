@@ -28,7 +28,7 @@ struct VendorTabView: View {
             Tab(value: .search, role: .search) {
                 SearchScreen(
                     prompt: "Produit ou quartier",
-                    emptyTitle: "Chercher la demande",
+                    emptyTitle: String(localized: "Chercher la demande"),
                     emptyMessage: "Un produit ou un quartier : vois quels groupes le veulent."
                 )
             }

@@ -31,7 +31,7 @@ struct ProfileScreen: View {
                         .listRowBackground(Color.clear)
                         .grenierAppear(index: 1, style: .sheet)
                 } header: {
-                    ProfileSectionHeader("Portail", systemImage: "arrow.left.arrow.right.circle.fill")
+                    ProfileSectionHeader(String(localized: "Portail"), systemImage: "arrow.left.arrow.right.circle.fill")
                 } footer: {
                     Label("Un même compte peut acheter en famille et vendre comme producteur.", systemImage: "person.2.badge.key.fill")
                         .symbolRenderingMode(.hierarchical)
@@ -58,7 +58,7 @@ struct ProfileScreen: View {
                         }
                     }
                 } header: {
-                    ProfileSectionHeader("Ma famille", systemImage: "figure.2.and.child.holdinghands")
+                    ProfileSectionHeader(String(localized: "Ma famille"), systemImage: "figure.2.and.child.holdinghands")
                 }
 
                 if portal == .family {
@@ -129,7 +129,7 @@ struct ProfileScreen: View {
                         }
                     }
                 } header: {
-                    ProfileSectionHeader("Compte", systemImage: "person.text.rectangle.fill")
+                    ProfileSectionHeader(String(localized: "Compte"), systemImage: "person.text.rectangle.fill")
                 }
 
                 Section {
@@ -137,7 +137,7 @@ struct ProfileScreen: View {
                     AppVersionLabel()
                         .demoToolsTrigger()
                 } header: {
-                    ProfileSectionHeader("À propos", systemImage: "basket.fill")
+                    ProfileSectionHeader(String(localized: "À propos"), systemImage: "basket.fill")
                 }
             }
             .scrollContentBackground(.hidden)
@@ -341,12 +341,12 @@ private struct SecuritySection: View {
                     .foregroundStyle(Color.texteSecondaire)
             }
         } header: {
-            ProfileSectionHeader("Sécurité", systemImage: "lock.shield.fill")
+            ProfileSectionHeader(String(localized: "Sécurité"), systemImage: "lock.shield.fill")
         } footer: {
             Label(
                 lock.biometry.canAuthenticate
-                    ? "Grenier se verrouille quand tu quittes l'app. Ton code de cueillette et tes paiements restent protégés."
-                    : "Configure Face ID ou un code dans les Réglages de l'iPhone pour activer le verrou.",
+                    ? String(localized: "Grenier se verrouille quand tu quittes l'app. Ton code de cueillette et tes paiements restent protégés.")
+                    : String(localized: "Configure Face ID ou un code dans les Réglages de l'iPhone pour activer le verrou."),
                 systemImage: lock.isEnabled ? "lock.fill" : "lock.open.fill"
             )
             .symbolRenderingMode(.hierarchical)

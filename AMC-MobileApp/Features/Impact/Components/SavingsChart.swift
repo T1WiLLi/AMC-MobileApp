@@ -82,8 +82,8 @@ struct SavingsChart: View {
         Chart(months) { month in
             let isCurrent = month.id == current?.id
             BarMark(
-                x: .value("Mois", month.shortLabel),
-                y: .value("Économies", barsAtFullHeight ? Double(month.savedCents) / 100 : 0)
+                x: .value(String(localized: "Mois"), month.shortLabel),
+                y: .value(String(localized: "Économies"), barsAtFullHeight ? Double(month.savedCents) / 100 : 0)
             )
             .foregroundStyle(isCurrent ? Color.economie : Color.economie.opacity(0.25))
             .clipShape(.rect(cornerRadius: barCorner))
@@ -118,8 +118,8 @@ struct SavingsChart: View {
     }
 
     static func headerAccessibilityLabel(_ current: ImpactSnapshot.MonthlySaving?) -> String {
-        guard let current else { return "Tes économies : aucune pour l'instant" }
-        return "Tes économies en \(current.longLabel) : \(Money.formatRounded(current.savedCents))"
+        guard let current else { return String(localized: "Tes économies : aucune pour l'instant") }
+        return String(localized: "Tes économies en \(current.longLabel) : \(Money.formatRounded(current.savedCents))")
     }
 }
 
@@ -130,23 +130,23 @@ struct SavingsChartDescriptor: AXChartDescriptorRepresentable {
     func makeChartDescriptor() -> AXChartDescriptor {
         let dollars = months.map { Double($0.savedCents) / 100 }
         let xAxis = AXCategoricalDataAxisDescriptor(
-            title: "Mois",
+            title: String(localized: "Mois"),
             categoryOrder: months.map(\.longLabel)
         )
         let yAxis = AXNumericDataAxisDescriptor(
-            title: "Économies en dollars",
+            title: String(localized: "Économies en dollars"),
             range: 0...max(dollars.max() ?? 0, 1),
             gridlinePositions: []
         ) { value in Money.formatRounded(Cents((value * 100).rounded())) }
         let series = AXDataSeriesDescriptor(
-            name: "Tes économies",
+            name: String(localized: "Tes économies"),
             isContinuous: false,
             dataPoints: months.map {
                 AXDataPoint(x: $0.longLabel, y: Double($0.savedCents) / 100)
             }
         )
         return AXChartDescriptor(
-            title: "Tes économies par mois",
+            title: String(localized: "Tes économies par mois"),
             summary: summary,
             xAxis: xAxis,
             yAxis: yAxis,
@@ -157,11 +157,11 @@ struct SavingsChartDescriptor: AXChartDescriptorRepresentable {
 
     /// « De août à novembre, tes économies passent de 22 $ à 48 $. »
     var summary: String {
-        guard let first = months.first, let last = months.last else { return "Aucune économie pour l'instant." }
+        guard let first = months.first, let last = months.last else { return String(localized: "Aucune économie pour l'instant.") }
         if months.count == 1 {
-            return "En \(last.longLabel), tu as économisé \(Money.formatRounded(last.savedCents))."
+            return String(localized: "En \(last.longLabel), tu as économisé \(Money.formatRounded(last.savedCents)).")
         }
-        return "De \(first.longLabel) à \(last.longLabel), tes économies passent de \(Money.formatRounded(first.savedCents)) à \(Money.formatRounded(last.savedCents))."
+        return String(localized: "De \(first.longLabel) à \(last.longLabel), tes économies passent de \(Money.formatRounded(first.savedCents)) à \(Money.formatRounded(last.savedCents)).")
     }
 }
 

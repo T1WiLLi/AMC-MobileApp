@@ -38,7 +38,7 @@ struct PortalCard: View {
         .accessibilityElement(children: .ignore)
         .accessibilityLabel(portal.title)
         .accessibilityValue(portal.tagline)
-        .accessibilityHint(isSelected ? "Touche deux fois pour retirer ce choix." : "Touche deux fois pour choisir ce portail.")
+        .accessibilityHint(isSelected ? String(localized: "Touche deux fois pour retirer ce choix.") : String(localized: "Touche deux fois pour choisir ce portail."))
         .accessibilityAddTraits(isSelected ? [.isSelected] : [])
     }
 

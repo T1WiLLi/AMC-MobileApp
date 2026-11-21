@@ -52,7 +52,7 @@ struct SupportedHouseholdBanner: View {
 
     /// « 8,00 $ de moins à payer. Rien à faire de ton côté. »
     var detailText: String {
-        "\(Money.format(subsidyCents)) de moins à payer. Rien à faire de ton côté."
+        String(localized: "\(Money.format(subsidyCents)) de moins à payer. Rien à faire de ton côté.")
     }
 }
 

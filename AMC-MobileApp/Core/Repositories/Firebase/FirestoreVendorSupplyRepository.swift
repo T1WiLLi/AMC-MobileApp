@@ -74,7 +74,7 @@ nonisolated final class FirestoreVendorSupplyRepository: VendorSupplyRepository,
         do {
             // Id choisi par l'appelant : ne pas écraser une disponibilité existante (un id auto est toujours neuf).
             if !supply.id.isEmpty, try await ref.getDocument().exists {
-                throw AppError.invalidInput("Cette disponibilité existe déjà.")
+                throw AppError.invalidInput(String(localized: "Cette disponibilité existe déjà."))
             }
             try await ref.setData(try Firestore.Encoder().encode(created))
             return created

@@ -66,7 +66,7 @@ nonisolated struct DeliveryManifest: Sendable, Equatable {
                 ?? Self.unassignedStopId
             var line = Line(
                 productId: offer.productId,
-                productName: productsById[offer.productId]?.name ?? "Produit inconnu",
+                productName: productsById[offer.productId]?.name ?? String(localized: "Produit inconnu"),
                 shareUnit: offer.shareUnit,
                 totalShares: 0, households: 0, orderIds: []
             )
@@ -82,7 +82,7 @@ nonisolated struct DeliveryManifest: Sendable, Equatable {
             let point = pointsById[key]
             return Stop(
                 pickupPointId: point?.id,
-                name: point?.name ?? "Point de cueillette à confirmer",
+                name: point?.name ?? String(localized: "Point de cueillette à confirmer"),
                 address: point?.address ?? "",
                 lines: lines.values.sorted { left, right in
                     let byName = left.productName.localizedStandardCompare(right.productName)
@@ -98,10 +98,10 @@ nonisolated struct DeliveryManifest: Sendable, Equatable {
     }
 
     /// Bordereau en texte brut, à partager ou imprimer.
-    func plainText(title: String = "Bordereau de livraison") -> String {
-        guard !isEmpty else { return "\(title)\n\nAucune commande fermée à livrer." }
+    func plainText(title: String = String(localized: "Bordereau de livraison")) -> String {
+        guard !isEmpty else { return String(localized: "\(title)\n\nAucune commande fermée à livrer.") }
         let commandes = orderCount > 1 ? "\(orderCount) commandes" : "\(orderCount) commande"
-        let points = stops.count > 1 ? "\(stops.count) points de cueillette" : "1 point de cueillette"
+        let points = stops.count > 1 ? String(localized: "\(stops.count) points de cueillette") : String(localized: "1 point de cueillette")
         var lines = [title, "\(commandes) · \(points) · \(Self.sharesLabel(totalShares))"]
         for stop in stops {
             lines.append("")
@@ -113,12 +113,12 @@ nonisolated struct DeliveryManifest: Sendable, Equatable {
                 )
             }
             lines.append(
-                "Total : \(Self.sharesLabel(stop.totalShares)), \(Self.householdsLabel(stop.totalHouseholds))"
+                String(localized: "Total : \(Self.sharesLabel(stop.totalShares)), \(Self.householdsLabel(stop.totalHouseholds))")
             )
         }
         lines.append("")
         lines.append(
-            "Grand total : \(Self.sharesLabel(totalShares)), \(Self.householdsLabel(totalHouseholds))"
+            String(localized: "Grand total : \(Self.sharesLabel(totalShares)), \(Self.householdsLabel(totalHouseholds))")
         )
         return lines.joined(separator: "\n")
     }
@@ -128,7 +128,7 @@ nonisolated struct DeliveryManifest: Sendable, Equatable {
     }
 
     static func householdsLabel(_ count: Int) -> String {
-        count > 1 ? "\(count) ménages" : "\(count) ménage"
+        count > 1 ? String(localized: "\(count) ménages") : String(localized: "\(count) ménage")
     }
 
     // MARK: - Livraison faite (RQ-074)
@@ -141,11 +141,11 @@ nonisolated struct DeliveryManifest: Sendable, Equatable {
             order.status = .delivered
             return order
         case .delivered:
-            throw AppError.invalidInput("Cette livraison est déjà marquée comme faite.")
+            throw AppError.invalidInput(String(localized: "Cette livraison est déjà marquée comme faite."))
         case .open, .reached:
-            throw AppError.invalidInput("Cette commande est encore ouverte : ferme-la avant de la livrer.")
+            throw AppError.invalidInput(String(localized: "Cette commande est encore ouverte : ferme-la avant de la livrer."))
         case .cancelled:
-            throw AppError.invalidInput("Cette commande a été annulée : il n'y a rien à livrer.")
+            throw AppError.invalidInput(String(localized: "Cette commande a été annulée : il n'y a rien à livrer."))
         }
     }
 }

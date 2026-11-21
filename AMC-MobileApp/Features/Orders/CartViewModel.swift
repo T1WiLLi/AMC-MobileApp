@@ -124,7 +124,7 @@ final class CartViewModel {
     func updateQuantity(_ lineID: Line.ID, to quantity: Int) async {
         guard !isSaving, let line = lines.first(where: { $0.id == lineID }) else { return }
         guard quantity >= 0 else {
-            actionError = .invalidInput("La quantité ne peut pas être négative.")
+            actionError = .invalidInput(String(localized: "La quantité ne peut pas être négative."))
             return
         }
         guard Self.canEdit(line.groupOrder, offer: line.offer, now: now()) else {

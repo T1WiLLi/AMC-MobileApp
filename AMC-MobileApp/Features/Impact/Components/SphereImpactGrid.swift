@@ -30,37 +30,37 @@ extension ImpactSphere {
         case .foodSecurity:
             return SphereMetric(
                 value: Double(s.neighborhoodSavedCents), format: .money,
-                sentence: "économisés par \(ImpactFormat.plural(s.households, "famille")), et \(ImpactFormat.plural(s.suspendedBasketsOffered, "panier suspendu offert", "paniers suspendus offerts"))"
+                sentence: String(localized: "économisés par \(ImpactFormat.plural(s.households, "famille")), et \(ImpactFormat.plural(s.suspendedBasketsOffered, "panier suspendu offert", "paniers suspendus offerts"))")
             )
         case .localEconomy:
             return SphereMetric(
                 value: Double(s.paidToProducersCents), format: .money,
-                sentence: "versés en direct à \(ImpactFormat.plural(s.producers, "ferme")) du Québec pour \(ImpactFormat.decimal(s.kilogramsBought / 1_000))\(ImpactFormat.nbsp)t de produits"
+                sentence: String(localized: "versés en direct à \(ImpactFormat.plural(s.producers, "ferme")) du Québec pour \(ImpactFormat.decimal(s.kilogramsBought / 1_000))\(ImpactFormat.nbsp)t de produits")
             )
         case .neighborhoodLife:
             return SphereMetric(
                 value: Double(s.households), format: .integer(),
-                sentence: "ménages qui se retrouvent chaque semaine grâce à \(ImpactFormat.plural(s.hosts, "hôte")) de cueillette"
+                sentence: String(localized: "ménages qui se retrouvent chaque semaine grâce à \(ImpactFormat.plural(s.hosts, "hôte")) de cueillette")
             )
         case .environment:
             return SphereMetric(
                 value: Double(s.packagingAvoided), format: .integer(),
-                sentence: "emballages évités grâce au vrac, et \(ImpactFormat.plural(s.deliveryTripsAvoided, "trajet")) de livraison en moins"
+                sentence: String(localized: "emballages évités grâce au vrac, et \(ImpactFormat.plural(s.deliveryTripsAvoided, "trajet")) de livraison en moins")
             )
         case .mobility:
             return SphereMetric(
                 value: s.groceryKilometersAvoided, format: .reduction(unit: "km"),
-                sentence: "de trajets vers l'épicerie : \(ImpactFormat.plural(s.groceryTripsAvoided, "trajet")) évités, la cueillette se fait à pied"
+                sentence: String(localized: "de trajets vers l'épicerie : \(ImpactFormat.plural(s.groceryTripsAvoided, "trajet")) évités, la cueillette se fait à pied")
             )
         case .inclusion:
             return SphereMetric(
                 value: Double(s.householdsHelped), format: .integer(),
-                sentence: "ménages aidés par un panier suspendu, sans savoir de qui"
+                sentence: String(localized: "ménages aidés par un panier suspendu, sans savoir de qui")
             )
         case .health:
             return SphereMetric(
                 value: s.freshProduceShare, format: .percent,
-                sentence: "des achats en fruits, légumes et légumineuses"
+                sentence: String(localized: "des achats en fruits, légumes et légumineuses")
             )
         }
     }

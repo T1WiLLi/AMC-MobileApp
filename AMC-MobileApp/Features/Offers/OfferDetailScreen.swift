@@ -146,7 +146,7 @@ private struct OfferDetailContent: View {
             loaded(content)
         }
         .grenierBackground()
-        .navigationTitle(viewModel.state.value?.product.name ?? "Lot")
+        .navigationTitle(viewModel.state.value?.product.name ?? String(localized: "Lot"))
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             if let content = viewModel.state.value {
@@ -367,7 +367,7 @@ private struct OfferDetailContent: View {
             ? AnyLayout(VStackLayout(alignment: .leading, spacing: 8))
             : AnyLayout(HStackLayout(alignment: .lastTextBaseline, spacing: 12))
         return VStack(alignment: .leading, spacing: 10) {
-            sectionHeader("Prix du groupe", systemImage: OfferDetailSymbol.priceSection)
+            sectionHeader(String(localized: "Prix du groupe"), systemImage: OfferDetailSymbol.priceSection)
             layout {
                 VStack(alignment: .leading, spacing: 4) {
                     PriceTag(priceCents: pricing.currentPriceCents, referenceCents: pricing.groceryPriceCents)
@@ -400,13 +400,13 @@ private struct OfferDetailContent: View {
 
     private func aboutCard(_ content: OfferDetailViewModel.Content) -> some View {
         VStack(alignment: .leading, spacing: 10) {
-            sectionHeader("Le lot", systemImage: OfferDetailSymbol.aboutSection)
+            sectionHeader(String(localized: "Le lot"), systemImage: OfferDetailSymbol.aboutSection)
             VStack(spacing: 0) {
                 // Page publique du producteur (T-097, R-009).
                 NavigationLink {
                     PublicVendorScreen(vendorId: content.vendor.id)
                 } label: {
-                    infoRow("Producteur", systemImage: OfferDetailSymbol.vendor(content.vendor.kind)) {
+                    infoRow(String(localized: "Producteur"), systemImage: OfferDetailSymbol.vendor(content.vendor.kind)) {
                         HStack(spacing: 6) {
                             Text(content.vendor.legalName)
                             if content.vendor.isVerified {
@@ -429,27 +429,27 @@ private struct OfferDetailContent: View {
                 .buttonStyle(.plain)
                 .accessibilityHint("Voir la page du producteur")
                 rowDivider
-                infoRow("Origine", systemImage: OfferDetailSymbol.origin) {
+                infoRow(String(localized: "Origine"), systemImage: OfferDetailSymbol.origin) {
                     Text(content.product.origin)
                 }
                 rowDivider
-                infoRow("Unité de part", systemImage: OfferDetailSymbol.shareUnit) {
+                infoRow(String(localized: "Unité de part"), systemImage: OfferDetailSymbol.shareUnit) {
                     Text(content.offer.shareUnit)
                 }
                 rowDivider
                 infoRow(
-                    "Date limite",
+                    String(localized: "Date limite"),
                     systemImage: content.isOpen ? OfferDetailSymbol.deadline : OfferDetailSymbol.deadlineClosed
                 ) {
-                    Text(content.isOpen ? "Ferme \(Self.deadlineText(content.offer.deadline))" : "Commande fermée")
+                    Text(content.isOpen ? String(localized: "Ferme \(Self.deadlineText(content.offer.deadline))") : String(localized: "Commande fermée"))
                 }
                 rowDivider
-                infoRow("Point de cueillette", systemImage: OfferDetailSymbol.pickup) {
+                infoRow(String(localized: "Point de cueillette"), systemImage: OfferDetailSymbol.pickup) {
                     Text(Self.pickupText(content.groupOrder))
                 }
                 if !content.product.tags.isEmpty {
                     rowDivider
-                    infoRow("Étiquettes", systemImage: OfferDetailSymbol.tags) {
+                    infoRow(String(localized: "Étiquettes"), systemImage: OfferDetailSymbol.tags) {
                         tagChips(content.product.tags)
                     }
                 }
@@ -515,7 +515,7 @@ private struct OfferDetailContent: View {
         let pricing = content.pricing
         let households = content.groupOrder?.committedHouseholds ?? 0
         return VStack(alignment: .leading, spacing: 10) {
-            sectionHeader("Ton groupe", systemImage: OfferDetailSymbol.groupSection)
+            sectionHeader(String(localized: "Ton groupe"), systemImage: OfferDetailSymbol.groupSection)
             VStack(alignment: .leading, spacing: 14) {
                 ViewThatFits(in: .horizontal) {
                     HStack(alignment: .firstTextBaseline) {
@@ -561,7 +561,7 @@ private struct OfferDetailContent: View {
 
     private func tierCaption(_ pricing: OfferPricing) -> some View {
         Label {
-            Text(pricing.tierNumber == 0 ? "Avant le 1er palier" : "Palier \(pricing.tierNumber) sur \(pricing.tierCount)")
+            Text(pricing.tierNumber == 0 ? String(localized: "Avant le 1er palier") : String(localized: "Palier \(pricing.tierNumber) sur \(pricing.tierCount)"))
                 .contentTransition(.numericText(value: Double(pricing.tierNumber)))
         } icon: {
             Image(systemName: OfferDetailSymbol.tier)
@@ -583,7 +583,7 @@ private struct OfferDetailContent: View {
         } else if let missing = pricing.sharesToNextTier {
             let discount = pricing.nextTierDiscountPercent ?? 0
             hintLabel(
-                "Encore \(missing) \(missing > 1 ? "parts" : "part") pour le palier suivant"
+                String(localized: "Encore \(missing) \(missing > 1 ? "parts" : "part") pour le palier suivant")
                     + (discount > 0 ? " (−\(discount) %)" : "") + ".",
                 systemImage: OfferDetailSymbol.nextTier,
                 tint: .economie,
@@ -613,14 +613,14 @@ private struct OfferDetailContent: View {
     @ViewBuilder
     private func shareSection(_ content: OfferDetailViewModel.Content) -> some View {
         VStack(alignment: .leading, spacing: 14) {
-            sectionHeader("Ta part", systemImage: OfferDetailSymbol.shareSection)
+            sectionHeader(String(localized: "Ta part"), systemImage: OfferDetailSymbol.shareSection)
 
             if content.groupOrder != nil && !content.isOpen {
                 OfferSymbolScene(
                     symbol: GrenierSymbol.offers,
                     badge: "lock.circle.fill",
-                    title: "Commande fermée",
-                    message: "Les parts sont figées. Rendez-vous à la cueillette avec ton code QR."
+                    title: String(localized: "Commande fermée"),
+                    message: String(localized: "Les parts sont figées. Rendez-vous à la cueillette avec ton code QR.")
                 )
             }
 
@@ -629,8 +629,8 @@ private struct OfferDetailContent: View {
                     symbol: GrenierSymbol.offers,
                     badge: "xmark.circle.fill",
                     tint: .texteSecondaire,
-                    title: "Lot complet",
-                    message: "Il ne reste plus de parts dans ce lot. Jette un œil aux autres lots de ton quartier."
+                    title: String(localized: "Lot complet"),
+                    message: String(localized: "Il ne reste plus de parts dans ce lot. Jette un œil aux autres lots de ton quartier.")
                 )
             } else {
                 sharePicker(content)
@@ -667,8 +667,8 @@ private struct OfferDetailContent: View {
                     symbol: OfferDetailSymbol.shareSection,
                     badge: "checkmark.circle.fill",
                     tint: .economie,
-                    title: "Part réservée !",
-                    message: "Tu as réservé \(Self.quantityLabel(content.myShareQuantity, shareUnit: content.offer.shareUnit)). Tu paies à la cueillette.",
+                    title: String(localized: "Part réservée !"),
+                    message: String(localized: "Tu as réservé \(Self.quantityLabel(content.myShareQuantity, shareUnit: content.offer.shareUnit)). Tu paies à la cueillette."),
                     trigger: content.myShareQuantity
                 )
                 .grenierTransition(.cardAppear)
@@ -766,13 +766,13 @@ private struct OfferDetailContent: View {
     }
 
     private func reserveTitle(_ content: OfferDetailViewModel.Content, quantity: String) -> String {
-        if content.myShareQuantity == 0 { return "Réserver \(quantity)" }
-        if content.myShareQuantity == viewModel.selectedQuantity { return "Part réservée" }
-        return "Passer à \(quantity)"
+        if content.myShareQuantity == 0 { return String(localized: "Réserver \(quantity)") }
+        if content.myShareQuantity == viewModel.selectedQuantity { return String(localized: "Part réservée") }
+        return String(localized: "Passer à \(quantity)")
     }
 
     private func shareText(_ content: OfferDetailViewModel.Content) -> String {
-        "\(content.product.name) (\(content.offer.shareUnit)) à \(Money.format(content.pricing.currentPriceCents)) avec \(content.vendor.legalName) sur Grenier. Plus on est de familles, plus le prix baisse !"
+        String(localized: "\(content.product.name) (\(content.offer.shareUnit)) à \(Money.format(content.pricing.currentPriceCents)) avec \(content.vendor.legalName) sur Grenier. Plus on est de familles, plus le prix baisse !")
     }
 
     // MARK: Formatage
@@ -789,8 +789,8 @@ private struct OfferDetailContent: View {
             let end = slot.end.formatted(.dateTime.hour().minute().locale(Locale(identifier: "fr_CA")))
             return "\(day), \(start) à \(end)"
         }
-        if order?.pickupPointId != nil { return "Lieu choisi par ton groupe, horaire à venir" }
-        return "Choisi par ton groupe à la fermeture"
+        if order?.pickupPointId != nil { return String(localized: "Lieu choisi par ton groupe, horaire à venir") }
+        return String(localized: "Choisi par ton groupe à la fermeture")
     }
 
     /// « 20 kg » pour 2 parts de « sac de 10 kg » ; sinon « 2 × caisse ».
@@ -954,9 +954,9 @@ private struct TierCelebrationView: View {
 
     private var subtitle: String {
         if celebration.isLastTier {
-            return "Ta part fait tomber le dernier palier. Le meilleur prix vaut pour tout le groupe."
+            return String(localized: "Ta part fait tomber le dernier palier. Le meilleur prix vaut pour tout le groupe.")
         }
-        return "Ta part fait passer le groupe au palier \(celebration.tierNumber) sur \(celebration.tierCount). Le prix baisse pour tout le monde."
+        return String(localized: "Ta part fait passer le groupe au palier \(celebration.tierNumber) sur \(celebration.tierCount). Le prix baisse pour tout le monde.")
     }
 
     private var priceCard: some View {
@@ -1014,7 +1014,7 @@ private struct TierCelebrationView: View {
 
     private var shareCard: some View {
         VStack(spacing: 0) {
-            row(title: "Ta part", systemImage: OfferDetailSymbol.shareSection) {
+            row(title: String(localized: "Ta part"), systemImage: OfferDetailSymbol.shareSection) {
                 Text("\(OfferDetailContent.quantityLabel(celebration.myQuantity, shareUnit: shareUnit)) · \(Money.format(celebration.myTotalCents))")
                     .font(.headline)
                     .fontDesign(.rounded)
@@ -1024,7 +1024,7 @@ private struct TierCelebrationView: View {
             }
             if celebration.mySavingsCents > 0 {
                 Divider().overlay(Color.piste)
-                row(title: "Tu économises", systemImage: GrenierSymbol.savings, tint: .economie) {
+                row(title: String(localized: "Tu économises"), systemImage: GrenierSymbol.savings, tint: .economie) {
                     SavingsBadge(kind: .amount(celebration.mySavingsCents))
                         .contentTransition(.numericText(value: Double(celebration.mySavingsCents)))
                 }
@@ -1064,7 +1064,7 @@ private struct TierCelebrationView: View {
         guard !didAppear else { return }
         didAppear = true
         AccessibilityNotification.Announcement(
-            "Palier débloqué ! Le prix passe de \(Money.format(celebration.previousPriceCents)) à \(Money.format(celebration.newPriceCents)) le \(shareUnit)."
+            String(localized: "Palier débloqué ! Le prix passe de \(Money.format(celebration.previousPriceCents)) à \(Money.format(celebration.newPriceCents)) le \(shareUnit).")
         ).post()
         if reduceMotion {
             displayedPriceCents = celebration.newPriceCents

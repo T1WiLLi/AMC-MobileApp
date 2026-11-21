@@ -14,10 +14,10 @@ nonisolated struct ReportTarget: Identifiable, Hashable, Sendable, Codable {
         /// « ce lot », « ce vendeur »… pour les titres et VoiceOver.
         var demonstrative: String {
             switch self {
-            case .offer: "ce lot"
-            case .vendor: "ce vendeur"
-            case .member: "ce membre"
-            case .message: "ce message"
+            case .offer: String(localized: "ce lot")
+            case .vendor: String(localized: "ce vendeur")
+            case .member: String(localized: "ce membre")
+            case .message: String(localized: "ce message")
             }
         }
 
@@ -54,19 +54,19 @@ nonisolated enum ReportReason: String, CaseIterable, Identifiable, Sendable, Cod
 
     var title: String {
         switch self {
-        case .inappropriate: "Contenu inapproprié"
-        case .scam: "Arnaque ou fraude"
-        case .behavior: "Comportement"
-        case .other: "Autre"
+        case .inappropriate: String(localized: "Contenu inapproprié")
+        case .scam: String(localized: "Arnaque ou fraude")
+        case .behavior: String(localized: "Comportement")
+        case .other: String(localized: "Autre")
         }
     }
 
     var subtitle: String {
         switch self {
-        case .inappropriate: "Photo, texte ou annonce choquante"
-        case .scam: "Prix trompeur, paiement hors de l'app"
-        case .behavior: "Propos blessants, harcèlement, absences répétées"
-        case .other: "Dis-nous ce qui ne va pas"
+        case .inappropriate: String(localized: "Photo, texte ou annonce choquante")
+        case .scam: String(localized: "Prix trompeur, paiement hors de l'app")
+        case .behavior: String(localized: "Propos blessants, harcèlement, absences répétées")
+        case .other: String(localized: "Dis-nous ce qui ne va pas")
         }
     }
 

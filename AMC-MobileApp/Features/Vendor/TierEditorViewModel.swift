@@ -216,40 +216,40 @@ final class TierEditorViewModel {
 
     /// Construit le lot à enregistrer, ou lève `AppError.invalidInput` avec la première règle non respectée.
     func validatedOffer() throws(AppError) -> Offer {
-        guard let productId else { throw .invalidInput("Choisis un produit pour ce lot.") }
-        guard totalShares > 0 else { throw .invalidInput("Le lot doit contenir au moins une part.") }
+        guard let productId else { throw .invalidInput(String(localized: "Choisis un produit pour ce lot.")) }
+        guard totalShares > 0 else { throw .invalidInput(String(localized: "Le lot doit contenir au moins une part.")) }
         guard !shareUnit.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
-            throw .invalidInput("Indique ce que contient une part (par exemple « sac de 10 kg »).")
+            throw .invalidInput(String(localized: "Indique ce que contient une part (par exemple « sac de 10 kg »)."))
         }
-        guard !tiers.isEmpty else { throw .invalidInput("Ajoute au moins un palier de prix.") }
+        guard !tiers.isEmpty else { throw .invalidInput(String(localized: "Ajoute au moins un palier de prix.")) }
         for (index, tier) in tiers.enumerated() {
             let rank = index + 1
             guard tier.minShares >= 1 else {
-                throw .invalidInput("Le seuil du palier \(rank) doit être d'au moins 1 part.")
+                throw .invalidInput(String(localized: "Le seuil du palier \(rank) doit être d'au moins 1 part."))
             }
             guard tier.priceCents > 0 else {
-                throw .invalidInput("Le prix du palier \(rank) doit être supérieur à 0 $.")
+                throw .invalidInput(String(localized: "Le prix du palier \(rank) doit être supérieur à 0 $."))
             }
             guard tier.minShares <= totalShares else {
                 throw .invalidInput(
-                    "Le seuil du palier \(rank) (\(tier.minShares) parts) dépasse le total du lot (\(totalShares) parts)."
+                    String(localized: "Le seuil du palier \(rank) (\(tier.minShares) parts) dépasse le total du lot (\(totalShares) parts).")
                 )
             }
             if index > 0 {
                 let previous = tiers[index - 1]
                 guard tier.minShares > previous.minShares else {
                     throw .invalidInput(
-                        "Le seuil du palier \(rank) doit être plus grand que celui du palier \(rank - 1) (\(previous.minShares) parts)."
+                        String(localized: "Le seuil du palier \(rank) doit être plus grand que celui du palier \(rank - 1) (\(previous.minShares) parts).")
                     )
                 }
                 guard tier.priceCents < previous.priceCents else {
                     throw .invalidInput(
-                        "Le prix du palier \(rank) doit être plus bas que celui du palier \(rank - 1) (\(Money.format(previous.priceCents)))."
+                        String(localized: "Le prix du palier \(rank) doit être plus bas que celui du palier \(rank - 1) (\(Money.format(previous.priceCents))).")
                     )
                 }
             }
         }
-        guard deadline > now() else { throw .invalidInput("La date limite doit être dans le futur.") }
+        guard deadline > now() else { throw .invalidInput(String(localized: "La date limite doit être dans le futur.")) }
 
         let offerId: String = switch mode {
         case .create: "offer-\(UUID().uuidString.lowercased())"

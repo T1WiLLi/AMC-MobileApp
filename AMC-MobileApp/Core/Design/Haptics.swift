@@ -89,12 +89,12 @@ private struct HapticsDemo: View {
             }
             .buttonStyle(.glassProminent)
             .grenierHaptic(.success, trigger: unlocked) { _, new in new }
-            Label(unlocked ? "Palier débloqué !" : "Encore 1 famille", systemImage: "checkmark.seal.fill")
+            Label(unlocked ? String(localized: "Palier débloqué !") : String(localized: "Encore 1 famille"), systemImage: "checkmark.seal.fill")
                 .symbolEffect(.bounce, value: unlocked)
                 .foregroundStyle(unlocked ? Color.grenier : Color.texteSecondaire)
 
             Button("Valider sans quantité") {
-                validation = validation == nil ? "Choisis une quantité." : nil
+                validation = validation == nil ? String(localized: "Choisis une quantité.") : nil
             }
             .buttonStyle(.glass)
             .grenierHaptic(.warning, trigger: validation) { _, new in new != nil }
@@ -103,7 +103,7 @@ private struct HapticsDemo: View {
             }
 
             Button("Simuler un paiement refusé") {
-                failure = failure == nil ? "Le paiement n'a pas abouti." : nil
+                failure = failure == nil ? String(localized: "Le paiement n'a pas abouti.") : nil
             }
             .buttonStyle(.glass)
             .grenierHaptic(.error, trigger: failure) { _, new in new != nil }

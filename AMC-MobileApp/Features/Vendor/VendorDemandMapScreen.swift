@@ -302,7 +302,7 @@ struct VendorDemandMapScreen: View {
         }
         .buttonStyle(.plain)
         .glassEffect(.regular.interactive(), in: .circle)
-        .accessibilityLabel(displayMode == .map ? "Afficher la liste des quartiers" : "Afficher la carte")
+        .accessibilityLabel(displayMode == .map ? String(localized: "Afficher la liste des quartiers") : String(localized: "Afficher la carte"))
     }
 
     private var suggestionChips: some View {
@@ -599,7 +599,7 @@ private struct DemandPointSheet: View {
         return layout {
             DemandStatTile(
                 value: point.committedHouseholds,
-                label: FrenchPlural.word(point.committedHouseholds, "famille engagée", plural: "familles engagées"),
+                label: FrenchPlural.word(point.committedHouseholds, String(localized: "famille engagée"), plural: String(localized: "familles engagées")),
                 systemImage: "person.2.fill",
                 tint: .grenier
             )
@@ -731,7 +731,7 @@ private struct DemandTotals {
     var accessibilityDescription: String {
         var parts = [DemandFormatting.families(households), DemandFormatting.shares(shares)]
         if highDemandCount > 0 {
-            parts.append("\(highDemandCount) en forte demande")
+            parts.append(String(localized: "\(highDemandCount) en forte demande"))
         }
         return parts.joined(separator: ", ")
     }
@@ -806,7 +806,7 @@ private struct DemandListHero: View {
                     .fixedSize(horizontal: false, vertical: true)
                 if totals.highDemandCount > 0 {
                     Label(
-                        "\(totals.highDemandCount) \(FrenchPlural.word(totals.highDemandCount, grouping.unitName, plural: grouping.unitNamePlural)) en forte demande",
+                        String(localized: "\(totals.highDemandCount) \(FrenchPlural.word(totals.highDemandCount, grouping.unitName, plural: grouping.unitNamePlural)) en forte demande"),
                         systemImage: "flame.fill"
                     )
                     .font(.subheadline.weight(.semibold))
@@ -874,7 +874,7 @@ nonisolated enum DemandFormatting {
     static func wantedQuantity(of product: DemandMapViewModel.ProductDemand) -> String {
         if let kilograms = kilogramsPerShare(in: product.shareUnit) {
             let total = kilograms * Double(product.committedShares)
-            return "\(total.formatted(.number.precision(.fractionLength(0...1)))) kg voulus"
+            return String(localized: "\(total.formatted(.number.precision(.fractionLength(0...1)))) kg voulus")
         }
         return "\(shares(product.committedShares)) \(product.committedShares > 1 ? "voulues" : "voulue")"
     }
@@ -889,7 +889,7 @@ nonisolated enum DemandFormatting {
 extension DemandMapViewModel.DemandPoint {
     /// Nom affiché : « Zone f25d » pour un geohash, sinon le quartier ou le groupe.
     var displayName: String {
-        grouping == .geohash ? "Zone \(label)" : label
+        grouping == .geohash ? String(localized: "Zone \(label)") : label
     }
 
     /// « 24 familles · 26 parts ».
@@ -900,7 +900,7 @@ extension DemandMapViewModel.DemandPoint {
     /// « Parc-Ex Ouest, 24 familles, forte demande ».
     var accessibilityDescription: String {
         var parts = [displayName, DemandFormatting.families(committedHouseholds)]
-        if isHighDemand { parts.append("forte demande") }
+        if isHighDemand { parts.append(String(localized: "forte demande")) }
         return parts.joined(separator: ", ")
     }
 }

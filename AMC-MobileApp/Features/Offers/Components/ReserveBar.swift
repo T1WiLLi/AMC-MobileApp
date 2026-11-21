@@ -106,7 +106,7 @@ struct ReserveBar: View {
         .buttonStyle(.glassProminent)
         .tint(.grenier)
         .disabled(isDisabled || isLoading || quantity < 1)
-        .accessibilityLabel(isLoading ? "Réservation en cours" : "Réserver \(quantityText) pour \(Money.format(quote.totalCents))")
+        .accessibilityLabel(isLoading ? String(localized: "Réservation en cours") : String(localized: "Réserver \(quantityText) pour \(Money.format(quote.totalCents))"))
         .accessibilityHint("Payé à la cueillette.")
     }
 
@@ -121,9 +121,9 @@ struct ReserveBar: View {
     }
 
     private var summaryAccessibilityText: String {
-        var text = "Total \(Money.format(quote.totalCents)) pour \(quantityText)"
+        var text = String(localized: "Total \(Money.format(quote.totalCents)) pour \(quantityText)")
         if quote.savingsCents > 0 {
-            text += ", \(Money.format(quote.savingsCents)) de moins qu'en épicerie"
+            text += String(localized: ", \(Money.format(quote.savingsCents)) de moins qu'en épicerie")
         }
         return text
     }

@@ -21,7 +21,7 @@ struct GroupDetailScreen: View {
             if let viewModel {
                 switch viewModel.state {
                 case .idle, .loading:
-                    GroupsLoadingScene(title: "Chargement du groupe…", systemImage: GrenierSymbol.map)
+                    GroupsLoadingScene(title: String(localized: "Chargement du groupe…"), systemImage: GrenierSymbol.map)
                 case .empty:
                     GroupsIllustratedState(
                         scene: GroupsSymbolScene(
@@ -31,8 +31,8 @@ struct GroupDetailScreen: View {
                                 .init(systemImage: "mappin.slash", tint: .grenier, degrees: -30)
                             ]
                         ),
-                        title: "Groupe introuvable",
-                        message: "Ce groupe n'existe plus. Il a peut-être été fermé par son coordinateur."
+                        title: String(localized: "Groupe introuvable"),
+                        message: String(localized: "Ce groupe n'existe plus. Il a peut-être été fermé par son coordinateur.")
                     )
                 case .failed(let error):
                     GroupsErrorState(error: error, retry: { await viewModel.load() })
@@ -40,7 +40,7 @@ struct GroupDetailScreen: View {
                     GroupDetailContent(content: content, viewModel: viewModel)
                 }
             } else {
-                GroupsLoadingScene(title: "Chargement du groupe…", systemImage: GrenierSymbol.map)
+                GroupsLoadingScene(title: String(localized: "Chargement du groupe…"), systemImage: GrenierSymbol.map)
             }
         }
         .grenierBackground()
@@ -48,7 +48,7 @@ struct GroupDetailScreen: View {
         .environment(\.groupTheme, theme)
         .tint(theme.accent)
         .animation(reduceMotion ? nil : .smooth(duration: 0.45), value: theme)
-        .navigationTitle(theme.displayName ?? "Groupe")
+        .navigationTitle(theme.displayName ?? String(localized: "Groupe"))
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             if let group = viewModel?.state.value?.group {
@@ -112,7 +112,7 @@ private struct GroupDetailContent: View {
                 keyFigures
 
                 VStack(alignment: .leading, spacing: 12) {
-                    GroupsSectionHeader(title: "Cueillette", systemImage: "figure.walk", tint: .economie)
+                    GroupsSectionHeader(title: String(localized: "Cueillette"), systemImage: "figure.walk", tint: .economie)
                     PickupCard(pickupPoint: content.pickupPoint, slot: content.nextSlot)
                 }
 
@@ -236,9 +236,9 @@ private struct GroupDetailContent: View {
         let orders = content.openOrders.count
         GroupsStatTile(value: "\(group.householdCount)", caption: group.householdCount > 1 ? "familles" : "famille",
                        systemImage: "person.2.fill", tint: .solidarite)
-        GroupsStatTile(value: "\(orders)", caption: orders > 1 ? "lots ouverts" : "lot ouvert",
+        GroupsStatTile(value: "\(orders)", caption: orders > 1 ? String(localized: "lots ouverts") : String(localized: "lot ouvert"),
                        systemImage: GrenierSymbol.offers, tint: theme.accent)
-        GroupsStatTile(value: GroupCard.distanceText(group.radiusMeters), caption: "de rayon",
+        GroupsStatTile(value: GroupCard.distanceText(group.radiusMeters), caption: String(localized: "de rayon"),
                        systemImage: "circle.dashed", tint: .economie)
     }
 
@@ -247,7 +247,7 @@ private struct GroupDetailContent: View {
         let orders = content.openOrders
         VStack(alignment: .leading, spacing: 12) {
             GroupsSectionHeader(
-                title: orders.count > 1 ? "Lots ouverts" : "Lot ouvert",
+                title: orders.count > 1 ? String(localized: "Lots ouverts") : String(localized: "Lot ouvert"),
                 systemImage: GrenierSymbol.offers,
                 tint: theme.accent,
                 count: orders.count
@@ -343,7 +343,7 @@ private struct GroupMapHeader: View {
                 .foregroundStyle(theme.accent.opacity(0.12))
                 .stroke(theme.accent.opacity(0.6), style: StrokeStyle(lineWidth: 1.5, dash: [4, 4]))
             if hasPickupPoint {
-                Annotation("Point de cueillette", coordinate: center) {
+                Annotation(String(localized: "Point de cueillette"), coordinate: center) {
                     Image(systemName: GrenierSymbol.offers)
                         .font(.headline)
                         .foregroundStyle(Color.onAccent)
@@ -359,7 +359,7 @@ private struct GroupMapHeader: View {
             GlassEffectContainer(spacing: 8) {
                 HStack(spacing: 8) {
                     mapBadge(group.neighborhood, systemImage: "mappin.circle.fill")
-                    mapBadge("Rayon \(GroupCard.distanceText(group.radiusMeters))", systemImage: "circle.dashed")
+                    mapBadge(String(localized: "Rayon \(GroupCard.distanceText(group.radiusMeters))"), systemImage: "circle.dashed")
                 }
             }
             .padding(12)
@@ -390,13 +390,13 @@ private struct PickupCard: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 14) {
             row(symbol: pickupPoint == nil ? "mappin.slash" : "mappin.and.ellipse", tint: .economie,
-                title: pickupPoint?.name ?? "Point de cueillette à venir",
-                subtitle: pickupPoint.map { "Point de cueillette · \($0.address)" }
-                    ?? "L'hôte sera choisi à la prochaine commande")
+                title: pickupPoint?.name ?? String(localized: "Point de cueillette à venir"),
+                subtitle: pickupPoint.map { String(localized: "Point de cueillette · \($0.address)") }
+                    ?? String(localized: "L'hôte sera choisi à la prochaine commande"))
             Divider().overlay(Color.piste)
             row(symbol: slot == nil ? "clock.badge.questionmark" : "clock.fill", tint: theme.accent,
-                title: slot.map(PickupTime.text(for:)) ?? "Horaire à venir",
-                subtitle: slot == nil ? "Annoncé dès qu'une commande est lancée" : "Prochaine cueillette")
+                title: slot.map(PickupTime.text(for:)) ?? String(localized: "Horaire à venir"),
+                subtitle: slot == nil ? String(localized: "Annoncé dès qu'une commande est lancée") : String(localized: "Prochaine cueillette"))
         }
         .grenierCard()
     }
@@ -473,7 +473,7 @@ private struct InvitationCard: View {
 
 private enum GroupInvite {
     static func message(for group: NeighborhoodGroup) -> String {
-        "Rejoins « \(group.name) » sur Grenier pour acheter en gros avec tes voisins de \(group.neighborhood). Code : \(group.inviteCode)"
+        String(localized: "Rejoins « \(group.name) » sur Grenier pour acheter en gros avec tes voisins de \(group.neighborhood). Code : \(group.inviteCode)")
     }
 }
 

@@ -46,8 +46,8 @@ final class PickupPointPickerViewModel {
     }
 
     var validationError: AppError? {
-        guard selectedPointId != nil else { return .invalidInput("Choisis un point de cueillette.") }
-        guard !slots.isEmpty else { return .invalidInput("Ajoute au moins un créneau.") }
+        guard selectedPointId != nil else { return .invalidInput(String(localized: "Choisis un point de cueillette.")) }
+        guard !slots.isEmpty else { return .invalidInput(String(localized: "Ajoute au moins un créneau.")) }
         do {
             _ = try PickupSlotBook.validatedSlots(slots)
             return nil

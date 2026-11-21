@@ -152,7 +152,7 @@ nonisolated final class FirestoreGroupOrderRepository: GroupOrderRepository, @un
 
     @discardableResult
     func setShare(quantity: Int, householdId: String, groupOrderId: String) async throws -> GroupOrder {
-        guard quantity >= 0 else { throw AppError.invalidInput("La quantité ne peut pas être négative.") }
+        guard quantity >= 0 else { throw AppError.invalidInput(String(localized: "La quantité ne peut pas être négative.")) }
         let orderRef = orderRef(groupOrderId)
         let shareRef = sharesRef(groupOrderId).document(householdId)
 
@@ -172,7 +172,7 @@ nonisolated final class FirestoreGroupOrderRepository: GroupOrderRepository, @un
                 guard TierEngine.isOpen(order), now < offer.deadline else { throw AppError.orderClosed }
                 let othersTotal = others.reduce(0) { $0 + $1.quantity }
                 guard othersTotal + quantity <= offer.totalShares else {
-                    throw AppError.invalidInput("Il ne reste que \(offer.totalShares - othersTotal) parts dans ce lot.")
+                    throw AppError.invalidInput(String(localized: "Il ne reste que \(offer.totalShares - othersTotal) parts dans ce lot."))
                 }
 
                 var newShares = others
@@ -224,7 +224,7 @@ nonisolated final class FirestoreGroupOrderRepository: GroupOrderRepository, @un
                 try Self.checkInvariant(order, shares: shares)
                 guard TierEngine.isOpen(order) else { throw AppError.orderClosed }
                 guard TierEngine.shouldClose(order, offer: offer, now: now) else {
-                    throw AppError.invalidInput("La commande se clôture à la date limite du lot.")
+                    throw AppError.invalidInput(String(localized: "La commande se clôture à la date limite du lot."))
                 }
 
                 let (closed, outcome) = try TierEngine.closed(order, offer: offer)

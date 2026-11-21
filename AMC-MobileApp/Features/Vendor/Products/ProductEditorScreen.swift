@@ -50,7 +50,7 @@ struct ProductEditorScreen: View {
         StateView(state: model.loadState, retry: { await model.load() }) { _ in
             form
         }
-        .navigationTitle(model.isEditing ? "Modifier le produit" : "Nouveau produit")
+        .navigationTitle(model.isEditing ? String(localized: "Modifier le produit") : String(localized: "Nouveau produit"))
         .navigationBarTitleDisplayMode(.inline)
         .safeAreaInset(edge: .bottom) {
             if model.loadState.value != nil { saveButton }
@@ -64,7 +64,7 @@ struct ProductEditorScreen: View {
         .grenierHaptic(.warning, trigger: warningTrigger)
         .grenierHaptic(.error, trigger: errorTrigger)
         .confirmationDialog(
-            "Retirer « \(model.name) » du catalogue ?",
+            String(localized: "Retirer « \(model.name) » du catalogue ?"),
             isPresented: $confirmsDelete,
             titleVisibility: .visible
         ) {
@@ -117,7 +117,7 @@ struct ProductEditorScreen: View {
                 .listRowInsets(EdgeInsets(top: 12, leading: 12, bottom: 12, trailing: 12))
 
             // Le libellé de PhotosPicker est une closure Sendable : on calcule le texte avant.
-            let pickerTitle = model.hasPhoto ? "Changer la photo" : "Choisir une photo"
+            let pickerTitle = model.hasPhoto ? String(localized: "Changer la photo") : String(localized: "Choisir une photo")
             PhotosPicker(selection: $pickerItem, matching: .images, photoLibrary: .shared()) {
                 Label(pickerTitle, systemImage: "photo.badge.plus")
                     .symbolRenderingMode(.hierarchical)
@@ -175,7 +175,7 @@ struct ProductEditorScreen: View {
         .frame(height: photoHeight)
         .clipShape(.rect(cornerRadius: 16))
         .accessibilityElement(children: .ignore)
-        .accessibilityLabel(model.hasPhoto ? "Photo du produit" : "Aucune photo, icône de la catégorie \(model.category.title)")
+        .accessibilityLabel(model.hasPhoto ? String(localized: "Photo du produit") : String(localized: "Aucune photo, icône de la catégorie \(model.category.title)"))
     }
 
     private var photoPlaceholder: some View {
@@ -345,7 +345,7 @@ struct ProductEditorScreen: View {
                 } else {
                     Image(systemName: model.isEditing ? "checkmark.circle.fill" : "plus.circle.fill")
                 }
-                Text(model.isSaving ? "Enregistrement…" : (model.isEditing ? "Enregistrer" : "Ajouter au catalogue"))
+                Text(model.isSaving ? String(localized: "Enregistrement…") : (model.isEditing ? String(localized: "Enregistrer") : String(localized: "Ajouter au catalogue")))
             }
             .font(.headline)
             .frame(maxWidth: .infinity, minHeight: 32)
@@ -356,7 +356,7 @@ struct ProductEditorScreen: View {
         .disabled(model.isSaving || model.isDeleting || isProcessingPhoto)
         .padding(.horizontal, 16)
         .padding(.bottom, 8)
-        .accessibilityHint(model.isEditing ? "Enregistre tes changements." : "Ajoute le produit à ton catalogue.")
+        .accessibilityHint(model.isEditing ? String(localized: "Enregistre tes changements.") : String(localized: "Ajoute le produit à ton catalogue."))
     }
 
     // MARK: Actions
@@ -398,12 +398,12 @@ struct ProductEditorScreen: View {
         defer { isProcessingPhoto = false }
         do {
             guard let data = try await item.loadTransferable(type: Data.self) else {
-                photoError = "Cette photo n'est pas disponible. Choisis-en une autre."
+                photoError = String(localized: "Cette photo n'est pas disponible. Choisis-en une autre.")
                 return
             }
             let jpeg = await Task.detached(priority: .userInitiated) { ProductPhoto.jpegData(from: data) }.value
             guard let jpeg, let image = UIImage(data: jpeg) else {
-                photoError = "Ce fichier n'est pas une image lisible. Choisis-en une autre."
+                photoError = String(localized: "Ce fichier n'est pas une image lisible. Choisis-en une autre.")
                 warningTrigger += 1
                 return
             }
@@ -413,7 +413,7 @@ struct ProductEditorScreen: View {
                 photoError = nil
             }
         } catch {
-            photoError = "Impossible d'ouvrir cette photo. Réessaie ou choisis-en une autre."
+            photoError = String(localized: "Impossible d'ouvrir cette photo. Réessaie ou choisis-en une autre.")
             errorTrigger += 1
         }
     }
@@ -436,13 +436,13 @@ struct ProductEditorScreen: View {
 private extension DietaryTag {
     var editorTitle: String {
         switch self {
-        case .organic: "Biologique"
-        case .halal: "Halal"
-        case .kosher: "Casher"
-        case .vegetarian: "Végétarien"
-        case .vegan: "Végane"
-        case .glutenFree: "Sans gluten"
-        case .local: "Local"
+        case .organic: String(localized: "Biologique")
+        case .halal: String(localized: "Halal")
+        case .kosher: String(localized: "Casher")
+        case .vegetarian: String(localized: "Végétarien")
+        case .vegan: String(localized: "Végane")
+        case .glutenFree: String(localized: "Sans gluten")
+        case .local: String(localized: "Local")
         }
     }
 

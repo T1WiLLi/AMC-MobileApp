@@ -59,7 +59,7 @@ final class FirebaseAuthService: AuthService {
         }
 
         guard let idToken = googleResult.user.idToken?.tokenString else {
-            throw AuthError.failed("Jeton Google manquant.")
+            throw AuthError.failed(String(localized: "Jeton Google manquant."))
         }
         let credential = GoogleAuthProvider.credential(
             withIDToken: idToken,
@@ -89,7 +89,7 @@ final class FirebaseAuthService: AuthService {
         } catch {
             if (error as NSError).domain == AuthErrorDomain,
                AuthErrorCode(rawValue: (error as NSError).code) == .operationNotAllowed {
-                throw AuthError.failed("La connexion avec Apple n'est pas encore activée. Utilise Google ou ton courriel.")
+                throw AuthError.failed(String(localized: "La connexion avec Apple n'est pas encore activée. Utilise Google ou ton courriel."))
             }
             throw Self.authError(from: error)
         }
@@ -168,7 +168,7 @@ final class FirebaseAuthService: AuthService {
         let nsError = error as NSError
         guard nsError.domain == AuthErrorDomain, let code = AuthErrorCode(rawValue: nsError.code) else {
             if let urlError = error as? URLError, AppError(urlError) == .offline { return .network }
-            return .failed("Oups, un problème est survenu. Réessaie dans un instant.")
+            return .failed(String(localized: "Oups, un problème est survenu. Réessaie dans un instant."))
         }
         switch code {
         case .invalidEmail: return .invalidEmail
@@ -177,10 +177,10 @@ final class FirebaseAuthService: AuthService {
         case .wrongPassword, .invalidCredential, .userNotFound: return .wrongPassword
         case .tooManyRequests: return .tooManyRequests
         case .networkError: return .network
-        case .userDisabled: return .failed("Ce compte a été désactivé. Écris-nous pour le réactiver.")
-        case .operationNotAllowed: return .failed("La connexion par courriel n'est pas encore activée. Utilise Google pour l'instant.")
+        case .userDisabled: return .failed(String(localized: "Ce compte a été désactivé. Écris-nous pour le réactiver."))
+        case .operationNotAllowed: return .failed(String(localized: "La connexion par courriel n'est pas encore activée. Utilise Google pour l'instant."))
         case .userTokenExpired, .requiresRecentLogin, .invalidUserToken, .userMismatch: return .notSignedIn
-        default: return .failed("Oups, un problème est survenu. Réessaie dans un instant.")
+        default: return .failed(String(localized: "Oups, un problème est survenu. Réessaie dans un instant."))
         }
     }
 
@@ -262,7 +262,7 @@ private extension AuthUser {
     init(firebaseUser user: User) {
         self.init(
             id: user.uid,
-            displayName: user.displayName ?? "Utilisateur",
+            displayName: user.displayName ?? String(localized: "Utilisateur"),
             email: user.email ?? "",
             photoURL: user.photoURL,
             isEmailVerified: user.isEmailVerified,

@@ -91,11 +91,11 @@ nonisolated enum SolidarityLedger {
     static func addingSuspendedBasket(_ amountCents: Cents, to share: Share, in order: GroupOrder) throws -> Share {
         guard TierEngine.isOpen(order) else { throw AppError.orderClosed }
         guard amountCents > 0 else {
-            throw AppError.invalidInput("Choisis un montant plus grand que 0 $.")
+            throw AppError.invalidInput(String(localized: "Choisis un montant plus grand que 0 $."))
         }
         // Comparé sans additionner : un montant énorme ferait déborder l'addition (plantage, T-093).
         guard amountCents <= maxSuspendedAmountCents - share.suspendedAmountCents else {
-            throw AppError.invalidInput("Tu peux offrir jusqu'à 200 $ de paniers suspendus par commande.")
+            throw AppError.invalidInput(String(localized: "Tu peux offrir jusqu'à 200 $ de paniers suspendus par commande."))
         }
         var share = share
         share.suspendedAmountCents += amountCents
@@ -121,7 +121,7 @@ nonisolated enum SolidarityLedger {
     /// Ajoute un don direct au fonds (hors commande).
     static func donating(_ amountCents: Cents, to fund: SolidarityFund, date: Date = .now) throws -> SolidarityFund {
         guard amountCents > 0 else {
-            throw AppError.invalidInput("Choisis un montant plus grand que 0 $.")
+            throw AppError.invalidInput(String(localized: "Choisis un montant plus grand que 0 $."))
         }
         var fund = fund
         fund.entries.append(.init(kind: .contribution, orderId: nil, amountCents: amountCents, basketCount: 0, date: date))
@@ -143,7 +143,7 @@ nonisolated enum SolidarityLedger {
         date: Date = .now
     ) throws -> Application {
         guard fund.balanceCents >= 0 else {
-            throw AppError.invalidInput("Le fonds de solidarité ne peut pas être négatif.")
+            throw AppError.invalidInput(String(localized: "Le fonds de solidarité ne peut pas être négatif."))
         }
         let allocation = try ShareAllocator.allocate(
             orderId: orderId, offer: offer, shares: shares, unitPriceCents: unitPriceCents,
@@ -179,8 +179,8 @@ nonisolated enum SolidarityLedger {
     /// « 12 paniers suspendus offerts dans ton quartier ». En français, 0 et 1 restent au singulier.
     static func publicCounterText(basketsOffered: Int) -> String {
         let count = max(0, basketsOffered)
-        let noun = count < 2 ? "panier suspendu offert" : "paniers suspendus offerts"
-        return "\(count) \(noun) dans ton quartier"
+        let noun = count < 2 ? String(localized: "panier suspendu offert") : String(localized: "paniers suspendus offerts")
+        return String(localized: "\(count) \(noun) dans ton quartier")
     }
 
     /// Sous-titre du fonds : « 42,50 $ dans le fonds, de quoi offrir 4 paniers ».
@@ -189,9 +189,9 @@ nonisolated enum SolidarityLedger {
         let balance = Money.format(fund.balanceCents)
         let count = fund.basketsFundable(unitPriceCents: unitPriceCents)
         switch count {
-        case 0: return "\(balance) dans le fonds"
-        case 1: return "\(balance) dans le fonds, de quoi offrir 1 panier"
-        default: return "\(balance) dans le fonds, de quoi offrir \(count) paniers"
+        case 0: return String(localized: "\(balance) dans le fonds")
+        case 1: return String(localized: "\(balance) dans le fonds, de quoi offrir 1 panier")
+        default: return String(localized: "\(balance) dans le fonds, de quoi offrir \(count) paniers")
         }
     }
 }

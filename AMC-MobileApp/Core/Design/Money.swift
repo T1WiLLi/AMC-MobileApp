@@ -41,12 +41,12 @@ enum Money {
     /// Unité de prix à voix haute : « le kilo », « la livre », « par caisse ».
     static func spokenPerUnit(_ unit: String) -> String {
         switch unit.lowercased() {
-        case "kg": "le kilo"
-        case "g": "le gramme"
-        case "lb": "la livre"
-        case "l": "le litre"
-        case "ml": "le millilitre"
-        case "unité", "u": "l'unité"
+        case "kg": String(localized: "le kilo")
+        case "g": String(localized: "le gramme")
+        case "lb": String(localized: "la livre")
+        case "l": String(localized: "le litre")
+        case "ml": String(localized: "le millilitre")
+        case "unité", "u": String(localized: "l'unité")
         default: "par \(unit)"
         }
     }

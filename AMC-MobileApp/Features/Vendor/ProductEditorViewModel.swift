@@ -198,7 +198,7 @@ final class ProductEditorViewModel {
             let offers = try await repositories.offers.offers(ofVendor: vendorId)
             if offers.contains(where: { $0.productId == productId && [.active, .draft].contains($0.status) }) {
                 throw AppError.invalidInput(
-                    "Ce produit est dans un lot ouvert ou en pause : retire d'abord le lot, puis le produit."
+                    String(localized: "Ce produit est dans un lot ouvert ou en pause : retire d'abord le lot, puis le produit.")
                 )
             }
             try await repositories.vendors.deleteProduct(id: productId)
@@ -216,21 +216,21 @@ final class ProductEditorViewModel {
         let name = Self.trimmed(name)
         let unit = Self.trimmed(unit)
         let origin = Self.trimmed(origin)
-        guard !name.isEmpty else { throw .invalidInput("Donne un nom au produit.") }
-        guard name.count <= 80 else { throw .invalidInput("Le nom du produit doit faire 80 caractères ou moins.") }
+        guard !name.isEmpty else { throw .invalidInput(String(localized: "Donne un nom au produit.")) }
+        guard name.count <= 80 else { throw .invalidInput(String(localized: "Le nom du produit doit faire 80 caractères ou moins.")) }
         guard !unit.isEmpty else {
-            throw .invalidInput("Indique l'unité de vente (par exemple « sac de 10 kg » ou « douzaine »).")
+            throw .invalidInput(String(localized: "Indique l'unité de vente (par exemple « sac de 10 kg » ou « douzaine »)."))
         }
-        guard !origin.isEmpty else { throw .invalidInput("Indique la provenance du produit (par exemple « Mirabel, QC »).") }
+        guard !origin.isEmpty else { throw .invalidInput(String(localized: "Indique la provenance du produit (par exemple « Mirabel, QC »).")) }
         guard !Self.trimmed(referencePriceText).isEmpty else {
-            throw .invalidInput("Indique le prix en épicerie, pour calculer l'économie des familles.")
+            throw .invalidInput(String(localized: "Indique le prix en épicerie, pour calculer l'économie des familles."))
         }
         guard let cents = referenceGroceryPriceCents else {
-            throw .invalidInput("Le prix en épicerie doit être un montant comme « 3,49 ».")
+            throw .invalidInput(String(localized: "Le prix en épicerie doit être un montant comme « 3,49 »."))
         }
-        guard cents > 0 else { throw .invalidInput("Le prix en épicerie doit être supérieur à 0 $.") }
+        guard cents > 0 else { throw .invalidInput(String(localized: "Le prix en épicerie doit être supérieur à 0 $.")) }
         if let pendingPhotoData, pendingPhotoData.count > ProductPhoto.maxBytes {
-            throw .invalidInput("La photo doit faire 5 Mo ou moins. Choisis-en une autre.")
+            throw .invalidInput(String(localized: "La photo doit faire 5 Mo ou moins. Choisis-en une autre."))
         }
 
         let productId: String = switch mode {

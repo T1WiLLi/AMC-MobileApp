@@ -85,13 +85,13 @@ struct OfferCard: View {
 
     /// « 24 familles · 24 parts sur 40 »
     var progressText: String {
-        "\(FrenchPlural.count(committedHouseholds, "famille")) · \(FrenchPlural.count(committedShares, "part")) sur \(offer.totalShares)"
+        String(localized: "\(FrenchPlural.count(committedHouseholds, "famille")) · \(FrenchPlural.count(committedShares, "part")) sur \(offer.totalShares)")
     }
 
     /// Lecture VoiceOver courte : « Riz basmati, Ferme Lafleur, 2 dollars 60 le kilo, 37 pour cent moins cher… ».
     var accessibilityText: String {
         var parts = ["\(product.name), \(offer.shareUnit)", vendor.legalName, "ferme \(deadlineText)", Money.spoken(currentPriceCents, per: product.unit)]
-        if savingsPercent > 0 { parts.append("\(savingsPercent) pour cent moins cher qu'en épicerie") }
+        if savingsPercent > 0 { parts.append(String(localized: "\(savingsPercent) pour cent moins cher qu'en épicerie")) }
         parts.append(progressText)
         if let nudge = progressBar.shortNudge { parts.append(Self.spokenPercent(nudge)) }
         return parts.joined(separator: ", ")
@@ -99,7 +99,7 @@ struct OfferCard: View {
 
     /// « −19 % » se lit « tiret 19 pour cent » : on écrit le mot.
     static func spokenPercent(_ text: String) -> String {
-        text.replacingOccurrences(of: "−", with: "moins ").replacingOccurrences(of: " %", with: " pour cent")
+        text.replacingOccurrences(of: "−", with: "moins ").replacingOccurrences(of: " %", with: String(localized: " pour cent"))
     }
 
     private var isAccessibilityLayout: Bool { dynamicTypeSize.isAccessibilitySize }

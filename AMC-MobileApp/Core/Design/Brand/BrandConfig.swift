@@ -82,8 +82,8 @@ nonisolated struct BrandConfig: Sendable, Hashable {
         logo: Logo(symbol: "basket.fill"),
         colors: Colors(),
         texts: Texts(
-            tagline: "Achète en gros avec les familles de ton quartier, directement aux producteurs.",
-            welcome: "Bienvenue dans ton Grenier"
+            tagline: String(localized: "Achète en gros avec les familles de ton quartier, directement aux producteurs."),
+            welcome: String(localized: "Bienvenue dans ton Grenier")
         )
     )
 

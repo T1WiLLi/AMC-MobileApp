@@ -60,7 +60,7 @@ struct PriceTag: View {
     var accessibilityText: String {
         var text = Money.spoken(priceCents, per: unit)
         if let referenceCents, referenceCents > priceCents {
-            text += ", au lieu de \(Money.spoken(referenceCents)) en épicerie"
+            text += String(localized: ", au lieu de \(Money.spoken(referenceCents)) en épicerie")
         }
         return text
     }

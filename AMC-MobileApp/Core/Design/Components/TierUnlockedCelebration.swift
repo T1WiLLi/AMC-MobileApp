@@ -31,7 +31,7 @@ struct TierUnlockedCelebrationContent: Equatable, Sendable {
     /// Durée avant la fermeture automatique.
     static let autoDismissDelay: Duration = .seconds(3)
 
-    var title: String { "Palier débloqué !" }
+    var title: String { String(localized: "Palier débloqué !") }
 
     var oldPriceText: String { Money.format(oldPriceCents) }
     var newPriceText: String { Money.format(newPriceCents) }
@@ -39,7 +39,7 @@ struct TierUnlockedCelebrationContent: Equatable, Sendable {
 
     /// « Grâce à Parc-Ex Ouest, tout le monde paie 2,10 $/kg. »
     var message: String {
-        "Grâce à \(groupName), tout le monde paie \(newPriceText)\(unitSuffix)."
+        String(localized: "Grâce à \(groupName), tout le monde paie \(newPriceText)\(unitSuffix).")
     }
 
     /// Pilule d'économie, seulement si le nouveau prix économise vraiment quelque chose.
@@ -49,12 +49,12 @@ struct TierUnlockedCelebrationContent: Equatable, Sendable {
 
     /// Annonce VoiceOver : « Palier débloqué, nouveau prix 2 dollars 10 le kilo ».
     var announcement: String {
-        "Palier débloqué, nouveau prix \(Money.spoken(newPriceCents, per: unit))"
+        String(localized: "Palier débloqué, nouveau prix \(Money.spoken(newPriceCents, per: unit))")
     }
 
     /// Lecture du prix pour VoiceOver : « Nouveau prix 2 dollars 10 le kilo, au lieu de 2 dollars 60 ».
     var priceAccessibilityText: String {
-        "Nouveau prix \(Money.spoken(newPriceCents, per: unit)), au lieu de \(Money.spoken(oldPriceCents))"
+        String(localized: "Nouveau prix \(Money.spoken(newPriceCents, per: unit)), au lieu de \(Money.spoken(oldPriceCents))")
     }
 
     /// Lecture de l'unité pour VoiceOver (voir `Money.spokenPerUnit`).

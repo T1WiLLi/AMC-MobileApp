@@ -5,7 +5,7 @@ import SwiftUI
 /// sinon (ou tant que rien n'est chargé), propose des produits statiques filtrés localement.
 struct SearchScreen: View {
     var prompt: LocalizedStringKey = "Riz, farine, œufs…"
-    var emptyTitle = "Suggestions"
+    var emptyTitle = String(localized: "Suggestions")
     var emptyMessage: LocalizedStringKey = "Des produits d'ici, achetés en gros entre voisins."
     var suggestions: [Suggestion] = Suggestion.catalog
     /// true : les résultats viennent des lots actifs et ouvrent leur fiche (portail Familles).

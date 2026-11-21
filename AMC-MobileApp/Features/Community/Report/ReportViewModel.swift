@@ -53,8 +53,8 @@ final class ReportViewModel {
 
     /// Ce qui manque pour envoyer, à afficher sous le formulaire.
     var validationMessage: String? {
-        if isCommentTooLong { return "Le commentaire dépasse \(Self.commentMaxLength) caractères." }
-        if reason?.requiresComment == true, trimmedComment == nil { return "Ajoute quelques mots pour « Autre »." }
+        if isCommentTooLong { return String(localized: "Le commentaire dépasse \(Self.commentMaxLength) caractères.") }
+        if reason?.requiresComment == true, trimmedComment == nil { return String(localized: "Ajoute quelques mots pour « Autre ».") }
         return nil
     }
 

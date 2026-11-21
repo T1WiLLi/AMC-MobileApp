@@ -96,17 +96,17 @@ extension GrenierNotification {
     var title: String {
         switch event {
         case .tierUnlocked:
-            "Palier débloqué à \(order.groupName) !"
+            String(localized: "Palier débloqué à \(order.groupName) !")
         case .orderClosed:
-            "Commande fermée à \(order.groupName)"
+            String(localized: "Commande fermée à \(order.groupName)")
         case .orderCancelled:
-            "Commande annulée à \(order.groupName)"
+            String(localized: "Commande annulée à \(order.groupName)")
         case .deliveryArrived(let pickupPointName):
-            "C'est arrivé à \(pickupPointName) !"
+            String(localized: "C'est arrivé à \(pickupPointName) !")
         case .pickupReminder:
-            "Cueillette dans 1 h"
+            String(localized: "Cueillette dans 1 h")
         case .deadlineReminder:
-            "Plus que 24 h à \(order.groupName)"
+            String(localized: "Plus que 24 h à \(order.groupName)")
         }
     }
 
@@ -115,20 +115,20 @@ extension GrenierNotification {
         let product = order.productName.capitalizingFirstLetter
         switch event {
         case .tierUnlocked(let priceCents, let unit):
-            return "\(product) passe à \(Self.unitPrice(priceCents, unit: unit))."
+            return String(localized: "\(product) passe à \(Self.unitPrice(priceCents, unit: unit)).")
         case .orderClosed(let finalPriceCents, let unit):
-            return "Prix final : \(Self.unitPrice(finalPriceCents, unit: unit)). Ton code de cueillette t'attend dans l'app."
+            return String(localized: "Prix final : \(Self.unitPrice(finalPriceCents, unit: unit)). Ton code de cueillette t'attend dans l'app.")
         case .orderCancelled:
-            return "Le minimum n'a pas été atteint pour \(order.productName). Tu ne paies rien."
+            return String(localized: "Le minimum n'a pas été atteint pour \(order.productName). Tu ne paies rien.")
         case .deliveryArrived:
-            return "\(product) t'attend. Montre ton code QR à la cueillette."
+            return String(localized: "\(product) t'attend. Montre ton code QR à la cueillette.")
         case .pickupReminder(let pickupPointName, let slot):
             let start = Self.hour(slot.start, calendar: calendar)
             let end = Self.hour(slot.end, calendar: calendar)
-            return "\(product) t'attend à \(pickupPointName), de \(start) à \(end)."
+            return String(localized: "\(product) t'attend à \(pickupPointName), de \(start) à \(end).")
         case .deadlineReminder(let deadline):
             let hour = Self.hour(deadline, calendar: calendar)
-            return "\(product) : la commande ferme demain à \(hour). Invite tes voisins pour faire baisser le prix."
+            return String(localized: "\(product) : la commande ferme demain à \(hour). Invite tes voisins pour faire baisser le prix.")
         }
     }
 

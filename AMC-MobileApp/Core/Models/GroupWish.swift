@@ -16,10 +16,10 @@ nonisolated struct GroupWish: Identifiable, Codable, Sendable, Hashable {
         /// Libellé affiché, en français.
         var title: String {
             switch self {
-            case .once: "Une fois"
-            case .weekly: "Chaque semaine"
-            case .biweekly: "Aux deux semaines"
-            case .monthly: "Chaque mois"
+            case .once: String(localized: "Une fois")
+            case .weekly: String(localized: "Chaque semaine")
+            case .biweekly: String(localized: "Aux deux semaines")
+            case .monthly: String(localized: "Chaque mois")
             }
         }
     }
@@ -72,13 +72,13 @@ nonisolated struct GroupWish: Identifiable, Codable, Sendable, Hashable {
     /// Mêmes contrôles que `firestore.rules`, pour échouer tôt avec un message clair.
     func validate() throws {
         guard !groupId.isEmpty, !householdId.isEmpty else {
-            throw AppError.invalidInput("L'envie doit être rattachée à un groupe et à un ménage.")
+            throw AppError.invalidInput(String(localized: "L'envie doit être rattachée à un groupe et à un ménage."))
         }
         guard quantity > 0, quantity <= 10_000 else {
-            throw AppError.invalidInput("Indique une quantité entre 0 et 10 000.")
+            throw AppError.invalidInput(String(localized: "Indique une quantité entre 0 et 10 000."))
         }
         if let wantedFrom, let wantedUntil, wantedUntil < wantedFrom {
-            throw AppError.invalidInput("La fin de la période doit suivre son début.")
+            throw AppError.invalidInput(String(localized: "La fin de la période doit suivre son début."))
         }
     }
 }

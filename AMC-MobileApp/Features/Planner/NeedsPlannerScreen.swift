@@ -265,8 +265,8 @@ private struct NeedRow: View {
         .padding(.vertical, 4)
         .accessibilityElement(children: .combine)
         .accessibilityValue(isUnmatched
-            ? "Aucun lot ouvert"
-            : "Couvert à \(Int((coverage * 100).rounded())) %")
+            ? String(localized: "Aucun lot ouvert")
+            : String(localized: "Couvert à \(Int((coverage * 100).rounded())) %"))
     }
 }
 
@@ -280,7 +280,7 @@ private struct SuggestionsSection: View {
         switch viewModel.catalog {
         case .idle, .loading:
             ForEach(0..<3, id: \.self) { _ in
-                SuggestionRow(suggestion: .placeholder, needTitle: "Céréales")
+                SuggestionRow(suggestion: .placeholder, needTitle: String(localized: "Céréales"))
                     .redacted(reason: .placeholder)
             }
             .accessibilityLabel("Chargement des lots")
@@ -303,8 +303,8 @@ private struct SuggestionsSection: View {
                         .symbolRenderingMode(.hierarchical)
                 } description: {
                     Text(viewModel.needs.isEmpty
-                         ? "Ajoute un besoin pour voir les lots qui y répondent."
-                         : "Aucun lot ouvert ne répond à tes besoins pour l'instant. Reviens dans quelques jours.")
+                         ? String(localized: "Ajoute un besoin pour voir les lots qui y répondent.")
+                         : String(localized: "Aucun lot ouvert ne répond à tes besoins pour l'instant. Reviens dans quelques jours."))
                 }
             } else {
                 ForEach(result.suggestions) { suggestion in
@@ -371,12 +371,12 @@ private struct SuggestionRow: View {
         let shares = suggestion.fitsBudget ? suggestion.shares : suggestion.sharesToCoverNeed
         let part = shares > 1 ? "parts" : "part"
         let base = "\(shares) \(part) · \(suggestion.offer.shareUnit)"
-        return needTitle.isEmpty ? base : "\(base) · pour \(needTitle)"
+        return needTitle.isEmpty ? base : String(localized: "\(base) · pour \(needTitle)")
     }
 
     private var deadline: String {
         let date = suggestion.offer.deadline.formatted(.dateTime.weekday(.wide).day().month().locale(Locale(identifier: "fr_CA")))
-        return "Ferme \(date)"
+        return String(localized: "Ferme \(date)")
     }
 }
 
@@ -401,7 +401,7 @@ private struct AddNeedSheet: View {
     private enum Kind: String, CaseIterable, Identifiable {
         case category, product
         var id: Self { self }
-        var title: String { self == .category ? "Catégorie" : "Produit" }
+        var title: String { self == .category ? String(localized: "Catégorie") : String(localized: "Produit") }
     }
 
     @Environment(\.dismiss) private var dismiss

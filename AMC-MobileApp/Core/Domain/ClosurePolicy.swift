@@ -16,7 +16,7 @@ nonisolated enum ClosurePolicy {
     }
 
     /// Message montré à qui n'a pas le droit de fermer la commande.
-    static let notAllowedMessage = "Seuls la coordination du groupe et le vendeur du lot peuvent fermer cette commande."
+    static let notAllowedMessage = String(localized: "Seuls la coordination du groupe et le vendeur du lot peuvent fermer cette commande.")
 
     // MARK: RQ-053 (a) clôture automatique
 
@@ -53,7 +53,7 @@ nonisolated enum ClosurePolicy {
     ) throws -> (GroupOrder, TierEngine.ClosureOutcome) {
         guard TierEngine.isOpen(order) else { throw AppError.orderClosed }
         guard order.offerId == offer.id else {
-            throw AppError.invalidInput("Ce lot ne correspond pas à cette commande.")
+            throw AppError.invalidInput(String(localized: "Ce lot ne correspond pas à cette commande."))
         }
         guard isAllowed(user: user, membership: membership, offer: offer) else {
             throw AppError.invalidInput(notAllowedMessage)

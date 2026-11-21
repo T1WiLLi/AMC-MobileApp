@@ -96,7 +96,7 @@ private struct HouseholdForm: View {
                     .symbolEffect(.bounce, value: viewModel.saveCount)
                     .accessibilityHidden(true)
                 VStack(alignment: .leading, spacing: 4) {
-                    Text(viewModel.trimmedName.isEmpty ? "Ton ménage" : viewModel.trimmedName)
+                    Text(viewModel.trimmedName.isEmpty ? String(localized: "Ton ménage") : viewModel.trimmedName)
                         .font(.headline)
                     Text(summaryLine)
                         .font(.subheadline)
@@ -119,7 +119,7 @@ private struct HouseholdForm: View {
     }
 
     private var summaryLine: String {
-        let people = viewModel.size == 1 ? "1 personne" : "\(viewModel.size) personnes"
+        let people = viewModel.size == 1 ? String(localized: "1 personne") : "\(viewModel.size) personnes"
         guard let neighborhood = viewModel.neighborhood else { return people }
         return "\(people) · \(neighborhood.name)"
     }
@@ -142,7 +142,7 @@ private struct HouseholdForm: View {
             }
             Stepper(value: $viewModel.size, in: HouseholdProfileViewModel.sizeRange) {
                 Label {
-                    Text(viewModel.size == 1 ? "1 personne" : "\(viewModel.size) personnes")
+                    Text(viewModel.size == 1 ? String(localized: "1 personne") : "\(viewModel.size) personnes")
                         .contentTransition(.numericText())
                         .monospacedDigit()
                 } icon: {

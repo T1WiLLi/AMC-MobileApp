@@ -124,13 +124,13 @@ final class OfferFeedViewModel {
     /// Libellé français d'une étiquette (pour les puces de filtre).
     nonisolated static func title(of tag: DietaryTag) -> String {
         switch tag {
-        case .organic: "Bio"
-        case .halal: "Halal"
-        case .kosher: "Casher"
-        case .vegetarian: "Végétarien"
-        case .vegan: "Végane"
-        case .glutenFree: "Sans gluten"
-        case .local: "Local"
+        case .organic: String(localized: "Bio")
+        case .halal: String(localized: "Halal")
+        case .kosher: String(localized: "Casher")
+        case .vegetarian: String(localized: "Végétarien")
+        case .vegan: String(localized: "Végane")
+        case .glutenFree: String(localized: "Sans gluten")
+        case .local: String(localized: "Local")
         }
     }
 }

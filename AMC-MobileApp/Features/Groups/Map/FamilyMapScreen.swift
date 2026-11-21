@@ -300,8 +300,8 @@ private struct FamilyMapKindChip: View {
         .glassEffect(isOn ? .regular.tint(kind.color).interactive() : .regular.interactive(), in: .capsule)
         .animation(reduceMotion ? nil : .smooth, value: count)
         .accessibilityLabel("\(kind.pluralTitle), \(count)")
-        .accessibilityValue(isOn ? "affichés" : "masqués")
-        .accessibilityHint(isOn ? "Masque ces lieux" : "Affiche ces lieux")
+        .accessibilityValue(isOn ? String(localized: "affichés") : String(localized: "masqués"))
+        .accessibilityHint(isOn ? String(localized: "Masque ces lieux") : String(localized: "Affiche ces lieux"))
     }
 }
 
@@ -319,8 +319,8 @@ private struct FamilyMapOriginPill: View {
     }
 
     private var subtitle: String {
-        if isLocating { return "Recherche de ta position…" }
-        if viewModel.isUserLocationOutOfArea { return "Tu sembles loin : carte sur ton quartier" }
+        if isLocating { return String(localized: "Recherche de ta position…") }
+        if viewModel.isUserLocationOutOfArea { return String(localized: "Tu sembles loin : carte sur ton quartier") }
         return viewModel.summaryText
     }
 
@@ -334,7 +334,7 @@ private struct FamilyMapOriginPill: View {
                     .symbolEffect(.pulse, isActive: isLocating)
                     .frame(width: 24)
                 VStack(alignment: .leading, spacing: 0) {
-                    Text(viewModel.origin?.title ?? "Ton quartier")
+                    Text(viewModel.origin?.title ?? String(localized: "Ton quartier"))
                         .font(.subheadline.weight(.semibold))
                         .foregroundStyle(Color.texte)
                     Text(subtitle)
@@ -354,8 +354,8 @@ private struct FamilyMapOriginPill: View {
         .glassEffect(.regular.interactive(), in: .capsule)
         .accessibilityElement(children: .combine)
         .accessibilityHint(viewModel.origin?.isUserLocation == true
-                           ? "Recentre la carte sur ta position"
-                           : "Centre la carte sur ta position")
+                           ? String(localized: "Recentre la carte sur ta position")
+                           : String(localized: "Centre la carte sur ta position"))
     }
 }
 

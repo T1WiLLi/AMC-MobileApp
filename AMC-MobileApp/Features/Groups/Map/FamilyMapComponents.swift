@@ -122,7 +122,7 @@ struct FamilyMapLocationExplainer: View {
         .controlSize(.large)
 
         Button(action: onDecline) {
-            Text(neighborhood.map { "Rester \($0.lowercasedFirst)" } ?? "Rester sur mon quartier")
+            Text(neighborhood.map { String(localized: "Rester \($0.lowercasedFirst)") } ?? String(localized: "Rester sur mon quartier"))
                 .fontWeight(.semibold)
                 .frame(maxWidth: .infinity)
         }
@@ -188,9 +188,9 @@ struct FamilyMapPlaceCard: View {
         switch place.detail {
         case .group(let group, let isMember):
             row("person.2.fill", "\(group.householdCount) \(group.householdCount > 1 ? "familles" : "famille")")
-            row("circle.dashed", "Rayon de \(NeighborhoodMapLayout.distanceText(group.radiusMeters)) · \(group.neighborhood)")
+            row("circle.dashed", String(localized: "Rayon de \(NeighborhoodMapLayout.distanceText(group.radiusMeters)) · \(group.neighborhood)"))
             if isMember {
-                row("checkmark.seal.fill", "Tu en fais partie", tint: .economie)
+                row("checkmark.seal.fill", String(localized: "Tu en fais partie"), tint: .economie)
             }
         case .pickupPoint(let point):
             if let slot = point.slots.first {
@@ -201,11 +201,11 @@ struct FamilyMapPlaceCard: View {
             if !point.accessibility.isEmpty {
                 row("figure.roll", PickupPointFormatting.accessibilityText(point.accessibility))
             }
-            row("shippingbox.fill", "Jusqu'à \(point.capacity) parts")
+            row("shippingbox.fill", String(localized: "Jusqu'à \(point.capacity) parts"))
         case .producer(let vendor, _, let openOfferCount):
-            row("storefront.fill", Self.kindText(vendor.kind) + (vendor.isVerified ? " · vérifié" : ""))
+            row("storefront.fill", Self.kindText(vendor.kind) + (vendor.isVerified ? String(localized: " · vérifié") : ""))
             if let rating = vendor.averageRating {
-                row("star.fill", rating.formatted(.number.precision(.fractionLength(1)).locale(Locale(identifier: "fr_CA"))) + " sur 5")
+                row("star.fill", rating.formatted(.number.precision(.fractionLength(1)).locale(Locale(identifier: "fr_CA"))) + String(localized: " sur 5"))
             }
             if !vendor.description.isEmpty {
                 Text(vendor.description)
@@ -214,7 +214,7 @@ struct FamilyMapPlaceCard: View {
                     .lineLimit(3)
             }
             row("tag.fill", openOfferCount == 0
-                ? "Pas de lot ouvert en ce moment"
+                ? String(localized: "Pas de lot ouvert en ce moment")
                 : "\(openOfferCount) \(openOfferCount > 1 ? "lots ouverts" : "lot ouvert")")
         }
     }
@@ -274,11 +274,11 @@ struct FamilyMapPlaceCard: View {
     /// « Ferme », « Boulangerie »…
     static func kindText(_ kind: Vendor.Kind) -> String {
         switch kind {
-        case .farm: "Ferme"
-        case .wholesaler: "Grossiste"
-        case .cooperative: "Coopérative"
-        case .bakery: "Boulangerie"
-        case .other: "Producteur"
+        case .farm: String(localized: "Ferme")
+        case .wholesaler: String(localized: "Grossiste")
+        case .cooperative: String(localized: "Coopérative")
+        case .bakery: String(localized: "Boulangerie")
+        case .other: String(localized: "Producteur")
         }
     }
 }

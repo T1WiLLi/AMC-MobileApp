@@ -48,16 +48,16 @@ struct SavingsBadge: View {
 
     private var label: String {
         switch kind {
-        case .percent(let value): compact ? "−\(value) %" : "−\(value) % vs épicerie"
-        case .amount(let cents): "\(Money.formatRounded(cents)) économisés"
+        case .percent(let value): compact ? "−\(value) %" : String(localized: "−\(value) % vs épicerie")
+        case .amount(let cents): String(localized: "\(Money.formatRounded(cents)) économisés")
         }
     }
 
     /// « 37 pour cent moins cher qu'en épicerie », « 48 dollars économisés ».
     var accessibilityText: String {
         switch kind {
-        case .percent(let value): "\(value) pour cent moins cher qu'en épicerie"
-        case .amount(let cents): "\(Money.spoken(cents)) économisés"
+        case .percent(let value): String(localized: "\(value) pour cent moins cher qu'en épicerie")
+        case .amount(let cents): String(localized: "\(Money.spoken(cents)) économisés")
         }
     }
 }

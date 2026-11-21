@@ -28,18 +28,18 @@ final class FamilyMapViewModel {
         /// « Groupes », « Cueillettes », « Producteurs » (puces de filtre).
         var pluralTitle: String {
             switch self {
-            case .group: "Groupes"
-            case .pickupPoint: "Cueillettes"
-            case .producer: "Producteurs"
+            case .group: String(localized: "Groupes")
+            case .pickupPoint: String(localized: "Cueillettes")
+            case .producer: String(localized: "Producteurs")
             }
         }
 
         /// « Groupe de quartier », « Point de cueillette », « Producteur » (carte du bas, VoiceOver).
         var title: String {
             switch self {
-            case .group: "Groupe de quartier"
-            case .pickupPoint: "Point de cueillette"
-            case .producer: "Producteur"
+            case .group: String(localized: "Groupe de quartier")
+            case .pickupPoint: String(localized: "Point de cueillette")
+            case .producer: String(localized: "Producteur")
             }
         }
 
@@ -62,9 +62,9 @@ final class FamilyMapViewModel {
         var meters: Double { Double(rawValue) }
         var title: String {
             switch self {
-            case .oneKilometer: "1 km"
-            case .oneAndHalfKilometers: "1,5 km"
-            case .twoKilometers: "2 km"
+            case .oneKilometer: String(localized: "1 km")
+            case .oneAndHalfKilometers: String(localized: "1,5 km")
+            case .twoKilometers: String(localized: "2 km")
             }
         }
     }
@@ -88,9 +88,9 @@ final class FamilyMapViewModel {
         /// « Autour de toi », « Autour de Saint-Michel », « Autour de ton quartier ».
         var title: String {
             switch self {
-            case .userLocation: "Autour de toi"
-            case .household(_, let neighborhood?) where !neighborhood.isEmpty: "Autour de \(neighborhood)"
-            case .household: "Autour de ton quartier"
+            case .userLocation: String(localized: "Autour de toi")
+            case .household(_, let neighborhood?) where !neighborhood.isEmpty: String(localized: "Autour de \(neighborhood)")
+            case .household: String(localized: "Autour de ton quartier")
             }
         }
     }
@@ -209,7 +209,7 @@ final class FamilyMapViewModel {
     var summaryText: String {
         let count = places.count
         let noun = count > 1 ? "lieux" : "lieu"
-        return "\(count) \(noun) à moins de \(radius.title)"
+        return String(localized: "\(count) \(noun) à moins de \(radius.title)")
     }
 
     // MARK: Actions
@@ -236,7 +236,7 @@ final class FamilyMapViewModel {
                 offers: try await offers
             )
             guard let center = Geohash.center(of: household.geohash) else {
-                throw AppError.invalidInput("La position du ménage est inconnue.")
+                throw AppError.invalidInput(String(localized: "La position du ménage est inconnue."))
             }
             let neighborhood = await userNeighborhood ?? mine.first?.neighborhood
             let home = Origin.household(center, neighborhood: neighborhood)

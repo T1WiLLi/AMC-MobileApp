@@ -59,12 +59,12 @@ struct ImpactSummaryCard: View {
                 stat(
                     value: snapshot.neighborhoodSavedCents, format: .money, tint: .economie,
                     systemImage: GrenierSymbol.savings,
-                    caption: "économisés par ton quartier"
+                    caption: String(localized: "économisés par ton quartier")
                 )
                 stat(
                     value: snapshot.suspendedBasketsOffered, format: .integer(), tint: .solidarite,
                     systemImage: GrenierSymbol.solidarity,
-                    caption: snapshot.suspendedBasketsOffered > 1 ? "paniers suspendus offerts" : "panier suspendu offert"
+                    caption: snapshot.suspendedBasketsOffered > 1 ? String(localized: "paniers suspendus offerts") : String(localized: "panier suspendu offert")
                 )
             }
         }
@@ -95,7 +95,7 @@ struct ImpactSummaryCard: View {
 
     // MARK: - Textes (testés)
 
-    var greeting: String { "Bravo \(snapshot.firstName) !" }
+    var greeting: String { String(localized: "Bravo \(snapshot.firstName) !") }
 
     /// « Novembre à Parc-Extension »
     var subtitle: String {
@@ -107,9 +107,9 @@ struct ImpactSummaryCard: View {
     /// « Amina, tu as économisé 48 $ ce mois-ci. Ton quartier a économisé 3 900 $. 12 paniers suspendus offerts. »
     var accessibilitySummary: String {
         let s = snapshot
-        let baskets = ImpactFormat.plural(s.suspendedBasketsOffered, "panier suspendu offert", "paniers suspendus offerts")
-        return "\(s.firstName), tu as économisé \(Money.formatRounded(s.currentMonthSavedCents)) ce mois-ci. "
-            + "Ton quartier a économisé \(Money.formatRounded(s.neighborhoodSavedCents)). \(baskets)."
+        let baskets = ImpactFormat.plural(s.suspendedBasketsOffered, String(localized: "panier suspendu offert"), String(localized: "paniers suspendus offerts"))
+        return String(localized: "\(s.firstName), tu as économisé \(Money.formatRounded(s.currentMonthSavedCents)) ce mois-ci. ")
+            + String(localized: "Ton quartier a économisé \(Money.formatRounded(s.neighborhoodSavedCents)). \(baskets).")
     }
 }
 

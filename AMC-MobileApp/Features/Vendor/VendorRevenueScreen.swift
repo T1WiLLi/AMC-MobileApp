@@ -140,11 +140,11 @@ private struct TotalCard: View {
 
     private var caption: String {
         let count = revenue.offers.count
-        let lots = count == 1 ? "1 lot ouvert" : "\(count) lots ouverts"
+        let lots = count == 1 ? String(localized: "1 lot ouvert") : String(localized: "\(count) lots ouverts")
         if let top = revenue.topOffer {
-            return "\(lots) · surtout \(top.title.lowercased())"
+            return String(localized: "\(lots) · surtout \(top.title.lowercased())")
         }
-        return "\(lots) · aucun palier atteint pour l'instant"
+        return String(localized: "\(lots) · aucun palier atteint pour l'instant")
     }
 }
 
@@ -197,7 +197,7 @@ private struct KeyFigures: View {
             : AnyLayout(HStackLayout(alignment: .top, spacing: 12))
         layout {
             FigureTile(
-                title: "Familles servies",
+                title: String(localized: "Familles servies"),
                 value: revenue.familiesServed,
                 detail: neighborhoodsDetail,
                 detailImage: GrenierSymbol.map,
@@ -205,9 +205,9 @@ private struct KeyFigures: View {
                 tint: .solidarite
             )
             FigureTile(
-                title: "Parts engagées",
+                title: String(localized: "Parts engagées"),
                 value: revenue.committedShares,
-                detail: "sur \(revenue.totalShares.formatted()) offertes",
+                detail: String(localized: "sur \(revenue.totalShares.formatted()) offertes"),
                 detailImage: "chart.pie.fill",
                 systemImage: GrenierSymbol.offers,
                 tint: .grenier
@@ -217,9 +217,9 @@ private struct KeyFigures: View {
 
     private var neighborhoodsDetail: String {
         switch revenue.neighborhoods.count {
-        case 0: "aucun quartier encore"
-        case 1: "dans 1 quartier"
-        case let count: "dans \(count) quartiers"
+        case 0: String(localized: "aucun quartier encore")
+        case 1: String(localized: "dans 1 quartier")
+        case let count: String(localized: "dans \(count) quartiers")
         }
     }
 }
@@ -276,18 +276,18 @@ private struct OfferRevenueChart: View {
         Chart(offers) { offer in
             // Piste derrière chaque barre, comme les paliers.
             BarMark(
-                xStart: .value("Début", 0),
-                xEnd: .value("Maximum", maxDollars),
-                y: .value("Lot", offer.title),
+                xStart: .value(String(localized: "Début"), 0),
+                xEnd: .value(String(localized: "Maximum"), maxDollars),
+                y: .value(String(localized: "Lot"), offer.title),
                 height: .fixed(barThickness)
             )
             .foregroundStyle(Color.piste)
             .clipShape(.capsule)
 
             BarMark(
-                xStart: .value("Début", 0),
-                xEnd: .value("Revenu prévu", Double(offer.revenueCents) / 100),
-                y: .value("Lot", offer.title),
+                xStart: .value(String(localized: "Début"), 0),
+                xEnd: .value(String(localized: "Revenu prévu"), Double(offer.revenueCents) / 100),
+                y: .value(String(localized: "Lot"), offer.title),
                 height: .fixed(barThickness)
             )
             .foregroundStyle(Color.grenier)
@@ -346,24 +346,24 @@ private struct OfferRevenueChartDescriptor: AXChartDescriptorRepresentable {
 
     func makeChartDescriptor() -> AXChartDescriptor {
         let maxDollars = max(Double(offers.map(\.revenueCents).max() ?? 0) / 100, 1)
-        let xAxis = AXCategoricalDataAxisDescriptor(title: "Lot", categoryOrder: offers.map(\.title))
-        let yAxis = AXNumericDataAxisDescriptor(title: "Revenu prévu", range: 0...maxDollars, gridlinePositions: []) { value in
+        let xAxis = AXCategoricalDataAxisDescriptor(title: String(localized: "Lot"), categoryOrder: offers.map(\.title))
+        let yAxis = AXNumericDataAxisDescriptor(title: String(localized: "Revenu prévu"), range: 0...maxDollars, gridlinePositions: []) { value in
             Money.format(Cents((value * 100).rounded()))
         }
         let series = AXDataSeriesDescriptor(
-            name: "Revenus prévus par lot",
+            name: String(localized: "Revenus prévus par lot"),
             isContinuous: false,
             dataPoints: offers.map { offer in
                 AXDataPoint(
                     x: offer.title,
                     y: Double(offer.revenueCents) / 100,
-                    label: "\(offer.committedShares) parts sur \(offer.totalShares)"
+                    label: String(localized: "\(offer.committedShares) parts sur \(offer.totalShares)")
                 )
             }
         )
         return AXChartDescriptor(
-            title: "Revenus prévus par lot",
-            summary: offers.first.map { "\($0.title) rapporte le plus : \(Money.format($0.revenueCents))." },
+            title: String(localized: "Revenus prévus par lot"),
+            summary: offers.first.map { String(localized: "\($0.title) rapporte le plus : \(Money.format($0.revenueCents)).") },
             xAxis: xAxis,
             yAxis: yAxis,
             additionalAxes: [],
@@ -446,7 +446,7 @@ private struct NeighborhoodRow: View {
     private var groupsText: String { entry.groupNames.formatted(.list(type: .and)) }
 
     private var familiesText: String {
-        entry.households == 1 ? "1 famille" : "\(entry.households) familles"
+        entry.households == 1 ? String(localized: "1 famille") : "\(entry.households) familles"
     }
 }
 
@@ -561,7 +561,7 @@ private struct DeliveryCard: View {
     @ViewBuilder
     private var orderLabel: some View {
         if let group = delivery.groupName {
-            let shares = delivery.shares == 1 ? "1 part" : "\(delivery.shares) parts"
+            let shares = delivery.shares == 1 ? String(localized: "1 part") : "\(delivery.shares) parts"
             Label("\(group) · \(shares) · \(Money.format(delivery.revenueCents))", systemImage: GrenierSymbol.groups)
                 .font(.subheadline)
                 .foregroundStyle(.texteSecondaire)
@@ -580,11 +580,11 @@ private struct DeliveryCard: View {
     }
 
     private var closesText: String {
-        "Ferme \(delivery.deadline.formatted(.relative(presentation: .named)))"
+        String(localized: "Ferme \(delivery.deadline.formatted(.relative(presentation: .named)))")
     }
 
     private var pickupText: String {
-        delivery.pickupPointName ?? "Point de cueillette à choisir"
+        delivery.pickupPointName ?? String(localized: "Point de cueillette à choisir")
     }
 }
 

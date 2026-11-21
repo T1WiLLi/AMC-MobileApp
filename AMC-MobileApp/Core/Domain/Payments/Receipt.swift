@@ -39,10 +39,10 @@ nonisolated struct Receipt: Sendable, Equatable {
         payment: PaymentRecord? = nil
     ) throws -> Receipt {
         guard share.quantity > 0 else {
-            throw AppError.invalidInput("Cette part est vide.")
+            throw AppError.invalidInput(String(localized: "Cette part est vide."))
         }
         guard referencePricePerShareCents >= 0 else {
-            throw AppError.invalidInput("Montants négatifs.")
+            throw AppError.invalidInput(String(localized: "Montants négatifs."))
         }
         let total = try PaymentSimulator.amountDue(for: share)
         let finalPrice = share.finalPriceCents ?? 0
@@ -73,35 +73,35 @@ extension Receipt {
     @MainActor
     func plainText() -> String {
         var lines = [
-            "Reçu Grenier",
+            String(localized: "Reçu Grenier"),
             "\(productName) : \(quantity) × \(shareUnit)",
-            "Prix par part : \(Money.format(unitPriceCents))",
-            "Prix final : \(Money.format(finalPriceCents))",
-            "Prix en épicerie : \(Money.format(referencePriceCents))",
+            String(localized: "Prix par part : \(Money.format(unitPriceCents))"),
+            String(localized: "Prix final : \(Money.format(finalPriceCents))"),
+            String(localized: "Prix en épicerie : \(Money.format(referencePriceCents))"),
         ]
         if savingsCents > 0 {
             let percent = Money.savingsPercent(price: finalPriceCents, reference: referencePriceCents)
-            lines.append("Tu économises \(Money.format(savingsCents)) (\(percent) %)")
+            lines.append(String(localized: "Tu économises \(Money.format(savingsCents)) (\(percent) %)"))
         }
         if subsidyCents > 0 {
-            lines.append("Payé par le fonds de solidarité : −\(Money.format(subsidyCents))")
+            lines.append(String(localized: "Payé par le fonds de solidarité : −\(Money.format(subsidyCents))"))
         }
         if donationCents > 0 {
-            lines.append("Ton don pour un panier suspendu : +\(Money.format(donationCents))")
+            lines.append(String(localized: "Ton don pour un panier suspendu : +\(Money.format(donationCents))"))
         }
         if let payment, isPaid {
-            lines.append("Total payé : \(Money.format(totalCents))")
+            lines.append(String(localized: "Total payé : \(Money.format(totalCents))"))
             let date = payment.date.formatted(
                 .dateTime.day().month(.wide).year().locale(Locale(identifier: "fr_CA"))
             )
-            lines.append("Payé avec \(payment.methodLabel) le \(date)")
+            lines.append(String(localized: "Payé avec \(payment.methodLabel) le \(date)"))
         } else {
-            lines.append("Total à payer : \(Money.format(totalCents))")
+            lines.append(String(localized: "Total à payer : \(Money.format(totalCents))"))
         }
         if donationCents > 0 {
-            lines.append("Merci pour ton geste solidaire !")
+            lines.append(String(localized: "Merci pour ton geste solidaire !"))
         }
-        lines.append("Merci d'acheter avec ton quartier !")
+        lines.append(String(localized: "Merci d'acheter avec ton quartier !"))
         return lines.joined(separator: "\n")
     }
 }

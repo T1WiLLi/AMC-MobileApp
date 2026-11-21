@@ -32,32 +32,32 @@ nonisolated enum PickupDesk {
 
         var title: String {
             switch self {
-            case .pickedUp: "Part remise"
-            case .alreadyPickedUp: "Déjà cueillie"
-            case .unknownCode: "Code inconnu"
-            case .wrongOrder: "Mauvaise commande"
-            case .orderNotReady: "Commande pas prête"
+            case .pickedUp: String(localized: "Part remise")
+            case .alreadyPickedUp: String(localized: "Déjà cueillie")
+            case .unknownCode: String(localized: "Code inconnu")
+            case .wrongOrder: String(localized: "Mauvaise commande")
+            case .orderNotReady: String(localized: "Commande pas prête")
             }
         }
 
         var message: String {
             switch self {
             case .pickedUp(let share):
-                "C'est bon ! Remets \(PickupDesk.sharesLabel(share.quantity)) à ce ménage."
+                String(localized: "C'est bon ! Remets \(PickupDesk.sharesLabel(share.quantity)) à ce ménage.")
             case .alreadyPickedUp:
-                "Cette part a déjà été remise. Ne la donne pas une deuxième fois."
+                String(localized: "Cette part a déjà été remise. Ne la donne pas une deuxième fois.")
             case .unknownCode:
-                "Ce code ne correspond à aucune part de cette commande. Demande au ménage d'ouvrir son code dans l'app."
+                String(localized: "Ce code ne correspond à aucune part de cette commande. Demande au ménage d'ouvrir son code dans l'app.")
             case .wrongOrder:
-                "Ce code est pour une autre commande. Vérifie que tu as ouvert la bonne cueillette."
+                String(localized: "Ce code est pour une autre commande. Vérifie que tu as ouvert la bonne cueillette.")
             case .orderNotReady(let status):
                 switch status {
                 case .open, .reached:
-                    "La commande est encore ouverte : attends qu'elle soit fermée et livrée chez toi."
+                    String(localized: "La commande est encore ouverte : attends qu'elle soit fermée et livrée chez toi.")
                 case .cancelled:
-                    "Cette commande a été annulée : il n'y a rien à remettre."
+                    String(localized: "Cette commande a été annulée : il n'y a rien à remettre.")
                 case .closed, .delivered:
-                    "La commande n'est pas prête."
+                    String(localized: "La commande n'est pas prête.")
                 }
             }
         }
@@ -120,10 +120,10 @@ nonisolated enum PickupDesk {
         var isComplete: Bool { totalCount > 0 && missingCount == 0 }
 
         var summary: String {
-            if totalCount == 0 { return "Aucune part à remettre." }
-            if isComplete { return "Tout le monde est passé !" }
-            let waiting = missingCount == 1 ? "1 ménage attendu" : "\(missingCount) ménages attendus"
-            return "\(pickedUpCount) sur \(totalCount) passés · \(waiting)"
+            if totalCount == 0 { return String(localized: "Aucune part à remettre.") }
+            if isComplete { return String(localized: "Tout le monde est passé !") }
+            let waiting = missingCount == 1 ? String(localized: "1 ménage attendu") : String(localized: "\(missingCount) ménages attendus")
+            return String(localized: "\(pickedUpCount) sur \(totalCount) passés · \(waiting)")
         }
     }
 
@@ -135,7 +135,7 @@ nonisolated enum PickupDesk {
             .map { share in
                 Checklist.Entry(
                     householdId: share.householdId,
-                    displayName: displayNames[share.householdId] ?? "Ménage \(share.householdId)",
+                    displayName: displayNames[share.householdId] ?? String(localized: "Ménage \(share.householdId)"),
                     quantity: share.quantity,
                     isPickedUp: share.isPickedUp
                 )

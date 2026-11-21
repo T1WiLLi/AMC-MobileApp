@@ -18,7 +18,7 @@ struct LiveActivityDemoButton: View {
                 }
             }
         } label: {
-            Label(controller.isActive ? "Terminer l'activité en direct" : "Démo activité en direct",
+            Label(controller.isActive ? String(localized: "Terminer l'activité en direct") : String(localized: "Démo activité en direct"),
                   systemImage: controller.isActive ? "stop.circle.fill" : "livephoto.play")
                 .symbolRenderingMode(.hierarchical)
                 .contentTransition(.symbolEffect(.replace))

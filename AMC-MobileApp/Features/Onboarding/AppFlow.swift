@@ -108,10 +108,10 @@ final class PortalChoiceViewModel {
     /// Phrase sous les cartes, qui suit la sélection.
     var hint: String {
         switch choice {
-        case nil: "Choisis une carte, ou les deux."
-        case .family: "Tu pourras aussi vendre plus tard, depuis ton profil."
-        case .vendor: "Tu pourras aussi acheter avec ton quartier, depuis ton profil."
-        case .both: "Les deux : tu passeras de l'un à l'autre dans ton profil."
+        case nil: String(localized: "Choisis une carte, ou les deux.")
+        case .family: String(localized: "Tu pourras aussi vendre plus tard, depuis ton profil.")
+        case .vendor: String(localized: "Tu pourras aussi acheter avec ton quartier, depuis ton profil.")
+        case .both: String(localized: "Les deux : tu passeras de l'un à l'autre dans ton profil.")
         }
     }
 

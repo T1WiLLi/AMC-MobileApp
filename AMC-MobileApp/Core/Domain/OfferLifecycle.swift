@@ -45,43 +45,43 @@ nonisolated enum OfferLifecycle {
     /// `sortedTiers`, comme TierEngine), seuils distincts,
     /// seuils entre 1 et le total, prix > 0, minimum pour lancer entre 1 et le total, date limite future.
     static func validate(_ offer: Offer, now: Date = .now) throws(AppError) {
-        guard offer.totalShares > 0 else { throw .invalidInput("Le lot doit contenir au moins une part.") }
+        guard offer.totalShares > 0 else { throw .invalidInput(String(localized: "Le lot doit contenir au moins une part.")) }
         guard !offer.shareUnit.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
-            throw .invalidInput("Indique ce que contient une part (par exemple « sac de 10 kg »).")
+            throw .invalidInput(String(localized: "Indique ce que contient une part (par exemple « sac de 10 kg »)."))
         }
-        guard !offer.tiers.isEmpty else { throw .invalidInput("Ajoute au moins un palier de prix.") }
+        guard !offer.tiers.isEmpty else { throw .invalidInput(String(localized: "Ajoute au moins un palier de prix.")) }
         let tiers = offer.sortedTiers
         for (index, tier) in tiers.enumerated() {
             let rank = index + 1
             guard tier.minShares >= 1 else {
-                throw .invalidInput("Le seuil du palier \(rank) doit être d'au moins 1 part.")
+                throw .invalidInput(String(localized: "Le seuil du palier \(rank) doit être d'au moins 1 part."))
             }
             guard tier.priceCents > 0 else {
-                throw .invalidInput("Le prix du palier \(rank) doit être supérieur à 0 $.")
+                throw .invalidInput(String(localized: "Le prix du palier \(rank) doit être supérieur à 0 $."))
             }
             guard tier.minShares <= offer.totalShares else {
                 throw .invalidInput(
-                    "Le seuil du palier \(rank) (\(tier.minShares) parts) dépasse le total du lot (\(offer.totalShares) parts)."
+                    String(localized: "Le seuil du palier \(rank) (\(tier.minShares) parts) dépasse le total du lot (\(offer.totalShares) parts).")
                 )
             }
             if index > 0 {
                 let previous = tiers[index - 1]
                 guard tier.minShares > previous.minShares else {
                     throw .invalidInput(
-                        "Le seuil du palier \(rank) doit être plus grand que celui du palier \(rank - 1) (\(previous.minShares) parts)."
+                        String(localized: "Le seuil du palier \(rank) doit être plus grand que celui du palier \(rank - 1) (\(previous.minShares) parts).")
                     )
                 }
                 guard tier.priceCents < previous.priceCents else {
                     throw .invalidInput(
-                        "Le prix du palier \(rank) doit être plus bas que celui du palier \(rank - 1) (\(format(previous.priceCents)))."
+                        String(localized: "Le prix du palier \(rank) doit être plus bas que celui du palier \(rank - 1) (\(format(previous.priceCents))).")
                     )
                 }
             }
         }
         guard offer.minimumSharesToLaunch >= 1, offer.minimumSharesToLaunch <= offer.totalShares else {
-            throw .invalidInput("Le minimum pour lancer la commande doit être entre 1 et \(offer.totalShares) parts.")
+            throw .invalidInput(String(localized: "Le minimum pour lancer la commande doit être entre 1 et \(offer.totalShares) parts."))
         }
-        guard offer.deadline > now else { throw .invalidInput("La date limite doit être dans le futur.") }
+        guard offer.deadline > now else { throw .invalidInput(String(localized: "La date limite doit être dans le futur.")) }
     }
 
     // MARK: RQ-036 modifier
@@ -93,22 +93,22 @@ nonisolated enum OfferLifecycle {
         _ original: Offer, to proposed: Offer, committedShares: Int, now: Date = .now
     ) throws(AppError) -> Offer {
         guard original.status == .draft || original.status == .active else {
-            throw .invalidInput("Ce lot est \(label(original.status)) : tu ne peux plus le modifier.")
+            throw .invalidInput(String(localized: "Ce lot est \(label(original.status)) : tu ne peux plus le modifier."))
         }
         guard proposed.id == original.id, proposed.vendorId == original.vendorId,
               proposed.productId == original.productId else {
-            throw .invalidInput("Tu ne peux pas changer le produit d'un lot. Crée plutôt un nouveau lot.")
+            throw .invalidInput(String(localized: "Tu ne peux pas changer le produit d'un lot. Crée plutôt un nouveau lot."))
         }
         var result = proposed
         result.status = original.status
 
         if committedShares > 0 {
             guard proposed.shareUnit == original.shareUnit else {
-                throw .invalidInput("Des parts sont déjà engagées : tu ne peux plus changer ce que contient une part.")
+                throw .invalidInput(String(localized: "Des parts sont déjà engagées : tu ne peux plus changer ce que contient une part."))
             }
             guard proposed.totalShares >= committedShares else {
                 throw .invalidInput(
-                    "Des voisins ont déjà engagé \(committedShares) parts : le lot doit en compter au moins autant."
+                    String(localized: "Des voisins ont déjà engagé \(committedShares) parts : le lot doit en compter au moins autant.")
                 )
             }
             let thresholds = Set([0] + original.tiers.map(\.minShares) + proposed.tiers.map(\.minShares))
@@ -117,18 +117,18 @@ nonisolated enum OfferLifecycle {
                       let oldPrice = unitPrice(original, at: shares) else { continue }
                 guard newPrice <= oldPrice else {
                     throw .invalidInput(
-                        "Des parts sont déjà engagées : tu ne peux pas augmenter un prix (\(format(oldPrice)) à partir de \(max(shares, 1)) parts)."
+                        String(localized: "Des parts sont déjà engagées : tu ne peux pas augmenter un prix (\(format(oldPrice)) à partir de \(max(shares, 1)) parts).")
                     )
                 }
             }
             guard proposed.minimumSharesToLaunch <= original.minimumSharesToLaunch else {
-                throw .invalidInput("Des parts sont déjà engagées : tu ne peux pas monter le minimum pour lancer la commande.")
+                throw .invalidInput(String(localized: "Des parts sont déjà engagées : tu ne peux pas monter le minimum pour lancer la commande."))
             }
             guard proposed.deadline >= original.deadline else {
-                throw .invalidInput("Des parts sont déjà engagées : tu peux seulement repousser la date limite.")
+                throw .invalidInput(String(localized: "Des parts sont déjà engagées : tu peux seulement repousser la date limite."))
             }
             guard Set(original.zones).isSubset(of: proposed.zones) else {
-                throw .invalidInput("Des parts sont déjà engagées : tu ne peux pas retirer une zone de livraison.")
+                throw .invalidInput(String(localized: "Des parts sont déjà engagées : tu ne peux pas retirer une zone de livraison."))
             }
         }
         try validate(result, now: now)
@@ -139,10 +139,10 @@ nonisolated enum OfferLifecycle {
 
     static func pause(_ offer: Offer, now: Date = .now) throws(AppError) -> PausedOffer {
         guard offer.status == .active else {
-            throw .invalidInput("Seul un lot publié peut être mis en pause.")
+            throw .invalidInput(String(localized: "Seul un lot publié peut être mis en pause."))
         }
         guard offer.deadline > now else {
-            throw .invalidInput("La date limite de ce lot est passée : tu ne peux plus le mettre en pause.")
+            throw .invalidInput(String(localized: "La date limite de ce lot est passée : tu ne peux plus le mettre en pause."))
         }
         return PausedOffer(original: offer, pausedAt: now)
     }
@@ -150,7 +150,7 @@ nonisolated enum OfferLifecycle {
     /// Republie le lot. La date limite est repoussée de la durée de la pause : le temps en pause ne compte pas.
     static func resume(_ paused: PausedOffer, now: Date = .now) throws(AppError) -> Offer {
         guard now >= paused.pausedAt else {
-            throw .invalidInput("La reprise ne peut pas précéder la pause.")
+            throw .invalidInput(String(localized: "La reprise ne peut pas précéder la pause."))
         }
         var offer = paused.original
         offer.status = .active
@@ -165,7 +165,7 @@ nonisolated enum OfferLifecycle {
     /// Les commandes d'autres lots ou déjà fermées sont ignorées.
     static func withdraw(_ offer: Offer, orders: [GroupOrder]) throws(AppError) -> Withdrawal {
         guard offer.status == .draft || offer.status == .active else {
-            throw .invalidInput("Ce lot est \(label(offer.status)) : tu ne peux plus le retirer.")
+            throw .invalidInput(String(localized: "Ce lot est \(label(offer.status)) : tu ne peux plus le retirer."))
         }
         var offer = offer
         offer.status = .cancelled
@@ -191,15 +191,15 @@ nonisolated enum OfferLifecycle {
         makeId: () -> String
     ) throws(AppError) -> Offer {
         guard status == .draft || status == .active else {
-            throw .invalidInput("Un lot dupliqué est soit un brouillon, soit publié.")
+            throw .invalidInput(String(localized: "Un lot dupliqué est soit un brouillon, soit publié."))
         }
-        guard interval > 0 else { throw .invalidInput("La date limite doit être dans le futur.") }
+        guard interval > 0 else { throw .invalidInput(String(localized: "La date limite doit être dans le futur.")) }
         var copy = offer
         copy.id = makeId()
         copy.status = status
         copy.deadline = now.addingTimeInterval(interval)
         guard copy.id != offer.id, !copy.id.isEmpty else {
-            throw .invalidInput("Le lot dupliqué doit avoir un nouvel identifiant.")
+            throw .invalidInput(String(localized: "Le lot dupliqué doit avoir un nouvel identifiant."))
         }
         try validate(copy, now: now)
         return copy
@@ -219,14 +219,14 @@ nonisolated enum OfferLifecycle {
         now: Date = .now,
         makeId: () -> String
     ) throws(AppError) -> Offer {
-        guard leftoverShares > 0 else { throw .invalidInput("Il ne reste aucune part à écouler.") }
+        guard leftoverShares > 0 else { throw .invalidInput(String(localized: "Il ne reste aucune part à écouler.")) }
         guard leftoverShares <= offer.totalShares else {
-            throw .invalidInput("Ce lot ne compte que \(offer.totalShares) parts.")
+            throw .invalidInput(String(localized: "Ce lot ne compte que \(offer.totalShares) parts."))
         }
         guard (0..<100).contains(discountPercent) else {
-            throw .invalidInput("Le rabais doit être entre 0 et 99 %.")
+            throw .invalidInput(String(localized: "Le rabais doit être entre 0 et 99 %."))
         }
-        guard duration > 0 else { throw .invalidInput("La date limite doit être dans le futur.") }
+        guard duration > 0 else { throw .invalidInput(String(localized: "La date limite doit être dans le futur.")) }
 
         // Seuils ramenés aux parts restantes ; si plusieurs paliers tombent au même seuil, on garde le meilleur prix.
         var bestPriceByThreshold: [Int: Cents] = [:]
@@ -246,7 +246,7 @@ nonisolated enum OfferLifecycle {
             }
             tiers.append(PriceTier(minShares: threshold, priceCents: price))
         }
-        guard let firstTier = tiers.first else { throw .invalidInput("Ajoute au moins un palier de prix.") }
+        guard let firstTier = tiers.first else { throw .invalidInput(String(localized: "Ajoute au moins un palier de prix.")) }
 
         var leftovers = offer
         leftovers.id = makeId()
@@ -256,7 +256,7 @@ nonisolated enum OfferLifecycle {
         leftovers.deadline = now.addingTimeInterval(duration)
         leftovers.status = .active
         guard leftovers.id != offer.id, !leftovers.id.isEmpty else {
-            throw .invalidInput("Le lot d'invendus doit avoir un nouvel identifiant.")
+            throw .invalidInput(String(localized: "Le lot d'invendus doit avoir un nouvel identifiant."))
         }
         try validate(leftovers, now: now)
         return leftovers
@@ -279,10 +279,10 @@ nonisolated enum OfferLifecycle {
 
     private static func label(_ status: Offer.Status) -> String {
         switch status {
-        case .draft: "un brouillon"
-        case .active: "publié"
-        case .closed: "clôturé"
-        case .cancelled: "retiré"
+        case .draft: String(localized: "un brouillon")
+        case .active: String(localized: "publié")
+        case .closed: String(localized: "clôturé")
+        case .cancelled: String(localized: "retiré")
         }
     }
 

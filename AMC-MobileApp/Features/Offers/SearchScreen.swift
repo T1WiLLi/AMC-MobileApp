@@ -1,23 +1,38 @@
 import SwiftUI
 
 /// Onglet recherche (`Tab(role: .search)`), commun aux deux portails (RQ-042).
-/// En attendant le branchement sur les dépôts, propose des produits statiques et les filtre localement.
+/// Côté Familles (`linksToOffers`), cherche dans les lots actifs des dépôts et ouvre la fiche du lot touché ;
+/// sinon (ou tant que rien n'est chargé), propose des produits statiques filtrés localement.
 struct SearchScreen: View {
     var prompt: LocalizedStringKey = "Riz, farine, œufs…"
     var emptyTitle = "Suggestions"
     var emptyMessage: LocalizedStringKey = "Des produits d'ici, achetés en gros entre voisins."
     var suggestions: [Suggestion] = Suggestion.catalog
+    /// true : les résultats viennent des lots actifs et ouvrent leur fiche (portail Familles).
+    var linksToOffers = false
 
+    @Environment(\.appContext) private var context
     @State private var query = ""
+    /// Lots actifs chargés depuis les dépôts (nil tant que rien n'est chargé).
+    @State private var offerSuggestions: [Suggestion]?
 
-    private var results: [Suggestion] { Self.filter(suggestions, query: query) }
+    private var results: [Suggestion] { Self.filter(offerSuggestions ?? suggestions, query: query) }
 
     var body: some View {
         NavigationStack {
             List {
                 if !results.isEmpty {
                     Section {
-                        ForEach(results) { SuggestionRow(suggestion: $0) }
+                        ForEach(results) { suggestion in
+                            if let offerId = suggestion.offerId {
+                                NavigationLink(value: OfferRoute(offerId: offerId)) {
+                                    SuggestionRow(suggestion: suggestion)
+                                }
+                                .listRowBackground(Color.surface)
+                            } else {
+                                SuggestionRow(suggestion: suggestion)
+                            }
+                        }
                     } header: {
                         Text(query.isEmpty ? emptyTitle : FrenchPlural.count(results.count, "produit"))
                     } footer: {
@@ -39,8 +54,28 @@ struct SearchScreen: View {
             .animation(.smooth, value: results)
             .navigationTitle("Recherche")
             .profileToolbar()
+            .offerDestination()
         }
         .searchable(text: $query, prompt: prompt)
+        .task {
+            guard linksToOffers, offerSuggestions == nil else { return }
+            offerSuggestions = await Self.loadOfferSuggestions(from: context.repositories)
+        }
+    }
+
+    /// Un résultat par lot actif (produit, vendeur, format). nil si rien n'a pu être chargé : on garde le catalogue.
+    static func loadOfferSuggestions(from repositories: AppRepositories) async -> [Suggestion]? {
+        guard let offers = try? await repositories.offers.activeOffers(inZone: nil), !offers.isEmpty else { return nil }
+        var found: [Suggestion] = []
+        for offer in offers {
+            guard let product = try? await repositories.vendors.product(id: offer.productId),
+                  let vendor = try? await repositories.vendors.vendor(id: offer.vendorId) else { continue }
+            found.append(Suggestion(
+                name: product.name, vendor: vendor.legalName, region: offer.shareUnit,
+                category: product.category, offerId: offer.id
+            ))
+        }
+        return found.isEmpty ? nil : found
     }
 
     /// Filtre insensible à la casse et aux accents sur le nom, le producteur et la région.
@@ -58,11 +93,14 @@ struct SearchScreen: View {
 extension SearchScreen {
     /// Produit proposé tant que la recherche n'est pas branchée sur le catalogue.
     struct Suggestion: Identifiable, Hashable, Sendable {
-        var id: String { name }
+        var id: String { offerId ?? name }
         let name: String
         let vendor: String
+        /// Région du producteur, ou format de la part pour un lot (« sac de 10 kg »).
         let region: String
         let category: Product.Category
+        /// Lot à ouvrir quand on touche le résultat ; nil pour une simple suggestion.
+        var offerId: String? = nil
 
         static let catalog: [Suggestion] = [
             .init(name: "Riz basmati", vendor: "Ferme Lafleur", region: "Mirabel", category: .grains),

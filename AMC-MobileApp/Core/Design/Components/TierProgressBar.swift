@@ -14,8 +14,12 @@ struct TierProgressBar: View {
     var unitPlural = "parts"
     /// Version compacte (hauteur 6, sans légendes) pour OfferCard.
     var compact = false
+    /// Parts minimales pour que la commande parte (`Offer.minimumSharesToLaunch`).
+    /// nil : le seuil du premier palier fait foi.
+    var minimumToLaunch: Int?
 
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
 
     private var sorted: [PriceTier] { tiers.sorted { $0.minShares < $1.minShares } }
 
@@ -30,19 +34,19 @@ struct TierProgressBar: View {
             .animation(reduceMotion ? nil : .smooth, value: committedShares)
 
             if !compact {
-                HStack(alignment: .top) {
+                legendLayout {
                     ForEach(Array(sorted.enumerated()), id: \.offset) { index, tier in
                         Text(legend(for: index, tier: tier))
                             .font(.caption)
                             .fontWeight(index == currentIndex ? .bold : .regular)
                             .foregroundStyle(index == currentIndex ? Color.texte : Color.texteSecondaire)
-                            .frame(maxWidth: .infinity, alignment: alignment(for: index))
+                            .frame(maxWidth: .infinity, alignment: legendAlignment(for: index))
                             .monospacedDigit()
                     }
                 }
                 if let nudge {
                     Text(nudge)
-                        .font(.subheadline.bold())
+                        .font(.subheadline.weight(.semibold))
                         .foregroundStyle(Color.grenier)
                         .contentTransition(.numericText())
                 }
@@ -57,6 +61,9 @@ struct TierProgressBar: View {
 
     /// Index du palier atteint, nil si aucun.
     var currentIndex: Int? { sorted.lastIndex { committedShares >= $0.minShares } }
+
+    /// Seuil de lancement : `minimumToLaunch` s'il est fourni, sinon le seuil du premier palier.
+    var launchThreshold: Int { minimumToLaunch ?? sorted.first?.minShares ?? 0 }
 
     /// Remplissage (0…1) du segment `index`.
     func fill(forSegment index: Int) -> Double {
@@ -73,15 +80,35 @@ struct TierProgressBar: View {
     }
 
     /// « Encore 1 famille pour débloquer −19 % », nil si le dernier palier est atteint.
-    var nudge: String? {
-        guard let next = sorted.first(where: { committedShares < $0.minShares }) else { return nil }
-        let missing = next.minShares - committedShares
-        let unit = missing > 1 ? unitPlural : unitSingular
-        if let currentIndex {
-            let percent = Money.savingsPercent(price: next.priceCents, reference: sorted[currentIndex].priceCents)
-            return "Encore \(missing) \(unit) pour débloquer −\(percent) %"
+    var nudge: String? { nudge(short: false) }
+
+    /// Version courte pour le pied d'OfferCard (maquette F1) : « Encore 1 famille pour −19 % ».
+    var shortNudge: String? { nudge(short: true) }
+
+    private func nudge(short: Bool) -> String? {
+        if committedShares < launchThreshold {
+            return "Encore \(count(launchThreshold - committedShares)) pour lancer la commande"
         }
-        return "Encore \(missing) \(unit) pour lancer la commande"
+        guard let next = sorted.first(where: { committedShares < $0.minShares }) else { return nil }
+        let missing = count(next.minShares - committedShares)
+        // Économie du palier suivant par rapport au palier atteint (ou au premier palier).
+        let reference = currentIndex.map { sorted[$0].priceCents } ?? sorted.first?.priceCents ?? next.priceCents
+        let percent = Money.savingsPercent(price: next.priceCents, reference: reference)
+        guard percent > 0 else { return "Encore \(missing) pour le palier suivant" }
+        return short ? "Encore \(missing) pour −\(percent) %" : "Encore \(missing) pour débloquer −\(percent) %"
+    }
+
+    private func count(_ value: Int) -> String {
+        FrenchPlural.count(value, unitSingular, plural: unitPlural)
+    }
+
+    var accessibilityText: String {
+        var text = "\(count(committedShares)) \(FrenchPlural.word(committedShares, "engagée"))"
+        if let currentIndex {
+            text += ", prix actuel \(Money.format(sorted[currentIndex].priceCents))"
+        }
+        if let nudge { text += ". \(nudge)" }
+        return text
     }
 
     // MARK: - Vues
@@ -97,6 +124,13 @@ struct TierProgressBar: View {
         }
     }
 
+    /// Légendes en ligne ; empilées aux tailles d'accessibilité pour ne rien tronquer.
+    private var legendLayout: AnyLayout {
+        dynamicTypeSize.isAccessibilitySize
+            ? AnyLayout(VStackLayout(alignment: .leading, spacing: 4))
+            : AnyLayout(HStackLayout(alignment: .top))
+    }
+
     private func legend(for index: Int, tier: PriceTier) -> String {
         let range: String
         if index + 1 < sorted.count {
@@ -107,19 +141,10 @@ struct TierProgressBar: View {
         return "\(range) · \(Money.format(tier.priceCents))"
     }
 
-    private func alignment(for index: Int) -> Alignment {
-        if index == 0 { return .leading }
+    private func legendAlignment(for index: Int) -> Alignment {
+        if dynamicTypeSize.isAccessibilitySize || index == 0 { return .leading }
         if index == sorted.count - 1 { return .trailing }
         return .center
-    }
-
-    private var accessibilityText: String {
-        var text = "\(committedShares) \(committedShares > 1 ? unitPlural : unitSingular) engagées"
-        if let currentIndex {
-            text += ", prix actuel \(Money.format(sorted[currentIndex].priceCents))"
-        }
-        if let nudge { text += ". \(nudge)" }
-        return text
     }
 }
 
@@ -128,9 +153,12 @@ struct TierProgressBar: View {
     VStack(spacing: 24) {
         TierProgressBar(tiers: tiers, committedShares: 24, totalShares: 40, unitSingular: "famille", unitPlural: "familles")
             .grenierCard()
+        TierProgressBar(tiers: tiers, committedShares: 3, totalShares: 40, minimumToLaunch: 5)
+            .grenierCard()
         TierProgressBar(tiers: tiers, committedShares: 24, totalShares: 40, compact: true)
     }
     .padding()
+    .frame(maxHeight: .infinity)
     .grenierBackground()
 }
 
@@ -139,6 +167,7 @@ struct TierProgressBar: View {
     TierProgressBar(tiers: tiers, committedShares: 25, totalShares: 40, unitSingular: "famille", unitPlural: "familles")
         .grenierCard()
         .padding()
+        .frame(maxHeight: .infinity)
         .grenierBackground()
         .preferredColorScheme(.dark)
 }

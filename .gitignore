@@ -1,11 +1,15 @@
 .DS_Store
 xcuserdata/
 DerivedData/
+SourcePackages/
 build/
 *.xcuserstate
 
 # Firebase : la vraie config reste hors du repo public (voir docs/firebase.md)
 AMC-MobileApp/GoogleService-Info.plist
+.env
+.env.*
+!.env.example
 firebase-debug.log
 firestore-debug.log
 ui-debug.log

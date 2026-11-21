@@ -5,8 +5,7 @@ struct ImpactScreen: View {
         PlaceholderScreen(
             title: "Impact",
             systemImage: "leaf.fill",
-            message: "Tes économies et l'impact de ton quartier sur Montréal (maquette F6).",
-            epic: "E12"
+            message: "Tes économies et l'impact de ton quartier sur Montréal."
         )
     }
 }

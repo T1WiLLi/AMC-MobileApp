@@ -22,7 +22,7 @@ struct VendorOffersScreen: View {
     @Namespace private var transition
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
-    init(repositories: AppRepositories = .fake(), vendorId: String = FakeData.ID.fermeRive) {
+    init(repositories: AppRepositories, vendorId: String) {
         self.repositories = repositories
         self.vendorId = vendorId
         _model = State(initialValue: VendorDashboardViewModel(repositories: repositories, vendorId: vendorId))
@@ -568,21 +568,21 @@ private struct VendorOffersEmptyState: View {
 }
 
 #Preview("Clair") {
-    VendorOffersScreen()
+    VendorOffersScreen(repositories: .fake(), vendorId: FakeData.ID.fermeRive)
 }
 
 #Preview("Sombre") {
-    VendorOffersScreen()
+    VendorOffersScreen(repositories: .fake(), vendorId: FakeData.ID.fermeRive)
         .preferredColorScheme(.dark)
 }
 
 #Preview("AX5") {
-    VendorOffersScreen()
+    VendorOffersScreen(repositories: .fake(), vendorId: FakeData.ID.fermeRive)
         .dynamicTypeSize(.accessibility5)
 }
 
 #Preview("Hors ligne") {
-    VendorOffersScreen(repositories: .fake(behavior: .failing(.offline)))
+    VendorOffersScreen(repositories: .fake(behavior: .failing(.offline)), vendorId: FakeData.ID.fermeRive)
 }
 
 #Preview("Vide") {

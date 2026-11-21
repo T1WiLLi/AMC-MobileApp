@@ -4,7 +4,7 @@
 // le reste s'affiche en lecture seule.
 //
 // Usage dans une vue :
-//   @State private var model = VendorProfileViewModel(repositories: .fake(), vendorId: FakeData.ID.fermeRive)
+//   @State private var model = VendorProfileViewModel(repositories: context.repositories, vendorId: context.vendorId)
 //   .task { await model.load() }
 //   Button("Enregistrer") { Task { await model.save() } }.disabled(!model.canSave)
 
@@ -50,6 +50,8 @@ final class VendorProfileViewModel {
     static let maxZones = 20
     /// Longueur des codes de zone proposés depuis les groupes.
     static let zonePrecision = 4
+    /// Longueur des codes d'un quartier choisi par son nom ou sur la carte (≈ 5 km, la taille d'un quartier).
+    static let neighborhoodZonePrecision = 5
 
     // MARK: Champs modifiables
 
@@ -116,9 +118,55 @@ final class VendorProfileViewModel {
             .sorted { $0.label.localizedStandardCompare($1.label) == .orderedAscending }
     }
 
-    /// Nom lisible d'une zone (« Saint-Michel »), ou son code si aucun groupe ne la couvre.
+    /// Nom lisible d'une zone (« Saint-Michel »). Le code geohash n'est jamais montré (QA T-094 n° 17b) :
+    /// une zone qu'aucun groupe ni quartier connu ne nomme devient « Secteur de <quartier le plus proche> ».
     func label(forZone zone: String) -> String {
-        zoneLabels[zone] ?? zone
+        if let label = zoneLabels[zone] { return label }
+        // Un secteur de ≈ 5 km peut couvrir plusieurs quartiers (Parc-Extension, Saint-Michel et Villeray) : on les nomme tous.
+        let named = MontrealNeighborhood.all.filter { Self.zone(for: $0) == zone }.map(\.name)
+        if !named.isEmpty { return named.formatted(.list(type: .and)) }
+        if let nearest = Self.nearestNeighborhood(toZone: zone) { return "Secteur de \(nearest.name)" }
+        return "Secteur personnalisé"
+    }
+
+    /// Quartiers de Montréal dont le nom contient `query` (sans casse ni accents), pas encore desservis.
+    /// Recherche vide : tous les quartiers pas encore desservis.
+    func neighborhoodMatches(_ query: String) -> [MontrealNeighborhood] {
+        let text = query.trimmingCharacters(in: .whitespacesAndNewlines)
+        return MontrealNeighborhood.all.filter { neighborhood in
+            !servedZones.contains(Self.zone(for: neighborhood))
+                && (text.isEmpty || neighborhood.name.localizedStandardContains(text))
+        }
+    }
+
+    /// Ajoute un quartier choisi par son nom ; enregistré comme le geohash de son centre.
+    @discardableResult
+    func addNeighborhood(_ neighborhood: MontrealNeighborhood) -> AppError? {
+        addZone(Self.zone(for: neighborhood))
+    }
+
+    /// Ajoute le secteur au centre de la carte (point choisi par le vendeur).
+    @discardableResult
+    func addZone(latitude: Double, longitude: Double) -> AppError? {
+        addZone(Geohash.encode(latitude: latitude, longitude: longitude, precision: Self.neighborhoodZonePrecision))
+    }
+
+    /// Code de zone d'un quartier : geohash de son centre.
+    nonisolated static func zone(for neighborhood: MontrealNeighborhood) -> String {
+        Geohash.encode(
+            latitude: neighborhood.latitude, longitude: neighborhood.longitude, precision: neighborhoodZonePrecision
+        )
+    }
+
+    /// Quartier dont le centre est le plus proche du centre de la zone, à moins de 4 km ; nil sinon.
+    nonisolated static func nearestNeighborhood(toZone zone: String) -> MontrealNeighborhood? {
+        guard let center = Geohash.center(of: zone) else { return nil }
+        let ranked = MontrealNeighborhood.all.map { neighborhood in
+            let point = Geohash.Coordinate(latitude: neighborhood.latitude, longitude: neighborhood.longitude)
+            return (neighborhood, Geohash.distanceMeters(from: center, to: point))
+        }
+        guard let best = ranked.min(by: { $0.1 < $1.1 }), best.1 <= 4_000 else { return nil }
+        return best.0
     }
 
     private var trimmedDescription: String {
@@ -146,9 +194,9 @@ final class VendorProfileViewModel {
     @discardableResult
     func addZone(_ rawZone: String) -> AppError? {
         let zone = rawZone.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
-        guard !zone.isEmpty else { return .invalidInput("Saisis un code de zone.") }
-        guard zone.count <= 40 else { return .invalidInput("Ce code de zone est trop long (40 caractères au plus).") }
-        guard !servedZones.contains(zone) else { return .invalidInput("Tu dessers déjà cette zone.") }
+        guard !zone.isEmpty else { return .invalidInput("Choisis un quartier.") }
+        guard zone.count <= 40 else { return .invalidInput("Cette zone n'est pas valide.") }
+        guard !servedZones.contains(zone) else { return .invalidInput("Tu dessers déjà ce quartier.") }
         guard servedZones.count < Self.maxZones else {
             return .invalidInput("Tu peux desservir \(Self.maxZones) zones au plus.")
         }

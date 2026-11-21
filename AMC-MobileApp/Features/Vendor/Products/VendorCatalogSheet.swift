@@ -35,7 +35,7 @@ struct VendorCatalogSheet: View {
     }
 
     /// Photos dans Storage seulement si les produits sont eux-mêmes dans Firebase ; sinon en mémoire.
-    private static func uploader(for repositories: AppRepositories) -> any ProductPhotoUploader {
+    static func uploader(for repositories: AppRepositories) -> any ProductPhotoUploader {
         repositories.vendors is FakeVendorRepository
             ? FakeProductPhotoUploader(behavior: .realistic)
             : ProductPhoto.uploader(mode: FirebaseSetup.mode)

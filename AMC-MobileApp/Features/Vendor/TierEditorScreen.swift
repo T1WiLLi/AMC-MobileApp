@@ -39,8 +39,8 @@ struct TierEditorScreen: View {
     }
 
     init(
-        repositories: AppRepositories = .fake(),
-        vendorId: String = FakeData.ID.fermeRive,
+        repositories: AppRepositories,
+        vendorId: String,
         offerId: String? = nil,
         onSaved: ((Offer) -> Void)? = nil
     ) {
@@ -838,20 +838,20 @@ private extension TierEditorViewModel {
 
 #Preview("Nouveau lot") {
     NavigationStack {
-        TierEditorScreen(repositories: .fake())
+        TierEditorScreen(repositories: .fake(), vendorId: FakeData.ID.fermeRive)
     }
 }
 
 #Preview("Modification sombre") {
     NavigationStack {
-        TierEditorScreen(repositories: .fake(), offerId: FakeData.ID.potatoOffer)
+        TierEditorScreen(repositories: .fake(), vendorId: FakeData.ID.fermeRive, offerId: FakeData.ID.potatoOffer)
     }
     .preferredColorScheme(.dark)
 }
 
 #Preview("AX5") {
     NavigationStack {
-        TierEditorScreen(repositories: .fake(), offerId: FakeData.ID.potatoOffer)
+        TierEditorScreen(repositories: .fake(), vendorId: FakeData.ID.fermeRive, offerId: FakeData.ID.potatoOffer)
     }
     .dynamicTypeSize(.accessibility5)
 }

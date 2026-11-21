@@ -27,7 +27,10 @@ struct AMCMobileApp: App {
         // Démo de l'onboarding d'après l'inscription (T-156) : seulement sur les données fake, jamais avec Firebase.
         let sessionContext = SessionContextStore(
             forcesOnboarding: mode == .fake
-                && ProcessInfo.processInfo.arguments.contains(OnboardingKeys.demoOnboardingArgument)
+                && ProcessInfo.processInfo.arguments.contains(OnboardingKeys.demoOnboardingArgument),
+            // Démo de l'onboarding producteur (T-158) : la démo sans vendeur, données fake seulement.
+            forcesVendorOnboarding: mode == .fake
+                && ProcessInfo.processInfo.arguments.contains(OnboardingKeys.demoVendorOnboardingArgument)
         )
         _sessionContext = State(initialValue: sessionContext)
         // Notifications locales sans serveur (T-107) : iOS réveille l'app, qui compare au dernier état connu.

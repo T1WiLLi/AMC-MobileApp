@@ -16,6 +16,8 @@ enum OnboardingKeys {
     static let familyArgument = "-demoFamilyPortal"
     /// Argument de lancement (mode `.fake` seulement) : montre l'onboarding d'après l'inscription (T-156) sur la démo.
     static let demoOnboardingArgument = "-demoOnboarding"
+    /// Argument de lancement (mode `.fake` seulement) : la démo sans vendeur, pour montrer l'onboarding producteur (T-158).
+    static let demoVendorOnboardingArgument = "-demoVendorOnboarding"
 
     /// Applique les arguments de démo (Scheme > Arguments). Sans argument, rien ne change.
     static func applyLaunchArguments(_ arguments: [String], to defaults: UserDefaults = .standard) {

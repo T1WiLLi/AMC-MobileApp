@@ -20,7 +20,9 @@ rules_version = '2';
 //   pickupPoints/{id}                    point de cueillette ; lecture connectée, l'hôte gère créneaux et capacité
 //
 // Points sensibles :
-//   - users.vendorId n'est JAMAIS écrit par le client (sinon n'importe qui deviendrait vendeur d'un autre).
+//   - users.vendorId n'est écrit par le client que pour se rattacher SON vendeur (T-158) : vide avant, et le vendeur
+//     pointé a ownerId == uid. Sinon n'importe qui deviendrait vendeur d'un autre.
+//   - vendors/{id} : un compte crée UN vendeur (id vendor-{uid}), non vérifié, sans note (onboarding T-158).
 //   - Dans une part, isPaid, finalPriceCents, subsidyCents, qrCode et isPickedUp ne sont pas modifiables
 //     par le client : ils viendront d'un processus de confiance.
 //   - Aucune lecture d'un document de PII (users, households, private) par quelqu'un d'extérieur.
@@ -78,7 +80,7 @@ service cloud.firestore {
       return /databases/$(database)/documents/users/$(request.auth.uid);
     }
 
-    // Le vendeur rattaché au compte connecté (posé par le seed ou un admin, jamais par le client).
+    // Le vendeur rattaché au compte connecté (seed, admin, ou son propre vendeur à l'onboarding T-158).
     function isVendorOf(vendorId) {
       return isAuthenticated()
         && vendorId is string && vendorId.size() > 0
@@ -120,6 +122,17 @@ service cloud.firestore {
         && (!('onboardingCompleted' in data) || data.onboardingCompleted == null || data.onboardingCompleted is bool);
     }
 
+    // Onboarding producteur (T-158) : le compte se rattache le vendeur qu'il vient de créer, une seule fois.
+    // getAfter : marche dans un batch (vendeur + profil) comme après la création du vendeur.
+    function isClaimingOwnVendor(userId) {
+      let vendorId = request.resource.data.get('vendorId', '');
+      let vendorPath = /databases/$(database)/documents/vendors/$(vendorId);
+      return resource.data.get('vendorId', '') in ['', null]
+        && vendorId is string && vendorId.size() > 0 && vendorId.size() <= 128
+        && existsAfter(vendorPath)
+        && getAfter(vendorPath).data.get('ownerId', '') == userId;
+    }
+
     match /users/{userId} {
       allow read: if isOwner(userId);
       allow create: if isOwner(userId)
@@ -128,7 +141,8 @@ service cloud.firestore {
         && !('vendorId' in request.resource.data);
       allow update: if isOwner(userId)
         && isValidUser(request.resource.data)
-        && areImmutableFieldsUnchanged(['id', 'vendorId']);
+        && areImmutableFieldsUnchanged(['id'])
+        && (areImmutableFieldsUnchanged(['vendorId']) || isClaimingOwnVendor(userId));
       allow delete: if isOwner(userId);
     }
 
@@ -426,7 +440,33 @@ service cloud.firestore {
         && isStringList(request.resource.data.photoURLs, 10)
         && isStringList(request.resource.data.servedZones, 20)
         && isStringList(request.resource.data.get('featuredProductIds', []), 6);
-      allow create, delete: if false;
+      // Onboarding producteur (T-158) : un compte connecté crée UN vendeur (id vendor-{uid}) dont il est propriétaire,
+      // non vérifié et sans note ; l'équipe LeGrenier le vérifie ensuite (Admin SDK).
+      allow create: if isAuthenticated()
+        && vendorId == 'vendor-' + request.auth.uid
+        && isValidNewVendor(request.resource.data, vendorId);
+      allow delete: if false;
+    }
+
+    function isValidNewVendor(data, vendorId) {
+      return data.keys().hasOnly(['id', 'legalName', 'kind', 'description', 'photoURLs', 'servedZones',
+                                  'averageRating', 'isVerified', 'storefrontGeohash', 'ownerId', 'productCategories'])
+        && data.keys().hasAll(['id', 'legalName', 'kind', 'description', 'photoURLs', 'servedZones',
+                               'isVerified', 'ownerId'])
+        && data.id == vendorId
+        && data.ownerId == request.auth.uid
+        && data.isVerified == false
+        && (!('averageRating' in data) || data.averageRating == null)
+        && (!('storefrontGeohash' in data) || data.storefrontGeohash == null)
+        && isShortString(data.legalName, 2, 120)
+        && data.kind in ['farm', 'wholesaler', 'cooperative', 'bakery', 'other']
+        && isShortString(data.description, 0, 2000)
+        && isStringList(data.photoURLs, 10)
+        && isStringList(data.servedZones, 20)
+        && (!('productCategories' in data) || data.productCategories == null
+            || (isStringList(data.productCategories, 9)
+                && data.productCategories.toSet().difference(['grains', 'legumes', 'oils', 'flour', 'canned',
+                                                              'eggs', 'meat', 'produce', 'household'].toSet()).size() == 0));
     }
 
     // ---------------------------------------------------------------

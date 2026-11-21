@@ -45,6 +45,24 @@ nonisolated final class FirestoreVendorRepository: VendorRepository, @unchecked 
         }
     }
 
+    /// Onboarding producteur (T-158). `firestore.rules` : id `vendor-{uid}`, `ownerId == uid`, non vérifié, sans note.
+    /// Un vendeur déjà créé par ce compte (nouvel essai après une coupure) est renvoyé tel quel.
+    func createVendor(_ vendor: Vendor) async throws -> Vendor {
+        let ref = vendorsRef.document(vendor.id)
+        do {
+            let snapshot = try await ref.getDocument()
+            if snapshot.exists {
+                let existing = try Self.decode(Vendor.self, snapshot)
+                guard existing.ownerId == vendor.ownerId else { throw AppError.permissionDenied }
+                return existing
+            }
+            try await ref.setData(try Firestore.Encoder().encode(vendor))
+            return vendor
+        } catch {
+            throw FirestoreGroupOrderRepository.appError(from: error)
+        }
+    }
+
     // MARK: - Produits
 
     func products(ofVendor vendorId: String) async throws -> [Product] {

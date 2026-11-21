@@ -292,6 +292,20 @@ actor FakeVendorRepository: VendorRepository {
         else { throw AppError.permissionDenied }
         vendors[vendor.id] = vendor
     }
+
+    func createVendor(_ vendor: Vendor) async throws -> Vendor {
+        try await behavior.simulate()
+        // Comme firestore.rules : id du compte, non vérifié, sans note.
+        guard let ownerId = vendor.ownerId, !ownerId.isEmpty, vendor.id == Vendor.ownedId(forUserId: ownerId),
+              !vendor.isVerified, vendor.averageRating == nil
+        else { throw AppError.permissionDenied }
+        if let existing = vendors[vendor.id] {
+            guard existing.ownerId == ownerId else { throw AppError.permissionDenied }
+            return existing
+        }
+        vendors[vendor.id] = vendor
+        return vendor
+    }
 }
 
 actor FakeOfferRepository: OfferRepository {

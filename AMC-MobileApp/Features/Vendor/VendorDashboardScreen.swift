@@ -326,6 +326,11 @@ private struct DashboardHeader: View {
             }
             .font(.subheadline)
             .foregroundStyle(.texteSecondaire)
+            // Vendeur créé depuis l'app (T-158) : tout marche déjà, l'équipe LeGrenier le vérifie en parallèle.
+            if vendor?.isVerified == false {
+                VerificationPendingBadge()
+                    .padding(.top, 4)
+            }
         }
         .layoutPriority(1)
         .accessibilityElement(children: .combine)
@@ -353,7 +358,27 @@ private struct DashboardHeader: View {
     }
 }
 
-private enum VendorKindText {
+/// Badge « En vérification » : vendeur pas encore vérifié par l'équipe LeGrenier. Informatif, rien n'est bloqué.
+struct VerificationPendingBadge: View {
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
+    var body: some View {
+        Label("En vérification", systemImage: "clock.badge.checkmark.fill")
+            .font(.footnote.weight(.semibold))
+            .symbolRenderingMode(.hierarchical)
+            .symbolEffect(.pulse, options: .repeat(3), isActive: !reduceMotion)
+            .foregroundStyle(Color.solidarite)
+            .padding(.horizontal, 10)
+            .padding(.vertical, 6)
+            .background(Color.solidarite.opacity(0.14), in: .capsule)
+            .fixedSize(horizontal: false, vertical: true)
+            .accessibilityLabel("Profil en vérification")
+            .accessibilityHint("L'équipe LeGrenier vérifie ton profil. Tu peux déjà publier des produits et des lots.")
+    }
+}
+
+/// Libellé et symbole d'un type de vendeur (tableau de bord, onboarding producteur T-158).
+enum VendorKindText {
     static func title(for kind: Vendor.Kind) -> String {
         switch kind {
         case .farm: String(localized: "Ferme")

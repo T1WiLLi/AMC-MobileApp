@@ -8,8 +8,8 @@ import Foundation
 ///
 /// Règles :
 /// - `users/{uid}` absent (compte tout juste créé) : on crée son ménage puis son profil, pour que le portail
-///   Familles marche tout de suite (rejoindre un groupe demande un ménage). Le profil ne pose jamais `vendorId`
-///   (firestore.rules : le rattachement vendeur se fait par le seed ou un admin).
+///   Familles marche tout de suite (rejoindre un groupe demande un ménage). Le profil créé ne pose jamais `vendorId` :
+///   il se pose à la fin de l'onboarding producteur (`createVendor`, T-158), ou par le seed.
 /// - `householdId` : celui du profil, ou vide si la personne n'a pas de ménage (vendeur seul) ;
 /// - `groupId` : le groupe préféré s'il fait encore partie des groupes du ménage, sinon le premier par nom, sinon nil ;
 /// - `vendorId` : celui du profil, ou vide.
@@ -42,6 +42,25 @@ nonisolated struct AppContextResolver: Sendable {
             try await repositories.users.saveUser(profile)
         }
         return try await context(for: profile, preferredGroupId: preferredGroupId)
+    }
+
+    /// Onboarding producteur (T-158) : crée le vendeur du compte puis le rattache au profil (`vendorId`, rôle vendeur).
+    /// L'ordre compte (firestore.rules) : le profil ne pointe que vers un vendeur existant dont il est propriétaire.
+    /// Le vendeur part non vérifié et sans note, quoi que contienne `draft`. Relancer après une coupure est sans danger.
+    func createVendor(_ draft: Vendor, forUserId userId: String) async throws -> Vendor {
+        var vendor = draft
+        vendor.id = Vendor.ownedId(forUserId: userId)
+        vendor.ownerId = userId
+        vendor.isVerified = false
+        vendor.averageRating = nil
+        let created = try await repositories.vendors.createVendor(vendor)
+        var profile = try await repositories.users.user(id: userId)
+        if profile.vendorId != created.id {
+            profile.vendorId = created.id
+            if !profile.roles.contains(.vendor) { profile.roles.append(.vendor) }
+            try await repositories.users.saveUser(profile)
+        }
+        return created
     }
 
     // MARK: - Étapes

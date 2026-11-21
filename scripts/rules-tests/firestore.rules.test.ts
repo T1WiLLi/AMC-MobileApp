@@ -971,6 +971,83 @@ describe('vendorReviews (T-157)', () => {
   })
 })
 
+describe('onboarding producteur : créer son vendeur (T-158)', () => {
+  const newVendor = (uid: string, overrides: Record<string, unknown> = {}) => ({
+    id: `vendor-${uid}`, legalName: 'Ferme des Voisins', kind: 'farm',
+    description: 'Légumes bio cultivés à Mirabel, paniers chaque semaine.', photoURLs: [],
+    servedZones: ['f25d'], isVerified: false, ownerId: uid, productCategories: ['produce', 'eggs'],
+    ...overrides
+  })
+
+  test('crée son vendeur non vérifié', async () => {
+    await assertSucceeds(setDoc(doc(amina(), 'vendors/vendor-amina'), newVendor('amina')))
+  })
+  test('ne crée pas un vendeur sous un autre id', async () => {
+    await assertFails(setDoc(doc(amina(), 'vendors/vendor-x'), newVendor('amina', { id: 'vendor-x' })))
+  })
+  test('ne crée pas un vendeur pour un autre compte', async () => {
+    await assertFails(setDoc(doc(amina(), 'vendors/vendor-intrus'), newVendor('intrus')))
+  })
+  test('ne se pose pas propriétaire d’un vendeur au nom d’un autre', async () => {
+    await assertFails(setDoc(doc(amina(), 'vendors/vendor-amina'), newVendor('amina', { ownerId: 'intrus' })))
+  })
+  test('ne se déclare pas vérifié', async () => {
+    await assertFails(setDoc(doc(amina(), 'vendors/vendor-amina'), newVendor('amina', { isVerified: true })))
+  })
+  test('ne se donne pas de note', async () => {
+    await assertFails(setDoc(doc(amina(), 'vendors/vendor-amina'), newVendor('amina', { averageRating: 5 })))
+  })
+  test('refuse un type inconnu ou un champ en trop', async () => {
+    await assertFails(setDoc(doc(amina(), 'vendors/vendor-amina'), newVendor('amina', { kind: 'empire' })))
+    await assertFails(setDoc(doc(amina(), 'vendors/vendor-amina'), newVendor('amina', { city: 'Mirabel' })))
+    await assertFails(setDoc(doc(amina(), 'vendors/vendor-amina'), newVendor('amina', { productCategories: ['armes'] })))
+  })
+  test('anonyme ne crée pas de vendeur', async () => {
+    await assertFails(setDoc(doc(anonymous(), 'vendors/vendor-amina'), newVendor('amina')))
+  })
+  test('un seul vendeur : recréer le sien est refusé', async () => {
+    await assertSucceeds(setDoc(doc(amina(), 'vendors/vendor-amina'), newVendor('amina')))
+    await assertFails(setDoc(doc(amina(), 'vendors/vendor-amina'), newVendor('amina', { legalName: 'Autre nom' })))
+  })
+  test('se rattache son vendeur, puis publie un produit', async () => {
+    await assertSucceeds(setDoc(doc(amina(), 'vendors/vendor-amina'), newVendor('amina')))
+    await assertSucceeds(updateDoc(doc(amina(), 'users/amina'), { vendorId: 'vendor-amina', roles: ['family', 'vendor'] }))
+    await assertSucceeds(setDoc(doc(amina(), 'products/product-panier'),
+      { ...product, id: 'product-panier', vendorId: 'vendor-amina' }))
+  })
+  test('vendeur et rattachement dans un même batch', async () => {
+    const db = amina()
+    const batch = writeBatch(db)
+    batch.set(doc(db, 'vendors/vendor-amina'), newVendor('amina'))
+    batch.update(doc(db, 'users/amina'), { vendorId: 'vendor-amina' })
+    await assertSucceeds(batch.commit())
+  })
+  test('ne se rattache pas un vendeur qui n’existe pas', async () => {
+    await assertFails(updateDoc(doc(amina(), 'users/amina'), { vendorId: 'vendor-amina' }))
+  })
+  test('ne se rattache pas le vendeur d’un autre', async () => {
+    await env.withSecurityRulesDisabled(async (context) => {
+      await setDoc(doc(context.firestore(), 'vendors/vendor-intrus'), newVendor('intrus'))
+    })
+    await assertFails(updateDoc(doc(amina(), 'users/amina'), { vendorId: 'vendor-intrus' }))
+    await assertFails(updateDoc(doc(amina(), 'users/amina'), { vendorId: 'vendor-lafleur' }))
+  })
+  test('un vendeur déjà rattaché ne change pas de vendeur', async () => {
+    await env.withSecurityRulesDisabled(async (context) => {
+      await setDoc(doc(context.firestore(), 'vendors/vendor-lafleur2'), newVendor('lafleur', { id: 'vendor-lafleur2' }))
+    })
+    await assertFails(updateDoc(doc(lafleur(), 'users/lafleur'), { vendorId: 'vendor-lafleur2' }))
+  })
+  test('après la création, ne se rend pas vérifié ni ne se note', async () => {
+    await assertSucceeds(setDoc(doc(amina(), 'vendors/vendor-amina'), newVendor('amina')))
+    await assertSucceeds(updateDoc(doc(amina(), 'users/amina'), { vendorId: 'vendor-amina' }))
+    await assertFails(updateDoc(doc(amina(), 'vendors/vendor-amina'), { isVerified: true }))
+    await assertFails(updateDoc(doc(amina(), 'vendors/vendor-amina'), { averageRating: 5 }))
+    await assertFails(updateDoc(doc(amina(), 'vendors/vendor-amina'), { ownerId: 'intrus' }))
+    await assertSucceeds(updateDoc(doc(amina(), 'vendors/vendor-amina'), { description: 'Nouvelle description de la ferme.' }))
+  })
+})
+
 describe('vitrine du vendeur (T-157)', () => {
   const photo = (size = 4096) => ({
     data: Bytes.fromUint8Array(new Uint8Array(size).fill(0xff)), contentType: 'image/jpeg', width: 1000, height: 750,

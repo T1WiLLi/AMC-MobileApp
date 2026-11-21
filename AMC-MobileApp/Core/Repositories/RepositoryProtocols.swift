@@ -82,9 +82,17 @@ nonisolated protocol VendorRepository: Sendable {
     /// Enregistre le profil du vendeur. Seuls `description`, `photoURLs`, `servedZones` et `featuredProductIds` peuvent changer
     /// (firestore.rules) ; tout autre changement lève `.permissionDenied`, un id inconnu `.notFound`.
     func saveVendor(_ vendor: Vendor) async throws
+    /// Onboarding producteur (T-158) : crée le vendeur d'un compte (`Vendor.ownedId`), non vérifié et sans note.
+    /// Relancer avec le même propriétaire réutilise le vendeur déjà créé ; `.permissionDenied` s'il est à un autre.
+    func createVendor(_ vendor: Vendor) async throws -> Vendor
 }
 
 extension VendorRepository {
+    /// Dépôts sans création (stubs de tests) : refusé.
+    func createVendor(_ vendor: Vendor) async throws -> Vendor {
+        throw AppError.permissionDenied
+    }
+
     /// Par défaut (dépôt qui ne l'implémente pas encore) : refus explicite plutôt qu'un succès silencieux.
     func deleteProduct(id: String) async throws {
         throw AppError.unknown("deleteProduct n'est pas encore branché sur ce dépôt.")

@@ -197,11 +197,32 @@ struct FamilyViewModelTests {
         #expect(viewModel.celebration == nil)
     }
 
-    @Test func offerWithoutGroupOrderCannotBeReserved() async throws {
-        let viewModel = OfferDetailViewModel(repositories: repositories(), offerId: ID.riceOffer,
+    @Test func firstReservationOpensTheGroupOrder() async throws {
+        let repos = repositories()
+        let viewModel = OfferDetailViewModel(repositories: repos, offerId: ID.riceOffer,
                                              householdId: ID.aminaHousehold, groupId: ID.saintMichel)
         await viewModel.load()
         #expect(viewModel.state.value?.groupOrder == nil)
+        #expect(viewModel.state.value?.canStartOrder == true)
+        #expect(viewModel.state.value?.isOpen == true)
+        #expect(viewModel.canReserve)
+
+        viewModel.selectedQuantity = 2
+        await viewModel.reserve()
+        #expect(viewModel.actionError == nil)
+        let order = try #require(viewModel.state.value?.groupOrder)
+        #expect(order.groupId == ID.saintMichel)
+        #expect(order.offerId == ID.riceOffer)
+        #expect(order.committedShares == 2)
+        #expect(viewModel.state.value?.myShareQuantity == 2)
+        #expect(try await repos.groupOrders.groupOrders(ofOffer: ID.riceOffer).map(\.id) == [order.id])
+    }
+
+    @Test func offerWithoutGroupCannotBeReserved() async throws {
+        let viewModel = OfferDetailViewModel(repositories: repositories(), offerId: ID.riceOffer,
+                                             householdId: ID.aminaHousehold, groupId: nil)
+        await viewModel.load()
+        #expect(viewModel.state.value?.canStartOrder == false)
         #expect(!viewModel.canReserve)
         await viewModel.reserve()
         #expect(viewModel.actionError != nil)

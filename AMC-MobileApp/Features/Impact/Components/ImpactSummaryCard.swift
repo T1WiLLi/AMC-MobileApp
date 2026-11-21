@@ -19,6 +19,7 @@ struct ImpactSummaryCard: View {
                     .font(.title2)
                     .symbolRenderingMode(.hierarchical)
                     .foregroundStyle(.economie)
+                    .symbolEffect(.bounce, value: snapshot.currentMonthSavedCents)
                     .frame(width: iconSize, height: iconSize)
                     .background(Color.economie.opacity(0.12), in: .rect(cornerRadius: 14))
                 VStack(alignment: .leading, spacing: 2) {
@@ -32,9 +33,15 @@ struct ImpactSummaryCard: View {
             }
 
             VStack(alignment: .leading, spacing: 0) {
-                Text("Tu as économisé")
-                    .font(.subheadline)
-                    .foregroundStyle(.texteSecondaire)
+                Label {
+                    Text("Tu as économisé")
+                } icon: {
+                    Image(systemName: "dollarsign.circle.fill")
+                        .symbolRenderingMode(.hierarchical)
+                        .foregroundStyle(.economie)
+                }
+                .font(.subheadline)
+                .foregroundStyle(.texteSecondaire)
                 AnimatedCounter(value: snapshot.currentMonthSavedCents, format: .money)
                     .priceStyle(.largeTitle.bold())
                     .foregroundStyle(.economie)

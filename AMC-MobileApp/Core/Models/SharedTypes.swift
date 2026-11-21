@@ -21,6 +21,8 @@ nonisolated enum DietaryTag: String, Codable, Sendable, CaseIterable {
 nonisolated struct PickupSlot: Codable, Sendable, Hashable {
     var start: Date
     var end: Date
+    /// Ménages au plus dans ce créneau (RQ-064) ; nil = sans limite.
+    var capacity: Int? = nil
 }
 
 /// Palier de prix d'un lot : à partir de `minShares` parts engagées, chaque part coûte `priceCents`.

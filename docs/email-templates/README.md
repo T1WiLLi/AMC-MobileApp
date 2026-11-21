@@ -51,4 +51,4 @@ Pour vérifier : crée un compte de test dans l'app, ou utilise « Mot de passe 
 
 ## Appliquer par l'API (au lieu de la console)
 
-`PATCH https://identitytoolkit.googleapis.com/admin/v2/projects/<projet>/config` avec `updateMask=notification.sendEmail.verifyEmailTemplate.body,…` et le jeton de `firebase login`. C'est une écriture sur le vrai projet : demande d'abord l'accord du propriétaire du projet.
+**Ne marche pas sur amc-2026-8ab03.** Le 2026-11-21, un `PATCH https://identitytoolkit.googleapis.com/admin/v2/projects/<projet>/config` sur le sujet et le corps des trois modèles a répondu `400 EMAIL_TEMPLATE_UPDATE_NOT_ALLOWED`, et rien n'a changé. Le nom d'expéditeur, lui, passe par l'API. Il faut donc passer par la console ; si la console refuse aussi le corps, il faudra un SMTP personnalisé (Templates › SMTP settings) ou un envoi par un autre service.

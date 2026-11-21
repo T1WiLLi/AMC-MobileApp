@@ -224,8 +224,8 @@ actor FakeGroupOrderRepository: GroupOrderRepository {
     @discardableResult
     func setShare(quantity: Int, householdId: String, groupOrderId: String) async throws -> GroupOrder {
         try await behavior.simulate()
-        guard var order = groupOrders[groupOrderId], let offer = offers[order.offerId] else { throw AppError.notFound }
-        guard order.status == .open || order.status == .reached else { throw AppError.orderClosed }
+        guard let order = groupOrders[groupOrderId], let offer = offers[order.offerId] else { throw AppError.notFound }
+        guard TierEngine.isOpen(order) else { throw AppError.orderClosed }
         guard quantity >= 0 else { throw AppError.invalidInput("La quantité ne peut pas être négative.") }
 
         var orderShares = shares[groupOrderId, default: []]
@@ -242,16 +242,12 @@ actor FakeGroupOrderRepository: GroupOrderRepository {
                 suspendedAmountCents: 0, subsidyCents: 0, qrCode: nil, isPickedUp: false
             ))
         }
+        // Même recalcul que la transaction Firestore (RQ-051).
+        let updated = try TierEngine.recalculated(order, offer: offer, shares: orderShares)
         shares[groupOrderId] = orderShares
-
-        // Même recalcul que la transaction Firestore (onglet Requis, « Recalcul du palier »).
-        order.committedShares = othersTotal + quantity
-        order.committedHouseholds = orderShares.count
-        order.currentTierIndex = offer.tierIndex(forCommittedShares: order.committedShares)
-        order.status = order.committedShares >= offer.minimumSharesToLaunch ? .reached : .open
-        groupOrders[groupOrderId] = order
-        broadcaster.send(order, for: groupOrderId)
-        return order
+        groupOrders[groupOrderId] = updated
+        broadcaster.send(updated, for: groupOrderId)
+        return updated
     }
 
     func observeGroupOrder(id: String) async -> AsyncThrowingStream<GroupOrder, any Error> {

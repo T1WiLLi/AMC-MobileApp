@@ -123,7 +123,8 @@ struct ProfileScreen: View {
                                 Label {
                                     Text("Modifier ou supprimer mon compte")
                                 } icon: {
-                                    RowIcon(systemImage: "person.crop.circle.badge.gearshape", tint: .grenier)
+                                    // « person.crop.circle.badge.gearshape » n'existe pas dans SF Symbols : la tuile restait vide.
+                                    RowIcon(systemImage: "gearshape.fill", tint: .grenier)
                                 }
                             }
                         }

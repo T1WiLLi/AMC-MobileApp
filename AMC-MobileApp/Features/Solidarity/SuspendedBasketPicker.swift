@@ -80,11 +80,12 @@ struct SuspendedBasketPicker: View {
             ForEach(SolidarityMath.presetsCents, id: \.self) { cents in
                 chip(
                     title: cents == 0 ? "Aucun" : Money.formatRounded(cents),
+                    systemImage: cents == 0 ? "xmark" : nil,
                     accessibility: cents == 0 ? "Aucun panier suspendu" : "Ajouter \(Money.formatRounded(cents))",
                     isSelected: !isCustom && amountCents == cents
                 ) { selectPreset(cents) }
             }
-            chip(title: "Autre", accessibility: "Autre montant", isSelected: isCustom) {
+            chip(title: "Autre", systemImage: "pencil", accessibility: "Autre montant", isSelected: isCustom) {
                 isCustom = true
                 validate(customText)
                 isFieldFocused = true
@@ -94,19 +95,30 @@ struct SuspendedBasketPicker: View {
         .accessibilityLabel("Montant du panier suspendu")
     }
 
-    private func chip(title: String, accessibility: String, isSelected: Bool, action: @escaping () -> Void) -> some View {
+    private func chip(title: String, systemImage: String? = nil, accessibility: String, isSelected: Bool, action: @escaping () -> Void) -> some View {
         Button(action: action) {
-            Text(title)
-                .font(.body.weight(.semibold))
-                .fontDesign(.rounded)
-                .monospacedDigit()
-                .lineLimit(1)
-                .minimumScaleFactor(0.8)
-                .frame(maxWidth: .infinity, minHeight: chipMinHeight)
-                .padding(.horizontal, 8)
-                .foregroundStyle(isSelected ? Color.onAccent : Color.solidarite)
-                .background(isSelected ? Color.solidarite : Color.solidarite.opacity(0.12), in: .capsule)
-                .contentShape(.capsule)
+            HStack(spacing: 4) {
+                if let systemImage {
+                    Image(systemName: isSelected ? "checkmark" : systemImage)
+                        .imageScale(.small)
+                        .contentTransition(.symbolEffect(.replace))
+                } else if isSelected {
+                    Image(systemName: "heart.fill")
+                        .imageScale(.small)
+                        .transition(.scale.combined(with: .opacity))
+                }
+                Text(title)
+            }
+            .font(.body.weight(.semibold))
+            .fontDesign(.rounded)
+            .monospacedDigit()
+            .lineLimit(1)
+            .minimumScaleFactor(0.8)
+            .frame(maxWidth: .infinity, minHeight: chipMinHeight)
+            .padding(.horizontal, 8)
+            .foregroundStyle(isSelected ? Color.onAccent : Color.solidarite)
+            .background(isSelected ? Color.solidarite : Color.solidarite.opacity(0.12), in: .capsule)
+            .contentShape(.capsule)
         }
         .buttonStyle(.plain)
         .accessibilityLabel(accessibility)
@@ -143,21 +155,28 @@ struct SuspendedBasketPicker: View {
     private func summary(_ shareTotal: Cents) -> some View {
         VStack(alignment: .leading, spacing: 6) {
             Divider()
-            row("Ta part", Money.format(shareTotal))
-            row("Panier suspendu", Money.format(amountCents), tint: .solidarite)
-            row("Total à payer", Money.format(SolidarityMath.amountToPay(dueCents: shareTotal, subsidyCents: 0, suspendedCents: amountCents)), bold: true)
+            row("Ta part", symbol: "basket.fill", Money.format(shareTotal))
+            row("Panier suspendu", symbol: GrenierSymbol.solidarity, Money.format(amountCents), tint: .solidarite)
+            row("Total à payer", symbol: "creditcard.fill", Money.format(SolidarityMath.amountToPay(dueCents: shareTotal, subsidyCents: 0, suspendedCents: amountCents)), bold: true)
         }
     }
 
-    private func row(_ label: String, _ value: String, tint: Color = .texte, bold: Bool = false) -> some View {
-        ViewThatFits(in: .horizontal) {
+    private func row(_ label: String, symbol: String, _ value: String, tint: Color = .texte, bold: Bool = false) -> some View {
+        let title = Label {
+            Text(label).foregroundStyle(.texteSecondaire)
+        } icon: {
+            Image(systemName: symbol)
+                .symbolRenderingMode(.hierarchical)
+                .foregroundStyle(tint == .texte ? Color.grenier : tint)
+        }
+        return ViewThatFits(in: .horizontal) {
             HStack {
-                Text(label).foregroundStyle(.texteSecondaire)
+                title
                 Spacer(minLength: 8)
                 amount(value, tint: tint, bold: bold)
             }
             VStack(alignment: .leading, spacing: 2) {
-                Text(label).foregroundStyle(.texteSecondaire)
+                title
                 amount(value, tint: tint, bold: bold)
             }
         }

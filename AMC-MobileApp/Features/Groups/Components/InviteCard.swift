@@ -10,16 +10,31 @@ struct InviteCard: View {
     var discountPercent: Int?
 
     @ScaledMetric(relativeTo: .body) private var qrMaxSide: CGFloat = 180
+    @State private var appeared = false
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     var body: some View {
         VStack(spacing: 18) {
             VStack(spacing: 4) {
-                Text("Invite tes voisins")
-                    .font(.title3.bold())
-                    .foregroundStyle(.texte)
-                Text(subtitle)
-                    .font(.subheadline)
-                    .foregroundStyle(.texteSecondaire)
+                Label {
+                    Text("Invite tes voisins")
+                        .foregroundStyle(.texte)
+                } icon: {
+                    Image(systemName: "person.2.wave.2.fill")
+                        .symbolRenderingMode(.hierarchical)
+                        .foregroundStyle(Color.grenier)
+                        .symbolEffect(.wiggle, value: appeared && !reduceMotion && missingFamilies != nil)
+                }
+                .font(.title3.bold())
+                Label {
+                    Text(subtitle)
+                } icon: {
+                    Image(systemName: missingFamilies == nil ? "arrow.down.circle.fill" : "flag.fill")
+                        .symbolRenderingMode(.hierarchical)
+                        .foregroundStyle(Color.grenier)
+                }
+                .font(.subheadline)
+                .foregroundStyle(.texteSecondaire)
             }
             .multilineTextAlignment(.center)
             .frame(maxWidth: .infinity)
@@ -32,7 +47,8 @@ struct InviteCard: View {
                 .frame(maxWidth: min(qrMaxSide, 280))
 
             VStack(spacing: 2) {
-                Text("Code d'invitation")
+                Label("Code d'invitation", systemImage: "ticket.fill")
+                    .symbolRenderingMode(.hierarchical)
                     .font(.caption)
                     .foregroundStyle(.texteSecondaire)
                 Text(group.inviteCode)
@@ -60,6 +76,7 @@ struct InviteCard: View {
             .tint(.grenier)
         }
         .grenierCard(padding: 20)
+        .onAppear { appeared = true }
     }
 
     private var subtitle: String {

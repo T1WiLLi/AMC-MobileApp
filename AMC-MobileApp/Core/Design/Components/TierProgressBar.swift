@@ -31,24 +31,45 @@ struct TierProgressBar: View {
                 }
             }
             .frame(height: compact ? 6 : 10)
-            .animation(reduceMotion ? nil : .smooth, value: committedShares)
+            .grenierAnimation(.smooth, value: committedShares)
 
             if !compact {
                 legendLayout {
                     ForEach(Array(sorted.enumerated()), id: \.offset) { index, tier in
-                        Text(legend(for: index, tier: tier))
-                            .font(.caption)
-                            .fontWeight(index == currentIndex ? .bold : .regular)
-                            .foregroundStyle(index == currentIndex ? Color.texte : Color.texteSecondaire)
-                            .frame(maxWidth: .infinity, alignment: legendAlignment(for: index))
-                            .monospacedDigit()
+                        let reached = committedShares >= tier.minShares
+                        Label {
+                            Text(legend(for: index, tier: tier))
+                        } icon: {
+                            // Cadenas ouvert : palier débloqué ; fermé : encore à atteindre.
+                            Image(systemName: reached ? "lock.open.fill" : "lock.fill")
+                                .symbolRenderingMode(.hierarchical)
+                                .foregroundStyle(reached ? Color.grenier : Color.texteSecondaire)
+                                .contentTransition(reduceMotion ? .opacity : .symbolEffect(.replace))
+                                .symbolEffect(.bounce, value: reached && !reduceMotion)
+                        }
+                        .labelStyle(TightLabelStyle())
+                        .font(.caption)
+                        .fontWeight(index == currentIndex ? .bold : .regular)
+                        .foregroundStyle(index == currentIndex ? Color.texte : Color.texteSecondaire)
+                        .frame(maxWidth: .infinity, alignment: legendAlignment(for: index))
+                        .monospacedDigit()
+                        .fixedSize(horizontal: false, vertical: true)
                     }
                 }
                 if let nudge {
-                    Text(nudge)
+                    Label(nudge, systemImage: committedShares < launchThreshold ? "flag.fill" : "arrow.up.forward.circle.fill")
                         .font(.subheadline.weight(.semibold))
                         .foregroundStyle(Color.grenier)
-                        .contentTransition(.numericText())
+                        .symbolRenderingMode(.hierarchical)
+                        .contentTransition(reduceMotion ? .opacity : .numericText())
+                        .fixedSize(horizontal: false, vertical: true)
+                } else if !sorted.isEmpty {
+                    Label("Meilleur prix atteint", systemImage: "checkmark.seal.fill")
+                        .font(.subheadline.weight(.semibold))
+                        .foregroundStyle(Color.economie)
+                        .symbolRenderingMode(.hierarchical)
+                        .fixedSize(horizontal: false, vertical: true)
+                        .grenierTransition(.celebration)
                 }
             }
         }
@@ -105,7 +126,7 @@ struct TierProgressBar: View {
     var accessibilityText: String {
         var text = "\(count(committedShares)) \(FrenchPlural.word(committedShares, "engagée"))"
         if let currentIndex {
-            text += ", prix actuel \(Money.format(sorted[currentIndex].priceCents))"
+            text += ", prix actuel \(Money.spoken(sorted[currentIndex].priceCents))"
         }
         if let nudge { text += ". \(nudge)" }
         return text
@@ -148,6 +169,16 @@ struct TierProgressBar: View {
     }
 }
 
+/// Label compact : icône collée au texte (légendes, petites lignes d'info).
+struct TightLabelStyle: LabelStyle {
+    func makeBody(configuration: Configuration) -> some View {
+        HStack(alignment: .firstTextBaseline, spacing: 4) {
+            configuration.icon
+            configuration.title
+        }
+    }
+}
+
 #Preview("Clair") {
     let tiers = [PriceTier(minShares: 1, priceCents: 320), PriceTier(minShares: 11, priceCents: 260), PriceTier(minShares: 26, priceCents: 210)]
     VStack(spacing: 24) {
@@ -170,4 +201,15 @@ struct TierProgressBar: View {
         .frame(maxHeight: .infinity)
         .grenierBackground()
         .preferredColorScheme(.dark)
+}
+
+#Preview("AX5") {
+    let tiers = [PriceTier(minShares: 1, priceCents: 320), PriceTier(minShares: 11, priceCents: 260), PriceTier(minShares: 26, priceCents: 210)]
+    ScrollView {
+        TierProgressBar(tiers: tiers, committedShares: 24, totalShares: 40, unitSingular: "famille", unitPlural: "familles")
+            .grenierCard()
+            .padding()
+    }
+    .grenierBackground()
+    .dynamicTypeSize(.accessibility5)
 }

@@ -25,17 +25,21 @@ extension AppRepositories {
         #if canImport(FirebaseFirestore) && canImport(FirebaseCore)
         // Sans FirebaseApp par défaut (tests, configuration ratée), `Firestore.firestore()` plante : fakes.
         let isConfigured = FirebaseApp.app() != nil
+        let firestoreUsers: (any UserRepository)? = isConfigured ? FirestoreUserRepository() : nil
+        let firestoreGroups: (any GroupRepository)? = isConfigured ? FirestoreGroupRepository() : nil
         let firestoreVendors: (any VendorRepository)? = isConfigured ? FirestoreVendorRepository() : nil
         let firestoreOffers: (any OfferRepository)? = isConfigured ? FirestoreOfferRepository() : nil
         let firestorePickupPoints: (any PickupPointRepository)? = isConfigured ? FirestorePickupPointRepository() : nil
         #else
+        let firestoreUsers: (any UserRepository)? = nil
+        let firestoreGroups: (any GroupRepository)? = nil
         let firestoreVendors: (any VendorRepository)? = nil
         let firestoreOffers: (any OfferRepository)? = nil
         let firestorePickupPoints: (any PickupPointRepository)? = nil
         #endif
         return AppRepositories(
-            users: fallback.users,               // B-017 : FirestoreUserRepository() — users, households
-            groups: fallback.groups,             // B-018 : FirestoreGroupRepository() — groups, members
+            users: firestoreUsers ?? fallback.users,              // B-017 — users, households
+            groups: firestoreGroups ?? fallback.groups,           // B-017 — groups, members
             vendors: firestoreVendors ?? fallback.vendors,        // B-018 — vendors, products
             offers: firestoreOffers ?? fallback.offers,           // B-018 — offers
             groupOrders: fallback.groupOrders,   // B-019 : FirestoreGroupOrderRepository() — groupOrders, shares
@@ -43,11 +47,13 @@ extension AppRepositories {
         )
     }
 
-    /// Dépôts pour le mode choisi au lancement (`FirebaseSetup.configure()`).
-    nonisolated static func live(mode: BackendMode) -> AppRepositories {
-        switch mode {
+    /// Dépôts pour le mode choisi au lancement (`FirebaseSetup.configure()`), derrière le cache mémoire (T-112) :
+    /// les écrans relus souvent ne refont pas la requête, et les snapshots temps réel tiennent le cache à jour.
+    nonisolated static func live(mode: BackendMode, cache: RepositoryCache = RepositoryCache()) -> AppRepositories {
+        let repositories: AppRepositories = switch mode {
         case .fake: .fake()
         case .emulator, .demoProject: .firebase()
         }
+        return repositories.cached(by: cache)
     }
 }

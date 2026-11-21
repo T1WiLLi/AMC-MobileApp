@@ -45,6 +45,32 @@ nonisolated enum BackendMode: String, Sendable, CaseIterable, CustomStringConver
     }
 }
 
+/// Cache local de Firestore (S-10, T-090) : ce que l'app garde pour afficher les dernières données connues
+/// tout de suite, même hors ligne.
+nonisolated enum FirestoreCachePolicy: Sendable, Equatable {
+    /// Cache en mémoire, vidé à chaque lancement.
+    case memory
+    /// Cache sur disque, conservé entre les lancements, plafonné à `sizeBytes`.
+    case persistent(sizeBytes: Int64)
+
+    /// Taille du cache disque du projet de démo : 100 Mo (défaut du SDK), assez pour des milliers de documents.
+    static let defaultPersistentSizeBytes: Int64 = 100 * 1_024 * 1_024
+}
+
+extension BackendMode {
+    /// Cache Firestore de ce mode, `nil` sans Firebase.
+    /// - Projet de démo : cache disque, l'app rouvre sur les dernières données même sans réseau.
+    /// - Émulateur : cache mémoire, les données de l'émulateur (souvent réinitialisées) ne restent pas sur l'appareil
+    ///   et ne se mélangent pas au cache disque du projet de démo.
+    nonisolated var firestoreCache: FirestoreCachePolicy? {
+        switch self {
+        case .fake: nil
+        case .emulator: .memory
+        case .demoProject: .persistent(sizeBytes: FirestoreCachePolicy.defaultPersistentSizeBytes)
+        }
+    }
+}
+
 /// Projet, hôte et ports des émulateurs (ports identiques à `firebase.json`).
 nonisolated struct FirebaseEmulatorConfig: Sendable, Equatable {
     /// Projet local de l'émulateur. Le préfixe `demo-` garantit qu'aucune ressource réelle ne peut être touchée.

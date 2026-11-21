@@ -2,6 +2,7 @@
 // Lancer depuis la racine : npm --prefix scripts/rules-tests run test:emulators
 import { after, before, beforeEach, describe, test } from 'node:test'
 import { readFile } from 'node:fs/promises'
+import assert from 'node:assert/strict'
 import {
   assertFails,
   assertSucceeds,
@@ -14,11 +15,16 @@ import {
   getDoc,
   getDocs,
   collection,
+  collectionGroup,
+  query,
+  where,
   serverTimestamp,
   setDoc,
   Timestamp,
   updateDoc,
-  writeBatch
+  increment,
+  writeBatch,
+  type Firestore
 } from 'firebase/firestore'
 
 let env: RulesTestEnvironment
@@ -64,7 +70,8 @@ beforeEach(async () => {
     await setDoc(doc(db, 'users/intrus'), { ...aminaUser, id: 'intrus', displayName: 'Intrus', householdId: null })
     await setDoc(doc(db, 'households/household-amina'), { id: 'household-amina', name: 'Famille Benali', size: 5, geohash: 'f25du', userIds: ['amina'] })
     await setDoc(doc(db, 'households/household-amina/private/profile'), { isSubsidized: true })
-    await setDoc(doc(db, 'groups/group-parc-extension'), { id: 'group-parc-extension', name: 'Voisins de Parc-Ex', isPublic: true, inviteCode: 'PARC' })
+    await setDoc(doc(db, 'groups/group-parc-extension'), { id: 'group-parc-extension', name: 'Voisins de Parc-Ex', isPublic: true, inviteCode: 'PARC', householdCount: 3 })
+    await setDoc(doc(db, 'households/household-intrus'), { id: 'household-intrus', name: 'Intrus', size: 1, geohash: 'f25du', userIds: ['intrus'] })
     await setDoc(doc(db, 'vendors/vendor-lafleur'), { id: 'vendor-lafleur', legalName: 'Ferme Lafleur', kind: 'farm', description: 'x', photoURLs: [], servedZones: [], isVerified: true })
     await setDoc(doc(db, 'vendors/vendor-autre'), { id: 'vendor-autre', legalName: 'Autre', kind: 'farm', description: 'x', photoURLs: [], servedZones: [], isVerified: false })
     await setDoc(doc(db, 'products/product-carottes'), product)
@@ -136,14 +143,94 @@ describe('households', () => {
 })
 
 describe('groups/members', () => {
-  test('le ménage rejoint un groupe', async () => {
-    await assertSucceeds(setDoc(doc(amina(), 'groups/group-parc-extension/members/household-amina'), { householdId: 'household-amina', role: 'member', joinedAt: serverTimestamp() }))
+  const groupPath = 'groups/group-parc-extension'
+  const memberPath = `${groupPath}/members/household-amina`
+  const membership = { householdId: 'household-amina', role: 'member', joinedAt: serverTimestamp() }
+
+  // Ce que fait FirestoreGroupRepository.join / leave (T-099) : adhésion + compteur, dans un batch.
+  function joinBatch(db: Firestore, member: object = membership, householdId = 'household-amina', delta = 1) {
+    const batch = writeBatch(db)
+    batch.set(doc(db, `${groupPath}/members/household-amina`), member)
+    batch.update(doc(db, groupPath), { householdCount: increment(delta), lastMembershipChange: householdId })
+    return batch.commit()
+  }
+  function leaveBatch(db: Firestore, householdId = 'household-amina', delta = -1) {
+    const batch = writeBatch(db)
+    batch.delete(doc(db, memberPath))
+    batch.update(doc(db, groupPath), { householdCount: increment(delta), lastMembershipChange: householdId })
+    return batch.commit()
+  }
+  async function seedMembership() {
+    await env.withSecurityRulesDisabled(async (c) => { await setDoc(doc(c.firestore(), memberPath), { ...membership, joinedAt: Timestamp.now() }) })
+  }
+  async function householdCount() {
+    let count: unknown
+    await env.withSecurityRulesDisabled(async (c) => { count = (await getDoc(doc(c.firestore(), groupPath))).data()?.householdCount })
+    return count
+  }
+
+  test('le ménage rejoint un groupe : adhésion + householdCount +1 (T-099)', async () => {
+    await assertSucceeds(joinBatch(amina()))
+    assert.equal(await householdCount(), 4)
+  })
+  test('le ménage quitte un groupe : suppression + householdCount −1 (T-099)', async () => {
+    await seedMembership()
+    await assertSucceeds(leaveBatch(amina()))
+    assert.equal(await householdCount(), 2)
+  })
+  test('pas d’adhésion sans le compteur', async () => {
+    await assertFails(setDoc(doc(amina(), memberPath), membership))
+  })
+  test('pas de départ sans le compteur', async () => {
+    await seedMembership()
+    await assertFails(deleteDoc(doc(amina(), memberPath)))
+  })
+  test('pas de compteur sans l’adhésion', async () => {
+    await assertFails(updateDoc(doc(amina(), groupPath), { householdCount: increment(1), lastMembershipChange: 'household-amina' }))
+    await seedMembership()
+    await assertFails(updateDoc(doc(amina(), groupPath), { householdCount: increment(-1), lastMembershipChange: 'household-amina' }))
+  })
+  test('pas de saut de plus d’un', async () => {
+    await assertFails(joinBatch(amina(), membership, 'household-amina', 2))
+    await seedMembership()
+    await assertFails(leaveBatch(amina(), 'household-amina', -2))
+  })
+  test('pas de +1 pour un membre déjà présent, ni de −1 au mauvais sens', async () => {
+    await seedMembership()
+    // Le set écraserait l’adhésion existante (update interdit) et le ménage était déjà membre.
+    await assertFails(joinBatch(amina()))
+    await env.withSecurityRulesDisabled(async (c) => { await deleteDoc(doc(c.firestore(), memberPath)) })
+    await assertFails(joinBatch(amina(), membership, 'household-amina', -1))
+  })
+  test('pas au nom du ménage d’un autre', async () => {
+    // L’intrus nomme son propre ménage dans lastMembershipChange mais écrit l’adhésion d’Amina.
+    await assertFails(joinBatch(intruder(), membership, 'household-intrus'))
+    await assertFails(joinBatch(intruder()))
+  })
+  test('le groupe ne change que householdCount et lastMembershipChange', async () => {
+    const db = amina()
+    const batch = writeBatch(db)
+    batch.set(doc(db, memberPath), membership)
+    batch.update(doc(db, groupPath), { householdCount: increment(1), lastMembershipChange: 'household-amina', name: 'Pirate' })
+    await assertFails(batch.commit())
   })
   test('pas comme coordinateur', async () => {
-    await assertFails(setDoc(doc(amina(), 'groups/group-parc-extension/members/household-amina'), { householdId: 'household-amina', role: 'coordinator', joinedAt: serverTimestamp() }))
+    await assertFails(joinBatch(amina(), { ...membership, role: 'coordinator' }))
   })
   test('pas pour le ménage d’un autre', async () => {
-    await assertFails(setDoc(doc(intruder(), 'groups/group-parc-extension/members/household-amina'), { householdId: 'household-amina', role: 'member', joinedAt: serverTimestamp() }))
+    await assertFails(setDoc(doc(intruder(), memberPath), membership))
+  })
+  test('groupes d’un ménage : requête de groupe de collections (B-017)', async () => {
+    await assertSucceeds(getDocs(query(collectionGroup(amina(), 'members'), where('householdId', '==', 'household-amina'))))
+  })
+  test('pas de requête de groupe de collections sans session', async () => {
+    await assertFails(getDocs(query(collectionGroup(anonymous(), 'members'), where('householdId', '==', 'household-amina'))))
+  })
+  test('groupes d’un ménage : requête de groupe de collections (B-017)', async () => {
+    await assertSucceeds(getDocs(query(collectionGroup(amina(), 'members'), where('householdId', '==', 'household-amina'))))
+  })
+  test('pas de requête de groupe de collections sans session', async () => {
+    await assertFails(getDocs(query(collectionGroup(anonymous(), 'members'), where('householdId', '==', 'household-amina'))))
   })
 })
 
@@ -178,38 +265,48 @@ describe('vendeur : products et offers', () => {
 
 describe('groupOrders/shares', () => {
   const sharePath = 'groupOrders/order-1/shares/household-amina'
-  // La part s'écrit avec la commande recalculée, dans la même transaction (FirestoreGroupOrderRepository.setShare),
-  // par un ménage membre du groupe (T-093 : ces deux tests passaient avant que les règles de #64 l'exigent).
-  const joinGroup = () => env.withSecurityRulesDisabled(async (c) => {
-    await setDoc(doc(c.firestore(), 'groups/group-parc-extension/members/household-amina'), { householdId: 'household-amina', role: 'member', joinedAt: Timestamp.now() })
-  })
-  const withOrder = (db: ReturnType<typeof amina>, data: Record<string, unknown> | null, committedShares: number) => {
+  const orderPath = 'groupOrders/order-1'
+  const order = { id: 'order-1', groupId: 'group-parc-extension', offerId: 'offer-carottes', currentTierIndex: null, pickupSlots: [] }
+
+  // Comme FirestoreGroupOrderRepository.setShare (B-019) : la part et les compteurs de la commande
+  // sont écrits dans la même transaction. Un lot (batch) est évalué pareil par les règles.
+  const setShare = (db: Firestore, quantity: number, committedHouseholds: number) => {
     const batch = writeBatch(db)
-    if (data) batch.set(doc(db, sharePath), data)
-    else batch.delete(doc(db, sharePath))
-    batch.update(doc(db, 'groupOrders/order-1'), { committedShares, committedHouseholds: data ? 1 : 0 })
+    if (quantity > 0) {
+      batch.set(doc(db, sharePath), { ...share, quantity, updatedAt: Timestamp.now() })
+    } else {
+      batch.delete(doc(db, sharePath))
+    }
+    batch.set(doc(db, orderPath), { ...order, status: 'open', committedShares: quantity, committedHouseholds })
     return batch.commit()
   }
+
+  beforeEach(async () => {
+    await env.withSecurityRulesDisabled(async (c) => {
+      await setDoc(doc(c.firestore(), 'groups/group-parc-extension/members/household-amina'), { householdId: 'household-amina', role: 'member', joinedAt: serverTimestamp() })
+    })
+  })
+
   test('le ménage réserve sa part', async () => {
-    await joinGroup()
-    await assertSucceeds(withOrder(amina(), share, 2))
+    // Seule, sans mettre à jour la commande : refusée.
+    await assertFails(setDoc(doc(amina(), sharePath), share))
+    await assertSucceeds(setShare(amina(), 2, 1))
   })
   test('pas une part déjà payée', async () => { await assertFails(setDoc(doc(amina(), sharePath), { ...share, isPaid: true })) })
   test('pas de subvention auto-attribuée', async () => { await assertFails(setDoc(doc(amina(), sharePath), { ...share, subsidyCents: 500 })) })
-  test('pas la part d’un autre ménage', async () => { await assertFails(setDoc(doc(intruder(), sharePath), share)) })
+  test('pas la part d’un autre ménage', async () => { await assertFails(setShare(intruder(), 2, 1)) })
   test('pas sur une commande fermée', async () => {
     await assertFails(setDoc(doc(amina(), 'groupOrders/order-closed/shares/household-amina'), share))
   })
   test('change la quantité, pas le paiement', async () => {
-    await joinGroup()
     await env.withSecurityRulesDisabled(async (c) => {
       await setDoc(doc(c.firestore(), sharePath), share)
-      await updateDoc(doc(c.firestore(), 'groupOrders/order-1'), { committedShares: 2, committedHouseholds: 1 })
+      await setDoc(doc(c.firestore(), orderPath), { ...order, status: 'open', committedShares: 2, committedHouseholds: 1 })
     })
-    await assertSucceeds(withOrder(amina(), { ...share, quantity: 3 }, 3))
+    await assertSucceeds(setShare(amina(), 3, 1))
     await assertFails(updateDoc(doc(amina(), sharePath), { isPaid: true }))
     await assertFails(getDoc(doc(intruder(), sharePath)))
-    await assertSucceeds(withOrder(amina(), null, 0))
+    await assertSucceeds(setShare(amina(), 0, 0))
   })
 })
 
@@ -278,5 +375,90 @@ describe('reste refusé', () => {
   test('collection inconnue', async () => {
     await assertFails(setDoc(doc(amina(), 'admin/config'), { open: true }))
     await assertFails(getDoc(doc(amina(), 'admin/config')))
+  })
+})
+
+describe('envies des familles et disponibilités des vendeurs (S-07, S-08)', () => {
+  const voisin = () => env.authenticatedContext('voisin').firestore()
+  const wishPath = 'groups/group-parc-extension/wishes/wish-1'
+  const voisinWishPath = 'groups/group-parc-extension/wishes/wish-voisin'
+  const supplyPath = 'vendors/vendor-lafleur/supplies/supply-1'
+  const now = () => Timestamp.fromMillis(Date.now())
+  const wish = (overrides: Record<string, unknown> = {}) => ({
+    id: 'wish-1', groupId: 'group-parc-extension', householdId: 'household-amina', category: 'grains',
+    quantity: 10, unit: 'kg', frequency: 'monthly', createdAt: now(), updatedAt: now(), ...overrides
+  })
+  const supply = (overrides: Record<string, unknown> = {}) => ({
+    id: 'supply-1', vendorId: 'vendor-lafleur', category: 'produce', productId: 'product-carottes', quantity: 200,
+    unit: 'kg', availableFrom: now(), availableTo: Timestamp.fromMillis(Date.now() + 7 * 86_400_000),
+    servedZones: ['f25d'], createdAt: now(), updatedAt: now(), ...overrides
+  })
+
+  beforeEach(async () => {
+    await env.withSecurityRulesDisabled(async (context) => {
+      const db = context.firestore()
+      await setDoc(doc(db, 'users/voisin'), { ...aminaUser, id: 'voisin', displayName: 'Voisin', householdId: 'household-voisin' })
+      await setDoc(doc(db, 'households/household-voisin'), { id: 'household-voisin', name: 'Voisins', size: 2, geohash: 'f25du', userIds: ['voisin'] })
+      await setDoc(doc(db, 'groups/group-parc-extension/members/household-amina'), { householdId: 'household-amina', role: 'member', joinedAt: now() })
+      await setDoc(doc(db, 'groups/group-parc-extension/members/household-voisin'), { householdId: 'household-voisin', role: 'member', joinedAt: now() })
+      await setDoc(doc(db, voisinWishPath), wish({ id: 'wish-voisin', householdId: 'household-voisin' }))
+      await setDoc(doc(db, 'vendors/vendor-autre/supplies/supply-autre'), supply({ id: 'supply-autre', vendorId: 'vendor-autre', productId: null }))
+    })
+  })
+
+  test('un membre crée l’envie de son ménage', async () => {
+    await assertSucceeds(setDoc(doc(amina(), wishPath), wish()))
+  })
+  test('un membre ne crée pas l’envie d’un autre ménage', async () => {
+    await assertFails(setDoc(doc(amina(), wishPath), wish({ householdId: 'household-voisin' })))
+  })
+  test('un non-membre ne crée pas d’envie', async () => {
+    await assertFails(setDoc(doc(intruder(), wishPath), wish({ householdId: 'household-intrus' })))
+  })
+  test('envie invalide refusée', async () => {
+    await assertFails(setDoc(doc(amina(), wishPath), wish({ quantity: 0 })))
+    await assertFails(setDoc(doc(amina(), wishPath), wish({ unit: 'tonne' })))
+    await assertFails(setDoc(doc(amina(), wishPath), wish({ groupId: 'group-autre' })))
+    await assertFails(setDoc(doc(amina(), wishPath), wish({ isAdmin: true })))
+  })
+  test('un membre change et retire seulement ses envies', async () => {
+    await assertSucceeds(updateDoc(doc(voisin(), voisinWishPath), { quantity: 4, updatedAt: now() }))
+    await assertFails(updateDoc(doc(voisin(), voisinWishPath), { householdId: 'household-amina' }))
+    await assertFails(updateDoc(doc(amina(), voisinWishPath), { quantity: 99 }))
+    await assertFails(deleteDoc(doc(amina(), voisinWishPath)))
+    await assertSucceeds(deleteDoc(doc(voisin(), voisinWishPath)))
+  })
+  test('membres et vendeurs lisent les envies, pas les autres', async () => {
+    await assertSucceeds(getDocs(collection(amina(), 'groups/group-parc-extension/wishes')))
+    await assertSucceeds(getDocs(collection(lafleur(), 'groups/group-parc-extension/wishes')))
+    await assertFails(getDocs(collection(intruder(), 'groups/group-parc-extension/wishes')))
+    await assertFails(getDocs(collection(anonymous(), 'groups/group-parc-extension/wishes')))
+  })
+  test('collectionGroup des envies : vendeurs seulement', async () => {
+    await assertSucceeds(getDocs(collectionGroup(lafleur(), 'wishes')))
+    await assertFails(getDocs(collectionGroup(amina(), 'wishes')))
+  })
+
+  test('le vendeur crée, change et retire ses disponibilités', async () => {
+    await assertSucceeds(setDoc(doc(lafleur(), supplyPath), supply()))
+    await assertSucceeds(updateDoc(doc(lafleur(), supplyPath), { quantity: 150, updatedAt: now() }))
+    await assertFails(updateDoc(doc(lafleur(), supplyPath), { vendorId: 'vendor-autre' }))
+    await assertSucceeds(deleteDoc(doc(lafleur(), supplyPath)))
+  })
+  test('disponibilité invalide refusée', async () => {
+    await assertFails(setDoc(doc(lafleur(), supplyPath), supply({ servedZones: [] })))
+    await assertFails(setDoc(doc(lafleur(), supplyPath), supply({ quantity: -1 })))
+    await assertFails(setDoc(doc(lafleur(), supplyPath), supply({ availableTo: Timestamp.fromMillis(0) })))
+    await assertFails(setDoc(doc(lafleur(), 'vendors/vendor-lafleur/supplies/supply-2'), supply({ id: 'supply-2', productId: 'product-inconnu' })))
+  })
+  test('personne d’autre n’écrit les disponibilités d’un vendeur', async () => {
+    await assertFails(setDoc(doc(amina(), supplyPath), supply()))
+    await assertFails(setDoc(doc(lafleur(), 'vendors/vendor-autre/supplies/supply-1'), supply({ vendorId: 'vendor-autre', productId: null })))
+    await assertFails(deleteDoc(doc(lafleur(), 'vendors/vendor-autre/supplies/supply-autre')))
+  })
+  test('tout connecté lit les disponibilités, pas l’anonyme', async () => {
+    await assertSucceeds(getDocs(collection(amina(), 'vendors/vendor-autre/supplies')))
+    await assertSucceeds(getDocs(collectionGroup(amina(), 'supplies')))
+    await assertFails(getDocs(collectionGroup(anonymous(), 'supplies')))
   })
 })

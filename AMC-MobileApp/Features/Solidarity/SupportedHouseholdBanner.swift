@@ -8,6 +8,8 @@ struct SupportedHouseholdBanner: View {
     let subsidyCents: Cents
 
     @ScaledMetric(relativeTo: .body) private var iconSize: CGFloat = 36
+    @State private var appeared = false
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     init(subsidyCents: Cents) {
         self.subsidyCents = subsidyCents
@@ -22,14 +24,21 @@ struct SupportedHouseholdBanner: View {
                     .foregroundStyle(Color.solidarite)
                     .frame(width: iconSize, height: iconSize)
                     .background(Color.surface, in: .circle)
+                    .symbolEffect(.bounce, value: appeared && !reduceMotion)
                     .accessibilityHidden(true)
                 VStack(alignment: .leading, spacing: 2) {
                     Text("Une partie de ta part a été offerte par tes voisins")
                         .font(.subheadline.weight(.semibold))
                         .foregroundStyle(.texte)
-                    Text(detailText)
-                        .font(.subheadline)
-                        .foregroundStyle(.texteSecondaire)
+                    Label {
+                        Text(detailText)
+                    } icon: {
+                        Image(systemName: "checkmark.circle.fill")
+                            .symbolRenderingMode(.hierarchical)
+                            .foregroundStyle(Color.economie)
+                    }
+                    .font(.subheadline)
+                    .foregroundStyle(.texteSecondaire)
                 }
                 .fixedSize(horizontal: false, vertical: true)
                 Spacer(minLength: 0)
@@ -37,6 +46,7 @@ struct SupportedHouseholdBanner: View {
             .padding(14)
             .background(Color.solidarite.opacity(0.12), in: .rect(cornerRadius: 24))
             .accessibilityElement(children: .combine)
+            .onAppear { appeared = true }
         }
     }
 

@@ -18,6 +18,7 @@ import {
   doc,
   getDoc,
   getDocs,
+  increment,
   serverTimestamp,
   setDoc,
   Timestamp,
@@ -613,7 +614,12 @@ describe('attaques : groupes, points de cueillette, profils', () => {
     await assertFails(setDoc(doc(as('rival'), `groups/${GROUP}/members/household-rival`), { householdId: 'household-rival', role: 'member', joinedAt: Timestamp.fromMillis(0) }))
   })
   test('adhésion légitime', async () => {
-    await assertSucceeds(setDoc(doc(as('rival'), `groups/${GROUP}/members/household-rival`), { householdId: 'household-rival', role: 'member', joinedAt: serverTimestamp() }))
+    // Avec le compteur du groupe, dans le même lot (#93).
+    const db = as('rival')
+    const batch = writeBatch(db)
+    batch.set(doc(db, `groups/${GROUP}/members/household-rival`), { householdId: 'household-rival', role: 'member', joinedAt: serverTimestamp() })
+    batch.update(doc(db, `groups/${GROUP}`), { householdCount: increment(1), lastMembershipChange: 'household-rival' })
+    await assertSucceeds(batch.commit())
   })
   test('l’hôte : capacité négative, type, hôte changé', async () => {
     const ref = doc(as('jean'), 'pickupPoints/pickup-1')

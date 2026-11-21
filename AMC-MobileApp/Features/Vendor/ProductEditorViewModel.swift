@@ -9,7 +9,9 @@
 //   Étiquettes : `model.toggleTag(.organic)` / `model.isTagged(.organic)`.
 //   `model.validationError` pour l'erreur en direct ; bouton actif si `model.canSave` ; `await model.save()`.
 //
-// Pas de téléversement de photo : `photoURL` est conservé tel quel (nil pour un nouveau produit).
+//
+// Photo (T-089) : `model.setPhoto(jpegData)` / `model.removePhoto()` ; elle est téléversée par `photoUploader`
+// au moment de `save()`. Retrait du catalogue : `await model.delete()` (refusé si un lot ouvert utilise le produit).
 
 import Foundation
 import Observation
@@ -41,16 +43,31 @@ final class ProductEditorViewModel {
     private(set) var loadState: LoadState<Void> = .idle
     /// Résultat de la dernière sauvegarde : `.loaded(product)` si enregistré, `.failed(…)` sinon.
     private(set) var saveState: LoadState<Product> = .idle
-    /// Photo actuelle (placeholder si nil) ; conservée telle quelle à l'enregistrement.
+    /// Photo déjà enregistrée (placeholder si nil et pas de nouvelle photo).
     private(set) var photoURL: URL?
+    /// Nouvelle photo choisie (JPEG), téléversée à l'enregistrement.
+    private(set) var pendingPhotoData: Data?
+    /// Résultat du dernier retrait : `.loaded` si le produit a été retiré.
+    private(set) var deleteState: LoadState<Void> = .idle
 
     let vendorId: String
 
     private let repositories: AppRepositories
+    private let photoUploader: any ProductPhotoUploader
+    /// Id du nouveau produit, fixé dès l'ouverture : un nouvel essai après un échec réutilise la même photo.
+    private let draftProductId = "product-\(UUID().uuidString.lowercased())"
+    /// La photo enregistrée a été retirée : à supprimer du stockage à l'enregistrement.
+    private var removedSavedPhoto = false
 
-    init(repositories: AppRepositories, vendorId: String, productId: String? = nil) {
+    init(
+        repositories: AppRepositories,
+        vendorId: String,
+        productId: String? = nil,
+        photoUploader: any ProductPhotoUploader = FakeProductPhotoUploader()
+    ) {
         self.repositories = repositories
         self.vendorId = vendorId
+        self.photoUploader = photoUploader
         self.mode = productId.map { .edit(productId: $0) } ?? .create
     }
 
@@ -60,6 +77,9 @@ final class ProductEditorViewModel {
     var categories: [Product.Category] { Product.Category.allCases }
     var isEditing: Bool { if case .edit = mode { true } else { false } }
     var isSaving: Bool { saveState.isLoading }
+    var isDeleting: Bool { deleteState.isLoading }
+    /// true si une photo (enregistrée ou nouvelle) sera montrée aux familles.
+    var hasPhoto: Bool { pendingPhotoData != nil || photoURL != nil }
 
     /// Prix de référence en cents, nil si la saisie n'est pas un montant valide.
     var referenceGroceryPriceCents: Cents? { Self.parseCents(referencePriceText) }
@@ -74,7 +94,22 @@ final class ProductEditorViewModel {
         }
     }
 
-    var canSave: Bool { validationError == nil && !isSaving && !loadState.isLoading }
+    var canSave: Bool { validationError == nil && !isSaving && !isDeleting && !loadState.isLoading }
+
+    // MARK: Photo
+
+    /// Nouvelle photo (JPEG déjà redimensionné, voir `ProductPhoto.jpegData`).
+    func setPhoto(_ jpegData: Data) {
+        if photoURL != nil { removedSavedPhoto = true }
+        pendingPhotoData = jpegData
+    }
+
+    /// Retire la photo : le produit reprend l'icône de sa catégorie.
+    func removePhoto() {
+        if photoURL != nil { removedSavedPhoto = true }
+        photoURL = nil
+        pendingPhotoData = nil
+    }
 
     // MARK: Étiquettes
 
@@ -122,7 +157,7 @@ final class ProductEditorViewModel {
     /// Après une création réussie, l'éditeur passe en mode modification de ce produit.
     @discardableResult
     func save() async -> Product? {
-        let product: Product
+        var product: Product
         do {
             product = try validatedProduct()
         } catch {
@@ -131,13 +166,48 @@ final class ProductEditorViewModel {
         }
         saveState = .loading
         do {
+            if let pendingPhotoData {
+                let url = try await photoUploader.uploadPhoto(pendingPhotoData, vendorId: vendorId, productId: product.id)
+                photoURL = url
+                self.pendingPhotoData = nil
+                removedSavedPhoto = false
+                product.photoURL = url
+            }
             try await repositories.vendors.saveProduct(product)
+            if removedSavedPhoto {
+                // Au mieux : une photo orpheline n'empêche pas l'enregistrement.
+                try? await photoUploader.deletePhoto(vendorId: vendorId, productId: product.id)
+                removedSavedPhoto = false
+            }
             mode = .edit(productId: product.id)
             saveState = .loaded(product)
             return product
         } catch {
             saveState = .failed(AppError(error))
             return nil
+        }
+    }
+
+    /// Retire le produit du catalogue (et sa photo). Refusé tant qu'un lot actif ou en pause l'utilise.
+    /// Renvoie true si le produit a été retiré (voir `deleteState` sinon).
+    @discardableResult
+    func delete() async -> Bool {
+        guard case .edit(let productId) = mode else { return false }
+        deleteState = .loading
+        do {
+            let offers = try await repositories.offers.offers(ofVendor: vendorId)
+            if offers.contains(where: { $0.productId == productId && [.active, .draft].contains($0.status) }) {
+                throw AppError.invalidInput(
+                    "Ce produit est dans un lot ouvert ou en pause : retire d'abord le lot, puis le produit."
+                )
+            }
+            try await repositories.vendors.deleteProduct(id: productId)
+            try? await photoUploader.deletePhoto(vendorId: vendorId, productId: productId)
+            deleteState = .loaded(())
+            return true
+        } catch {
+            deleteState = .failed(AppError(error))
+            return false
         }
     }
 
@@ -159,9 +229,12 @@ final class ProductEditorViewModel {
             throw .invalidInput("Le prix en épicerie doit être un montant comme « 3,49 ».")
         }
         guard cents > 0 else { throw .invalidInput("Le prix en épicerie doit être supérieur à 0 $.") }
+        if let pendingPhotoData, pendingPhotoData.count > ProductPhoto.maxBytes {
+            throw .invalidInput("La photo doit faire 5 Mo ou moins. Choisis-en une autre.")
+        }
 
         let productId: String = switch mode {
-        case .create: "product-\(UUID().uuidString.lowercased())"
+        case .create: draftProductId
         case .edit(let id): id
         }
         return Product(

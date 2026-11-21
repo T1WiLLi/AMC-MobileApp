@@ -13,9 +13,7 @@ struct OfferDetailScreen: View {
             if let viewModel {
                 OfferDetailContent(viewModel: viewModel)
             } else {
-                ProgressView("Chargement…")
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
-                    .grenierBackground()
+                OfferLoadingView()
             }
         }
         .toolbarVisibility(.hidden, for: .tabBar)
@@ -32,21 +30,117 @@ struct OfferDetailScreen: View {
     }
 }
 
+/// Chargement de la fiche : caisse qui pulse (fixe sous Reduce Motion) et indicateur.
+private struct OfferLoadingView: View {
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
+    var body: some View {
+        VStack(spacing: 16) {
+            Image(systemName: GrenierSymbol.offers)
+                .font(.system(size: 56))
+                .symbolRenderingMode(.hierarchical)
+                .foregroundStyle(Color.grenier)
+                .symbolEffect(.pulse, isActive: !reduceMotion)
+                .accessibilityHidden(true)
+            ProgressView("Chargement du lot…")
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .grenierBackground()
+    }
+}
+
+// MARK: - Symboles de la fiche
+
+/// Symboles SF de la fiche d'un lot (rendu hiérarchique, teinte Grenier).
+enum OfferDetailSymbol {
+    static let producer = "person.crop.square.fill"
+    static let origin = "globe.americas.fill"
+    static let shareUnit = "scalemass.fill"
+    static let deadline = "clock.fill"
+    static let deadlineClosed = "clock.badge.xmark"
+    static let pickup = "mappin.and.ellipse"
+    static let tags = "tag.fill"
+    static let aboutSection = "list.bullet.clipboard.fill"
+    static let priceSection = "dollarsign.circle.fill"
+    static let groupSection = "person.3.fill"
+    static let shareSection = "basket.fill"
+    static let tier = "stairs"
+    static let nextTier = "arrow.down.forward.circle.fill"
+    static let bestTier = "crown.fill"
+    static let unlocks = "sparkles"
+    static let payment = "banknote.fill"
+    static let verified = "checkmark.seal.fill"
+    static let share = "square.and.arrow.up"
+    static let cancel = "xmark.circle"
+
+    /// Symbole du type de vendeur.
+    static func vendor(_ kind: Vendor.Kind) -> String {
+        switch kind {
+        case .farm: "tree.fill"
+        case .wholesaler: "building.2.fill"
+        case .cooperative: "person.2.circle.fill"
+        case .bakery: "birthday.cake.fill"
+        case .other: "bag.fill"
+        }
+    }
+
+    /// Symbole d'une étiquette alimentaire.
+    static func tag(_ tag: DietaryTag) -> String {
+        switch tag {
+        case .organic: "leaf.fill"
+        case .halal: "moon.stars.fill"
+        case .kosher: "star.fill"
+        case .vegetarian: "carrot.fill"
+        case .vegan: "leaf.circle.fill"
+        case .glutenFree: "allergens"
+        case .local: "location.fill"
+        }
+    }
+
+    /// Deux symboles d'accompagnement autour du symbole du produit dans l'en-tête.
+    static func companions(for category: Product.Category) -> (String, String) {
+        switch category {
+        case .produce: ("leaf.fill", "basket.fill")
+        case .grains: ("scalemass.fill", "leaf.fill")
+        case .legumes: ("circle.hexagongrid.fill", "scalemass.fill")
+        case .oils: ("flame.fill", "frying.pan.fill")
+        case .flour: ("oven.fill", "scalemass.fill")
+        case .canned: ("fork.knife", "archivebox.fill")
+        case .eggs: ("bird.fill", "frying.pan.fill")
+        case .meat: ("flame.fill", "snowflake")
+        case .household: ("sparkles", "drop.fill")
+        }
+    }
+
+    /// Bouton principal : réserver, part déjà réservée ou changement de quantité.
+    static func reserve(myShare: Int, selected: Int) -> String {
+        if myShare == 0 { return "cart.fill.badge.plus" }
+        if myShare == selected { return "checkmark.circle.fill" }
+        return "arrow.triangle.2.circlepath"
+    }
+}
+
 // MARK: - F3 Fiche du lot
 
 private struct OfferDetailContent: View {
     @Bindable var viewModel: OfferDetailViewModel
 
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
-    @ScaledMetric(relativeTo: .largeTitle) private var heroSymbolSize: CGFloat = 96
-    @ScaledMetric(relativeTo: .largeTitle) private var heroHeight: CGFloat = 260
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @ScaledMetric(relativeTo: .largeTitle) private var heroSymbolSize: CGFloat = 88
+    @ScaledMetric(relativeTo: .largeTitle) private var heroHeight: CGFloat = 280
+    @ScaledMetric(relativeTo: .body) private var rowIconWidth: CGFloat = 30
     /// Dernière célébration montrée, gardée pendant l'animation de fermeture de la feuille.
     @State private var shownCelebration: OfferDetailViewModel.TierCelebration?
 
     var body: some View {
         StateView(
             state: viewModel.state,
-            empty: .init(title: "Lot introuvable", systemImage: "shippingbox", message: "Ce lot n'est plus disponible."),
+            empty: .init(
+                title: "Lot introuvable",
+                systemImage: "shippingbox.and.arrow.backward",
+                message: "Ce lot n'est plus disponible. D'autres lots t'attendent dans l'onglet Lots."
+            ),
             retry: { await viewModel.load() }
         ) { content in
             loaded(content)
@@ -58,7 +152,7 @@ private struct OfferDetailContent: View {
             if let content = viewModel.state.value {
                 ToolbarItem(placement: .topBarTrailing) {
                     ShareLink(item: shareText(content)) {
-                        Label("Partager le lot", systemImage: "square.and.arrow.up")
+                        Label("Partager le lot", systemImage: OfferDetailSymbol.share)
                     }
                 }
             }
@@ -91,6 +185,11 @@ private struct OfferDetailContent: View {
     /// Quantité réservée par le ménage, `nil` tant que le lot n'est pas chargé (déclencheur de l'haptique).
     private var myShareQuantity: Int? {
         viewModel.state.value?.myShareQuantity
+    }
+
+    /// Déclencheur des `symbolEffect` : constant sous Reduce Motion pour qu'aucun symbole ne bouge.
+    private func effectTrigger(_ value: Int) -> Int {
+        reduceMotion ? 0 : value
     }
 
     private var errorPresented: Binding<Bool> {
@@ -126,10 +225,11 @@ private struct OfferDetailContent: View {
         ScrollView {
             VStack(spacing: 0) {
                 hero(content)
-                VStack(alignment: .leading, spacing: 24) {
+                VStack(alignment: .leading, spacing: 28) {
                     header(content)
-                    priceRow(content)
-                    tiersCard(content)
+                    priceSection(content)
+                    aboutCard(content)
+                    groupSection(content)
                     shareSection(content)
                 }
                 .padding(.horizontal, 16)
@@ -150,156 +250,433 @@ private struct OfferDetailContent: View {
         }
     }
 
+    // MARK: En-tête visuel
+
+    /// Composition de symboles selon la catégorie : symbole du produit dans un halo, deux symboles d'accompagnement.
     private func hero(_ content: OfferDetailViewModel.Content) -> some View {
-        ZStack {
+        let category = content.product.category
+        let companions = OfferDetailSymbol.companions(for: category)
+        return ZStack {
             LinearGradient(
-                colors: [Color.grenier.opacity(0.22), Color.grenier.opacity(0.08)],
+                colors: [Color.grenier.opacity(0.24), Color.grenier.opacity(0.06)],
                 startPoint: .top,
                 endPoint: .bottom
             )
             .backgroundExtensionEffect()
-            Image(systemName: ProductIcon.symbol(for: content.product.category))
-                .font(.system(size: heroSymbolSize, weight: .regular))
-                .symbolRenderingMode(.hierarchical)
-                .foregroundStyle(Color.grenier)
-                .padding(.top, 40)
+
+            ZStack {
+                Circle()
+                    .fill(Color.grenier.opacity(0.10))
+                    .frame(width: heroSymbolSize * 2.1, height: heroSymbolSize * 2.1)
+                Circle()
+                    .fill(Color.surface.opacity(0.7))
+                    .frame(width: heroSymbolSize * 1.5, height: heroSymbolSize * 1.5)
+                Image(systemName: ProductIcon.symbol(for: category))
+                    .font(.system(size: heroSymbolSize, weight: .regular))
+                    .symbolRenderingMode(.hierarchical)
+                    .foregroundStyle(Color.grenier)
+                    .symbolEffect(.bounce, value: effectTrigger(content.myShareQuantity))
+                companion(companions.0)
+                    .offset(x: -heroSymbolSize * 1.0, y: -heroSymbolSize * 0.55)
+                companion(companions.1)
+                    .offset(x: heroSymbolSize * 1.0, y: heroSymbolSize * 0.5)
+                Image(systemName: GrenierSymbol.groups)
+                    .font(.system(size: heroSymbolSize * 0.24, weight: .semibold))
+                    .symbolRenderingMode(.hierarchical)
+                    .foregroundStyle(Color.grenier)
+                    .padding(10)
+                    .background(Color.surface, in: .circle)
+                    .offset(x: heroSymbolSize * 0.6, y: -heroSymbolSize * 0.62)
+            }
+            .padding(.top, 36)
+
+            VStack {
+                Spacer()
+                Label(category.title, systemImage: ProductIcon.symbol(for: category))
+                    .font(.footnote.weight(.semibold))
+                    .symbolRenderingMode(.hierarchical)
+                    .foregroundStyle(Color.grenier)
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 6)
+                    .background(Color.surface, in: .capsule)
+                    .padding(.bottom, 44)
+            }
         }
         .frame(height: heroHeight)
+        .clipped()
         .accessibilityHidden(true)
+    }
+
+    private func companion(_ symbol: String) -> some View {
+        Image(systemName: symbol)
+            .font(.system(size: heroSymbolSize * 0.32, weight: .semibold))
+            .symbolRenderingMode(.hierarchical)
+            .foregroundStyle(Color.grenier.opacity(0.75))
+            .symbolEffect(.breathe, isActive: !reduceMotion)
     }
 
     private func header(_ content: OfferDetailViewModel.Content) -> some View {
         VStack(alignment: .leading, spacing: 6) {
-            Text("\(content.vendor.legalName) · \(content.product.origin)")
-                .font(.footnote.weight(.semibold))
-                .textCase(.uppercase)
-                .kerning(0.6)
-                .foregroundStyle(Color.grenier)
+            Label {
+                Text("\(content.vendor.legalName) · \(content.product.origin)")
+            } icon: {
+                Image(systemName: OfferDetailSymbol.vendor(content.vendor.kind))
+                    .symbolRenderingMode(.hierarchical)
+            }
+            .font(.footnote.weight(.semibold))
+            .textCase(.uppercase)
+            .kerning(0.6)
+            .foregroundStyle(Color.grenier)
             Text(content.product.name)
                 .font(.title2.bold())
                 .foregroundStyle(.texte)
                 .accessibilityAddTraits(.isHeader)
-            Text("Commande groupée · \(content.offer.shareUnit) · ferme \(Self.deadlineText(content.offer.deadline))")
-                .font(.subheadline)
-                .foregroundStyle(.texteSecondaire)
+            Label {
+                Text("Commande groupée · plus on est, moins c'est cher")
+            } icon: {
+                Image(systemName: GrenierSymbol.groups)
+                    .symbolRenderingMode(.hierarchical)
+                    .foregroundStyle(Color.grenier)
+            }
+            .font(.subheadline)
+            .foregroundStyle(.texteSecondaire)
         }
         .accessibilityElement(children: .combine)
     }
 
-    private func priceRow(_ content: OfferDetailViewModel.Content) -> some View {
+    /// Titre de section avec son symbole (jamais de titre en texte seul).
+    private func sectionHeader(_ title: String, systemImage: String, tint: Color = .grenier) -> some View {
+        Label {
+            Text(title)
+                .font(.title3.bold())
+                .foregroundStyle(.texte)
+        } icon: {
+            Image(systemName: systemImage)
+                .font(.title3)
+                .symbolRenderingMode(.hierarchical)
+                .foregroundStyle(tint)
+        }
+        .accessibilityAddTraits(.isHeader)
+    }
+
+    // MARK: Prix
+
+    private func priceSection(_ content: OfferDetailViewModel.Content) -> some View {
         let pricing = content.pricing
         let layout = dynamicTypeSize.isAccessibilitySize
             ? AnyLayout(VStackLayout(alignment: .leading, spacing: 8))
             : AnyLayout(HStackLayout(alignment: .lastTextBaseline, spacing: 12))
-        return layout {
-            VStack(alignment: .leading, spacing: 2) {
-                PriceTag(priceCents: pricing.currentPriceCents, referenceCents: pricing.groceryPriceCents)
-                Text("prix du \(content.offer.shareUnit)")
-                    .font(.caption)
-                    .foregroundStyle(.texteSecondaire)
-                    .accessibilityHidden(true)
+        return VStack(alignment: .leading, spacing: 10) {
+            sectionHeader("Prix du groupe", systemImage: OfferDetailSymbol.priceSection)
+            layout {
+                VStack(alignment: .leading, spacing: 4) {
+                    PriceTag(priceCents: pricing.currentPriceCents, referenceCents: pricing.groceryPriceCents)
+                        .contentTransition(.numericText(value: Double(pricing.currentPriceCents)))
+                    Label("prix du \(content.offer.shareUnit)", systemImage: OfferDetailSymbol.shareUnit)
+                        .font(.caption)
+                        .symbolRenderingMode(.hierarchical)
+                        .foregroundStyle(.texteSecondaire)
+                        .accessibilityHidden(true)
+                }
+                if !dynamicTypeSize.isAccessibilitySize { Spacer(minLength: 8) }
+                if pricing.savingsPercent > 0 {
+                    HStack(spacing: 6) {
+                        Image(systemName: GrenierSymbol.savings)
+                            .font(.subheadline.weight(.semibold))
+                            .symbolRenderingMode(.hierarchical)
+                            .foregroundStyle(Color.economie)
+                            .symbolEffect(.bounce, value: effectTrigger(pricing.savingsPercent))
+                            .accessibilityHidden(true)
+                        SavingsBadge(kind: .percent(pricing.savingsPercent))
+                            .contentTransition(.numericText(value: Double(pricing.savingsPercent)))
+                    }
+                }
             }
-            if !dynamicTypeSize.isAccessibilitySize { Spacer(minLength: 8) }
-            if pricing.savingsPercent > 0 {
-                SavingsBadge(kind: .percent(pricing.savingsPercent))
-            }
+            .grenierAnimation(.smooth, value: pricing.currentPriceCents)
         }
     }
 
-    private func tiersCard(_ content: OfferDetailViewModel.Content) -> some View {
+    // MARK: À propos du lot
+
+    private func aboutCard(_ content: OfferDetailViewModel.Content) -> some View {
+        VStack(alignment: .leading, spacing: 10) {
+            sectionHeader("Le lot", systemImage: OfferDetailSymbol.aboutSection)
+            VStack(spacing: 0) {
+                // Page publique du producteur (T-097, R-009).
+                NavigationLink {
+                    PublicVendorScreen(vendorId: content.vendor.id)
+                } label: {
+                    infoRow("Producteur", systemImage: OfferDetailSymbol.vendor(content.vendor.kind)) {
+                        HStack(spacing: 6) {
+                            Text(content.vendor.legalName)
+                            if content.vendor.isVerified {
+                                Image(systemName: OfferDetailSymbol.verified)
+                                    .symbolRenderingMode(.hierarchical)
+                                    .foregroundStyle(Color.grenier)
+                                    .accessibilityLabel("vérifié")
+                            }
+                        }
+                    }
+                    .overlay(alignment: .trailing) {
+                        Image(systemName: "chevron.right")
+                            .font(.footnote.weight(.semibold))
+                            .foregroundStyle(.texteSecondaire)
+                            .padding(.trailing, 16)
+                            .accessibilityHidden(true)
+                    }
+                    .contentShape(.rect)
+                }
+                .buttonStyle(.plain)
+                .accessibilityHint("Voir la page du producteur")
+                rowDivider
+                infoRow("Origine", systemImage: OfferDetailSymbol.origin) {
+                    Text(content.product.origin)
+                }
+                rowDivider
+                infoRow("Unité de part", systemImage: OfferDetailSymbol.shareUnit) {
+                    Text(content.offer.shareUnit)
+                }
+                rowDivider
+                infoRow(
+                    "Date limite",
+                    systemImage: content.isOpen ? OfferDetailSymbol.deadline : OfferDetailSymbol.deadlineClosed
+                ) {
+                    Text(content.isOpen ? "Ferme \(Self.deadlineText(content.offer.deadline))" : "Commande fermée")
+                }
+                rowDivider
+                infoRow("Point de cueillette", systemImage: OfferDetailSymbol.pickup) {
+                    Text(Self.pickupText(content.groupOrder))
+                }
+                if !content.product.tags.isEmpty {
+                    rowDivider
+                    infoRow("Étiquettes", systemImage: OfferDetailSymbol.tags) {
+                        tagChips(content.product.tags)
+                    }
+                }
+            }
+            .grenierCard(padding: 0)
+        }
+    }
+
+    private var rowDivider: some View {
+        Divider()
+            .overlay(Color.piste)
+            .padding(.leading, 16 + rowIconWidth + 12)
+    }
+
+    private func infoRow(_ title: String, systemImage: String, @ViewBuilder value: () -> some View) -> some View {
+        HStack(alignment: .center, spacing: 12) {
+            Image(systemName: systemImage)
+                .font(.body.weight(.semibold))
+                .symbolRenderingMode(.hierarchical)
+                .foregroundStyle(Color.grenier)
+                .contentTransition(.symbolEffect(.replace))
+                .frame(width: rowIconWidth)
+                .accessibilityHidden(true)
+            VStack(alignment: .leading, spacing: 2) {
+                Text(title)
+                    .font(.caption)
+                    .foregroundStyle(.texteSecondaire)
+                value()
+                    .font(.body)
+                    .foregroundStyle(.texte)
+            }
+            Spacer(minLength: 0)
+        }
+        .padding(.horizontal, 16)
+        .padding(.vertical, 12)
+        .accessibilityElement(children: .combine)
+    }
+
+    private func tagChips(_ tags: [DietaryTag]) -> some View {
+        let layout = dynamicTypeSize.isAccessibilitySize
+            ? AnyLayout(VStackLayout(alignment: .leading, spacing: 6))
+            : AnyLayout(HStackLayout(spacing: 6))
+        return ViewThatFits(in: .horizontal) {
+            layout { ForEach(tags, id: \.self) { tagChip($0) } }
+            VStack(alignment: .leading, spacing: 6) { ForEach(tags, id: \.self) { tagChip($0) } }
+        }
+        .padding(.top, 2)
+    }
+
+    private func tagChip(_ tag: DietaryTag) -> some View {
+        Label(OfferFeedViewModel.title(of: tag), systemImage: OfferDetailSymbol.tag(tag))
+            .font(.footnote.weight(.semibold))
+            .symbolRenderingMode(.hierarchical)
+            .foregroundStyle(Color.grenier)
+            .padding(.horizontal, 10)
+            .padding(.vertical, 5)
+            .background(Color.grenier.opacity(0.12), in: .capsule)
+    }
+
+    // MARK: Avancement du groupe
+
+    private func groupSection(_ content: OfferDetailViewModel.Content) -> some View {
         let pricing = content.pricing
         let households = content.groupOrder?.committedHouseholds ?? 0
-        return VStack(alignment: .leading, spacing: 14) {
-            ViewThatFits(in: .horizontal) {
-                HStack(alignment: .firstTextBaseline) {
-                    progressTitle(households: households, content: content)
-                    Spacer(minLength: 8)
-                    tierCaption(pricing)
+        return VStack(alignment: .leading, spacing: 10) {
+            sectionHeader("Ton groupe", systemImage: OfferDetailSymbol.groupSection)
+            VStack(alignment: .leading, spacing: 14) {
+                ViewThatFits(in: .horizontal) {
+                    HStack(alignment: .firstTextBaseline) {
+                        progressTitle(households: households, content: content)
+                        Spacer(minLength: 8)
+                        tierCaption(pricing)
+                    }
+                    VStack(alignment: .leading, spacing: 4) {
+                        progressTitle(households: households, content: content)
+                        tierCaption(pricing)
+                    }
                 }
-                VStack(alignment: .leading, spacing: 4) {
-                    progressTitle(households: households, content: content)
-                    tierCaption(pricing)
+                TierProgressBar(
+                    tiers: content.offer.tiers,
+                    committedShares: content.committedShares,
+                    totalShares: content.offer.totalShares
+                )
+                // RQ-050 (T-104) : rien tant que le rythme suffit ou que le minimum est atteint.
+                if let order = content.groupOrder {
+                    MinimumRiskBadge(assessment: MinimumRisk.assess(offer: content.offer, order: order))
                 }
+                tierHint(content)
             }
-            TierProgressBar(
-                tiers: content.offer.tiers,
-                committedShares: content.committedShares,
-                totalShares: content.offer.totalShares
-            )
-            if content.groupOrder == nil {
-                Label("Ton groupe n'a pas encore lancé de commande sur ce lot.", systemImage: "person.3.fill")
-                    .font(.subheadline)
-                    .foregroundStyle(.texteSecondaire)
-                    .symbolRenderingMode(.hierarchical)
-            } else if !content.isOpen {
-                Label("La commande est fermée : les parts ne bougent plus.", systemImage: "clock.badge.xmark")
-                    .font(.subheadline)
-                    .foregroundStyle(.texteSecondaire)
-                    .symbolRenderingMode(.hierarchical)
-            }
+            .grenierCard()
+            .grenierAnimation(.smooth, value: content.committedShares)
         }
-        .grenierCard()
     }
 
     private func progressTitle(households: Int, content: OfferDetailViewModel.Content) -> some View {
-        Text("\(households) \(households > 1 ? "familles" : "famille") · \(content.committedShares) parts sur \(content.offer.totalShares)")
-            .font(.headline)
-            .foregroundStyle(.texte)
-            .monospacedDigit()
-            .contentTransition(.numericText())
+        Label {
+            Text("\(households) \(households > 1 ? "familles" : "famille") · \(content.committedShares) parts sur \(content.offer.totalShares)")
+                .monospacedDigit()
+                .contentTransition(.numericText(value: Double(content.committedShares)))
+        } icon: {
+            Image(systemName: "person.2.fill")
+                .symbolRenderingMode(.hierarchical)
+                .foregroundStyle(Color.grenier)
+                .symbolEffect(.bounce, value: effectTrigger(content.committedShares))
+        }
+        .font(.headline)
+        .foregroundStyle(.texte)
     }
 
     private func tierCaption(_ pricing: OfferPricing) -> some View {
-        Text(pricing.tierNumber == 0 ? "Avant le 1er palier" : "Palier \(pricing.tierNumber) sur \(pricing.tierCount)")
-            .font(.subheadline)
-            .foregroundStyle(.texteSecondaire)
+        Label {
+            Text(pricing.tierNumber == 0 ? "Avant le 1er palier" : "Palier \(pricing.tierNumber) sur \(pricing.tierCount)")
+                .contentTransition(.numericText(value: Double(pricing.tierNumber)))
+        } icon: {
+            Image(systemName: OfferDetailSymbol.tier)
+                .symbolRenderingMode(.hierarchical)
+                .foregroundStyle(Color.grenier)
+        }
+        .font(.subheadline)
+        .foregroundStyle(.texteSecondaire)
     }
+
+    /// Prochaine étape du groupe : lancer la commande, parts manquantes avant le palier suivant, ou meilleur prix atteint.
+    @ViewBuilder
+    private func tierHint(_ content: OfferDetailViewModel.Content) -> some View {
+        let pricing = content.pricing
+        if content.groupOrder == nil {
+            hintLabel("Ton groupe n'a pas encore lancé de commande sur ce lot.", systemImage: "person.badge.plus")
+        } else if !content.isOpen {
+            hintLabel("La commande est fermée : les parts ne bougent plus.", systemImage: OfferDetailSymbol.deadlineClosed)
+        } else if let missing = pricing.sharesToNextTier {
+            let discount = pricing.nextTierDiscountPercent ?? 0
+            hintLabel(
+                "Encore \(missing) \(missing > 1 ? "parts" : "part") pour le palier suivant"
+                    + (discount > 0 ? " (−\(discount) %)" : "") + ".",
+                systemImage: OfferDetailSymbol.nextTier,
+                tint: .economie,
+                numericValue: missing
+            )
+        } else {
+            hintLabel("Meilleur prix atteint pour tout le groupe !", systemImage: OfferDetailSymbol.bestTier)
+        }
+    }
+
+    private func hintLabel(_ text: String, systemImage: String, tint: Color = .grenier, numericValue: Int = 0) -> some View {
+        Label {
+            Text(text)
+                .contentTransition(.numericText(value: Double(numericValue)))
+        } icon: {
+            Image(systemName: systemImage)
+                .symbolRenderingMode(.hierarchical)
+                .foregroundStyle(tint)
+                .contentTransition(.symbolEffect(.replace))
+        }
+        .font(.subheadline)
+        .foregroundStyle(.texteSecondaire)
+    }
+
+    // MARK: Ta part
 
     @ViewBuilder
     private func shareSection(_ content: OfferDetailViewModel.Content) -> some View {
-        VStack(alignment: .leading, spacing: 12) {
-            Text("Ta part")
-                .font(.title3.bold())
-                .foregroundStyle(.texte)
-                .accessibilityAddTraits(.isHeader)
+        VStack(alignment: .leading, spacing: 14) {
+            sectionHeader("Ta part", systemImage: OfferDetailSymbol.shareSection)
+
+            if content.groupOrder != nil && !content.isOpen {
+                OfferSymbolScene(
+                    symbol: GrenierSymbol.offers,
+                    badge: "lock.circle.fill",
+                    title: "Commande fermée",
+                    message: "Les parts sont figées. Rendez-vous à la cueillette avec ton code QR."
+                )
+            }
 
             if viewModel.quantityOptions.isEmpty {
-                Text("Il ne reste plus de parts dans ce lot.")
-                    .font(.body)
-                    .foregroundStyle(.texteSecondaire)
+                OfferSymbolScene(
+                    symbol: GrenierSymbol.offers,
+                    badge: "xmark.circle.fill",
+                    tint: .texteSecondaire,
+                    title: "Lot complet",
+                    message: "Il ne reste plus de parts dans ce lot. Jette un œil aux autres lots de ton quartier."
+                )
             } else {
                 sharePicker(content)
 
                 if viewModel.selectedSavingsCents > 0 {
-                    Text("Tu économises \(Text(Money.formatRounded(viewModel.selectedSavingsCents)).foregroundStyle(Color.economie).bold()) sur ta part.")
-                        .font(.subheadline)
-                        .foregroundStyle(.texteSecondaire)
-                        .contentTransition(.numericText())
+                    Label {
+                        Text("Tu économises \(Text(Money.formatRounded(viewModel.selectedSavingsCents)).foregroundStyle(Color.economie).bold()) sur ta part.")
+                            .contentTransition(.numericText(value: Double(viewModel.selectedSavingsCents)))
+                    } icon: {
+                        Image(systemName: GrenierSymbol.savings)
+                            .symbolRenderingMode(.hierarchical)
+                            .foregroundStyle(Color.economie)
+                            .symbolEffect(.bounce, value: effectTrigger(viewModel.selectedQuantity))
+                    }
+                    .font(.subheadline)
+                    .foregroundStyle(.texteSecondaire)
                 }
                 if viewModel.selectionUnlocksTier {
-                    Label("Ta part fait tomber le prochain palier pour tout le groupe !", systemImage: "sparkles")
-                        .font(.subheadline.weight(.semibold))
-                        .foregroundStyle(Color.grenier)
-                        .symbolRenderingMode(.hierarchical)
+                    Label {
+                        Text("Ta part fait tomber le prochain palier pour tout le groupe !")
+                    } icon: {
+                        Image(systemName: OfferDetailSymbol.unlocks)
+                            .symbolRenderingMode(.hierarchical)
+                            .symbolEffect(.wiggle, value: effectTrigger(viewModel.selectedQuantity))
+                    }
+                    .font(.subheadline.weight(.semibold))
+                    .foregroundStyle(Color.grenier)
+                    .grenierTransition(.banner)
                 }
             }
 
             if content.myShareQuantity > 0 {
-                HStack(alignment: .firstTextBaseline) {
-                    Label(
-                        "Tu as réservé \(Self.quantityLabel(content.myShareQuantity, shareUnit: content.offer.shareUnit)).",
-                        systemImage: "checkmark.circle.fill"
-                    )
-                    .font(.subheadline)
-                    .foregroundStyle(.texte)
-                    .symbolRenderingMode(.hierarchical)
-                    Spacer(minLength: 0)
-                }
+                OfferSymbolScene(
+                    symbol: OfferDetailSymbol.shareSection,
+                    badge: "checkmark.circle.fill",
+                    tint: .economie,
+                    title: "Part réservée !",
+                    message: "Tu as réservé \(Self.quantityLabel(content.myShareQuantity, shareUnit: content.offer.shareUnit)). Tu paies à la cueillette.",
+                    trigger: content.myShareQuantity
+                )
+                .grenierTransition(.cardAppear)
                 if content.isOpen {
                     Button(role: .destructive) {
                         Task { await viewModel.cancelShare() }
                     } label: {
-                        Label("Annuler ma part", systemImage: "xmark.circle")
+                        Label("Annuler ma part", systemImage: OfferDetailSymbol.cancel)
                             .frame(minHeight: 32)
                     }
                     .buttonStyle(.glass)
@@ -307,6 +684,8 @@ private struct OfferDetailContent: View {
                 }
             }
         }
+        .grenierAnimation(.smooth, value: viewModel.selectedQuantity)
+        .grenierAnimation(.smooth, value: content.myShareQuantity)
     }
 
     @ViewBuilder
@@ -340,8 +719,9 @@ private struct OfferDetailContent: View {
                     .priceStyle(.title2.bold())
                     .foregroundStyle(.texte)
                     .contentTransition(.numericText(value: Double(viewModel.selectedTotalCents)))
-                Text("\(quantity) · payé à la cueillette")
+                Label("\(quantity) · payé à la cueillette", systemImage: OfferDetailSymbol.payment)
                     .font(.footnote)
+                    .symbolRenderingMode(.hierarchical)
                     .foregroundStyle(.texteSecondaire)
             }
             .accessibilityElement(children: .combine)
@@ -356,8 +736,17 @@ private struct OfferDetailContent: View {
                     if viewModel.isSaving {
                         ProgressView()
                     } else {
-                        Text(reserveTitle(content, quantity: quantity))
-                            .multilineTextAlignment(.center)
+                        Label {
+                            Text(reserveTitle(content, quantity: quantity))
+                                .multilineTextAlignment(.center)
+                        } icon: {
+                            Image(systemName: OfferDetailSymbol.reserve(
+                                myShare: content.myShareQuantity,
+                                selected: viewModel.selectedQuantity
+                            ))
+                            .contentTransition(reduceMotion ? .identity : .symbolEffect(.replace))
+                            .symbolEffect(.bounce, value: effectTrigger(content.myShareQuantity))
+                        }
                     }
                 }
                 .font(.headline)
@@ -373,7 +762,7 @@ private struct OfferDetailContent: View {
         .padding(.horizontal, 16)
         .padding(.top, 12)
         .padding(.bottom, 8)
-        .animation(.smooth, value: viewModel.selectedQuantity)
+        .grenierAnimation(.smooth, value: viewModel.selectedQuantity)
     }
 
     private func reserveTitle(_ content: OfferDetailViewModel.Content, quantity: String) -> String {
@@ -392,6 +781,18 @@ private struct OfferDetailContent: View {
         date.formatted(.dateTime.weekday(.wide).hour().locale(Locale(identifier: "fr_CA")))
     }
 
+    /// Créneau de cueillette s'il est connu, sinon qui le choisira.
+    static func pickupText(_ order: GroupOrder?) -> String {
+        if let slot = order?.pickupSlots.min(by: { $0.start < $1.start }) {
+            let day = slot.start.formatted(.dateTime.weekday(.wide).day().month(.wide).locale(Locale(identifier: "fr_CA")))
+            let start = slot.start.formatted(.dateTime.hour().minute().locale(Locale(identifier: "fr_CA")))
+            let end = slot.end.formatted(.dateTime.hour().minute().locale(Locale(identifier: "fr_CA")))
+            return "\(day), \(start) à \(end)"
+        }
+        if order?.pickupPointId != nil { return "Lieu choisi par ton groupe, horaire à venir" }
+        return "Choisi par ton groupe à la fermeture"
+    }
+
     /// « 20 kg » pour 2 parts de « sac de 10 kg » ; sinon « 2 × caisse ».
     static func quantityLabel(_ shares: Int, shareUnit: String) -> String {
         if let match = shareUnit.firstMatch(of: /(\d+(?:[.,]\d+)?)\s*(kg|g|L|l)\b/),
@@ -401,6 +802,56 @@ private struct OfferDetailContent: View {
             return "\(number) \(match.2)"
         }
         return shares == 1 ? "1 \(shareUnit)" : "\(shares) × \(shareUnit)"
+    }
+}
+
+// MARK: - Scène de symboles
+
+/// Illustration d'un état (lot fermé, lot complet, part réservée) : symbole dans un halo et pastille d'état.
+private struct OfferSymbolScene: View {
+    let symbol: String
+    let badge: String
+    var tint: Color = .grenier
+    let title: String
+    let message: String
+    /// Change pour faire rebondir la pastille (ignoré sous Reduce Motion).
+    var trigger: Int = 0
+
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @ScaledMetric(relativeTo: .largeTitle) private var size: CGFloat = 76
+
+    var body: some View {
+        VStack(spacing: 12) {
+            ZStack(alignment: .bottomTrailing) {
+                Image(systemName: symbol)
+                    .font(.system(size: size * 0.46, weight: .semibold))
+                    .symbolRenderingMode(.hierarchical)
+                    .foregroundStyle(tint)
+                    .frame(width: size, height: size)
+                    .background(tint.opacity(0.12), in: .circle)
+                Image(systemName: badge)
+                    .font(.system(size: size * 0.32, weight: .bold))
+                    .symbolRenderingMode(.palette)
+                    .foregroundStyle(Color.onAccent, tint)
+                    .background(Color.surface, in: .circle)
+                    .symbolEffect(.bounce, value: reduceMotion ? 0 : trigger)
+                    .offset(x: 4, y: 4)
+            }
+            .accessibilityHidden(true)
+
+            VStack(spacing: 4) {
+                Text(title)
+                    .font(.headline)
+                    .foregroundStyle(.texte)
+                Text(message)
+                    .font(.subheadline)
+                    .foregroundStyle(.texteSecondaire)
+            }
+            .multilineTextAlignment(.center)
+        }
+        .frame(maxWidth: .infinity)
+        .grenierCard(padding: 20)
+        .accessibilityElement(children: .combine)
     }
 }
 
@@ -456,7 +907,7 @@ private struct TierCelebrationView: View {
         )
         .safeAreaInset(edge: .bottom, spacing: 0) {
             Button(action: onDone) {
-                Text("Voir ma part")
+                Label("Voir ma part", systemImage: OfferDetailSymbol.shareSection)
                     .font(.headline)
                     .frame(maxWidth: .infinity, minHeight: 32)
             }
@@ -471,15 +922,34 @@ private struct TierCelebrationView: View {
         .onAppear(perform: start)
     }
 
+    /// Sceau entouré d'étincelles : elles rebondissent avec lui (immobiles sous Reduce Motion).
     private var seal: some View {
-        Image(systemName: "checkmark.seal.fill")
-            .font(.system(size: sealSize, weight: .semibold))
-            .foregroundStyle(Color.onAccent)
+        ZStack {
+            Image(systemName: celebration.isLastTier ? OfferDetailSymbol.bestTier : "checkmark.seal.fill")
+                .font(.system(size: sealSize, weight: .semibold))
+                .foregroundStyle(Color.onAccent)
+                .symbolEffect(.bounce, value: bounce)
+                .frame(width: badgeSize, height: badgeSize)
+                .background(Color.grenier, in: .circle)
+                .shadow(color: Color.grenier.opacity(0.3), radius: 16, y: 8)
+            sparkle("sparkle", size: 0.26)
+                .offset(x: -badgeSize * 0.62, y: -badgeSize * 0.38)
+            sparkle("sparkles", size: 0.22)
+                .offset(x: badgeSize * 0.64, y: -badgeSize * 0.28)
+            sparkle(GrenierSymbol.savings, size: 0.2, tint: .economie)
+                .offset(x: badgeSize * 0.56, y: badgeSize * 0.42)
+            sparkle(GrenierSymbol.groups, size: 0.18)
+                .offset(x: -badgeSize * 0.58, y: badgeSize * 0.4)
+        }
+        .accessibilityHidden(true)
+    }
+
+    private func sparkle(_ symbol: String, size: CGFloat, tint: Color = .grenier) -> some View {
+        Image(systemName: symbol)
+            .font(.system(size: badgeSize * size, weight: .semibold))
+            .symbolRenderingMode(.hierarchical)
+            .foregroundStyle(tint)
             .symbolEffect(.bounce, value: bounce)
-            .frame(width: badgeSize, height: badgeSize)
-            .background(Color.grenier, in: .circle)
-            .shadow(color: Color.grenier.opacity(0.3), radius: 16, y: 8)
-            .accessibilityHidden(true)
     }
 
     private var subtitle: String {
@@ -492,6 +962,17 @@ private struct TierCelebrationView: View {
     private var priceCard: some View {
         let price = displayedPriceCents ?? celebration.previousPriceCents
         return VStack(spacing: 16) {
+            Label {
+                Text("Nouveau prix du \(shareUnit)")
+            } icon: {
+                Image(systemName: OfferDetailSymbol.priceSection)
+                    .symbolRenderingMode(.hierarchical)
+                    .foregroundStyle(Color.grenier)
+            }
+            .font(.subheadline.weight(.semibold))
+            .foregroundStyle(.texteSecondaire)
+            .accessibilityHidden(true)
+
             ViewThatFits(in: .horizontal) {
                 HStack(alignment: .firstTextBaseline, spacing: 12) { priceChange(price) }
                 VStack(spacing: 4) { priceChange(price) }
@@ -500,6 +981,17 @@ private struct TierCelebrationView: View {
             .accessibilityLabel("Le prix passe de \(Money.format(celebration.previousPriceCents)) à \(Money.format(celebration.newPriceCents)) le \(shareUnit)")
 
             TierProgressBar(tiers: tiers, committedShares: celebration.committedShares, totalShares: totalShares)
+
+            Label {
+                Text("Palier \(celebration.tierNumber) sur \(celebration.tierCount) · \(celebration.committedShares) parts")
+                    .monospacedDigit()
+            } icon: {
+                Image(systemName: OfferDetailSymbol.tier)
+                    .symbolRenderingMode(.hierarchical)
+                    .foregroundStyle(Color.grenier)
+            }
+            .font(.footnote)
+            .foregroundStyle(.texteSecondaire)
         }
         .grenierCard(padding: 20)
     }
@@ -510,9 +1002,10 @@ private struct TierCelebrationView: View {
             .priceStyle(.title3.bold())
             .strikethrough()
             .foregroundStyle(.texteSecondaire)
-        Image(systemName: "chevron.right")
+        Image(systemName: "arrow.right.circle.fill")
             .font(.headline)
-            .foregroundStyle(.texteSecondaire)
+            .symbolRenderingMode(.hierarchical)
+            .foregroundStyle(Color.economie)
         Text(Money.format(price))
             .priceStyle(.largeTitle.bold())
             .foregroundStyle(Color.grenier)
@@ -521,31 +1014,44 @@ private struct TierCelebrationView: View {
 
     private var shareCard: some View {
         VStack(spacing: 0) {
-            row(title: "Ta part") {
+            row(title: "Ta part", systemImage: OfferDetailSymbol.shareSection) {
                 Text("\(OfferDetailContent.quantityLabel(celebration.myQuantity, shareUnit: shareUnit)) · \(Money.format(celebration.myTotalCents))")
                     .font(.headline)
                     .fontDesign(.rounded)
                     .monospacedDigit()
                     .foregroundStyle(.texte)
+                    .contentTransition(.numericText(value: Double(celebration.myTotalCents)))
             }
             if celebration.mySavingsCents > 0 {
                 Divider().overlay(Color.piste)
-                row(title: "Tu économises") {
+                row(title: "Tu économises", systemImage: GrenierSymbol.savings, tint: .economie) {
                     SavingsBadge(kind: .amount(celebration.mySavingsCents))
+                        .contentTransition(.numericText(value: Double(celebration.mySavingsCents)))
                 }
             }
         }
         .grenierCard(padding: 0)
     }
 
-    private func row(title: String, @ViewBuilder trailing: () -> some View) -> some View {
+    private func row(
+        title: String,
+        systemImage: String,
+        tint: Color = .grenier,
+        @ViewBuilder trailing: () -> some View
+    ) -> some View {
         let layout = dynamicTypeSize.isAccessibilitySize
             ? AnyLayout(VStackLayout(alignment: .leading, spacing: 6))
             : AnyLayout(HStackLayout(alignment: .center))
         return layout {
-            Text(title)
-                .font(.body)
-                .foregroundStyle(.texte)
+            Label {
+                Text(title)
+                    .foregroundStyle(.texte)
+            } icon: {
+                Image(systemName: systemImage)
+                    .symbolRenderingMode(.hierarchical)
+                    .foregroundStyle(tint)
+            }
+            .font(.body)
             if !dynamicTypeSize.isAccessibilitySize { Spacer(minLength: 8) }
             trailing()
         }
@@ -590,6 +1096,21 @@ private struct TierCelebrationView: View {
     }
     .environment(\.appContext, .instant)
     .preferredColorScheme(.dark)
+}
+
+#Preview("Scènes d'état") {
+    ScrollView {
+        VStack(spacing: 16) {
+            OfferSymbolScene(symbol: OfferDetailSymbol.shareSection, badge: "checkmark.circle.fill", tint: .economie,
+                             title: "Part réservée !", message: "Tu as réservé 20 kg. Tu paies à la cueillette.")
+            OfferSymbolScene(symbol: GrenierSymbol.offers, badge: "lock.circle.fill",
+                             title: "Commande fermée", message: "Les parts sont figées.")
+            OfferSymbolScene(symbol: GrenierSymbol.offers, badge: "xmark.circle.fill", tint: .texteSecondaire,
+                             title: "Lot complet", message: "Il ne reste plus de parts dans ce lot.")
+        }
+        .padding()
+    }
+    .grenierBackground()
 }
 
 #Preview("Palier clair") {

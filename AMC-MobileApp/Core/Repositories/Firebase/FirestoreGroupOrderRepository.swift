@@ -62,7 +62,7 @@ nonisolated final class FirestoreGroupOrderRepository: GroupOrderRepository, @un
     // MARK: - Lectures
 
     func groupOrders(ofGroup groupId: String) async throws -> [GroupOrder] {
-        try await query(orders.whereField("groupId", isEqualTo: groupId))
+        try await PerfSignposts.measure("firestore.groupOrdersOfGroup") { try await query(orders.whereField("groupId", isEqualTo: groupId)) }
     }
 
     func groupOrders(ofOffer offerId: String) async throws -> [GroupOrder] {
@@ -86,7 +86,9 @@ nonisolated final class FirestoreGroupOrderRepository: GroupOrderRepository, @un
 
     func observeGroupOrder(id: String) async -> AsyncThrowingStream<GroupOrder, any Error> {
         let (stream, continuation) = AsyncThrowingStream<GroupOrder, any Error>.makeStream()
+        let firstSnapshot = PerfSignposts.begin("firestore.observeGroupOrder.firstSnapshot")
         let registration = orderRef(id).addSnapshotListener { snapshot, error in
+            firstSnapshot.end(failed: error != nil)
             if let error {
                 continuation.finish(throwing: Self.appError(from: error))
                 return

@@ -8,6 +8,8 @@ struct PlaceholderScreen: View {
     let message: String
 
     @State private var visibleHeight: CGFloat = 0
+    @State private var appeared = false
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     init(title: String, systemImage: String, message: String) {
         self.title = title
@@ -24,16 +26,24 @@ struct PlaceholderScreen: View {
         NavigationStack {
             ScrollView {
                 ContentUnavailableView {
-                    Label(title, systemImage: systemImage)
-                        .symbolRenderingMode(.hierarchical)
+                    VStack(spacing: 12) {
+                        StateIllustration(systemImage: systemImage)
+                            .symbolEffect(.bounce, value: appeared && !reduceMotion)
+                        Text(title)
+                            .font(.title2.bold())
+                            .foregroundStyle(.texte)
+                    }
                 } description: {
                     Text(message)
                 } actions: {
-                    Text("Ça arrive très bientôt.")
+                    Label("Ça arrive très bientôt.", systemImage: "sparkles")
                         .font(.footnote)
                         .foregroundStyle(.texteSecondaire)
+                        .symbolRenderingMode(.hierarchical)
+                        .symbolEffect(.pulse, options: .repeating, isActive: !reduceMotion)
                         .multilineTextAlignment(.center)
                 }
+                .onAppear { appeared = true }
                 // Hauteur minimale = zone visible : centré quand ça tient, défile quand ça déborde (AX5).
                 .frame(maxWidth: .infinity, minHeight: visibleHeight)
             }

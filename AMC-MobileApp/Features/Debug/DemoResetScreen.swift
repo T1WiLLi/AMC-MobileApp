@@ -56,19 +56,26 @@ struct DemoResetScreen: View {
                     .symbolRenderingMode(.hierarchical)
                     .foregroundStyle(.tint)
                     .imageScale(.large)
+                    .symbolEffect(.bounce, value: didReset && !reduceMotion)
             }
             .accessibilityElement(children: .combine)
+        } header: {
+            Label("Environnement", systemImage: "server.rack")
+                .symbolRenderingMode(.hierarchical)
         } footer: {
-            Text("Écran réservé aux répétitions et à la démo du jury. Il n'apparaît pas dans l'app publiée.")
+            Label("Écran réservé aux répétitions et à la démo du jury. Il n'apparaît pas dans l'app publiée.", systemImage: "eye.slash.fill")
+                .symbolRenderingMode(.hierarchical)
         }
     }
 
     @ViewBuilder
     private var fakeResetSections: some View {
-        Section("Ce qui sera remis à zéro") {
+        Section {
             Label("Lots, commandes et parts rechargés depuis les données de démo", systemImage: "shippingbox.and.arrow.backward")
             Label("Présentation et choix du portail rejoués", systemImage: "hand.wave")
             Label("Compte de démo déconnecté", systemImage: "person.crop.circle.badge.minus")
+        } header: {
+            Label("Ce qui sera remis à zéro", systemImage: "arrow.counterclockwise.circle.fill")
         }
         .symbolRenderingMode(.hierarchical)
 
@@ -106,7 +113,8 @@ struct DemoResetScreen: View {
 
     private func seedSection(command: String, explanation: String) -> some View {
         Section {
-            Text(command)
+            Label(command, systemImage: "chevron.right.2")
+                .symbolRenderingMode(.hierarchical)
                 .font(.callout.monospaced())
                 .textSelection(.enabled)
                 .padding(.vertical, 4)
@@ -136,7 +144,7 @@ struct DemoResetScreen: View {
             Label("5 taps ou appui long sur la version, dans le Profil", systemImage: "hand.tap")
             Label("En Release : argument de lancement \(DemoToolsGate.launchArgument)", systemImage: "terminal")
         } header: {
-            Text("Ouvrir cet écran")
+            Label("Ouvrir cet écran", systemImage: "key.fill")
         }
         .font(.subheadline)
         .foregroundStyle(.secondary)

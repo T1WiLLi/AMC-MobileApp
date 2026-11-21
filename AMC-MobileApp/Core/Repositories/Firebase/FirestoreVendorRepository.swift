@@ -47,7 +47,7 @@ nonisolated final class FirestoreVendorRepository: VendorRepository, @unchecked 
     // MARK: - Produits
 
     func products(ofVendor vendorId: String) async throws -> [Product] {
-        try await Self.fetch(Product.self, productsRef.whereField("vendorId", isEqualTo: vendorId))
+        try await PerfSignposts.measure("firestore.productsOfVendor") { try await Self.fetch(Product.self, productsRef.whereField("vendorId", isEqualTo: vendorId)) }
             .sorted { $0.name < $1.name }
     }
 

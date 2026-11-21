@@ -3,6 +3,8 @@ import SwiftUI
 /// Profil commun aux deux portails, avec la bascule de portail (RQ-006).
 struct ProfileScreen: View {
     @AppStorage(Portal.storageKey) private var portal: Portal = .family
+    /// Optionnel : absent dans les previews et les tests qui n'injectent pas de session.
+    @Environment(SessionViewModel.self) private var session: SessionViewModel?
 
     var body: some View {
         NavigationStack {
@@ -23,8 +25,20 @@ struct ProfileScreen: View {
                 }
 
                 Section("Compte") {
-                    Label("Connexion et profil arrivent avec l'épic E02", systemImage: "person.crop.circle.badge.clock")
-                        .foregroundStyle(.secondary)
+                    if let user = session?.currentUser {
+                        LabeledContent {
+                            Text(user.email)
+                                .foregroundStyle(.secondary)
+                        } label: {
+                            Label(user.displayName, systemImage: "person.crop.circle.fill")
+                        }
+                        Button("Se déconnecter", systemImage: "rectangle.portrait.and.arrow.right", role: .destructive) {
+                            session?.signOut()
+                        }
+                    } else {
+                        Label("Non connecté", systemImage: "person.crop.circle.badge.questionmark")
+                            .foregroundStyle(.secondary)
+                    }
                 }
             }
             .navigationTitle("Profil")
@@ -40,4 +54,9 @@ struct ProfileScreen: View {
 #Preview("Sombre") {
     ProfileScreen()
         .preferredColorScheme(.dark)
+}
+
+#Preview("Connecté") {
+    ProfileScreen()
+        .environment(SessionViewModel(auth: FakeAuthService(signedInUser: .sample)))
 }

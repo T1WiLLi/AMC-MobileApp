@@ -1,7 +1,8 @@
 // VendorCatalogSheet.swift
-// Feuille « Mon catalogue » du portail Vendeur (T-089, S-04) : les produits du vendeur, « Nouveau produit »,
+// Page « Mes produits » du portail Vendeur (T-089, S-04) : les produits du vendeur, « Nouveau produit »,
 // tap sur un produit pour le modifier ou le retirer. Un produit enregistré apparaît tout de suite dans la liste.
-// Ouverte par le bouton `plus.circle` de l'onglet Lots (`.newProductToolbar`), directement sur « Nouveau produit ».
+// B-052 : page « Mes produits », ouverte par le bouton `basket` de l'onglet Lots (`.myProductsToolbar`),
+// « Nouveau produit » en icône de barre (plus de bouton flottant qui cache la liste).
 
 import SwiftUI
 
@@ -46,9 +47,9 @@ struct VendorCatalogSheet: View {
             StateView(
                 state: model.state,
                 empty: .init(
-                    title: "Ton catalogue est vide",
+                    title: "Aucun produit pour l'instant",
                     systemImage: "basket.fill",
-                    message: "Ajoute ton premier produit avec sa photo : tu pourras ensuite en faire un lot."
+                    message: "Touche + pour ajouter ton premier produit avec sa photo : tu pourras ensuite en faire un lot."
                 ),
                 retry: { await model.load() }
             ) { products in
@@ -56,14 +57,17 @@ struct VendorCatalogSheet: View {
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
             .grenierBackground()
-            .navigationTitle("Mon catalogue")
+            .navigationTitle("Mes produits")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button("Fermer", systemImage: "xmark") { dismiss() }
                 }
+                ToolbarItem(placement: .primaryAction) {
+                    Button("Nouveau produit", systemImage: "plus") { path.append(.create) }
+                        .accessibilityHint("Ouvre le formulaire d'un nouveau produit.")
+                }
             }
-            .safeAreaInset(edge: .bottom) { newProductButton }
             .navigationDestination(for: Route.self) { route in
                 editor(for: route)
             }
@@ -102,22 +106,6 @@ struct VendorCatalogSheet: View {
 
     private func countText(_ count: Int) -> String {
         count > 1 ? "\(count) produits" : "\(count) produit"
-    }
-
-    private var newProductButton: some View {
-        Button {
-            path.append(.create)
-        } label: {
-            Label("Nouveau produit", systemImage: "plus")
-                .font(.headline)
-                .frame(maxWidth: .infinity, minHeight: 32)
-        }
-        .buttonStyle(.glassProminent)
-        .tint(.grenier)
-        .controlSize(.large)
-        .padding(.horizontal, 16)
-        .padding(.bottom, 8)
-        .accessibilityHint("Ouvre le formulaire d'un nouveau produit.")
     }
 
     // MARK: Éditeur
@@ -212,8 +200,8 @@ private struct CatalogProductRow: View {
 
 // MARK: - Bouton d'entrée (onglet Lots)
 
-/// Bouton `plus.circle` dans la barre, qui ouvre « Mon catalogue » directement sur « Nouveau produit ».
-private struct NewProductToolbarModifier: ViewModifier {
+/// Bouton « Mes produits » dans la barre, qui ouvre la page des produits du vendeur (B-052).
+private struct MyProductsToolbarModifier: ViewModifier {
     let repositories: AppRepositories
     let vendorId: String
     @State private var isPresented = false
@@ -221,23 +209,23 @@ private struct NewProductToolbarModifier: ViewModifier {
     func body(content: Content) -> some View {
         content
             .toolbar {
-                ToolbarItem(placement: .topBarTrailing) {
-                    Button("Nouveau produit", systemImage: "plus.circle") {
+                ToolbarItem(placement: .topBarLeading) {
+                    Button("Mes produits", systemImage: "basket.fill") {
                         isPresented = true
                     }
-                    .accessibilityHint("Ajoute un produit à ton catalogue, avec sa photo.")
+                    .accessibilityHint("Ajoute, modifie ou retire tes produits, réutilisables pour tes lots.")
                 }
             }
             .sheet(isPresented: $isPresented) {
-                VendorCatalogSheet(repositories: repositories, vendorId: vendorId, startsWithNewProduct: true)
+                VendorCatalogSheet(repositories: repositories, vendorId: vendorId)
             }
     }
 }
 
 extension View {
-    /// Ajoute le bouton « Nouveau produit » (T-089) à la barre de l'écran.
-    func newProductToolbar(repositories: AppRepositories, vendorId: String) -> some View {
-        modifier(NewProductToolbarModifier(repositories: repositories, vendorId: vendorId))
+    /// Ajoute le bouton « Mes produits » (B-052) à la barre de l'écran.
+    func myProductsToolbar(repositories: AppRepositories, vendorId: String) -> some View {
+        modifier(MyProductsToolbarModifier(repositories: repositories, vendorId: vendorId))
     }
 }
 

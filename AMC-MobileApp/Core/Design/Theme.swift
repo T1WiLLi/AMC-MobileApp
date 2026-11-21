@@ -14,6 +14,9 @@ import SwiftUI
 // - Une seule action `.glassProminent` par écran, le reste en `.glass`.
 
 extension Color {
+    /// Grenier (accent) : actions, paliers, onglet actif. Explicite pour ne pas dépendre du `.tint` de l'environnement.
+    static let grenier = Color("AccentColor")
+
     /// Texte posé sur une couleur pleine (Grenier, Economie, Solidarite) : blanc en clair, #1C1712 en sombre.
     static let onAccent = Color(UIColor { traits in
         traits.userInterfaceStyle == .dark

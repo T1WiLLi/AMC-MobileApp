@@ -9,19 +9,35 @@ struct SignInScreen: View {
     @State private var mode: EmailAuthForm.Mode = .signIn
     @Environment(\.colorScheme) private var colorScheme
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
+    /// Hauteur visible de l'écran (hors zones sûres), pour choisir la taille du bandeau.
+    @State private var viewportHeight: CGFloat = 0
 
     private var isSigningIn: Bool { session.state == .signingIn }
+
+    /// Taille du bandeau : il cède la place pour que la connexion tienne sans défiler.
+    /// Le défilement reste possible en très grand texte (Dynamic Type accessibilité).
+    private var heroStyle: SignInHero.Style {
+        if mode == .signUp || dynamicTypeSize >= .xxLarge { return .minimal }
+        let fullHeroNeeds: CGFloat = AppleSignIn.isEnabled ? 760 : 700
+        return viewportHeight >= fullHeroNeeds ? .full : .compact
+    }
 
     var body: some View {
         ScrollView {
             VStack(spacing: 0) {
-                SignInHero(isCompact: mode == .signUp)
+                SignInHero(style: heroStyle)
                 sheet
                     .padding(.top, -28)
+                    .frame(maxHeight: .infinity, alignment: .top)
             }
+            // La feuille blanche descend jusqu'en bas même quand le contenu est court.
+            .frame(minHeight: viewportHeight, alignment: .top)
         }
+        .onGeometryChange(for: CGFloat.self) { $0.size.height } action: { viewportHeight = $0 }
         .scrollDismissesKeyboard(.interactively)
         .scrollBounceBehavior(.basedOnSize)
+        .scrollEdgeEffectHidden(true, for: .bottom)
         .background {
             // Orange en haut (débordement du scroll), Surface en bas sous la feuille.
             VStack(spacing: 0) {
@@ -37,7 +53,7 @@ struct SignInScreen: View {
     }
 
     private var sheet: some View {
-        VStack(spacing: 16) {
+        VStack(spacing: 12) {
             HStack(alignment: .firstTextBaseline) {
                 Text(mode == .signIn ? "Connecte-toi" : "Crée ton compte")
                     .font(.title2.bold())
@@ -68,13 +84,14 @@ struct SignInScreen: View {
                 socialButtons
             }
 
+            Spacer(minLength: 0)
+
             modeSwitch
-                .padding(.top, 4)
         }
         .padding(.horizontal, 20)
-        .padding(.top, 26)
-        .padding(.bottom, 24)
-        .frame(maxWidth: .infinity)
+        .padding(.top, 22)
+        .padding(.bottom, 8)
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
         .background {
             UnevenRoundedRectangle(topLeadingRadius: 28, topTrailingRadius: 28, style: .continuous)
                 .fill(Color.surface)
@@ -91,7 +108,8 @@ struct SignInScreen: View {
                     Task { await session.completeAppleSignIn(result) }
                 }
                 .signInWithAppleButtonStyle(colorScheme == .dark ? .white : .black)
-                .frame(maxWidth: .infinity, minHeight: 52)
+                .frame(maxWidth: .infinity)
+                .frame(height: 48)
                 .clipShape(.rect(cornerRadius: 16))
                 .disabled(isSigningIn)
                 .accessibilityHint("Ouvre la connexion Apple")
@@ -113,7 +131,7 @@ struct SignInScreen: View {
                         .font(.headline)
                         .foregroundStyle(Color.texte)
                 }
-                .frame(maxWidth: .infinity, minHeight: 52)
+                .frame(maxWidth: .infinity, minHeight: 48)
                 .background(Color.surface, in: .rect(cornerRadius: 16))
                 .overlay {
                     RoundedRectangle(cornerRadius: 16)
@@ -147,10 +165,12 @@ struct SignInScreen: View {
     }
 }
 
-/// Bandeau du haut : marque, accroche, illustration en symboles et pastille « entre voisins ».
-/// Se réduit à l'inscription pour laisser la place au formulaire.
+/// Bandeau du haut : marque, accroche et illustration en symboles.
+/// Trois tailles : complet (grand écran), compact (accroche seule), minimal (marque seule, inscription).
 private struct SignInHero: View {
-    let isCompact: Bool
+    enum Style { case full, compact, minimal }
+
+    let style: Style
     /// Nom, emblème et accroche de la marque (B-032, `Core/Design/Brand/brand.json`).
     @Environment(\.brand) private var brand
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
@@ -179,44 +199,37 @@ private struct SignInHero: View {
             }
             .accessibilityElement(children: .combine)
 
-            HStack(alignment: .bottom, spacing: 8) {
-                VStack(alignment: .leading, spacing: 10) {
-                    Text("Le gros, à petit prix, entre voisins.")
-                        .font(isCompact ? .title2.weight(.heavy) : .title.weight(.heavy))
-                        .fontDesign(.rounded)
-                        .fixedSize(horizontal: false, vertical: true)
-                    if !isCompact {
-                        Text(brand.texts.tagline)
-                            .font(.subheadline)
-                            .foregroundStyle(.white.opacity(0.85))
+            if style != .minimal {
+                HStack(alignment: .center, spacing: 8) {
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text("Le gros, à petit prix, entre voisins.")
+                            .font(style == .full ? .title.weight(.heavy) : .title2.weight(.heavy))
+                            .fontDesign(.rounded)
                             .fixedSize(horizontal: false, vertical: true)
-                            .transition(.opacity)
+                        if style == .full {
+                            Text(brand.texts.tagline)
+                                .font(.subheadline)
+                                .foregroundStyle(.white.opacity(0.85))
+                                .lineLimit(3)
+                                .fixedSize(horizontal: false, vertical: true)
+                                .transition(.opacity)
+                        }
+                    }
+                    .frame(maxWidth: .infinity, alignment: .leading)
+
+                    if style == .full {
+                        ProduceIllustration(symbol: brand.logo.symbol, appeared: appeared && !reduceMotion)
+                            .transition(.scale.combined(with: .opacity))
                     }
                 }
-                .frame(maxWidth: .infinity, alignment: .leading)
-
-                if !isCompact {
-                    ProduceIllustration(symbol: brand.logo.symbol, appeared: appeared && !reduceMotion)
-                        .transition(.scale.combined(with: .opacity))
-                }
-            }
-            .padding(.top, isCompact ? 14 : 18)
-
-            if !isCompact {
-                Label("Achat groupé entre familles", systemImage: GrenierSymbol.groups)
-                    .font(.caption.weight(.semibold))
-                    .symbolRenderingMode(.hierarchical)
-                    .padding(.horizontal, 12)
-                    .padding(.vertical, 8)
-                    .background(.white.opacity(0.16), in: .capsule)
-                    .padding(.top, 14)
-                    .transition(.opacity)
+                .padding(.top, 14)
+                .transition(.opacity)
             }
         }
         .foregroundStyle(.white)
         .padding(.horizontal, 24)
-        .padding(.top, 20)
-        .padding(.bottom, 46)
+        .padding(.top, 8)
+        .padding(.bottom, 40)
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(alignment: .topTrailing) {
             ZStack(alignment: .topTrailing) {

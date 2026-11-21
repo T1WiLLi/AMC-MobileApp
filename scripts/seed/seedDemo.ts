@@ -72,19 +72,22 @@ async function seedDemo() {
     try {
       await db.collection('vendors').limit(1).get()
 
-      const batch = db.batch()
-      for (const { path, data } of seed.documents) {
-        batch.set(db.doc(path), data)
-      }
-
       console.log(`Réinitialisation des émulateurs Firestore et Auth pour ${projectId}`)
       await emulatorRequest(`${authProject}/accounts`, 'DELETE')
       await emulatorRequest(`http://${firestoreHost}/emulator/v1/${databasePath}`, 'DELETE')
-      await batch.commit()
+      // Un lot Firestore compte au plus 500 écritures : on écrit par paquets de 400.
+      for (let start = 0; start < seed.documents.length; start += 400) {
+        const batch = db.batch()
+        for (const { path, data } of seed.documents.slice(start, start + 400)) {
+          batch.set(db.doc(path), data)
+        }
+        await batch.commit()
+      }
       console.log(`Catalogue chargé : ${seed.vendors.length} vendeurs, ${seed.products.length} produits, ${seed.offers.length} lots.`)
       console.log(`Communauté chargée : ${seed.groups.length} groupes, ${seed.pickupPoints.length} points de cueillette, ` +
         `${seed.users.length} utilisateurs, ${seed.households.length} ménages, ` +
-        `${seed.groupOrders.length} commandes groupées, ${seed.shares.length} parts.`)
+        `${seed.groupOrders.length} commandes groupées, ${seed.shares.length} parts, ` +
+        `${seed.wishes.length} envies, ${seed.supplies.length} disponibilités.`)
 
       for (const account of accounts) {
         await auth.createUser({ ...account, password, emailVerified: true })

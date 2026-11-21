@@ -1,7 +1,7 @@
 // FirestoreVendorRepository.swift
 // Dépôt Firestore des vendeurs (`vendors`) et de leurs produits (`products`) — B-018.
 // Même comportement que `FakeVendorRepository` : mêmes tris, mêmes erreurs.
-// Écritures : seul `saveProduct` écrit ; `firestore.rules` exige que l'utilisateur soit le vendeur
+// Écritures : `saveProduct`, `deleteProduct` et `saveVendor` ; `firestore.rules` exige que l'utilisateur soit le vendeur
 // du produit (`users/{uid}.vendorId`) et n'accepte que les champs de `isValidProduct`.
 
 #if canImport(FirebaseFirestore)
@@ -60,6 +60,18 @@ nonisolated final class FirestoreVendorRepository: VendorRepository, @unchecked 
         _ = try await vendor(id: product.vendorId)
         do {
             try await productsRef.document(product.id).setData(try Firestore.Encoder().encode(product))
+        } catch {
+            throw FirestoreGroupOrderRepository.appError(from: error)
+        }
+    }
+
+    /// Retire un produit du catalogue (T-089, T-127). Lève `.notFound` si l'id est inconnu ;
+    /// firestore.rules n'autorise la suppression qu'au vendeur propriétaire (`.permissionDenied` sinon).
+    func deleteProduct(id: String) async throws {
+        let ref = productsRef.document(id)
+        do {
+            guard try await ref.getDocument().exists else { throw AppError.notFound }
+            try await ref.delete()
         } catch {
             throw FirestoreGroupOrderRepository.appError(from: error)
         }

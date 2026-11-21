@@ -1,0 +1,14 @@
+{
+  "name": "grenier-seed-demo",
+  "private": true,
+  "type": "module",
+  "engines": { "node": ">=22.18.0" },
+  "scripts": {
+    "seedDemo": "node seedDemo.ts",
+    "check": "tsc --noEmit",
+    "test": "node --test catalog.test.ts",
+    "test:emulators": "node --test seedDemo.integration.ts"
+  },
+  "dependencies": { "firebase-admin": "14.5.1" },
+  "devDependencies": { "@types/node": "22.15.3", "typescript": "5.9.3" }
+}

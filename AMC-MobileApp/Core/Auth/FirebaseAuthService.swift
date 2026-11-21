@@ -23,7 +23,9 @@ final class FirebaseAuthService: AuthService {
 
     func authStateChanges() -> AsyncStream<AuthUser?> {
         AsyncStream { continuation in
+            let restore = PerfSignposts.begin("auth.sessionRestore")
             let handle = Auth.auth().addStateDidChangeListener { _, user in
+                restore.end()
                 continuation.yield(user.map(AuthUser.init(firebaseUser:)))
             }
             self.listenerHandle = handle

@@ -68,6 +68,88 @@ final class FirebaseAuthService: AuthService {
         }
     }
 
+    // MARK: Courriel et mot de passe
+
+    func signUp(email: String, password: String, displayName: String) async throws -> AuthUser {
+        do {
+            let result = try await Auth.auth().createUser(withEmail: Self.clean(email), password: password)
+            let name = displayName.trimmingCharacters(in: .whitespacesAndNewlines)
+            if !name.isEmpty {
+                let change = result.user.createProfileChangeRequest()
+                change.displayName = name
+                // Le prénom est un plus : un échec ici ne doit pas bloquer l'inscription.
+                try? await change.commitChanges()
+            }
+            return AuthUser(firebaseUser: Auth.auth().currentUser ?? result.user)
+        } catch {
+            throw Self.authError(from: error)
+        }
+    }
+
+    func signIn(email: String, password: String) async throws -> AuthUser {
+        do {
+            let result = try await Auth.auth().signIn(withEmail: Self.clean(email), password: password)
+            return AuthUser(firebaseUser: result.user)
+        } catch {
+            throw Self.authError(from: error)
+        }
+    }
+
+    func sendEmailVerification() async throws {
+        guard let user = Auth.auth().currentUser else { throw AuthError.notSignedIn }
+        Auth.auth().useAppLanguage()
+        do {
+            try await user.sendEmailVerification()
+        } catch {
+            throw Self.authError(from: error)
+        }
+    }
+
+    func reloadUser() async throws -> AuthUser {
+        guard let user = Auth.auth().currentUser else { throw AuthError.notSignedIn }
+        do {
+            try await user.reload()
+        } catch {
+            throw Self.authError(from: error)
+        }
+        guard let refreshed = Auth.auth().currentUser else { throw AuthError.notSignedIn }
+        return AuthUser(firebaseUser: refreshed)
+    }
+
+    func sendPasswordReset(email: String) async throws {
+        Auth.auth().useAppLanguage()
+        do {
+            try await Auth.auth().sendPasswordReset(withEmail: Self.clean(email))
+        } catch {
+            throw Self.authError(from: error)
+        }
+    }
+
+    private static func clean(_ email: String) -> String {
+        email.trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+
+    /// Erreurs Firebase Auth → `AuthError` en français (messages pour l'utilisateur, pas pour les logs).
+    static func authError(from error: any Error) -> AuthError {
+        let nsError = error as NSError
+        guard nsError.domain == AuthErrorDomain, let code = AuthErrorCode(rawValue: nsError.code) else {
+            if let urlError = error as? URLError, AppError(urlError) == .offline { return .network }
+            return .failed("Oups, un problème est survenu. Réessaie dans un instant.")
+        }
+        switch code {
+        case .invalidEmail: return .invalidEmail
+        case .emailAlreadyInUse, .credentialAlreadyInUse: return .emailAlreadyInUse
+        case .weakPassword: return .weakPassword
+        case .wrongPassword, .invalidCredential, .userNotFound: return .wrongPassword
+        case .tooManyRequests: return .tooManyRequests
+        case .networkError: return .network
+        case .userDisabled: return .failed("Ce compte a été désactivé. Écris-nous pour le réactiver.")
+        case .operationNotAllowed: return .failed("La connexion par courriel n'est pas encore activée. Utilise Google pour l'instant.")
+        case .userTokenExpired, .requiresRecentLogin, .invalidUserToken, .userMismatch: return .notSignedIn
+        default: return .failed("Oups, un problème est survenu. Réessaie dans un instant.")
+        }
+    }
+
     func signOut() throws {
         GIDSignIn.sharedInstance.signOut()
         do {
@@ -95,7 +177,9 @@ private extension AuthUser {
             id: user.uid,
             displayName: user.displayName ?? "Utilisateur",
             email: user.email ?? "",
-            photoURL: user.photoURL
+            photoURL: user.photoURL,
+            isEmailVerified: user.isEmailVerified,
+            usesPassword: user.providerData.contains { $0.providerID == EmailAuthProviderID }
         )
     }
 }

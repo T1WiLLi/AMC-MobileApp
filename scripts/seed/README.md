@@ -1,5 +1,7 @@
 # Réinitialiser les données de démo de Grenier
 
+> Pour remplir le **vrai projet** `amc-2026-8ab03` (ou un émulateur) sans rien supprimer, utilisez `seedFirestore.ts` : voir `docs/firebase.md`, section 6.
+
 Le script B-025 vide Firestore `(default)` et les comptes Auth du projet d’émulateur sélectionné. Il recharge ensuite le catalogue B-026 (vendeurs, produits et lots) avec le SDK Firebase Admin. Les comptes des personas arriveront avec B-029.
 
 ## Préparer la démo locale

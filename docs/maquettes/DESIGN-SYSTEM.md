@@ -105,6 +105,30 @@ Un groupe de quartier.
 - Quand un palier tombe : `.sensoryFeedback(.success, trigger:)`, `.symbolEffect(.bounce)` sur `checkmark.seal.fill`, prix en `.contentTransition(.numericText())`, `withAnimation(.smooth)`.
 - Respecter Reduce Motion et Reduce Transparency.
 
+## Mouvement et haptique
+
+Code : `AMC-MobileApp/Core/Design/Motion.swift` et `Haptics.swift` (documentation et `#Preview` de démo en tête de fichier). Toute l'app bouge de la même façon : pas de `withAnimation(.spring(...))` ni de `.sensoryFeedback` maison dans les vues.
+
+| Animation | Quand | Sous Reduce Motion |
+| --- | --- | --- |
+| `.grenierSnappy` (`GrenierMotion.snappy`) | Sélection : choix de part, filtre, appui sur une carte | aucune animation |
+| `.grenierSmooth` (`.smooth`) | Changement d'état : prix, barre de palier, carte qui s'ouvre | fondu de 0,2 s |
+| `.grenierBouncy` (`.bouncy`) | Célébration : palier débloqué, paiement réussi (rare) | fondu de 0,25 s |
+
+- Dans une action : `withGrenierAnimation(.smooth, reduceMotion: reduceMotion) { … }` (avec `@Environment(\.accessibilityReduceMotion)`).
+- Sur une valeur : `.grenierAnimation(.smooth, value: price)`, qui lit Reduce Motion tout seul.
+- Transitions : `.grenierTransition(.cardAppear | .banner | .celebration)` ; `.opacity` seul sous Reduce Motion.
+- Cartes tapables : `.pressable()` sur le `Button` ou le `NavigationLink` qui enveloppe la carte. Enfoncement à 97 % au toucher, action au relâcher seulement, annulé si le doigt glisse ou si on fait défiler ; sous Reduce Motion, la carte s'assombrit au lieu de rétrécir.
+
+| Haptique | Quand | Changement visuel associé |
+| --- | --- | --- |
+| `.grenierHaptic(.selection, trigger:)` | Choix d'une option | option mise en évidence |
+| `.grenierHaptic(.success, trigger:)` | Palier débloqué, paiement ou réservation confirmé | sceau `checkmark.seal.fill`, message |
+| `.grenierHaptic(.warning, trigger:)` | Validation refusée | message sous le champ |
+| `.grenierHaptic(.error, trigger:)` | Échec (réseau, paiement, connexion) | message ou `StateView` d'erreur |
+
+Jamais d'haptique sans changement visuel équivalent, une seule par événement. Variante conditionnelle : `.grenierHaptic(.success, trigger: tier) { old, new in new > old }`.
+
 ## Navigation (portail Familles)
 
 `TabView` avec l'API `Tab(...)` :

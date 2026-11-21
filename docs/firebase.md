@@ -35,7 +35,7 @@ Pour remplir un `.env` à partir de ce plist : `FIREBASE_API_KEY` = `API_KEY`, `
 
 Le dossier `AMC-MobileApp/` est synchronisé par Xcode : le plist est inclus dans la cible automatiquement. Au lancement, la console Xcode n'affiche plus « GoogleService-Info.plist absent : services fake ».
 
-**Sans ce fichier, l'app ne plante pas** : `FirebaseSetup.configureIfAvailable()` détecte son absence et l'app tourne sur `FakeAuthService` (utile pour la CI et les previews).
+**Sans ce fichier, l'app ne plante pas** : `FirebaseSetup.configure()` détecte son absence et l'app tourne en mode `fake` (`FakeAuthService`, `AppRepositories.fake()`), utile pour la CI et les previews.
 
 **Ne jamais committer `.env` ni le plist.** Vérifier : `git check-ignore -v .env AMC-MobileApp/GoogleService-Info.plist` doit lister les deux.
 
@@ -70,25 +70,116 @@ Tout le code Firebase est protégé par `#if canImport(...)` : le build reste ve
 
 ## 3. Ce qui est déjà branché
 
-- `Core/Auth/FirebaseSetup.swift` : `FirebaseApp.configure()` au lancement (si le plist est là), choix Firebase ou fake.
+- `Core/Auth/BackendMode.swift` : choix du backend (`fake`, `emulator`, `demoProject`) à partir des arguments de lancement (B-013, voir §4).
+- `Core/Auth/FirebaseSetup.swift` : `configure()` au lancement — choisit le mode, appelle `FirebaseApp.configure()` et branche les émulateurs ; `makeAuthService(mode:)`.
+- `Core/Repositories/Firebase/AppRepositories+Firebase.swift` : `AppRepositories.live(mode:)` et `AppRepositories.firebase()` (les dépôts Firestore B-017 à B-019 s'y branchent, une ligne chacun ; ils reçoivent leur `Firestore`/`Auth` par `init`).
+- `Core/Auth/FirebaseEmulatorSession.swift` (Debug) : app Firebase nommée sur l'émulateur, pour avoir plusieurs comptes connectés en même temps dans les tests.
 - `Core/Auth/AuthService.swift` : protocole `AuthService`, `AuthError` (messages en français), `FakeAuthService` (latence simulée, erreur activable).
 - `Core/Auth/FirebaseAuthService.swift` : Google Sign-In → `GoogleAuthProvider.credential` → `Auth.auth().signIn(with:)`, écoute de session, déconnexion.
 - `Features/Onboarding/` : `SessionViewModel`, `SignInScreen` (bouton « Continuer avec Google »), `SessionGate` (connexion puis `RootView`), compte et déconnexion dans `ProfileScreen`.
 - `Config/AMC-MobileApp-Info.plist` : schéma d'URL de retour Google (= `REVERSED_CLIENT_ID`), fusionné avec l'Info.plist généré (`INFOPLIST_FILE`). Ce n'est pas un secret.
 - Ordre d'initialisation : `FirebaseSetup` est appelé au début de `AMCMobileApp.init()`, et `SessionViewModel` est créé juste après. Ne créez jamais un objet qui appelle `Auth.auth()` ou `Firestore.firestore()` dans un initialiseur de propriété du `App` (crash « Default FirebaseApp is not configured »). Dans un dépôt, utilisez `lazy var db = Firestore.firestore()`.
 
-## 4. Émulateurs (B-014)
+## 4. Émulateurs (B-014, B-013)
 
-Pour développer sans toucher aux vraies données :
+Pour développer sans toucher aux vraies données. Il faut Node et Java (`java -version`).
 
 ```bash
-npx -y firebase-tools@latest emulators:start --only auth,firestore,storage
+npx -y firebase-tools@latest emulators:start --only auth,firestore,storage --project demo-grenier
 ```
 
-Ports : Auth 9099, Firestore 8080, Storage 9199, interface http://localhost:4000. Le branchement de l'app sur l'émulateur (réglage ou flag) est l'item **B-013**.
+Projet local **`demo-grenier`** (accepté par zachary) : le préfixe `demo-` garantit qu'aucune ressource réelle n'est touchée, et aucun login n'est nécessaire. `--project demo-grenier` est obligatoire (sinon `.firebaserc` impose `amc-2026-8ab03`, qui ne correspondrait pas à l'app).
+
+Ports (`firebase.json`) : Auth 9099, Firestore 8080, Storage 9199, interface http://localhost:4000. Les règles `firestore.rules` et `storage.rules` sont chargées par l'émulateur.
+
+### Lancer l'app sur l'émulateur
+
+Le backend est choisi au lancement (`BackendMode`) et écrit dans le log (`Backend : …`, catégorie `Backend`) :
+
+| Mode | Quand |
+|---|---|
+| `fake` | SDK non lié, ou `GoogleService-Info.plist` absent sans argument émulateur (CI, previews, repo fraîchement cloné), ou argument `-useFakeBackend YES` |
+| `emulator` | argument `-useFirebaseEmulator YES` (Debug seulement ; le plist n'est pas nécessaire) |
+| `demoProject` | sinon ; **toujours en Release** (les arguments sont ignorés) |
+
+- **Xcode** : le schéma partagé `AMC-MobileApp` contient déjà les deux arguments, décochés. Product › Scheme › Edit Scheme… › Run › Arguments, cocher `-useFirebaseEmulator YES` (ou `-useFakeBackend YES`). Les tests n'utilisent pas ces arguments.
+- **Ligne de commande** : `xcrun simctl launch booted ca.amc2026.mobileapp -useFirebaseEmulator YES`.
+- Variables d'environnement équivalentes (pratique dans un schéma perso) : `USE_FIREBASE_EMULATOR=1`, `USE_FAKE_BACKEND=1`. Un argument présent l'emporte sur la variable.
+- Hôte : `127.0.0.1` (marche sur le simulateur). Sur un iPhone réel : `-firebaseEmulatorHost <IP du Mac>` (ou `FIREBASE_EMULATOR_HOST`), et `"host": "0.0.0.0"` pour chaque émulateur dans un `firebase.json` local.
+- Projet : toujours `demo-grenier` en mode émulateur. Si le plist est là, ses autres valeurs sont gardées (Google Sign-In reste utilisable, l'émulateur Auth accepte le jeton Google) ; sinon des valeurs factices sont utilisées.
+- `FirebaseSetup.configureIfAvailable()` existe toujours (renvoie true si Firebase est actif) ; il appelle `configure()`.
+- `FirebaseSetup.configure()` applique les réglages d'émulateur juste après `FirebaseApp.configure()` et avant tout `Auth.auth()`, `Firestore.firestore()` ou `Storage.storage()` : ne créez jamais ces objets avant (crash). En mode émulateur, le cache Firestore est en mémoire (pas de mélange avec le cache du projet de démo).
+
+### Tests d'intégration sur l'émulateur
+
+`AMC-MobileAppTests/Support/FirebaseEmulatorTestSupport.swift` (`@MainActor enum FirebaseEmulatorTestSupport`) :
+
+- trait `.firestoreEmulator` : le test ou la suite ne tourne que si l'émulateur Firestore répond sur `127.0.0.1:8080` ; sinon il est sauté (CI, Mac sans émulateur) ;
+- `clearFirestore()` vide la base entre deux tests (`DELETE http://127.0.0.1:8080/emulator/v1/projects/demo-grenier/databases/(default)/documents`), `clearAuth()` supprime les comptes ;
+- `session("vendor")`, `session("family")` : deux `FirebaseEmulatorSession` indépendantes (apps Firebase nommées du projet `demo-grenier`), chacune avec son `auth`, son `firestore`, `projectID` et `host` ; à injecter dans les dépôts Firestore ;
+- gardes : `session` refuse tout projet sans préfixe `demo-` ou hôte non local (`FirebaseSetup.isEmulatorTarget`), `send(method:to:json:)` refuse toute URL hors émulateur ; `send` utilise `Bearer owner` (contourne les règles, pour préparer des données).
+
+```swift
+@MainActor @Suite(.serialized, .firestoreEmulator)
+struct FirestoreOfferRepositoryTests {
+    @Test func saveThenRead() async throws {
+        try await FirebaseEmulatorTestSupport.clearFirestore()
+        let vendor = try FirebaseEmulatorTestSupport.session("vendor")
+        let repo = FirestoreOfferRepository(firestore: vendor.firestore, auth: vendor.auth)
+        // …
+    }
+}
+```
+
+Lancer les émulateurs (`--project demo-grenier`), puis les tests comme d'habitude (`xcodebuild test … -parallel-testing-enabled NO`) : les suites `.firestoreEmulator` passent de « skipped » à exécutées.
 
 ## 5. Règles de sécurité
 
-- `firestore.rules` : tout est refusé, sauf ce qu'une règle ouvre explicitement. Les dépôts Firebase (B-017 à B-019) ouvrent chacun leurs collections avec un validateur `isValidX()` appelé en create **et** en update, en suivant le skill Firebase `firestore-rules-creation`. Jamais de lecture d'un document avec de la PII par quelqu'un d'autre que son propriétaire.
-- Déployer : `npx -y firebase-tools@latest deploy --only firestore --project amc-2026-8ab03`.
-- Avant la démo : restreindre la clé d'API à l'app iOS dans Google Cloud Console, et envisager App Check. Ne jamais committer de jeton de debug App Check.
+`firestore.rules` et `storage.rules` ouvrent le minimum pour que l'app lise et écrive en vrai :
+
+| Chemin | Lecture | Écriture |
+|---|---|---|
+| `groups`, `vendors`, `products`, `offers`, `groupOrders`, `pickupPoints` | tout utilisateur connecté | `products`/`offers` : le vendeur propriétaire ; `vendors` : sa vitrine ; `pickupPoints` : l'hôte (créneaux, capacité) ; `groups`, `groupOrders` : personne (seed) |
+| `users/{uid}` | le propriétaire | le propriétaire, **sans jamais poser `vendorId`** (rattachement vendeur = seed ou admin) |
+| `households/{id}` et `households/{id}/private/profile` | les membres (`userIds`) | les membres |
+| `groups/{id}/members/{householdId}` | connectés | le ménage s'ajoute (`role: member`) ou se retire |
+| `groupOrders/{id}/shares/{householdId}` | le ménage | le ménage, commande `open`/`reached` : quantité et montant suspendu seulement ; `isPaid`, `subsidyCents`, `finalPriceCents`, `qrCode`, `isPickedUp` restent hors de portée du client |
+| Storage `vendors/{vendorId}/…`, `users/{uid}/…` | connectés | le vendeur rattaché / le propriétaire ; images de moins de 5 Mo |
+
+Tout le reste est refusé. Chaque collection a un validateur de forme (champs permis, types, tailles).
+
+Tests (émulateur sur des ports à part, pour ne pas gêner les émulateurs des autres agents) :
+
+```bash
+npm --prefix scripts/rules-tests ci
+npm --prefix scripts/rules-tests run test:emulators
+```
+
+Déployer **seulement si les tests passent** :
+
+```bash
+npx -y firebase-tools@latest deploy --only firestore:rules --project amc-2026-8ab03
+```
+
+Storage n'est pas encore initialisé sur le projet (aucune règle déployée) : l'activer dans la console (Storage › Commencer) puis `deploy --only storage`.
+
+## 6. Données de démo dans Firestore
+
+`scripts/seed/seedFirestore.ts` écrit les fixtures de `scripts/seed/fixtures/` (vendeurs, produits, lots, personas, groupes et membres, points de cueillette, ménages et leur profil privé, commandes groupées et parts) à des ids stables. **Il ne supprime rien** (contrairement à `seedDemo.ts`, qui vide l'émulateur et ses comptes Auth) : on peut le relancer, la démo revient à son état initial. Les échéances et créneaux partent du jour du seed (heure de Montréal).
+
+```bash
+npm --prefix scripts/seed ci
+npm --prefix scripts/seed run seed:firestore -- --dry-run                      # compte les documents
+npm --prefix scripts/seed run seed:firestore                                   # émulateur 127.0.0.1:8080, projet amc-2026-8ab03
+npm --prefix scripts/seed run seed:firestore -- --target cloud --yes           # VRAI projet, session de firebase login
+```
+
+Sur le vrai projet, le script prend le jeton de `firebase login` (pas de clé de service). Les uid des personas (`user-amina`…) ne correspondent pas aux vrais comptes Google : un vrai compte voit le catalogue public, pas le ménage d'Amina.
+
+## 7. Recommandations avant la démo publique
+
+- Restreindre la clé d'API iOS (Google Cloud Console › Identifiants) aux API Firebase utilisées et à l'app `ca.amc2026.mobileapp` : aujourd'hui elle répond sans restriction.
+- Activer App Check (App Attest) ; ne jamais committer de jeton de debug.
+- `groups.inviteCode` est lisible par tout utilisateur connecté : le déplacer dans une sous-collection privée avant d'avoir de vrais groupes privés.
+- Les lots en brouillon (`status: draft`) sont lisibles par les connectés : filtrer côté app.
+- Activer la protection contre la suppression de la base `(default)`.

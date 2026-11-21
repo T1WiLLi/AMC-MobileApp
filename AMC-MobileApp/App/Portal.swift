@@ -21,6 +21,22 @@ enum Portal: String, CaseIterable, Identifiable, Sendable {
         }
     }
 
+    /// Phrase courte sous le titre d'une `PortalCard` (RQ-014).
+    var tagline: String {
+        switch self {
+        case .family: "J'achète avec mon quartier"
+        case .vendor: "Je vends aux quartiers"
+        }
+    }
+
+    /// Détail affiché dans la grande carte du choix du portail.
+    var detail: String {
+        switch self {
+        case .family: "Rejoins un groupe, réserve ta part et paie moins cher à chaque palier."
+        case .vendor: "Publie tes lots, fixe tes paliers et vois la demande quartier par quartier."
+        }
+    }
+
     /// Clé `@AppStorage` du portail actif.
     static let storageKey = "activePortal"
 }

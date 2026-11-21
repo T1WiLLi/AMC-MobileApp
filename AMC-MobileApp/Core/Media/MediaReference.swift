@@ -21,6 +21,8 @@ nonisolated enum MediaPath: Hashable, Sendable {
     case userAvatar(userId: String)
     case groupPhoto(groupId: String)
     case groupBanner(groupId: String)
+    /// T-157 : photo de vitrine d'un vendeur (`vendors/{id}/media/photo-…`), plusieurs par vendeur.
+    case vendorPhoto(vendorId: String, photoId: String)
 
     /// Chemin du document Firestore.
     var documentPath: String {
@@ -28,6 +30,7 @@ nonisolated enum MediaPath: Hashable, Sendable {
         case .userAvatar(let userId): "users/\(userId)/media/avatar"
         case .groupPhoto(let groupId): "groups/\(groupId)/media/photo"
         case .groupBanner(let groupId): "groups/\(groupId)/media/banner"
+        case .vendorPhoto(let vendorId, let photoId): "vendors/\(vendorId)/media/\(photoId)"
         }
     }
 
@@ -36,6 +39,7 @@ nonisolated enum MediaPath: Hashable, Sendable {
         switch self {
         case .userAvatar, .groupPhoto: .square
         case .groupBanner: .banner
+        case .vendorPhoto: .showcase
         }
     }
 
@@ -47,6 +51,8 @@ nonisolated enum MediaPath: Hashable, Sendable {
         case ("users", "avatar"): self = .userAvatar(userId: parts[1])
         case ("groups", "photo"): self = .groupPhoto(groupId: parts[1])
         case ("groups", "banner"): self = .groupBanner(groupId: parts[1])
+        case ("vendors", let photoId) where photoId.hasPrefix("photo-"):
+            self = .vendorPhoto(vendorId: parts[1], photoId: photoId)
         default: return nil
         }
     }
@@ -119,6 +125,8 @@ nonisolated struct ImageSpec: Hashable, Sendable {
     static let square = ImageSpec(width: 400, height: 400, quality: 0.7, targetBytes: 80_000)
     /// Bannière de groupe : 1200 × 450, JPEG 0,65 (< 200 Ko visés).
     static let banner = ImageSpec(width: 1_200, height: 450, quality: 0.65, targetBytes: 200_000)
+    /// Photo de vitrine d'un vendeur (T-157) : 1000 × 750 (4:3), JPEG 0,65 (< 200 Ko visés).
+    static let showcase = ImageSpec(width: 1_000, height: 750, quality: 0.65, targetBytes: 200_000)
 
     var size: CGSize { CGSize(width: width, height: height) }
     var aspectRatio: CGFloat { CGFloat(width) / CGFloat(height) }

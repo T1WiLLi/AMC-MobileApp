@@ -54,10 +54,10 @@ struct VendorDashboardScreen: View {
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {
-                    Button("Profil vendeur", systemImage: "storefront") {
+                    Button("Ma vitrine", systemImage: "storefront") {
                         showsVendorProfile = true
                     }
-                    .accessibilityHint("Modifie ta description, tes photos et tes zones desservies.")
+                    .accessibilityHint("Modifie ta description, tes photos, tes produits mis en avant et tes zones desservies, comme les familles les voient.")
                 }
                 // B-037 : sections réorganisables du tableau (ordre, masquage, Réinitialiser).
                 if viewModel.state.value != nil {

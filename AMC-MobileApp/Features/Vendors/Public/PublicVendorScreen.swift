@@ -65,6 +65,7 @@ private struct PublicVendorContent: View {
             case .loaded(let profile):
                 PublicVendorPage(profile: profile, catalog: viewModel.catalog, openOffers: viewModel.openOffers,
                                  reputation: viewModel.reputation, bestPrices: viewModel.bestPriceByProduct,
+                                 featured: viewModel.featuredProducts,
                                  rate: { isRating = true })
                     .refreshable { await viewModel.refresh() }
                     .sheet(isPresented: $isRating) {
@@ -98,6 +99,7 @@ private struct PublicVendorPage: View {
     let openOffers: LoadState<[PublicVendorViewModel.OpenOffer]>
     var reputation: LoadState<PublicVendorViewModel.Reputation> = .idle
     var bestPrices: [String: Cents] = [:]
+    var featured: [Product] = []
     var rate: () -> Void = {}
 
     var body: some View {
@@ -113,6 +115,9 @@ private struct PublicVendorPage: View {
                 VStack(alignment: .leading, spacing: 28) {
                     if let reputation = reputation.value {
                         TrustSection(trust: reputation.trust)
+                    }
+                    if !featured.isEmpty {
+                        FeaturedProductsSection(products: featured, bestPrices: bestPrices)
                     }
                     OpenOffersSection(state: openOffers)
                     if let reputation = reputation.value {

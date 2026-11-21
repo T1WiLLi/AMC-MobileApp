@@ -80,6 +80,48 @@ private struct GalleryViewer: View {
     }
 }
 
+// MARK: - Coups de cœur
+
+/// Produits mis en avant par le producteur (« Ma vitrine »), avec leur meilleur prix du moment.
+struct FeaturedProductsSection: View {
+    let products: [Product]
+    let bestPrices: [String: Cents]
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            VendorSectionHeader(title: String(localized: "Ses coups de cœur"), systemImage: "heart.text.square.fill")
+            ForEach(products) { product in
+                HStack(alignment: .center, spacing: 12) {
+                    ProductIcon(product: product)
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text(product.name)
+                            .font(.headline)
+                            .foregroundStyle(.texte)
+                        Label("\(product.unit) · \(product.origin)", systemImage: "mappin")
+                            .font(.caption)
+                            .symbolRenderingMode(.hierarchical)
+                            .foregroundStyle(.texteSecondaire)
+                    }
+                    Spacer(minLength: 8)
+                    if let price = bestPrices[product.id] {
+                        Text("dès \(Money.format(price))")
+                            .font(.subheadline.weight(.bold))
+                            .monospacedDigit()
+                            .foregroundStyle(Color.economie)
+                    } else {
+                        Image(systemName: "heart.fill")
+                            .foregroundStyle(Color.grenier)
+                            .accessibilityHidden(true)
+                    }
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .grenierCard()
+                .accessibilityElement(children: .combine)
+            }
+        }
+    }
+}
+
 // MARK: - Confiance
 
 /// Lots livrés, familles servies, ancienneté, puis la dernière vente.

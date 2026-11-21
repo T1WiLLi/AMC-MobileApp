@@ -27,6 +27,17 @@ nonisolated protocol GroupRepository: Sendable {
     func leave(groupId: String, householdId: String) async throws
     /// Écoute en temps réel : émet l'état courant, puis chaque changement.
     func observeGroup(id: String) async -> AsyncThrowingStream<NeighborhoodGroup, any Error>
+    /// T-122 : pose (ou retire, `url` nil) la photo ou la bannière du groupe. Seul un coordinateur
+    /// (`coordinatorIds`) le peut : `.permissionDenied` sinon, `.notFound` si le groupe n'existe pas.
+    /// L'image elle-même est dans `AppRepositories.images` ; `url` est son URL versionnée.
+    func updateImage(_ kind: GroupImageKind, url: URL?, ofGroup groupId: String, byUserId userId: String) async throws
+}
+
+extension GroupRepository {
+    /// Par défaut (dépôt qui ne l'implémente pas encore) : refus explicite plutôt qu'un succès silencieux.
+    func updateImage(_ kind: GroupImageKind, url: URL?, ofGroup groupId: String, byUserId userId: String) async throws {
+        throw AppError.unknown("updateImage n'est pas encore branché sur ce dépôt.")
+    }
 }
 
 /// Vendeurs (`vendors`) et leurs produits (`products`).
@@ -174,6 +185,8 @@ nonisolated struct AppRepositories: Sendable {
     /// S-07, S-08. Valeur par défaut (fakes vides) pour que les appels existants de l'init compilent tels quels.
     var wishes: any GroupWishRepository = FakeGroupWishRepository()
     var supplies: any VendorSupplyRepository = FakeVendorSupplyRepository()
+    /// T-122 : photos de profil, de groupe et bannières (base64 dans Firestore en live, mémoire sinon).
+    var images: any ImageStore = FakeImageStore()
     /// RQ-069 (T-117) : livraison à domicile par un voisin bénévole.
     var deliveries: any VolunteerDeliveryRepository = FakeVolunteerDeliveryRepository()
     /// T-116 : portail Organismes (fonds de solidarité, financements, parrainages).
@@ -209,6 +222,7 @@ nonisolated struct AppRepositories: Sendable {
             pickupPoints: FakePickupPointRepository(behavior: behavior, pickupPoints: data.pickupPoints),
             wishes: FakeGroupWishRepository(behavior: behavior, wishes: FakeData.demoWishes),
             supplies: FakeVendorSupplyRepository(behavior: behavior, supplies: FakeData.demoSupplies),
+            images: FakeImageStore(behavior: behavior),
             deliveries: FakeVolunteerDeliveryRepository.demo(behavior: behavior),
             organizations: FakeOrganizationRepository(behavior: behavior)
         )

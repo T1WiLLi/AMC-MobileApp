@@ -14,6 +14,7 @@ struct GroupCard: View {
 
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @ScaledMetric(relativeTo: .headline) private var photoSize: CGFloat = 48
 
     /// Membres en plus des initiales affichées, pour que la pile annonce exactement `householdCount`.
     var extraMembers: Int { max(group.householdCount - memberInitials.prefix(3).count, 0) }
@@ -21,9 +22,16 @@ struct GroupCard: View {
     var body: some View {
         let layout = rowLayout
         layout {
-            // Le nombre de familles est déjà lu dans le détail : la pile d'avatars ne le répète pas.
-            AvatarStack(initials: memberInitials, extraCount: extraMembers)
-                .accessibilityHidden(true)
+            // Le nombre de familles est déjà lu dans le détail : la photo et la pile d'avatars ne le répètent pas.
+            // T-122 : la photo du groupe quand il en a une, sinon la pile d'avatars des membres.
+            Group {
+                if group.photoURL != nil {
+                    GroupAvatarView(group: group, size: min(photoSize, 72))
+                } else {
+                    AvatarStack(initials: memberInitials, extraCount: extraMembers)
+                }
+            }
+            .accessibilityHidden(true)
             VStack(alignment: .leading, spacing: 2) {
                 Text(group.name)
                     .font(.headline)

@@ -43,11 +43,12 @@ nonisolated final class FirestoreGroupRepository: GroupRepository, @unchecked Se
             query = query.whereField("neighborhood", isEqualTo: neighborhood)
         }
         return try await FirestoreDocument.query(NeighborhoodGroup.self, query, idKey: "id")
+            .map { $0.resolvingMediaURLs() }
             .sorted { $0.name < $1.name }
     }
 
     func group(id: String) async throws -> NeighborhoodGroup {
-        try await FirestoreDocument.fetch(NeighborhoodGroup.self, groupRef(id), idKey: "id")
+        try await FirestoreDocument.fetch(NeighborhoodGroup.self, groupRef(id), idKey: "id").resolvingMediaURLs()
     }
 
     func groups(ofHousehold householdId: String) async throws -> [NeighborhoodGroup] {
@@ -91,7 +92,7 @@ nonisolated final class FirestoreGroupRepository: GroupRepository, @unchecked Se
                 return
             }
             do {
-                continuation.yield(try FirestoreDocument.decode(NeighborhoodGroup.self, snapshot, idKey: "id"))
+                continuation.yield(try FirestoreDocument.decode(NeighborhoodGroup.self, snapshot, idKey: "id").resolvingMediaURLs())
             } catch {
                 continuation.finish(throwing: FirestoreGroupOrderRepository.appError(from: error))
             }
@@ -112,6 +113,22 @@ nonisolated final class FirestoreGroupRepository: GroupRepository, @unchecked Se
     /// Retire le ménage du groupe et décrémente `householdCount` ; sans effet s'il n'en fait pas partie.
     func leave(groupId: String, householdId: String) async throws {
         try await changeMembership(groupId: groupId, householdId: householdId, joining: false)
+    }
+
+    /// T-122 : l'image est déjà dans `groups/{id}/media/{photo|banner}` ; on pose `photoUpdatedAt` / `bannerUpdatedAt`
+    /// = horodatage serveur (firestore.rules T-132 : coordinateur seulement, `== request.time`, rien d'autre).
+    /// L'URL lue ensuite en est déduite (`resolvingMediaURLs()`).
+    /// Retirer (url nil) n'est pas encore permis par les règles : refus explicite.
+    func updateImage(_ kind: GroupImageKind, url: URL?, ofGroup groupId: String, byUserId userId: String) async throws {
+        _ = try await group(id: groupId)
+        guard url != nil else {
+            throw AppError.invalidInput("Retirer une image n'est pas encore possible : choisis plutôt une autre photo.")
+        }
+        do {
+            try await groupRef(groupId).updateData([NeighborhoodGroup.updatedAtField(kind): FieldValue.serverTimestamp()])
+        } catch {
+            throw FirestoreGroupOrderRepository.appError(from: error)
+        }
     }
 
     /// Adhésion + compteur dans un seul batch : les règles refusent l'un sans l'autre.

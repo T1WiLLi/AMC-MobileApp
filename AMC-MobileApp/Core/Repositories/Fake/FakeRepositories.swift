@@ -119,6 +119,18 @@ actor FakeGroupRepository: GroupRepository {
         return stream
     }
 
+    func updateImage(_ kind: GroupImageKind, url: URL?, ofGroup groupId: String, byUserId userId: String) async throws {
+        try await behavior.simulate()
+        guard var group = groups[groupId] else { throw AppError.notFound }
+        // Même règle que firestore.rules : seul un coordinateur change les images du groupe.
+        guard group.coordinatorIds.contains(userId) else { throw AppError.permissionDenied }
+        switch kind {
+        case .photo: group.photoURL = url
+        case .banner: group.bannerURL = url
+        }
+        update(group)
+    }
+
     private func update(_ group: NeighborhoodGroup) {
         groups[group.id] = group
         broadcaster.send(group, for: group.id)

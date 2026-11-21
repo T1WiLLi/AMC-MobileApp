@@ -39,11 +39,27 @@ final class GroupDetailViewModel {
     private let repositories: AppRepositories
     private let householdId: String
     private let groupId: String
+    /// T-122 : utilisateur connecté, pour savoir s'il coordonne le groupe (photo et bannière).
+    private let userId: String?
 
-    init(repositories: AppRepositories, householdId: String, groupId: String) {
+    init(repositories: AppRepositories, householdId: String, groupId: String, userId: String? = nil) {
         self.repositories = repositories
         self.householdId = householdId
         self.groupId = groupId
+        self.userId = userId
+    }
+
+    /// T-122 : l'utilisateur coordonne ce groupe (il peut changer sa photo et sa bannière).
+    var isCoordinator: Bool {
+        guard let userId, let group = state.value?.group else { return false }
+        return group.coordinatorIds.contains(userId)
+    }
+
+    /// T-122 : remplace le groupe affiché (après un changement de photo ou de bannière).
+    func replaceGroup(_ group: NeighborhoodGroup) {
+        guard var content = state.value, group.id == content.group.id else { return }
+        content.group = group
+        state = .loaded(content)
     }
 
     func load() async {

@@ -1,121 +1,67 @@
 // Seed idempotent des données de démo dans Firestore, SANS rien supprimer (contrairement à seedDemo.ts).
-// Écrit chaque document des fixtures à son id stable (set complet) : relancer le script remet la démo
-// dans son état initial sans toucher aux autres documents ni aux comptes Auth.
+// Écrit chaque document des fixtures à son id stable (set complet) et crée ou met à jour un compte Auth
+// par utilisateur de users.json (uid = id du document, B-029) : relancer le script remet la démo dans son
+// état initial sans toucher aux autres documents ni aux autres comptes Auth.
+// Mot de passe des comptes : GRENIER_DEMO_PASSWORD, sinon généré et affiché une seule fois.
 //
 //   Émulateur (défaut) : npm --prefix scripts/seed run seed:firestore
 //   Projet réel        : npm --prefix scripts/seed run seed:firestore -- --target cloud --yes
 //
 // Cloud : utilise la session de `firebase login` (jeton OAuth de la CLI Firebase), jamais de clé de service.
 import { execFileSync } from 'node:child_process'
-import { access, readFile } from 'node:fs/promises'
+import { readFile } from 'node:fs/promises'
 import { homedir } from 'node:os'
 import { join } from 'node:path'
 import { parseArgs } from 'node:util'
 import { deleteApp, initializeApp, type Credential } from 'firebase-admin/app'
 import { getFirestore, Timestamp, type DocumentData } from 'firebase-admin/firestore'
-import { millisecondsPerDay, readCatalog } from './catalog.ts'
+import { demoAccounts, demoPassword, millisecondsPerDay, passwordNotice, personaUserIds, readDemoSeed } from './catalog.ts'
 
-type Fixture = Record<string, unknown> & { id: string }
 type Write = { path: string, data: DocumentData }
 
 const fixturesDirectory = new URL('./fixtures/', import.meta.url)
-const montrealZone = 'America/Montreal'
 
-// Décalage (ms) entre l'heure de Montréal et UTC à un instant donné.
-function montrealOffset(instant: number): number {
-  const parts = Object.fromEntries(new Intl.DateTimeFormat('en-US', {
-    timeZone: montrealZone, hourCycle: 'h23', year: 'numeric', month: '2-digit', day: '2-digit',
-    hour: '2-digit', minute: '2-digit', second: '2-digit'
-  }).formatToParts(instant).map(({ type, value }) => [type, Number(value)]))
-  const asUTC = Date.UTC(parts.year, parts.month - 1, parts.day, parts.hour, parts.minute, parts.second)
-  return asUTC - instant
-}
-
-// Jour du seed + inDays, à l'heure locale de Montréal hh:mm.
-function montrealTime(seedDay: number, inDays: number, hour: number, minute: number): Timestamp {
-  const day = new Date(seedDay + inDays * millisecondsPerDay)
-  const guess = Date.UTC(day.getUTCFullYear(), day.getUTCMonth(), day.getUTCDate(), hour, minute)
-  return Timestamp.fromMillis(guess - montrealOffset(guess))
-}
-
-function hhmm(value: unknown): [number, number] {
-  const match = typeof value === 'string' ? /^([01][0-9]|2[0-3]):([0-5][0-9])$/.exec(value) : null
-  if (!match) throw new Error(`Heure invalide : ${String(value)}`)
-  return [Number(match[1]), Number(match[2])]
-}
-
-async function readOptional(filename: string): Promise<Fixture[] | null> {
-  const url = new URL(filename, fixturesDirectory)
-  try { await access(url) } catch { return null }
-  const records = JSON.parse(await readFile(url, 'utf8'))
-  if (!Array.isArray(records)) throw new Error(`${filename} doit contenir un tableau`)
-  for (const record of records) {
-    if (!record || typeof record.id !== 'string' || !/^[a-zA-Z0-9][a-zA-Z0-9_-]{0,127}$/.test(record.id)) {
-      throw new Error(`Identifiant de document invalide dans ${filename}`)
-    }
-  }
-  return records
-}
-
-async function buildWrites(seedDay: number): Promise<{ writes: Write[], counts: Record<string, number> }> {
-  const writes: Write[] = []
+// Même plan de documents que seedDemo.ts (validé, sous-collections comprises), sans suppression.
+async function buildWrites(seedDay: number) {
+  const seed = await readDemoSeed(fixturesDirectory, seedDay)
   const counts: Record<string, number> = {}
-  const add = (collection: string, path: string, data: DocumentData) => {
-    writes.push({ path, data })
+  for (const { path } of seed.documents) {
+    const collection = path.split('/').filter((_, index) => index % 2 === 0).join('/')
     counts[collection] = (counts[collection] ?? 0) + 1
   }
+  return { writes: seed.documents as Write[], counts, accounts: demoAccounts(seed.users) }
+}
 
-  const catalog = await readCatalog(fixturesDirectory, seedDay)
-  for (const [collection, documents] of Object.entries(catalog)) {
-    for (const document of documents) add(collection, `${collection}/${document.id}`, document)
-  }
+type DemoAccount = ReturnType<typeof demoAccounts>[number]
 
-  for (const collection of ['users', 'groups'] as const) {
-    for (const document of await readOptional(`${collection}.json`) ?? []) {
-      add(collection, `${collection}/${document.id}`, document)
-    }
-  }
-
-  for (const { slotTemplates, ...point } of await readOptional('pickupPoints.json') ?? []) {
-    const slots = (Array.isArray(slotTemplates) ? slotTemplates : []).map((template) => {
-      const [startHour, startMinute] = hhmm(template.start)
-      const [endHour, endMinute] = hhmm(template.end)
-      return {
-        start: montrealTime(seedDay, template.inDays, startHour, startMinute),
-        end: montrealTime(seedDay, template.inDays, endHour, endMinute)
-      }
+// Comptes Auth de démo (B-029) par l'API REST Identity Toolkit, émulateur comme projet réel :
+// crée les comptes manquants et remet à jour les autres (courriel, nom, mot de passe). Ne supprime rien.
+async function syncAccounts(base: string, projectId: string, token: () => Promise<string>,
+  accounts: DemoAccount[], password: string) {
+  const call = async (method: string, body: unknown) => {
+    const response = await fetch(`${base}/v1/projects/${projectId}/${method}`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${await token()}`, 'Content-Type': 'application/json', 'x-goog-user-project': projectId },
+      body: JSON.stringify(body),
+      redirect: 'error',
+      signal: AbortSignal.timeout(30_000)
     })
-    add('pickupPoints', `pickupPoints/${point.id}`, { ...point, slots })
+    if (!response.ok) throw new Error(`Auth ${method} échoué (HTTP ${response.status}) : ${(await response.text()).slice(0, 300)}`)
+    return response.json() as Promise<{ users?: { localId: string }[] }>
   }
-
-  // households.json (B-028) : le ménage, son document privé et son adhésion au groupe.
-  for (const { private: privateProfile, memberRole, ...household } of await readOptional('households.json') ?? []) {
-    add('households', `households/${household.id}`, household)
-    if (privateProfile && typeof privateProfile === 'object') {
-      add('households/private', `households/${household.id}/private/profile`, privateProfile as DocumentData)
-    }
-    if (typeof household.groupId === 'string') {
-      add('groups/members', `groups/${household.groupId}/members/${household.id}`, {
-        householdId: household.id,
-        role: memberRole === 'coordinator' ? 'coordinator' : 'member',
-        joinedAt: Timestamp.fromMillis(seedDay - 14 * millisecondsPerDay)
-      })
+  const existing = new Set(((await call('accounts:lookup', { localId: accounts.map(({ uid }) => uid) })).users ?? [])
+    .map(({ localId }) => localId))
+  let created = 0
+  for (const { uid, email, displayName } of accounts) {
+    const fields = { localId: uid, email, displayName, password, emailVerified: true }
+    if (existing.has(uid)) {
+      await call('accounts:update', fields)
+    } else {
+      await call('accounts', fields)
+      created += 1
     }
   }
-
-  // groupOrders.json (B-028) : la commande, ses créneaux et ses parts.
-  for (const { shares, pickupSlotsInDays, ...order } of await readOptional('groupOrders.json') ?? []) {
-    const pickupSlots = (Array.isArray(pickupSlotsInDays) ? pickupSlotsInDays : []).map((slot) => ({
-      start: montrealTime(seedDay, slot.inDays, slot.startHour, 0),
-      end: montrealTime(seedDay, slot.inDays, slot.endHour, 0)
-    }))
-    add('groupOrders', `groupOrders/${order.id}`, { ...order, pickupSlots })
-    for (const share of Array.isArray(shares) ? shares : []) {
-      add('groupOrders/shares', `groupOrders/${order.id}/shares/${share.householdId}`, share)
-    }
-  }
-
-  return { writes, counts }
+  return { created, updated: accounts.length - created }
 }
 
 // Jeton OAuth de la session `firebase login` (rafraîchi par un appel à la CLI juste avant).
@@ -186,22 +132,35 @@ async function seedFirestore() {
   if (values.target !== 'emulator' && values.target !== 'cloud') throw new Error('--target emulator|cloud')
 
   const seedDay = Math.floor(Date.now() / millisecondsPerDay) * millisecondsPerDay
-  const { writes, counts } = await buildWrites(seedDay)
+  const { writes, counts, accounts } = await buildWrites(seedDay)
   const summary = Object.entries(counts).map(([name, count]) => `${name}: ${count}`).join(', ')
 
   if (values['dry-run']) {
     console.log(`[dry-run] ${writes.length} documents : ${summary}`)
+    console.log(`[dry-run] ${accounts.length} comptes Auth de démo`)
     return
+  }
+  const { password, generated } = demoPassword()
+  function reportAccounts({ created, updated }: { created: number, updated: number }) {
+    console.log(`Comptes Auth de démo : ${created} créés, ${updated} mis à jour. Personas :`)
+    for (const account of accounts.filter(({ uid }) => (personaUserIds as readonly string[]).includes(uid))) {
+      console.log(`  ${account.displayName} : ${account.email}`)
+    }
+    console.log(passwordNotice(generated, password))
   }
 
   let credential: Credential | undefined
+  let authHost: string | undefined
   if (values.target === 'emulator') {
     const host = process.env.FIRESTORE_EMULATOR_HOST ?? '127.0.0.1:8080'
     if (!/^(127\.0\.0\.1|localhost):[0-9]{1,5}$/.test(host)) throw new Error('FIRESTORE_EMULATOR_HOST doit être local')
     process.env.FIRESTORE_EMULATOR_HOST = host
-    console.log(`Cible : émulateur ${host}, projet ${projectId}`)
+    authHost = process.env.FIREBASE_AUTH_EMULATOR_HOST ?? '127.0.0.1:9099'
+    if (!/^(127\.0\.0\.1|localhost):[0-9]{1,5}$/.test(authHost)) throw new Error('FIREBASE_AUTH_EMULATOR_HOST doit être local')
+    console.log(`Cible : émulateur ${host} (Auth ${authHost}), projet ${projectId}`)
   } else {
     delete process.env.FIRESTORE_EMULATOR_HOST
+    delete process.env.FIREBASE_AUTH_EMULATOR_HOST
     if (!values.yes) {
       throw new Error(`Écriture sur le VRAI projet ${projectId} : relancez avec --yes pour confirmer.`)
     }
@@ -214,6 +173,9 @@ async function seedFirestore() {
     // L'Admin SDK Firestore exige une clé de service ou l'ADC : en cloud, on passe par l'API REST.
     await commitWithRest(projectId, credential, writes)
     console.log(`Seed terminé : ${writes.length} documents (${summary}).`)
+    const cloud = credential
+    reportAccounts(await syncAccounts('https://identitytoolkit.googleapis.com', projectId,
+      async () => (await cloud.getAccessToken()).access_token, accounts, password))
     return
   }
 
@@ -226,6 +188,8 @@ async function seedFirestore() {
       await batch.commit()
     }
     console.log(`Seed terminé : ${writes.length} documents (${summary}).`)
+    reportAccounts(await syncAccounts(`http://${authHost}/identitytoolkit.googleapis.com`, projectId,
+      async () => 'owner', accounts, password))
   } finally {
     await db.terminate()
     await deleteApp(app)

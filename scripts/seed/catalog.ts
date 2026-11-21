@@ -1,4 +1,5 @@
 import { readFile } from 'node:fs/promises'
+import { randomBytes } from 'node:crypto'
 import { Timestamp } from 'firebase-admin/firestore'
 
 type Fixture = Record<string, unknown> & { id: string }
@@ -322,4 +323,24 @@ export function demoAccounts(users: Fixture[]) {
     email: `${id.replace(/^user-/, '')}@${demoEmailDomain}`,
     displayName: String(displayName)
   }))
+}
+
+/**
+ * Mot de passe commun des comptes de démo : GRENIER_DEMO_PASSWORD, sinon un mot de passe aléatoire
+ * à afficher une seule fois. Il n'est jamais écrit dans le dépôt.
+ */
+export function demoPassword(env: NodeJS.ProcessEnv = process.env) {
+  const configured = env.GRENIER_DEMO_PASSWORD
+  if (configured !== undefined && configured.length < 6) {
+    throw new Error('GRENIER_DEMO_PASSWORD doit compter au moins 6 caractères')
+  }
+  return configured === undefined
+    ? { password: randomBytes(12).toString('base64url'), generated: true }
+    : { password: configured, generated: false }
+}
+
+export function passwordNotice(generated: boolean, password: string, scope = '') {
+  return generated
+    ? `Mot de passe généré pour ces comptes ${scope}: ${password}`
+    : 'Mot de passe : valeur de GRENIER_DEMO_PASSWORD'
 }

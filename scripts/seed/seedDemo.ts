@@ -1,4 +1,3 @@
-import { randomBytes } from 'node:crypto'
 import { open, unlink } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
@@ -6,7 +5,7 @@ import { parseArgs } from 'node:util'
 import { deleteApp, initializeApp } from 'firebase-admin/app'
 import { getAuth } from 'firebase-admin/auth'
 import { getFirestore } from 'firebase-admin/firestore'
-import { demoAccounts, millisecondsPerDay, personaUserIds, readDemoSeed } from './catalog.ts'
+import { demoAccounts, demoPassword, millisecondsPerDay, passwordNotice, personaUserIds, readDemoSeed } from './catalog.ts'
 
 function loopbackHost(variable: string, port: number): string {
   const value = process.env[variable] ?? `127.0.0.1:${port}`
@@ -48,11 +47,7 @@ async function seedDemo() {
   process.env.METADATA_SERVER_DETECTION = 'none'
 
   // Mot de passe commun des comptes de démo : jamais dans le dépôt.
-  const configuredPassword = process.env.GRENIER_DEMO_PASSWORD
-  if (configuredPassword !== undefined && configuredPassword.length < 6) {
-    throw new Error('GRENIER_DEMO_PASSWORD doit compter au moins 6 caractères')
-  }
-  const password = configuredPassword ?? randomBytes(12).toString('base64url')
+  const { password, generated } = demoPassword()
 
   const seedDay = Math.floor(Date.now() / millisecondsPerDay) * millisecondsPerDay
   const seed = await readDemoSeed(new URL('./fixtures/', import.meta.url), seedDay)
@@ -98,9 +93,7 @@ async function seedDemo() {
       for (const account of accounts.filter(({ uid }) => (personaUserIds as readonly string[]).includes(uid))) {
         console.log(`  ${account.displayName} : ${account.email}`)
       }
-      console.log(configuredPassword === undefined
-        ? `Mot de passe généré pour ces comptes (émulateur local seulement) : ${password}`
-        : 'Mot de passe : valeur de GRENIER_DEMO_PASSWORD')
+      console.log(passwordNotice(generated, password, '(émulateur local seulement) '))
     } finally {
       await db.terminate()
       await deleteApp(app)

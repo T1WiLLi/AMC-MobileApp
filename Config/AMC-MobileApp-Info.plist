@@ -4,6 +4,9 @@
 <dict>
 	<!-- Fusionné avec l'Info.plist généré par Xcode (GENERATE_INFOPLIST_FILE = YES). -->
 	<!-- Schéma d'URL de retour Google Sign-In = REVERSED_CLIENT_ID de GoogleService-Info.plist. -->
+	<!-- Face ID : verrou de l'app et confirmation des paiements (Core/Security). -->
+	<key>NSFaceIDUsageDescription</key>
+	<string>Grenier utilise Face ID pour protéger ton compte et confirmer tes paiements.</string>
 	<key>CFBundleURLTypes</key>
 	<array>
 		<dict>

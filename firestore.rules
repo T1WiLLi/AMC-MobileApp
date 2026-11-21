@@ -9,7 +9,8 @@ rules_version = '2';
 //   users/{uid}                          profil ; lu et écrit par son propriétaire seulement
 //   households/{id}                      ménage ; lu et écrit par ses membres (userIds)
 //   households/{id}/private/profile      isSubsidized, referralCode ; membres du ménage seulement
-//   groups/{id}                          groupe de quartier ; lecture par tout utilisateur connecté
+//   groups/{id}                          groupe de quartier ; lecture par tout utilisateur connecté ;
+//                                        seul householdCount bouge, avec l'adhésion (T-099)
 //   groups/{id}/members/{householdId}    adhésion ; un ménage s'ajoute ou se retire lui-même
 //   vendors/{id}                         vendeur ; lecture connectée, le vendeur modifie sa vitrine
 //   products/{id}, offers/{id}           catalogue ; lecture connectée, écrit par le vendeur propriétaire
@@ -162,9 +163,51 @@ service cloud.firestore {
     // groups/{groupId} (+ members)
     // ---------------------------------------------------------------
 
+    // householdCount (T-099) : il n'y a pas de serveur, donc `join` / `leave` écrivent dans UN
+    // batch atomique l'adhésion ET le compteur du groupe :
+    //   join  : create members/{h}  +  update groups/{g} { householdCount: +1, lastMembershipChange: h }
+    //   leave : delete members/{h}  +  update groups/{g} { householdCount: -1, lastMembershipChange: h }
+    // La règle du groupe ne voit pas le document membre écrit à côté : le client nomme donc le
+    // ménage concerné dans `lastMembershipChange`. La règle vérifie que ce ménage est à l'appelant
+    // (households/{h}.userIds) et que son adhésion apparaît (+1) ou disparaît (-1) dans le même
+    // batch (exists / existsAfter). Réciproquement, l'adhésion ne se crée ou ne se supprime que si
+    // le compteur bouge de ±1 dans le batch avec ce même ménage : le compteur ne peut pas dériver.
+    // Deux ménages qui rejoignent en même temps : Firestore sérialise les batchs, et
+    // FieldValue.increment s'applique sur la valeur courante.
+    function groupPath(groupId) {
+      return /databases/$(database)/documents/groups/$(groupId);
+    }
+
+    function memberPath(groupId, householdId) {
+      return /databases/$(database)/documents/groups/$(groupId)/members/$(householdId);
+    }
+
+    // Le compteur du groupe change de `delta` dans cette requête, au nom de `householdId`.
+    function isCountChangedBy(groupId, householdId, delta) {
+      let before = get(groupPath(groupId)).data;
+      let after = getAfter(groupPath(groupId)).data;
+      return after.get('lastMembershipChange', '') == householdId
+        && after.get('householdCount', 0) == before.get('householdCount', 0) + delta;
+    }
+
     match /groups/{groupId} {
       allow read: if isAuthenticated();
-      allow write: if false;
+      allow create, delete: if false;
+      allow update: if isMembershipCountUpdate();
+
+      function isMembershipCountUpdate() {
+        let before = resource.data;
+        let after = request.resource.data;
+        let householdId = after.get('lastMembershipChange', '');
+        let delta = after.get('householdCount', 0) - before.get('householdCount', 0);
+        let wasMember = exists(memberPath(groupId, householdId));
+        let isMember = existsAfter(memberPath(groupId, householdId));
+        return onlyChanges(['householdCount', 'lastMembershipChange'])
+          && householdId is string && householdId.size() > 0
+          && after.householdCount is int && after.householdCount >= 0
+          && isMemberOfHousehold(householdId)
+          && ((delta == 1 && !wasMember && isMember) || (delta == -1 && wasMember && !isMember));
+      }
 
       match /members/{householdId} {
         allow read: if isAuthenticated();
@@ -172,9 +215,11 @@ service cloud.firestore {
           && request.resource.data.keys().hasOnly(['householdId', 'role', 'joinedAt'])
           && request.resource.data.householdId == householdId
           && request.resource.data.role == 'member'
-          && request.resource.data.joinedAt == request.time;
+          && request.resource.data.joinedAt == request.time
+          && isCountChangedBy(groupId, householdId, 1);
         allow update: if false;
-        allow delete: if isMemberOfHousehold(householdId);
+        allow delete: if isMemberOfHousehold(householdId)
+          && (!exists(groupPath(groupId)) || isCountChangedBy(groupId, householdId, -1));
       }
     }
 

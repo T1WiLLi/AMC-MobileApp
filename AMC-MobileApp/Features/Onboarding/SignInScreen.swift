@@ -5,6 +5,8 @@ import SwiftUI
 struct SignInScreen: View {
     let session: SessionViewModel
     @Environment(\.colorScheme) private var colorScheme
+    /// Nom, emblème et accroche de la marque (B-032, `Core/Design/Brand/brand.json`).
+    @Environment(\.brand) private var brand
 
     private var isSigningIn: Bool { session.state == .signingIn }
 
@@ -14,7 +16,7 @@ struct SignInScreen: View {
 
             VStack(spacing: 16) {
                 GrenierSymbolScene(
-                    symbol: "basket.fill",
+                    symbol: brand.logo.symbol,
                     satellites: [
                         .init("carrot.fill", tint: .economie),
                         .init(GrenierSymbol.groups, tint: .grenier),
@@ -24,11 +26,11 @@ struct SignInScreen: View {
                     trigger: isSigningIn
                 )
 
-                Text("Grenier")
+                Text(brand.name)
                     .font(.largeTitle.bold())
                     .fontDesign(.rounded)
 
-                Text("Achète en gros avec les familles de ton quartier, directement aux producteurs.")
+                Text(brand.texts.tagline)
                     .font(.body)
                     .foregroundStyle(.secondary)
                     .multilineTextAlignment(.center)

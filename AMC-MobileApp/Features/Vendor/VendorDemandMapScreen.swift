@@ -47,6 +47,16 @@ struct VendorDemandMapScreen: View {
             .navigationTitle("Demande")
             .navigationBarTitleDisplayMode(.inline)
             .profileToolbar()
+            .toolbar {
+                // B-055 : une carte ne se tire pas ; la liste a aussi « tirer pour rafraîchir ».
+                ToolbarItem(placement: .topBarLeading) {
+                    Button("Actualiser", systemImage: "arrow.clockwise") {
+                        Task { await viewModel.refresh() }
+                    }
+                    .symbolEffect(.rotate, options: .speed(2), isActive: viewModel.isRefreshing && !reduceMotion)
+                    .disabled(isPending || viewModel.isRefreshing)
+                }
+            }
         }
         .sheet(isPresented: isSheetPresented) {
             if let point = viewModel.selectedPoint {
@@ -58,6 +68,11 @@ struct VendorDemandMapScreen: View {
         }
         .sensoryFeedback(.selection, trigger: viewModel.selectedPointID) { _, new in new != nil }
         .task {
+            // B-055 : pas de second chargement (squelette) en revenant sur l'onglet, seulement un rafraîchissement.
+            guard case .idle = viewModel.state else {
+                await viewModel.refresh()
+                return
+            }
             if voiceOverEnabled { displayMode = .list }
             await viewModel.load()
             // Centre la carte sur la demande réelle, même si les ids n'ont pas changé (rechargement).
@@ -187,6 +202,7 @@ struct VendorDemandMapScreen: View {
         }
         .listStyle(.insetGrouped)
         .scrollContentBackground(.hidden)
+        .refreshable { await viewModel.refresh() }
         .grenierScrollEdge()
         .contentMargins(.top, 8, for: .scrollContent)
     }

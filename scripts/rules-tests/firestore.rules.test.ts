@@ -226,6 +226,12 @@ describe('groups/members', () => {
   test('pas de requête de groupe de collections sans session', async () => {
     await assertFails(getDocs(query(collectionGroup(anonymous(), 'members'), where('householdId', '==', 'household-amina'))))
   })
+  test('groupes d’un ménage : requête de groupe de collections (B-017)', async () => {
+    await assertSucceeds(getDocs(query(collectionGroup(amina(), 'members'), where('householdId', '==', 'household-amina'))))
+  })
+  test('pas de requête de groupe de collections sans session', async () => {
+    await assertFails(getDocs(query(collectionGroup(anonymous(), 'members'), where('householdId', '==', 'household-amina'))))
+  })
 })
 
 describe('vendeur : products et offers', () => {
@@ -279,11 +285,60 @@ describe('pickupPoints', () => {
   test('l’hôte gère sa capacité', async () => {
     await assertSucceeds(updateDoc(doc(amina(), 'pickupPoints/pickup-1'), { capacity: 30 }))
   })
-  test('l’hôte ne change pas l’adresse ni l’hôte', async () => {
+  test('l’hôte ne change pas d’hôte', async () => {
     await assertFails(updateDoc(doc(amina(), 'pickupPoints/pickup-1'), { hostUserId: 'intrus' }))
   })
   test('un autre ne touche pas au point', async () => {
     await assertFails(updateDoc(doc(intruder(), 'pickupPoints/pickup-1'), { capacity: 0 }))
+  })
+})
+
+describe('hôte et créneaux (T-077)', () => {
+  const point = { id: 'pickup-intrus', hostUserId: 'intrus', name: 'Chez moi', address: '2 rue', capacity: 10, accessibility: ['stepFree'], slots: [] }
+  const start = Timestamp.fromMillis(Date.now() + 3 * 86_400_000)
+  const slot = { start, end: Timestamp.fromMillis(start.toMillis() + 3_600_000), capacity: 5 }
+  const sharePath = 'groupOrders/order-1/shares/household-amina'
+
+  beforeEach(async () => {
+    await env.withSecurityRulesDisabled(async (c) => {
+      const db = c.firestore()
+      await setDoc(doc(db, 'groups/group-parc-extension'), { id: 'group-parc-extension', name: 'Voisins de Parc-Ex', isPublic: true, inviteCode: 'PARC', coordinatorIds: ['amina'] })
+      await setDoc(doc(db, 'groups/group-parc-extension/members/household-amina'), { householdId: 'household-amina', role: 'coordinator' })
+      await setDoc(doc(db, sharePath), share)
+    })
+  })
+
+  test('on devient hôte en créant son propre point', async () => {
+    await assertSucceeds(setDoc(doc(intruder(), 'pickupPoints/pickup-intrus'), point))
+  })
+  test('pas de point au nom d’un autre hôte', async () => {
+    await assertFails(setDoc(doc(intruder(), 'pickupPoints/pickup-x'), { ...point, id: 'pickup-x', hostUserId: 'amina' }))
+  })
+  test('pas de point sans adresse ni capacité', async () => {
+    await assertFails(setDoc(doc(intruder(), 'pickupPoints/pickup-intrus'), { ...point, address: '' }))
+    await assertFails(setDoc(doc(intruder(), 'pickupPoints/pickup-intrus'), { ...point, capacity: 0 }))
+  })
+  test('l’hôte change son adresse et sa photo', async () => {
+    await assertSucceeds(updateDoc(doc(amina(), 'pickupPoints/pickup-1'), { address: '3 rue', photoURL: 'https://example.com/a.jpg' }))
+  })
+  test('le coordonnateur choisit le point et les créneaux', async () => {
+    await assertSucceeds(updateDoc(doc(amina(), 'groupOrders/order-1'), { pickupPointId: 'pickup-1', pickupSlots: [slot] }))
+  })
+  test('un non-coordonnateur ne choisit pas le point', async () => {
+    await assertFails(updateDoc(doc(intruder(), 'groupOrders/order-1'), { pickupPointId: 'pickup-1' }))
+  })
+  test('le choix du point ne change pas les compteurs', async () => {
+    await assertFails(updateDoc(doc(amina(), 'groupOrders/order-1'), { pickupPointId: 'pickup-1', committedShares: 5 }))
+  })
+  test('le ménage réserve et annule son créneau', async () => {
+    await assertSucceeds(updateDoc(doc(amina(), sharePath), { pickupSlotStart: start }))
+    await assertSucceeds(updateDoc(doc(amina(), sharePath), { pickupSlotStart: null }))
+  })
+  test('pas le créneau d’un autre ménage', async () => {
+    await assertFails(updateDoc(doc(intruder(), sharePath), { pickupSlotStart: start }))
+  })
+  test('la réservation ne touche pas au paiement', async () => {
+    await assertFails(updateDoc(doc(amina(), sharePath), { pickupSlotStart: start, isPaid: true }))
   })
 })
 

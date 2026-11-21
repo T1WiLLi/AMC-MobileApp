@@ -415,6 +415,17 @@ service cloud.firestore {
         && after.diff(before).affectedKeys().hasOnly(['status', 'currentTierIndex']);
     }
 
+    // RQ-063 (T-077) : le coordonnateur du groupe choisit le point de cueillette et ses créneaux,
+    // tant que la commande n'est ni annulée ni livrée.
+    function isPickupChoiceUpdate() {
+      let before = resource.data;
+      let after = request.resource.data;
+      return isGroupCoordinator(before.groupId)
+        && before.status in ['open', 'reached', 'closed']
+        && after.status == before.status
+        && after.diff(before).affectedKeys().hasOnly(['pickupPointId', 'pickupSlots']);
+    }
+
     match /groupOrders/{orderId} {
       allow read: if isAuthenticated();
 
@@ -428,7 +439,7 @@ service cloud.firestore {
 
       allow update: if isValidGroupOrder(request.resource.data, orderId)
         && areImmutableFieldsUnchanged(['id', 'groupId', 'offerId'])
-        && (isShareCountUpdate(orderId) || isClosingUpdate());
+        && (isShareCountUpdate(orderId) || isClosingUpdate() || isPickupChoiceUpdate());
 
       allow delete: if false;
 
@@ -445,7 +456,8 @@ service cloud.firestore {
       // -------------------------------------------------------------
       function isValidShare(data, householdId) {
         return data.keys().hasOnly(['householdId', 'quantity', 'finalPriceCents', 'isPaid',
-                                    'suspendedAmountCents', 'subsidyCents', 'qrCode', 'isPickedUp', 'updatedAt'])
+                                    'suspendedAmountCents', 'subsidyCents', 'qrCode', 'isPickedUp', 'updatedAt',
+                                    'pickupSlotStart'])
           && data.keys().hasAll(['householdId', 'quantity', 'isPaid', 'suspendedAmountCents',
                                  'subsidyCents', 'isPickedUp'])
           && data.householdId == householdId
@@ -458,7 +470,22 @@ service cloud.firestore {
           && data.subsidyCents is int && data.subsidyCents >= 0
           && (!('qrCode' in data) || data.qrCode == null || (data.qrCode is string && data.qrCode.size() <= 200))
           && data.isPickedUp is bool
-          && (!('updatedAt' in data) || data.updatedAt == null || data.updatedAt is timestamp);
+          && (!('updatedAt' in data) || data.updatedAt == null || data.updatedAt is timestamp)
+          && (!('pickupSlotStart' in data) || data.pickupSlotStart == null || data.pickupSlotStart is timestamp);
+      }
+
+      // RQ-064 (T-077) : un ménage choisit ou annule SON créneau, commande ni annulée ni livrée
+      // (l'app vérifie que le créneau existe et n'est pas complet) ; le coordonnateur peut seulement effacer une réservation
+      // quand il retire un créneau. Rien d'autre ne bouge dans la part.
+      function isSlotReservation(householdId) {
+        let order = orderDoc();
+        let after = request.resource.data;
+        return order.status in ['open', 'reached', 'closed']
+          && after.diff(resource.data).affectedKeys().hasOnly(['pickupSlotStart'])
+          && (
+            (householdId == myHouseholdId() && isGroupMember(order.groupId))
+            || (isGroupCoordinator(order.groupId) && after.get('pickupSlotStart', null) == null)
+          );
       }
 
       function orderDoc() {
@@ -509,6 +536,7 @@ service cloud.firestore {
               && (isGroupCoordinator(orderDoc().groupId) || isOfferVendor(offerOf(orderDoc())))
               && request.resource.data.diff(resource.data).affectedKeys()
                    .hasOnly(['finalPriceCents', 'subsidyCents', 'qrCode']))
+            || isSlotReservation(householdId)
           );
 
         allow delete: if canChangeMyShare(householdId);
@@ -521,14 +549,27 @@ service cloud.firestore {
 
     match /pickupPoints/{pickupPointId} {
       allow read: if isAuthenticated();
+      // RQ-062 (T-077) : un utilisateur devient hôte en créant SON point (hostUserId = lui),
+      // puis le modifie (nom, adresse, photo, capacité, accessibilité, créneaux).
+      function isValidPickupPoint(data) {
+        return data.keys().hasOnly(['id', 'hostUserId', 'name', 'address', 'photoURL', 'capacity',
+                                    'accessibility', 'slots'])
+          && data.keys().hasAll(['id', 'hostUserId', 'name', 'address', 'capacity', 'accessibility', 'slots'])
+          && data.id == pickupPointId
+          && data.hostUserId == request.auth.uid
+          && data.name is string && data.name.size() > 0 && data.name.size() <= 80
+          && data.address is string && data.address.size() > 0 && data.address.size() <= 200
+          && data.slots is list && data.slots.size() <= 50
+          && isIntIn(data.capacity, 1, 1000)
+          && isStringList(data.accessibility, 10)
+          && isOptionalString(data, 'photoURL', 2048);
+      }
+
+      allow create: if isAuthenticated() && isValidPickupPoint(request.resource.data);
       allow update: if isAuthenticated()
         && resource.data.hostUserId == request.auth.uid
-        && onlyChanges(['slots', 'capacity', 'accessibility', 'photoURL'])
-        && request.resource.data.slots is list && request.resource.data.slots.size() <= 50
-        && isIntIn(request.resource.data.capacity, 0, 1000)
-        && isStringList(request.resource.data.accessibility, 10)
-        && isOptionalString(request.resource.data, 'photoURL', 2048);
-      allow create, delete: if false;
+        && isValidPickupPoint(request.resource.data);
+      allow delete: if false;
     }
 
     // Tout le reste : refusé par défaut.

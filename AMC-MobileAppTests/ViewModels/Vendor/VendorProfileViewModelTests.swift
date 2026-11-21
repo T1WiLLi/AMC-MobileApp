@@ -1,5 +1,6 @@
 import Foundation
 import Testing
+import UIKit
 @testable import AMC_MobileApp
 
 /// Profil vendeur (T-076, RQ-016).
@@ -199,5 +200,54 @@ struct VendorProfileViewModelTests {
         #expect(labels.keys.sorted() == ["f25d"])
         #expect(labels["f25d"]?.contains("Parc-Extension") == true)
         #expect(labels["f25d"]?.contains("Villeray") == true)
+    }
+
+    // MARK: Ma vitrine (T-157)
+
+    @Test func featuredProductsToggleCapAndSave() async throws {
+        let repositories = Self.withoutPhotos()
+        let model = makeModel(repositories: repositories)
+        await model.load()
+        #expect(model.products.map(\.id).sorted() == [ID.apples, ID.potatoes].sorted())
+        #expect(model.featuredProductIds == [ID.potatoes])
+        #expect(!model.hasChanges)
+
+        #expect(model.toggleFeatured(ID.apples) == nil)
+        #expect(model.featuredProductIds == [ID.potatoes, ID.apples])
+        #expect(model.hasChanges)
+        #expect(model.toggleFeatured("p3") == nil)
+        #expect(model.toggleFeatured("p4") != nil)
+        #expect(model.toggleFeatured("p3") == nil)
+        #expect(model.toggleFeatured(ID.potatoes) == nil)
+        #expect(model.featuredProductIds == [ID.apples])
+
+        let saved = try #require(await model.save())
+        #expect(saved.featuredProductIds == [ID.apples])
+        #expect(try await repositories.vendors.vendor(id: ID.fermeRive).featuredProductIds == [ID.apples])
+    }
+
+    @Test func photosGoToTheImageStore() async throws {
+        let repositories = Self.withoutPhotos()
+        let model = VendorProfileViewModel(repositories: repositories, vendorId: ID.fermeRive)
+        await model.load()
+        let png = try #require(UIImage(systemName: "leaf.fill")?.withTintColor(.green).pngData())
+        #expect(await model.addPhoto(data: png) == nil)
+        let url = try #require(model.photoURLs.first)
+        guard case .media(let path) = MediaURL.source(of: url),
+              case .vendorPhoto(let vendorId, let photoId) = path else {
+            Issue.record("URL inattendue : \(url)")
+            return
+        }
+        #expect(vendorId == ID.fermeRive)
+        #expect(photoId.hasPrefix("photo-"))
+        #expect(MediaPath(documentPath: path.documentPath) == path)
+        #expect(try await repositories.images.imageData(at: path).isEmpty == false)
+    }
+
+    @Test func fakeRepositoryKeepsSeedFieldsReadOnly() async throws {
+        let repository = FakeVendorRepository(vendors: FakeData.montreal.vendors)
+        var vendor = try await repository.vendor(id: ID.fermeRive)
+        vendor.city = "Laval"
+        await #expect(throws: AppError.permissionDenied) { try await repository.saveVendor(vendor) }
     }
 }

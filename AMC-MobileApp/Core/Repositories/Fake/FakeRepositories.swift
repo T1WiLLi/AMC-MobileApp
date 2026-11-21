@@ -286,7 +286,9 @@ actor FakeVendorRepository: VendorRepository {
         guard let current = vendors[vendor.id] else { throw AppError.notFound }
         // Comme firestore.rules : raison sociale, type, note et vérification restent en lecture seule.
         guard current.legalName == vendor.legalName, current.kind == vendor.kind,
-              current.averageRating == vendor.averageRating, current.isVerified == vendor.isVerified
+              current.averageRating == vendor.averageRating, current.isVerified == vendor.isVerified,
+              current.city == vendor.city, current.memberSince == vendor.memberSince,
+              current.storefrontGeohash == vendor.storefrontGeohash
         else { throw AppError.permissionDenied }
         vendors[vendor.id] = vendor
     }

@@ -970,3 +970,50 @@ describe('vendorReviews (T-157)', () => {
     await assertSucceeds(deleteDoc(doc(amina(), `vendorReviews/${reviewId}`)))
   })
 })
+
+describe('vitrine du vendeur (T-157)', () => {
+  const photo = (size = 4096) => ({
+    data: Bytes.fromUint8Array(new Uint8Array(size).fill(0xff)), contentType: 'image/jpeg', width: 1000, height: 750,
+    updatedAt: serverTimestamp()
+  })
+
+  test('le vendeur choisit ses produits mis en avant', async () => {
+    await assertSucceeds(updateDoc(doc(lafleur(), 'vendors/vendor-lafleur'), { featuredProductIds: ['product-carottes'] }))
+  })
+  test('au plus 6 produits mis en avant', async () => {
+    await assertFails(updateDoc(doc(lafleur(), 'vendors/vendor-lafleur'), {
+      featuredProductIds: ['a', 'b', 'c', 'd', 'e', 'f', 'g']
+    }))
+  })
+  test('une famille ne change pas la vitrine d’un vendeur', async () => {
+    await assertFails(updateDoc(doc(amina(), 'vendors/vendor-lafleur'), { featuredProductIds: [] }))
+  })
+  test('un autre vendeur ne change pas cette vitrine', async () => {
+    await assertFails(updateDoc(doc(lafleur(), 'vendors/vendor-autre'), { featuredProductIds: [] }))
+  })
+  test('la note et la ville restent hors de portée du vendeur', async () => {
+    await assertFails(updateDoc(doc(lafleur(), 'vendors/vendor-lafleur'), { averageRating: 5 }))
+    await assertFails(updateDoc(doc(lafleur(), 'vendors/vendor-lafleur'), { city: 'Paris' }))
+  })
+  test('le vendeur ajoute une photo de vitrine', async () => {
+    await assertSucceeds(setDoc(doc(lafleur(), 'vendors/vendor-lafleur/media/photo-abc-123'), photo()))
+  })
+  test('connecté lit une photo de vitrine', async () => {
+    await assertSucceeds(setDoc(doc(lafleur(), 'vendors/vendor-lafleur/media/photo-abc'), photo()))
+    await assertSucceeds(getDoc(doc(amina(), 'vendors/vendor-lafleur/media/photo-abc')))
+  })
+  test('nom de photo libre refusé', async () => {
+    await assertFails(setDoc(doc(lafleur(), 'vendors/vendor-lafleur/media/avatar'), photo()))
+  })
+  test('photo trop lourde refusée', async () => {
+    await assertFails(setDoc(doc(lafleur(), 'vendors/vendor-lafleur/media/photo-lourde'), photo(301 * 1024)))
+  })
+  test('une famille n’ajoute pas de photo à une vitrine', async () => {
+    await assertFails(setDoc(doc(amina(), 'vendors/vendor-lafleur/media/photo-x'), photo()))
+  })
+  test('le vendeur retire sa photo, pas celle d’un autre', async () => {
+    await assertSucceeds(setDoc(doc(lafleur(), 'vendors/vendor-lafleur/media/photo-x'), photo()))
+    await assertSucceeds(deleteDoc(doc(lafleur(), 'vendors/vendor-lafleur/media/photo-x')))
+    await assertFails(deleteDoc(doc(lafleur(), 'vendors/vendor-autre/media/photo-x')))
+  })
+})

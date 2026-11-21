@@ -79,7 +79,7 @@ nonisolated protocol VendorRepository: Sendable {
     /// Retire un produit du catalogue (T-089). Lève `.notFound` si l'id est inconnu ;
     /// firestore.rules n'autorise que le vendeur propriétaire.
     func deleteProduct(id: String) async throws
-    /// Enregistre le profil du vendeur. Seuls `description`, `photoURLs` et `servedZones` peuvent changer
+    /// Enregistre le profil du vendeur. Seuls `description`, `photoURLs`, `servedZones` et `featuredProductIds` peuvent changer
     /// (firestore.rules) ; tout autre changement lève `.permissionDenied`, un id inconnu `.notFound`.
     func saveVendor(_ vendor: Vendor) async throws
 }

@@ -101,6 +101,8 @@ final class PublicVendorViewModel {
     private(set) var reputation: LoadState<Reputation> = .idle
     /// Meilleur prix d'une part par produit, parmi les lots ouverts (T-157).
     private(set) var bestPriceByProduct: [String: Cents] = [:]
+    /// Coups de cœur choisis par le producteur dans « Ma vitrine » (T-157), dans son ordre.
+    private(set) var featuredProducts: [Product] = []
 
     let vendorId: String
     let viewer: Viewer?
@@ -151,6 +153,8 @@ final class PublicVendorViewModel {
             catalog = .from(Self.catalog(of: products))
             openOffers = .from(open)
             bestPriceByProduct = Self.bestPrices(open)
+            let productsById = Dictionary(products.map { ($0.id, $0) }, uniquingKeysWith: { first, _ in first })
+            featuredProducts = (vendor.featuredProductIds ?? []).compactMap { productsById[$0] }
             // Les avis ne bloquent jamais la page : en cas d'erreur, la page s'affiche sans eux.
             reputation = .loaded(await loadReputation(memberSince: vendor.memberSince))
         } catch {

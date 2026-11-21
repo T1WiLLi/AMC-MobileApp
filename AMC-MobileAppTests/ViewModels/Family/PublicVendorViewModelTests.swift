@@ -193,6 +193,7 @@ struct PublicVendorViewModelTests {
         #expect(reputation.canReview)
         #expect(model.state.value?.neighborhood == "Saint-Michel")
         #expect(model.bestPriceByProduct[ID.potatoes] == 850)
+        #expect(model.featuredProducts.map(\.id) == [ID.potatoes])
     }
 
     @Test func householdThatNeverBoughtCannotReview() async throws {

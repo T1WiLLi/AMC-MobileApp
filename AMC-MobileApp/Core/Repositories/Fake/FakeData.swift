@@ -118,7 +118,7 @@ nonisolated struct FakeData: Sendable {
                        description: "Légumes biologiques cultivés à Mirabel depuis 1998.",
                        photoURLs: [DemoMedia.marcheBanner, DemoMedia.marchePhoto, DemoMedia.saintMichelBanner], servedZones: ["f25d", "f25e"], averageRating: 4.7, isVerified: true,
                        storefrontGeohash: "f25dvuh", city: "Mirabel",
-                       memberSince: now.addingTimeInterval(-420 * day)),
+                       memberSince: now.addingTimeInterval(-420 * day), featuredProductIds: [ID.potatoes]),
                 Vendor(id: ID.moulinsDuNord, legalName: "Les Moulins du Nord", kind: .wholesaler,
                        description: "Grossiste en céréales et légumineuses, entrepôt à Laval.",
                        photoURLs: [], servedZones: ["f25d"], averageRating: 4.4, isVerified: true,

@@ -29,4 +29,6 @@ nonisolated struct Vendor: Identifiable, Codable, Sendable, Hashable {
     var city: String? = nil
     /// Arrivée sur LeGrenier, pour l'ancienneté affichée aux familles (T-157). Posée par le seed, pas par le client.
     var memberSince: Date? = nil
+    /// Produits mis en avant sur la vitrine (T-157), dans l'ordre choisi ; modifiable par le vendeur. nil = aucun.
+    var featuredProductIds: [String]? = nil
 }

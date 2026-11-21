@@ -419,11 +419,13 @@ service cloud.firestore {
 
     match /vendors/{vendorId} {
       allow read: if isAuthenticated();
+      // T-157 : featuredProductIds = produits mis en avant sur la vitrine (6 au plus).
       allow update: if isVendorOf(vendorId)
-        && onlyChanges(['description', 'photoURLs', 'servedZones'])
+        && onlyChanges(['description', 'photoURLs', 'servedZones', 'featuredProductIds'])
         && isShortString(request.resource.data.description, 0, 2000)
         && isStringList(request.resource.data.photoURLs, 10)
-        && isStringList(request.resource.data.servedZones, 20);
+        && isStringList(request.resource.data.servedZones, 20)
+        && isStringList(request.resource.data.get('featuredProductIds', []), 6);
       allow create, delete: if false;
     }
 
@@ -1032,6 +1034,7 @@ service cloud.firestore {
     // ---------------------------------------------------------------
     // users/{uid}/media/avatar                  avatar ; écrit et supprimé par son propriétaire
     // groups/{groupId}/media/{photo | banner}   photo et bannière ; écrites et supprimées par un coordonnateur
+    // vendors/{vendorId}/media/photo-{id}       photos de vitrine ; écrites et supprimées par le vendeur (T-157)
     // Champs : data (bytes JPEG compressé par l'app, 300 Kio au plus ; un document Firestore est limité
     //   à 1 Mio), contentType == 'image/jpeg', width et height (entiers 1..4096), updatedAt == request.time.
     // Lecture : tout utilisateur connecté (une image de profil ou de groupe n'est pas de la PII sensible ;
@@ -1056,6 +1059,15 @@ service cloud.firestore {
         && mediaId == 'avatar'
         && isValidMedia(request.resource.data);
       allow delete: if isOwner(userId);
+    }
+
+    // T-157 : photos de vitrine du vendeur (`photo-<id>`, 10 au plus côté app) ; écrites par le vendeur seulement.
+    match /vendors/{vendorId}/media/{mediaId} {
+      allow read: if isAuthenticated();
+      allow create, update: if isVendorOf(vendorId)
+        && mediaId.matches('photo-[A-Za-z0-9-]{1,64}')
+        && isValidMedia(request.resource.data);
+      allow delete: if isVendorOf(vendorId);
     }
 
     match /groups/{groupId}/media/{mediaId} {

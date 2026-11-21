@@ -1,7 +1,8 @@
 // VendorProfileViewModel.swift
 // Profil vendeur (T-076, RQ-016) : raison sociale, type, description, photos de vitrine, zones desservies.
-// Les règles Firestore ne laissent modifier que `description`, `photoURLs` et `servedZones` :
-// le reste s'affiche en lecture seule.
+// Les règles Firestore ne laissent modifier que `description`, `photoURLs`, `servedZones` et
+// `featuredProductIds` (T-157, « Ma vitrine ») : le reste s'affiche en lecture seule.
+// Photos : `ImageStoreVendorPhotoStore` les range dans le dépôt d'images (`vendors/{id}/media/photo-…`).
 //
 // Usage dans une vue :
 //   @State private var model = VendorProfileViewModel(repositories: context.repositories, vendorId: context.vendorId)
@@ -15,6 +16,18 @@ import Observation
 /// (`vendors/{vendorId}/…`, storage.rules) pourra remplacer la version locale.
 nonisolated protocol VendorPhotoStoring: Sendable {
     func store(_ data: Data, vendorId: String) async throws -> URL
+}
+
+/// Range la photo dans le dépôt d'images de l'app (`AppRepositories.images`) : Firestore en live
+/// (`vendors/{id}/media/photo-…`, firestore.rules), mémoire en mode fake. Recadrée en 4:3 et compressée.
+nonisolated struct ImageStoreVendorPhotoStore: VendorPhotoStoring {
+    let images: any ImageStore
+
+    func store(_ data: Data, vendorId: String) async throws -> URL {
+        let path = MediaPath.vendorPhoto(vendorId: vendorId, photoId: "photo-\(UUID().uuidString.lowercased())")
+        let prepared = try ImageProcessing.prepare(data, spec: path.spec)
+        return try await images.save(prepared, at: path)
+    }
 }
 
 /// Écrit la photo dans le dossier Caches de l'app (démo et dépôts fake).
@@ -48,6 +61,8 @@ final class VendorProfileViewModel {
     static let descriptionMaxLength = 2_000
     static let maxPhotos = 10
     static let maxZones = 20
+    /// Produits mis en avant sur la vitrine (firestore.rules : 6 au plus).
+    static let maxFeatured = 3
     /// Longueur des codes de zone proposés depuis les groupes.
     static let zonePrecision = 4
     /// Longueur des codes d'un quartier choisi par son nom ou sur la carte (≈ 5 km, la taille d'un quartier).
@@ -58,6 +73,8 @@ final class VendorProfileViewModel {
     var description: String = ""
     var servedZones: [String] = []
     private(set) var photoURLs: [URL] = []
+    /// Produits mis en avant (T-157), dans l'ordre choisi.
+    private(set) var featuredProductIds: [String] = []
 
     // MARK: État
 
@@ -69,6 +86,8 @@ final class VendorProfileViewModel {
     private(set) var isAddingPhoto = false
     /// Quartiers connus, par code de zone.
     private(set) var zoneLabels: [String: String] = [:]
+    /// Catalogue du vendeur, pour choisir les produits mis en avant (vide si le chargement échoue).
+    private(set) var products: [Product] = []
 
     let vendorId: String
     private let repositories: AppRepositories
@@ -77,11 +96,11 @@ final class VendorProfileViewModel {
     init(
         repositories: AppRepositories,
         vendorId: String,
-        photoStore: any VendorPhotoStoring = LocalVendorPhotoStore()
+        photoStore: (any VendorPhotoStoring)? = nil
     ) {
         self.repositories = repositories
         self.vendorId = vendorId
-        self.photoStore = photoStore
+        self.photoStore = photoStore ?? ImageStoreVendorPhotoStore(images: repositories.images)
     }
 
     // MARK: Dérivés
@@ -95,6 +114,23 @@ final class VendorProfileViewModel {
         return vendor.description != trimmedDescription
             || vendor.servedZones != servedZones
             || vendor.photoURLs != photoURLs
+            || (vendor.featuredProductIds ?? []) != featuredProductIds
+    }
+
+    func isFeatured(_ productId: String) -> Bool { featuredProductIds.contains(productId) }
+
+    /// Met un produit en avant ou l'en retire. Renvoie l'erreur si la limite est atteinte.
+    @discardableResult
+    func toggleFeatured(_ productId: String) -> AppError? {
+        if let index = featuredProductIds.firstIndex(of: productId) {
+            featuredProductIds.remove(at: index)
+            return nil
+        }
+        guard featuredProductIds.count < Self.maxFeatured else {
+            return .invalidInput(String(localized: "Tu peux mettre \(Self.maxFeatured) produits en avant au plus."))
+        }
+        featuredProductIds.append(productId)
+        return nil
     }
 
     /// Première règle non respectée, en français ; nil si le profil est enregistrable.
@@ -181,8 +217,10 @@ final class VendorProfileViewModel {
         do {
             async let loadedVendor = repositories.vendors.vendor(id: vendorId)
             async let loadedGroups = try? repositories.groups.groups(inNeighborhood: nil)
+            async let loadedProducts = try? repositories.vendors.products(ofVendor: vendorId)
             let vendor = try await loadedVendor
             zoneLabels = Self.zoneLabels(from: await loadedGroups ?? [])
+            products = await loadedProducts ?? []
             apply(vendor)
             state = .loaded(vendor)
         } catch {
@@ -271,6 +309,7 @@ final class VendorProfileViewModel {
         description = vendor.description
         servedZones = vendor.servedZones
         photoURLs = vendor.photoURLs
+        featuredProductIds = vendor.featuredProductIds ?? []
     }
 
     /// Profil enregistré + champs modifiables ; lève `.invalidInput` avec la règle à corriger.
@@ -295,6 +334,10 @@ final class VendorProfileViewModel {
         vendor.description = text
         vendor.servedZones = servedZones
         vendor.photoURLs = photoURLs
+        // Un produit retiré du catalogue entre-temps n'est plus mis en avant.
+        let known = Set(products.map(\.id))
+        let featured = products.isEmpty ? featuredProductIds : featuredProductIds.filter(known.contains)
+        vendor.featuredProductIds = featured.isEmpty && vendor.featuredProductIds == nil ? nil : featured
         return vendor
     }
 

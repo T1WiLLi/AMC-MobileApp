@@ -2,8 +2,9 @@ import MapKit
 import PhotosUI
 import SwiftUI
 
-/// Profil vendeur (T-076, RQ-016) : vitrine (photos), raison sociale et type en lecture seule,
-/// description et zones desservies modifiables. Présenté en feuille depuis le Tableau de bord vendeur.
+/// « Ma vitrine » (T-076, RQ-016, T-157) : photos, description, produits mis en avant et zones desservies,
+/// tels que les familles les voient sur la page producteur. Raison sociale et type en lecture seule.
+/// Présenté en feuille depuis le Tableau de bord vendeur.
 struct VendorProfileScreen: View {
     @State private var viewModel: VendorProfileViewModel
     @State private var pickedItem: PhotosPickerItem?
@@ -20,7 +21,7 @@ struct VendorProfileScreen: View {
     init(
         repositories: AppRepositories,
         vendorId: String,
-        photoStore: any VendorPhotoStoring = LocalVendorPhotoStore()
+        photoStore: (any VendorPhotoStoring)? = nil
     ) {
         _viewModel = State(initialValue: VendorProfileViewModel(
             repositories: repositories, vendorId: vendorId, photoStore: photoStore
@@ -30,7 +31,7 @@ struct VendorProfileScreen: View {
     var body: some View {
         NavigationStack {
             content
-                .navigationTitle("Profil vendeur")
+                .navigationTitle("Ma vitrine")
                 .navigationBarTitleDisplayMode(.inline)
                 .toolbar { toolbar }
                 .task { if viewModel.state.value == nil { await viewModel.load() } }
@@ -75,6 +76,7 @@ struct VendorProfileScreen: View {
 
             photosSection
             descriptionSection
+            featuredSection
             zonesSection
 
             if let error = viewModel.saveState.error {
@@ -174,6 +176,55 @@ struct VendorProfileScreen: View {
                     .accessibilityLabel("\(count) caractères sur \(VendorProfileViewModel.descriptionMaxLength)")
             }
         }
+    }
+
+    // MARK: - Produits mis en avant (T-157)
+
+    private var featuredSection: some View {
+        Section {
+            if viewModel.products.isEmpty {
+                Label("Ajoute des produits à ton catalogue pour les mettre en avant.", systemImage: "basket")
+                    .foregroundStyle(.secondary)
+            } else {
+                ForEach(viewModel.products) { product in
+                    let featured = viewModel.isFeatured(product.id)
+                    Button {
+                        withGrenierAnimation(.snappy, reduceMotion: reduceMotion) {
+                            if let error = viewModel.toggleFeatured(product.id) { reject(error) }
+                        }
+                    } label: {
+                        HStack(spacing: 12) {
+                            Image(systemName: ProductIcon.symbol(for: product.category))
+                                .symbolRenderingMode(.hierarchical)
+                                .foregroundStyle(Color.grenier)
+                                .frame(width: 28)
+                                .accessibilityHidden(true)
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text(product.name).foregroundStyle(Color.texte)
+                                Text(product.unit).font(.caption).foregroundStyle(.secondary)
+                            }
+                            Spacer(minLength: 8)
+                            Image(systemName: featured ? "heart.fill" : "heart")
+                                .font(.title3)
+                                .foregroundStyle(featured ? Color.grenier : Color.secondary)
+                                .contentTransition(reduceMotion ? .identity : .symbolEffect(.replace))
+                                .accessibilityHidden(true)
+                        }
+                        .frame(minHeight: 44)
+                        .contentShape(.rect)
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityLabel(product.name)
+                    .accessibilityValue(featured ? String(localized: "mis en avant") : String(localized: "pas mis en avant"))
+                    .accessibilityAddTraits(featured ? [.isButton, .isSelected] : .isButton)
+                }
+            }
+        } header: {
+            Label("Coups de cœur", systemImage: "heart.text.square")
+        } footer: {
+            Text("Jusqu'à \(VendorProfileViewModel.maxFeatured) produits, en tête de ta page producteur · \(viewModel.featuredProductIds.count) sur \(VendorProfileViewModel.maxFeatured).")
+        }
+        .sensoryFeedback(.selection, trigger: viewModel.featuredProductIds)
     }
 
     // MARK: - Zones
@@ -396,13 +447,7 @@ private struct VendorIdentityHeader: View {
     @ViewBuilder
     private var cover: some View {
         if let coverURL {
-            AsyncImage(url: coverURL) { phase in
-                if let image = phase.image {
-                    image.resizable().scaledToFill()
-                } else {
-                    placeholder
-                }
-            }
+            MediaImage(url: coverURL) { placeholder }
         } else {
             placeholder
         }
@@ -430,13 +475,7 @@ private struct PhotoThumbnail: View {
     @ScaledMetric private var side: CGFloat = 96
 
     var body: some View {
-        AsyncImage(url: url) { phase in
-            if let image = phase.image {
-                image.resizable().scaledToFill()
-            } else {
-                Color.piste.overlay { ProgressView() }
-            }
-        }
+        MediaImage(url: url) { Color.piste.overlay { ProgressView() } }
         .frame(width: side, height: side)
         .clipShape(.rect(cornerRadius: 16))
         .overlay(alignment: .topLeading) {

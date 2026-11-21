@@ -113,13 +113,10 @@ struct InviteCard: View {
         return String(localized: "\(head) Code d'invitation : \(inviteCode)")
     }
 
-    /// Lien d'invitation encodé dans le QR : `grenier://rejoindre?code=PARCEX`.
+    /// Lien d'invitation encodé dans le QR : `grenier://join/PARCEX` (B-058), que l'app ouvre directement.
     static func inviteURL(for group: NeighborhoodGroup) -> URL {
-        var components = URLComponents()
-        components.scheme = "grenier"
-        components.host = "rejoindre"
-        components.queryItems = [URLQueryItem(name: "code", value: group.inviteCode)]
-        return components.url ?? URL(string: "grenier://rejoindre")!
+        GroupRules.appInviteLink(for: group.inviteCode)
+            ?? URL(string: "\(GroupRules.appScheme)://\(GroupRules.joinPath)")!
     }
 }
 

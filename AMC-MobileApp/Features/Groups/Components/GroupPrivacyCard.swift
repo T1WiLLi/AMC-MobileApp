@@ -10,6 +10,8 @@ struct GroupPrivacyCard: View {
     var onGroupChanged: (NeighborhoodGroup) -> Void
 
     @State private var confirmingRevoke: GroupInvitation?
+    /// Invitation dont le QR est affiché en feuille (B-058).
+    @State private var showingQR: GroupInvitation?
 
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
@@ -68,6 +70,10 @@ struct GroupPrivacyCard: View {
         } message: { _ in
             Text("Le lien ne fera plus entrer personne. Tu pourras en créer un autre.")
         }
+        .sheet(item: $showingQR) { invitation in
+            InvitationQRSheet(invitation: invitation, groupName: model.group.name)
+                .environment(\.groupTheme, theme)
+        }
     }
 
     private var privateBinding: Binding<Bool> {
@@ -115,6 +121,17 @@ struct GroupPrivacyCard: View {
                 .controlSize(.large)
                 .fontWeight(.semibold)
                 .tint(theme.accent)
+
+                Button {
+                    showingQR = created
+                } label: {
+                    Label("Afficher le code QR", systemImage: "qrcode")
+                        .frame(maxWidth: .infinity)
+                }
+                .buttonStyle(.glass)
+                .controlSize(.large)
+                .tint(theme.accent)
+                .accessibilityHint("Un voisin le scanne avec l'appareil photo pour rejoindre le groupe")
             }
 
             Button {
@@ -154,6 +171,7 @@ struct GroupPrivacyCard: View {
                             invitation: invitation,
                             groupName: model.group.name,
                             isWorking: model.isWorking,
+                            onShowQR: { showingQR = invitation },
                             onRevoke: { confirmingRevoke = invitation }
                         )
                         if invitation.id != items.last?.id { Divider() }
@@ -170,6 +188,7 @@ private struct InvitationRow: View {
     let invitation: GroupInvitation
     let groupName: String
     let isWorking: Bool
+    let onShowQR: () -> Void
     let onRevoke: () -> Void
 
     var body: some View {
@@ -209,6 +228,13 @@ private struct InvitationRow: View {
                 .buttonStyle(.glass)
                 .tint(theme.accent)
                 .accessibilityLabel("Envoyer l'invitation \(invitation.code)")
+                Button(action: onShowQR) {
+                    Label("Code QR", systemImage: "qrcode")
+                        .labelStyle(.iconOnly)
+                }
+                .buttonStyle(.glass)
+                .tint(theme.accent)
+                .accessibilityLabel("Code QR de l'invitation \(invitation.code)")
                 Button(role: .destructive, action: onRevoke) {
                     Label("Révoquer", systemImage: "xmark.circle")
                         .labelStyle(.iconOnly)
@@ -245,6 +271,65 @@ private struct InvitationRow: View {
         case .used: .texteSecondaire
         case .revoked: .red
         }
+    }
+}
+
+/// B-058 : QR de l'invitation à usage unique, à faire scanner à un voisin. L'appareil photo ouvre
+/// `grenier://join/<code>`, et l'app présente « Rejoindre avec un code » déjà rempli.
+struct InvitationQRSheet: View {
+    @Environment(\.groupTheme) private var theme
+    @Environment(\.dismiss) private var dismiss
+    let invitation: GroupInvitation
+    let groupName: String
+
+    var body: some View {
+        NavigationStack {
+            ScrollView {
+                VStack(spacing: 20) {
+                    Text("Fais scanner ce code par la famille que tu invites. Il ne sert qu'une fois.")
+                        .font(.subheadline)
+                        .foregroundStyle(.texteSecondaire)
+                        .multilineTextAlignment(.center)
+                        .fixedSize(horizontal: false, vertical: true)
+
+                    QRCodeImage(Self.payload(for: invitation),
+                                accessibilityLabel: String(localized: "Code QR de l'invitation à \(groupName)"))
+                        .padding(12)
+                        .background(Color.surface, in: .rect(cornerRadius: 20))
+                        .overlay(RoundedRectangle(cornerRadius: 20).stroke(theme.accent.opacity(0.35), lineWidth: 1.5))
+                        .frame(maxWidth: 280)
+
+                    VStack(spacing: 2) {
+                        Label("Code d'invitation", systemImage: "ticket.fill")
+                            .font(.caption.weight(.semibold))
+                            .foregroundStyle(.texteSecondaire)
+                        Text(invitation.code)
+                            .font(.title2.bold())
+                            .fontDesign(.monospaced)
+                            .tracking(4)
+                            .foregroundStyle(.texte)
+                            .textSelection(.enabled)
+                            .accessibilityLabel(invitation.code.map(String.init).joined(separator: " "))
+                    }
+                }
+                .padding(24)
+                .frame(maxWidth: .infinity)
+            }
+            .background(Color.fond)
+            .navigationTitle(groupName)
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .confirmationAction) {
+                    Button("OK") { dismiss() }
+                }
+            }
+        }
+        .presentationDetents([.large])
+    }
+
+    /// Ce que le QR encode : le lien que l'app ouvre, sinon le code seul.
+    static func payload(for invitation: GroupInvitation) -> String {
+        invitation.appURL?.absoluteString ?? invitation.code
     }
 }
 

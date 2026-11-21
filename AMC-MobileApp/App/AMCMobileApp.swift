@@ -15,6 +15,8 @@ struct AMCMobileApp: App {
     @State private var sessionContext: SessionContextStore
     /// Réseau et rechargement automatique (S-10) : lu par `RootView` et `.refreshOnForeground`.
     @State private var network = NetworkMonitor()
+    /// Liens d'invitation reçus (B-058) : lus par `FamilyTabView` et `GroupsScreen`.
+    @State private var inviteLinks = InviteLinkRouter()
 
     init() {
         // Fake, émulateur ou projet de démo (B-013) : voir `BackendMode` et docs/firebase.md §4.
@@ -52,10 +54,15 @@ struct AMCMobileApp: App {
                 .environment(demo)
                 .environment(network)
                 .id(demo.generation)
+                .environment(inviteLinks)
                 .appLock(appLock)
-                #if canImport(GoogleSignIn)
-                .onOpenURL { url in _ = GIDSignIn.sharedInstance.handle(url) }
-                #endif
+                // Un seul gestionnaire de liens : invitation d'abord (B-058), sinon Google Sign-In.
+                .onOpenURL { url in
+                    if inviteLinks.handle(url) { return }
+                    #if canImport(GoogleSignIn)
+                    _ = GIDSignIn.sharedInstance.handle(url)
+                    #endif
+                }
                 #if DEBUG
                 // Démo jury : `-GrenierLiveActivityDemo` au lancement démarre la Live Activity
                 // et enchaîne palier franchi → en route → arrivée (OrderActivityController).

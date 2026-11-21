@@ -6,6 +6,8 @@ struct FamilyTabView: View {
     enum TabID: Hashable { case home, groups, pickup, impact, search }
 
     @State private var selection: TabID = .home
+    /// Lien d'invitation reçu (B-058) : bascule sur l'onglet Groupes, qui ouvre la feuille « Rejoindre ».
+    @Environment(InviteLinkRouter.self) private var inviteLinks: InviteLinkRouter?
 
     var body: some View {
         TabView(selection: $selection) {
@@ -31,6 +33,9 @@ struct FamilyTabView: View {
         }
         // Bord net sous la barre de navigation pour tous les onglets et leurs fiches (T-140).
         .grenierScrollEdge()
+        .onChange(of: inviteLinks?.pendingCode, initial: true) { _, code in
+            if code != nil { selection = .groups }
+        }
     }
 }
 

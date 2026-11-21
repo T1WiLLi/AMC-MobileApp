@@ -154,4 +154,6 @@ nonisolated struct GroupInvitation: Identifiable, Codable, Sendable, Hashable {
 
     /// Lien à partager (`https://grenier.app/join/<code>`).
     var shareURL: URL? { GroupRules.shareableInviteLink(for: code) }
+    /// Lien encodé dans le QR de l'invitation (B-058) : `grenier://join/<code>`, ouvert par l'app.
+    var appURL: URL? { GroupRules.appInviteLink(for: code) }
 }

@@ -1,0 +1,105 @@
+[
+  {
+    "id": "vendor-ferme-lafleur",
+    "legalName": "Ferme Lafleur",
+    "kind": "farm",
+    "description": "Ferme maraîchère familiale de Saint-Rémi : légumes de saison et œufs de poules en liberté.",
+    "photoURLs": [],
+    "servedZones": [
+      "parc-extension",
+      "rosemont",
+      "hochelaga",
+      "saint-michel",
+      "verdun",
+      "cote-des-neiges",
+      "montreal-nord",
+      "villeray"
+    ],
+    "averageRating": 4.8,
+    "isVerified": true
+  },
+  {
+    "id": "vendor-ferme-bio-rive",
+    "legalName": "Ferme Bio-Rive",
+    "kind": "farm",
+    "description": "Légumes et pommes biologiques cultivés à Mirabel depuis 1998.",
+    "photoURLs": [],
+    "servedZones": [
+      "parc-extension",
+      "saint-michel",
+      "montreal-nord",
+      "villeray",
+      "rosemont"
+    ],
+    "averageRating": 4.7,
+    "isVerified": true
+  },
+  {
+    "id": "vendor-moulins-du-nord",
+    "legalName": "Les Moulins du Nord",
+    "kind": "wholesaler",
+    "description": "Grossiste en céréales, farines et légumineuses, entrepôt à Laval.",
+    "photoURLs": [],
+    "servedZones": [
+      "parc-extension",
+      "rosemont",
+      "hochelaga",
+      "saint-michel",
+      "verdun",
+      "cote-des-neiges",
+      "montreal-nord",
+      "villeray"
+    ],
+    "averageRating": 4.4,
+    "isVerified": true
+  },
+  {
+    "id": "vendor-coop-lanaudiere",
+    "legalName": "Coopérative Agri-Lanaudière",
+    "kind": "cooperative",
+    "description": "Coopérative de 40 producteurs de Lanaudière : œufs, volaille, porc.",
+    "photoURLs": [],
+    "servedZones": [
+      "rosemont",
+      "hochelaga",
+      "saint-michel",
+      "villeray"
+    ],
+    "averageRating": 4.6,
+    "isVerified": true
+  },
+  {
+    "id": "vendor-marche-central",
+    "legalName": "Distribution Marché Central",
+    "kind": "wholesaler",
+    "description": "Grossiste alimentaire du Marché Central : conserves, huiles, produits ménagers.",
+    "photoURLs": [],
+    "servedZones": [
+      "parc-extension",
+      "rosemont",
+      "hochelaga",
+      "saint-michel",
+      "verdun",
+      "cote-des-neiges",
+      "montreal-nord",
+      "villeray"
+    ],
+    "averageRating": 4.2,
+    "isVerified": true
+  },
+  {
+    "id": "vendor-boucherie-cantons",
+    "legalName": "Boucherie fermière des Cantons",
+    "kind": "farm",
+    "description": "Élevage et boucherie de Compton, viande de bœuf et de porc sans hormones.",
+    "photoURLs": [],
+    "servedZones": [
+      "verdun",
+      "cote-des-neiges",
+      "parc-extension",
+      "rosemont"
+    ],
+    "averageRating": 4.5,
+    "isVerified": true
+  }
+]

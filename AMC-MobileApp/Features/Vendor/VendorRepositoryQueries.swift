@@ -1,0 +1,52 @@
+// VendorRepositoryQueries.swift
+// Requêtes composées du portail Vendeur (T-022), partagées par les ViewModels V1 à V3.
+//
+// Limite connue : aucun dépôt ne donne directement les commandes d'un lot. On compose
+// `groups.groups(inNeighborhood: nil)` puis `groupOrders.groupOrders(ofGroup:)` pour chaque groupe.
+// Le dépôt ne renvoie que les groupes PUBLICS : les commandes des groupes privés n'apparaissent pas.
+
+import Foundation
+
+/// Commande groupée accompagnée de son groupe de quartier.
+nonisolated struct LinkedGroupOrder: Identifiable, Sendable, Hashable {
+    var order: GroupOrder
+    var group: NeighborhoodGroup
+
+    var id: String { order.id }
+}
+
+nonisolated enum VendorRepositoryQueries {
+    /// Commandes « vivantes » qui engagent encore de la demande.
+    static let liveStatuses: Set<GroupOrder.Status> = [.open, .reached]
+
+    /// Toutes les commandes groupées des groupes publics, avec leur groupe.
+    /// `statuses` filtre les commandes (par défaut : toutes sauf annulées).
+    static func linkedGroupOrders(
+        in repositories: AppRepositories,
+        statuses: Set<GroupOrder.Status> = Set(GroupOrder.Status.allCases).subtracting([.cancelled])
+    ) async throws -> [LinkedGroupOrder] {
+        let groups = try await repositories.groups.groups(inNeighborhood: nil)
+        var result: [LinkedGroupOrder] = []
+        for group in groups {
+            let orders = try await repositories.groupOrders.groupOrders(ofGroup: group.id)
+            result += orders
+                .filter { statuses.contains($0.status) }
+                .map { LinkedGroupOrder(order: $0, group: group) }
+        }
+        return result
+    }
+
+    /// Prix par part du palier atteint par la commande (`currentTierIndex` dans `offer.sortedTiers`), nil sous le premier palier.
+    static func currentPrice(of order: GroupOrder, offer: Offer) -> Cents? {
+        guard let index = order.currentTierIndex else { return nil }
+        let tiers = offer.sortedTiers
+        guard tiers.indices.contains(index) else { return nil }
+        return tiers[index].priceCents
+    }
+
+    /// Revenu prévu d'une commande : parts engagées × prix du palier atteint (0 sous le premier palier).
+    static func projectedRevenue(of order: GroupOrder, offer: Offer) -> Cents {
+        guard let price = currentPrice(of: order, offer: offer) else { return 0 }
+        return order.committedShares * price
+    }
+}

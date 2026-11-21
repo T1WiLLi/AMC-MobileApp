@@ -1,21 +1,21 @@
 import SwiftUI
 
-struct OffersScreen: View {
+struct VendorOffersScreen: View {
     var body: some View {
         PlaceholderScreen(
             title: "Lots",
             systemImage: "shippingbox.fill",
-            message: "Les lots des producteurs, avec leurs prix par palier.",
-            epic: "E05"
+            message: "Tes lots ouverts et leurs paliers ; crée un lot avec l'éditeur de paliers (maquette V2).",
+            epic: "E04"
         )
     }
 }
 
 #Preview("Clair") {
-    OffersScreen()
+    VendorOffersScreen()
 }
 
 #Preview("Sombre") {
-    OffersScreen()
+    VendorOffersScreen()
         .preferredColorScheme(.dark)
 }

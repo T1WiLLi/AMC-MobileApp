@@ -255,43 +255,212 @@ service cloud.firestore {
       allow delete: if isVendorOf(resource.data.vendorId);
     }
 
+    // Ménage et vendeur de l'utilisateur connecté (users/{uid}.householdId, .vendorId).
+    function myUser() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
+    }
+
+    function myHouseholdId() {
+      return myUser().get('householdId', '');
+    }
+
+    function isGroupMember(groupId) {
+      return isAuthenticated() && myHouseholdId() != ''
+        && exists(/databases/$(database)/documents/groups/$(groupId)/members/$(myHouseholdId()));
+    }
+
+    function isGroupCoordinator(groupId) {
+      return isAuthenticated()
+        && request.auth.uid in get(/databases/$(database)/documents/groups/$(groupId)).data.coordinatorIds;
+    }
+
+    function isOfferVendor(offer) {
+      return isAuthenticated() && myUser().get('vendorId', '') == offer.vendorId;
+    }
+
+    function offerOf(order) {
+      return get(/databases/$(database)/documents/offers/$(order.offerId)).data;
+    }
+
+    function isOpenStatus(status) {
+      return status in ['open', 'reached'];
+    }
+
     // ---------------------------------------------------------------
-    // groupOrders/{orderId} (+ shares)
+    // groupOrders/{orderId} — commandes groupées (B-019)
     // ---------------------------------------------------------------
+    // Champs : id (string, = id du doc, immuable), groupId (string, immuable), offerId (string, immuable),
+    //   status ('open'|'reached'|'closed'|'delivered'|'cancelled'), currentTierIndex (int ≥ 0, optionnel),
+    //   committedShares (int ≥ 0), committedHouseholds (int ≥ 0), pickupPointId (string, optionnel),
+    //   pickupSlots (list).
+    // Pas de PII : lisible par tout utilisateur connecté (fil des lots, tableau vendeur).
+    // Écrit seulement par le client via FirestoreGroupOrderRepository (transactions) :
+    //   - création vide par un membre du groupe, lot actif, avant la date limite ;
+    //   - changement de part par un membre : seuls les compteurs, le palier et open/reached bougent,
+    //     et l'écart de committedShares est exactement celui de SA part (écrite dans la même transaction) ;
+    //   - clôture par le coordonnateur du groupe ou le vendeur du lot, après la date limite.
+    // ---------------------------------------------------------------
+    function isValidGroupOrder(data, orderId) {
+      return data.keys().hasOnly(['id', 'groupId', 'offerId', 'status', 'currentTierIndex',
+                                  'committedShares', 'committedHouseholds', 'pickupPointId', 'pickupSlots'])
+        && data.keys().hasAll(['id', 'groupId', 'offerId', 'status', 'committedShares',
+                               'committedHouseholds', 'pickupSlots'])
+        && data.id == orderId
+        && data.groupId is string && data.groupId.size() > 0 && data.groupId.size() <= 128
+        && data.offerId is string && data.offerId.size() > 0 && data.offerId.size() <= 128
+        && data.status in ['open', 'reached', 'closed', 'delivered', 'cancelled']
+        && (!('currentTierIndex' in data) || data.currentTierIndex == null
+            || (data.currentTierIndex is int && data.currentTierIndex >= 0 && data.currentTierIndex < 20))
+        && data.committedShares is int && data.committedShares >= 0
+        && data.committedHouseholds is int && data.committedHouseholds >= 0
+        && data.committedHouseholds <= data.committedShares
+        && (!('pickupPointId' in data) || data.pickupPointId == null || data.pickupPointId is string)
+        && data.pickupSlots is list && data.pickupSlots.size() <= 20;
+    }
+
+    // Quantité de la part de mon ménage avant / après la requête (0 = pas de part).
+    function myShareBefore(orderId) {
+      let path = /databases/$(database)/documents/groupOrders/$(orderId)/shares/$(myHouseholdId());
+      return exists(path) ? get(path).data.quantity : 0;
+    }
+
+    function myShareAfter(orderId) {
+      let path = /databases/$(database)/documents/groupOrders/$(orderId)/shares/$(myHouseholdId());
+      return existsAfter(path) ? getAfter(path).data.quantity : 0;
+    }
+
+    function hasMyShareBefore(orderId) {
+      return exists(/databases/$(database)/documents/groupOrders/$(orderId)/shares/$(myHouseholdId()));
+    }
+
+    function hasMyShareAfter(orderId) {
+      return existsAfter(/databases/$(database)/documents/groupOrders/$(orderId)/shares/$(myHouseholdId()));
+    }
+
+    function isShareCountUpdate(orderId) {
+      let before = resource.data;
+      let after = request.resource.data;
+      let offer = offerOf(before);
+      return isGroupMember(before.groupId)
+        && request.time < offer.deadline
+        && isOpenStatus(before.status) && isOpenStatus(after.status)
+        && after.diff(before).affectedKeys()
+             .hasOnly(['committedShares', 'committedHouseholds', 'currentTierIndex', 'status'])
+        && after.committedShares <= offer.totalShares
+        && after.status == (after.committedShares >= offer.minimumSharesToLaunch ? 'reached' : 'open')
+        && after.committedShares - before.committedShares == myShareAfter(orderId) - myShareBefore(orderId)
+        && after.committedHouseholds - before.committedHouseholds
+             == (hasMyShareAfter(orderId) ? 1 : 0) - (hasMyShareBefore(orderId) ? 1 : 0);
+    }
+
+    function isClosingUpdate() {
+      let before = resource.data;
+      let after = request.resource.data;
+      let offer = offerOf(before);
+      return (isGroupCoordinator(before.groupId) || isOfferVendor(offer))
+        && request.time >= offer.deadline
+        && isOpenStatus(before.status)
+        && after.status in ['closed', 'cancelled']
+        && after.diff(before).affectedKeys().hasOnly(['status', 'currentTierIndex']);
+    }
 
     match /groupOrders/{orderId} {
       allow read: if isAuthenticated();
-      allow write: if false;
+
+      allow create: if isValidGroupOrder(request.resource.data, orderId)
+        && isGroupMember(request.resource.data.groupId)
+        && request.resource.data.status == 'open'
+        && request.resource.data.committedShares == 0
+        && request.resource.data.committedHouseholds == 0
+        && offerOf(request.resource.data).status == 'active'
+        && request.time < offerOf(request.resource.data).deadline;
+
+      allow update: if isValidGroupOrder(request.resource.data, orderId)
+        && areImmutableFieldsUnchanged(['id', 'groupId', 'offerId'])
+        && (isShareCountUpdate(orderId) || isClosingUpdate());
+
+      allow delete: if false;
+
+      // -------------------------------------------------------------
+      // groupOrders/{orderId}/shares/{householdId} — part d'un ménage
+      // -------------------------------------------------------------
+      // Champs : householdId (string, = id du doc), quantity (int 1..totalShares),
+      //   finalPriceCents (int, optionnel, figé à la clôture), isPaid (bool), suspendedAmountCents (int ≥ 0),
+      //   subsidyCents (int ≥ 0), qrCode (string, optionnel), isPickedUp (bool), updatedAt (timestamp, optionnel).
+      // Lisible par les membres du groupe (la transaction relit toutes les parts) et le vendeur du lot.
+      // Un ménage n'écrit que SA part, avant la date limite, commande ouverte, et en mettant à jour
+      // la commande dans la même transaction. Prix, subvention et QR : seulement à la clôture.
+      // TODO(E10) : subsidyCents devrait vivre dans un document privé du ménage.
+      // -------------------------------------------------------------
+      function isValidShare(data, householdId) {
+        return data.keys().hasOnly(['householdId', 'quantity', 'finalPriceCents', 'isPaid',
+                                    'suspendedAmountCents', 'subsidyCents', 'qrCode', 'isPickedUp', 'updatedAt'])
+          && data.keys().hasAll(['householdId', 'quantity', 'isPaid', 'suspendedAmountCents',
+                                 'subsidyCents', 'isPickedUp'])
+          && data.householdId == householdId
+          && data.quantity is int && data.quantity >= 1 && data.quantity <= 10000
+          && (!('finalPriceCents' in data) || data.finalPriceCents == null
+              || (data.finalPriceCents is int && data.finalPriceCents >= 0))
+          && data.isPaid is bool
+          && data.suspendedAmountCents is int && data.suspendedAmountCents >= 0
+          && data.suspendedAmountCents <= 100000
+          && data.subsidyCents is int && data.subsidyCents >= 0
+          && (!('qrCode' in data) || data.qrCode == null || (data.qrCode is string && data.qrCode.size() <= 200))
+          && data.isPickedUp is bool
+          && (!('updatedAt' in data) || data.updatedAt == null || data.updatedAt is timestamp);
+      }
+
+      function orderDoc() {
+        return get(/databases/$(database)/documents/groupOrders/$(orderId)).data;
+      }
+
+      function orderAfter() {
+        return getAfter(/databases/$(database)/documents/groupOrders/$(orderId)).data;
+      }
+
+      // Ma part, commande ouverte, avant la date limite, compteur de la commande mis à jour avec elle.
+      function canChangeMyShare(householdId) {
+        let order = orderDoc();
+        return householdId == myHouseholdId()
+          && isGroupMember(order.groupId)
+          && isOpenStatus(order.status)
+          && request.time < offerOf(order).deadline
+          && orderAfter().committedShares - order.committedShares
+               == myShareAfter(orderId) - myShareBefore(orderId);
+      }
+
+      // Une famille ne touche ni au prix, ni au paiement, ni au QR, ni à la cueillette.
+      function isFamilyShape(data) {
+        return data.get('finalPriceCents', null) == null
+          && data.isPaid == false
+          && data.subsidyCents == 0
+          && data.get('qrCode', null) == null
+          && data.isPickedUp == false;
+      }
 
       match /shares/{householdId} {
-        function orderIsOpen() {
-          let order = get(/databases/$(database)/documents/groupOrders/$(orderId));
-          return order.data.status in ['open', 'reached'];
-        }
+        allow read: if isAuthenticated()
+          && (isGroupMember(orderDoc().groupId) || isOfferVendor(offerOf(orderDoc())));
 
-        allow read: if isMemberOfHousehold(householdId);
-        allow create: if isMemberOfHousehold(householdId)
-          && orderIsOpen()
-          && hasOnlyAllowedFields(['householdId', 'quantity', 'finalPriceCents', 'isPaid',
-                                   'suspendedAmountCents', 'subsidyCents', 'qrCode', 'isPickedUp', 'updatedAt'])
-          && hasRequiredFields(['householdId', 'quantity', 'isPaid', 'suspendedAmountCents',
-                                'subsidyCents', 'isPickedUp'])
-          && request.resource.data.householdId == householdId
-          && isIntIn(request.resource.data.quantity, 1, 100)
-          && request.resource.data.isPaid == false
-          && request.resource.data.isPickedUp == false
-          && request.resource.data.subsidyCents == 0
-          && isIntIn(request.resource.data.suspendedAmountCents, 0, 100000)
-          && request.resource.data.get('finalPriceCents', null) == null
-          && request.resource.data.get('qrCode', null) == null;
-        allow update: if isMemberOfHousehold(householdId)
-          && orderIsOpen()
-          && onlyChanges(['quantity', 'suspendedAmountCents', 'updatedAt'])
-          && isIntIn(request.resource.data.quantity, 1, 100)
-          && isIntIn(request.resource.data.suspendedAmountCents, 0, 100000);
-        allow delete: if isMemberOfHousehold(householdId)
-          && orderIsOpen()
-          && resource.data.isPaid == false;
+        allow create: if isValidShare(request.resource.data, householdId)
+          && isFamilyShape(request.resource.data)
+          && canChangeMyShare(householdId);
+
+        allow update: if isValidShare(request.resource.data, householdId)
+          && (
+            (isFamilyShape(request.resource.data)
+              && request.resource.data.diff(resource.data).affectedKeys()
+                   .hasOnly(['quantity', 'suspendedAmountCents', 'updatedAt'])
+              && canChangeMyShare(householdId))
+            // Clôture : prix final, subvention et QR, dans la transaction qui ferme la commande.
+            || (orderAfter().status == 'closed'
+              && isOpenStatus(orderDoc().status)
+              && (isGroupCoordinator(orderDoc().groupId) || isOfferVendor(offerOf(orderDoc())))
+              && request.resource.data.diff(resource.data).affectedKeys()
+                   .hasOnly(['finalPriceCents', 'subsidyCents', 'qrCode']))
+          );
+
+        allow delete: if canChangeMyShare(householdId);
       }
     }
 

@@ -82,6 +82,8 @@ final class TierEditorViewModel {
     private let now: @Sendable () -> Date
     /// Lot chargé en mode modification (garde statut et zones d'origine).
     private var original: Offer?
+    /// Catégorie de la disponibilité d'origine (S-08) : choisit un produit de cette catégorie au chargement.
+    private var preferredCategory: Product.Category?
 
     init(
         repositories: AppRepositories,
@@ -154,7 +156,10 @@ final class TierEditorViewModel {
                 if zones.isEmpty {
                     zones = (try? await repositories.vendors.vendor(id: vendorId))?.servedZones ?? []
                 }
-                if productId == nil, let first = products.first { selectProduct(id: first.id) }
+                if productId == nil,
+                   let first = products.first(where: { $0.category == preferredCategory }) ?? products.first {
+                    selectProduct(id: first.id)
+                }
             case .edit(let offerId):
                 let offer = try await repositories.offers.offer(id: offerId)
                 guard offer.vendorId == vendorId else { throw AppError.permissionDenied }
@@ -164,6 +169,19 @@ final class TierEditorViewModel {
         } catch {
             loadState = .failed(AppError(error))
         }
+    }
+
+    /// S-08 (T-109) : préremplit un nouveau lot depuis une disponibilité, avant `load()`.
+    /// Zones desservies, produit (ou un produit de la même catégorie) et date limite dans la période,
+    /// au plus tôt dans 24 h.
+    func prefill(from supply: VendorSupply) {
+        guard case .create = mode else { return }
+        zones = supply.servedZones
+        productId = supply.productId
+        preferredCategory = supply.category
+        let earliest = now().addingTimeInterval(86_400)
+        let wanted = max(earliest, min(deadline, supply.availableTo))
+        deadline = wanted
     }
 
     /// Choisit le produit du lot et préremplit l'unité de part.

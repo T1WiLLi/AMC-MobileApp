@@ -81,10 +81,16 @@ nonisolated struct FakeData: Sendable {
             groups: [
                 NeighborhoodGroup(id: ID.saintMichel, name: "Voisins de Saint-Michel", neighborhood: "Saint-Michel",
                                   centerGeohash: "f25dv", radiusMeters: 1_200, coordinatorIds: [ID.amina],
-                                  householdCount: saintMichelMembers.count, isPublic: true, inviteCode: "SM-2026"),
+                                  householdCount: saintMichelMembers.count, isPublic: true, inviteCode: "SM-2026",
+                                  branding: GroupBranding(displayName: "Saint-Michel en commun", emblem: "leaf.fill",
+                                                          accentLight: "#1E6B52", accentDark: "#5FC9A0",
+                                                          welcomeMessage: "Bienvenue chez les voisins de Saint-Michel !")),
                 NeighborhoodGroup(id: ID.hochelaga, name: "Hochelaga solidaire", neighborhood: "Hochelaga",
                                   centerGeohash: "f25ej", radiusMeters: 900, coordinatorIds: [],
-                                  householdCount: 27, isPublic: true, inviteCode: "HO-2026"),
+                                  householdCount: 27, isPublic: true, inviteCode: "HO-2026",
+                                  branding: GroupBranding(emblem: "heart.circle.fill", accentLight: "#8E3B8F",
+                                                          accentDark: "#D79BE0",
+                                                          welcomeMessage: "Hochelaga, on se serre les coudes.")),
             ],
             members: [ID.saintMichel: saintMichelMembers],
             vendors: [

@@ -14,6 +14,8 @@ nonisolated struct NeighborhoodGroup: Identifiable, Codable, Sendable, Hashable 
     var householdCount: Int
     var isPublic: Bool
     var inviteCode: String
+    /// Marque du groupe (B-033) ; nil = marque par défaut (`resolvedBranding`).
+    var branding: GroupBranding? = nil
 }
 
 /// Document `groups/{groupId}/members/{householdId}`.

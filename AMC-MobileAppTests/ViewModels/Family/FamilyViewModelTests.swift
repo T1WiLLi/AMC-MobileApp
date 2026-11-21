@@ -291,6 +291,44 @@ struct FamilyViewModelTests {
         #expect(after.myShares == 1)
     }
 
+    /// T-086 : `Share.finalPriceCents` est le total payé pour toute la part (quantité × prix unitaire),
+    /// pas un prix unitaire. 3 sacs à 9,90 $ figés à la clôture = 29,70 $ ; économie 3 × (15,99 − 9,90).
+    @Test func impactReadsFinalPriceAsShareTotal() async throws {
+        var data = FakeData.montreal
+        func closed(_ householdId: String, _ quantity: Int, suspended: Cents = 0) -> Share {
+            Share(householdId: householdId, quantity: quantity, finalPriceCents: quantity * 990, isPaid: true,
+                  suspendedAmountCents: suspended, subsidyCents: 0, qrCode: nil, isPickedUp: false)
+        }
+        data.shares[ID.potatoOrder] = [closed(ID.aminaHousehold, 3), closed("household-voisin", 2, suspended: 500)]
+        let viewModel = ImpactViewModel(repositories: .fake(behavior: .instant, data: data),
+                                        householdId: ID.aminaHousehold, groupId: ID.saintMichel)
+        await viewModel.load()
+
+        let content = try #require(viewModel.state.value)
+        #expect(content.myShares == 3)
+        #expect(content.mySavingsCents == 3 * (1_599 - 990))
+        #expect(content.totalShares == 5)
+        #expect(content.neighborhoodSavingsCents == 5 * (1_599 - 990))
+        #expect(content.byProduct.first?.savingsCents == 5 * (1_599 - 990))
+        #expect(content.suspendedAmountCents == 500)
+    }
+
+    /// Une part figée plus chère que l'épicerie ne donne jamais d'économie négative.
+    @Test func impactNeverCountsNegativeSavingsOnFinalTotal() async throws {
+        var data = FakeData.montreal
+        data.shares[ID.potatoOrder] = [
+            Share(householdId: ID.aminaHousehold, quantity: 2, finalPriceCents: 2 * 1_700, isPaid: true,
+                  suspendedAmountCents: 0, subsidyCents: 0, qrCode: nil, isPickedUp: false),
+        ]
+        let viewModel = ImpactViewModel(repositories: .fake(behavior: .instant, data: data),
+                                        householdId: ID.aminaHousehold, groupId: ID.saintMichel)
+        await viewModel.load()
+
+        let content = try #require(viewModel.state.value)
+        #expect(content.mySavingsCents == 0)
+        #expect(content.neighborhoodSavingsCents == 0)
+    }
+
     @Test func kilogramsAreParsedFromShareUnit() {
         #expect(ImpactViewModel.kilograms(in: "sac de 10 kg") == 10)
         #expect(ImpactViewModel.kilograms(in: "2,5 kg") == 2.5)

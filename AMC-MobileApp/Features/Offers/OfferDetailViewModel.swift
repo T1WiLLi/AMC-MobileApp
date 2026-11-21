@@ -1,6 +1,15 @@
 // OfferDetailViewModel.swift
 // F3 Fiche d'un lot et choix de part, F4 Palier franchi (T-019).
 // La quantité est en parts (`Offer.shareUnit`, ex. « sac de 10 kg ») ; les prix sont par part.
+//
+// Temps réel (T-096, S-05) : dans l'écran,
+//     .task { await viewModel.load(); await viewModel.observe() }
+// `observe()` suit la commande du groupe (parts, ménages, palier, prix, économie) et s'arrête avec la tâche.
+// Quand une AUTRE famille fait franchir un palier pendant l'écoute, `tierUnlockCount` augmente de 1 et
+// `liveUnlock` contient la célébration à montrer (puis `dismissLiveUnlock()`), par exemple :
+//     .onChange(of: viewModel.tierUnlockCount) { … }   ou une feuille liée à `viewModel.liveUnlock != nil`
+// Sa propre réservation continue de remplir `celebration` (pas `liveUnlock`). Une écoute coupée garde les
+// données affichées et met `isLive` à false (pas d'écran d'erreur).
 
 import Foundation
 import Observation
@@ -55,6 +64,14 @@ final class OfferDetailViewModel {
     var actionError: AppError?
     /// Non nil quand la dernière réservation a franchi un palier : la vue présente F4, puis appelle `dismissCelebration()`.
     private(set) var celebration: TierCelebration?
+    /// L'écoute en direct de la commande tourne (`observe()`). Repasse à false quand elle s'arrête ou échoue.
+    private(set) var isLive = false
+    /// +1 chaque fois qu'une autre famille fait monter le palier pendant l'écoute (jamais à la première émission).
+    private(set) var tierUnlockCount = 0
+    /// Numéro (1 = premier) du dernier palier franchi en direct par une autre famille.
+    private(set) var lastUnlockedTierNumber: Int?
+    /// Célébration à montrer pour le palier franchi en direct ; remise à nil par `dismissLiveUnlock()`.
+    private(set) var liveUnlock: TierCelebration?
 
     private let repositories: AppRepositories
     private let offerId: String
@@ -151,18 +168,53 @@ final class OfferDetailViewModel {
         celebration = nil
     }
 
-    /// Suit la commande en temps réel (autres familles qui réservent). À lancer dans `.task` ; s'arrête avec la tâche.
+    func dismissLiveUnlock() {
+        liveUnlock = nil
+    }
+
+    /// Suit la commande en temps réel (autres familles qui réservent). À lancer dans `.task` après `load()` ;
+    /// s'arrête avec la tâche. Sans commande du groupe sur ce lot, rend la main tout de suite.
     func observe() async {
         guard let orderId = state.value?.groupOrder?.id else { return }
+        await follow(await repositories.groupOrders.observeGroupOrder(id: orderId))
+    }
+
+    /// Applique chaque émission de `updates` (exposé pour les tests). La première émission sert de référence :
+    /// elle met l'écran à jour sans célébrer.
+    func follow(_ updates: AsyncThrowingStream<GroupOrder, any Error>) async {
+        isLive = true
+        defer { isLive = false }
+        var isFirst = true
         do {
-            for try await order in await repositories.groupOrders.observeGroupOrder(id: orderId) {
-                guard var content = state.value else { continue }
-                content.groupOrder = order
-                state = .loaded(content)
+            for try await order in updates {
+                apply(order, celebrate: !isFirst)
+                isFirst = false
             }
         } catch {
-            if !(error is CancellationError) { actionError = AppError(error) }
+            // Écoute coupée : on garde les dernières données ; `isLive` repasse à false.
         }
+    }
+
+    private func apply(_ order: GroupOrder, celebrate: Bool) {
+        guard var content = state.value, content.groupOrder?.id == order.id else { return }
+        let before = content.pricing
+        content.groupOrder = order
+        state = .loaded(content)
+        let after = content.pricing
+        // Pendant sa propre réservation, c'est `setShare` qui célèbre (`celebration`).
+        guard celebrate, !isSaving, after.tierNumber > before.tierNumber else { return }
+        tierUnlockCount += 1
+        lastUnlockedTierNumber = after.tierNumber
+        liveUnlock = TierCelebration(
+            tierNumber: after.tierNumber,
+            tierCount: after.tierCount,
+            previousPriceCents: before.currentPriceCents,
+            newPriceCents: after.currentPriceCents,
+            committedShares: order.committedShares,
+            myQuantity: content.myShareQuantity,
+            myTotalCents: after.totalCents(forShares: content.myShareQuantity),
+            mySavingsCents: after.savingsCents(forShares: content.myShareQuantity)
+        )
     }
 
     private func setShare(quantity: Int) async {

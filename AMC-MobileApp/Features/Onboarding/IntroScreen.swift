@@ -35,13 +35,78 @@ enum IntroPage: Int, CaseIterable, Identifiable, Sendable {
         }
     }
 
+    /// Photo plein cadre (Unsplash License, crédits dans docs/credits.md).
+    var photo: String {
+        switch self {
+        case .problem: "IntroProbleme"
+        case .solution: "IntroSolution"
+        case .solidarity: "IntroSolidarite"
+        }
+    }
+
+    /// Description de la photo pour VoiceOver.
+    var photoDescription: String {
+        switch self {
+        case .problem: "Une balance au rayon des fruits et légumes d'une épicerie"
+        case .solution: "Du maïs, des pommes de terre et des légumes frais dans un marché"
+        case .solidarity: "Des bénévoles souriants remettent des denrées à une distribution alimentaire"
+        }
+    }
+
+    /// Couleur d'accent de la page.
+    var accent: Color {
+        switch self {
+        case .problem: .grenier
+        case .solution: .economie
+        case .solidarity: .solidarite
+        }
+    }
+
+    /// Symbole de l'étiquette au-dessus du titre.
+    var eyebrowSymbol: String {
+        switch self {
+        case .problem: "exclamationmark.triangle.fill"
+        case .solution: "person.3.fill"
+        case .solidarity: GrenierSymbol.solidarity
+        }
+    }
+
+    /// Les deux pastilles qui flottent sur la photo : la première en haut à gauche, la seconde en bas à droite.
+    var chips: [IntroChip] {
+        switch self {
+        case .problem: [
+            IntroChip(id: 0, symbol: "cart.badge.questionmark", value: "1,25 million", caption: "demandes d'aide par mois"),
+            IntroChip(id: 1, symbol: "refrigerator.fill", value: "Frigo vide", caption: "avant la fin du mois")
+        ]
+        case .solution: [
+            IntroChip(id: 0, symbol: "leaf.fill", value: "Fermes du Québec", caption: "sans intermédiaire"),
+            IntroChip(id: 1, symbol: GrenierSymbol.savings, value: "−19 %", caption: "dès le 2ᵉ palier")
+        ]
+        case .solidarity: [
+            IntroChip(id: 0, symbol: "eye.slash.fill", value: "Anonyme", caption: "personne ne sait qui donne"),
+            IntroChip(id: 1, symbol: "eye.slash.fill", value: "Anonyme", caption: "personne ne sait qui donne")
+        ]
+        }
+    }
+
     var isLast: Bool { self == IntroPage.allCases.last }
 
     /// Page suivante, nil sur la dernière.
     var next: IntroPage? { IntroPage(rawValue: rawValue + 1) }
 }
 
+/// Une pastille flottante : icône dans un rond de couleur, valeur en gras, légende.
+struct IntroChip: Identifiable, Hashable, Sendable {
+    let id: Int
+    let symbol: String
+    let value: String
+    let caption: String
+}
+
 /// Présentation en 3 écrans, avant la connexion, une seule fois.
+/// Chaque page raconte une petite histoire animée sur sa photo : le ticket de caisse qui grimpe,
+/// les familles qui font baisser le prix palier par palier, le panier qui voyage anonymement.
+/// Fond en dégradé maillé qui respire, couleur propre à chaque page.
 struct IntroScreen: View {
     /// Appelé par « Commencer » ou « Passer ».
     let onFinish: () -> Void
@@ -51,61 +116,57 @@ struct IntroScreen: View {
 
     var body: some View {
         TabView(selection: $page) {
-            ForEach(IntroPage.allCases) { page in
-                IntroPageView(page: page, isActive: self.page == page)
-                    .tag(page)
+            ForEach(IntroPage.allCases) { item in
+                IntroPageView(page: item, isActive: page == item)
+                    .tag(item)
             }
         }
         .tabViewStyle(.page(indexDisplayMode: .never))
         .safeAreaInset(edge: .top, spacing: 0) { topBar }
         .safeAreaInset(edge: .bottom, spacing: 0) { bottomBar }
-        .grenierBackground()
+        .background { IntroMeshBackground(accent: page.accent).ignoresSafeArea() }
         .sensoryFeedback(.selection, trigger: page)
     }
 
     private var topBar: some View {
         HStack {
-            Label("Grenier", systemImage: "basket.fill")
-                .font(.headline)
-                .fontDesign(.rounded)
-                .foregroundStyle(Color.grenier)
-                .symbolRenderingMode(.hierarchical)
-                .accessibilityAddTraits(.isHeader)
             Spacer()
             // Toujours dans la mise en page (opacité 0 sur la dernière page) pour que rien ne saute.
             Button("Passer", action: onFinish)
-                .font(.subheadline.weight(.medium))
+                .font(.body.weight(.medium))
                 .foregroundStyle(Color.texteSecondaire)
-                .frame(minHeight: 44)
+                .frame(minWidth: 44, minHeight: 44)
                 .opacity(page.isLast ? 0 : 1)
                 .disabled(page.isLast)
                 .accessibilityHidden(page.isLast)
                 .accessibilityHint("Passe la présentation et va à la connexion")
         }
         .padding(.horizontal, 20)
-        .padding(.top, 4)
-        // Barre de contrôle : plafonnée comme une barre système, le contenu dessous suit AX5.
         .dynamicTypeSize(...DynamicTypeSize.xxxLarge)
-        .animation(.smooth, value: page)
+        .animation(reduceMotion ? nil : .smooth, value: page)
     }
 
     private var bottomBar: some View {
-        VStack(spacing: 20) {
-            PageIndicator(page: $page)
+        VStack(spacing: 18) {
             Button(action: advance) {
-                Text(page.isLast ? "Commencer" : "Continuer")
+                Label(page.isLast ? "Commencer" : "Continuer",
+                      systemImage: page.isLast ? "checkmark" : "arrow.right")
+                    .labelStyle(TrailingIconLabelStyle())
                     .font(.headline)
                     .foregroundStyle(Color.onAccent)
-                    .contentTransition(.interpolate)
+                    .contentTransition(.symbolEffect(.replace))
                     .frame(maxWidth: .infinity, minHeight: 44)
             }
             .buttonStyle(.glassProminent)
-            .tint(.grenier)
+            .tint(page.accent)
             .accessibilityHint(page.isLast ? "Va à la connexion" : "Page suivante")
+
+            PageIndicator(page: $page)
         }
         .padding(.horizontal, 24)
-        .padding(.bottom, 12)
         .padding(.top, 8)
+        .padding(.bottom, 8)
+        .animation(reduceMotion ? nil : .smooth, value: page)
     }
 
     private func advance() {
@@ -117,7 +178,48 @@ struct IntroScreen: View {
     }
 }
 
-/// Points de pagination : la page courante s'allonge en Grenier.
+/// Texte puis icône (flèche à droite du libellé).
+private struct TrailingIconLabelStyle: LabelStyle {
+    func makeBody(configuration: Configuration) -> some View {
+        HStack(spacing: 8) {
+            configuration.title
+            configuration.icon
+        }
+    }
+}
+
+/// Dégradé maillé qui ondule lentement dans la couleur de la page ; figé avec Réduire les animations.
+private struct IntroMeshBackground: View {
+    let accent: Color
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
+    var body: some View {
+        TimelineView(.animation(minimumInterval: 1 / 30, paused: reduceMotion)) { timeline in
+            let t = reduceMotion ? 0 : timeline.date.timeIntervalSinceReferenceDate
+            MeshGradient(
+                width: 3,
+                height: 3,
+                points: [
+                    [0, 0], [Float(0.5 + 0.12 * sin(t * 0.5)), 0], [1, 0],
+                    [0, Float(0.45 + 0.1 * cos(t * 0.4))],
+                    [Float(0.5 + 0.15 * cos(t * 0.35)), Float(0.42 + 0.12 * sin(t * 0.45))],
+                    [1, Float(0.5 + 0.1 * sin(t * 0.3))],
+                    [0, 1], [Float(0.5 + 0.1 * sin(t * 0.25)), 1], [1, 1]
+                ],
+                colors: [
+                    accent.opacity(0.32), accent.opacity(0.18), Color.economie.opacity(0.14),
+                    accent.opacity(0.12), Color.fond, accent.opacity(0.10),
+                    Color.fond, Color.fond, Color.fond
+                ]
+            )
+            .background(Color.fond)
+        }
+        .animation(.smooth(duration: 0.6), value: accent)
+        .accessibilityHidden(true)
+    }
+}
+
+/// Points de pagination sous le bouton : la page courante s'allonge dans la couleur de la page.
 private struct PageIndicator: View {
     @Binding var page: IntroPage
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
@@ -126,10 +228,11 @@ private struct PageIndicator: View {
         HStack(spacing: 8) {
             ForEach(IntroPage.allCases) { item in
                 Capsule()
-                    .fill(item == page ? Color.grenier : Color.texteSecondaire.opacity(0.3))
+                    .fill(item == page ? page.accent : Color.texteSecondaire.opacity(0.25))
                     .frame(width: item == page ? 24 : 8, height: 8)
             }
         }
+        .frame(minHeight: 20)
         .animation(reduceMotion ? nil : .smooth, value: page)
         .accessibilityElement(children: .ignore)
         .accessibilityLabel("Page \(page.rawValue + 1) sur \(IntroPage.allCases.count)")
@@ -143,24 +246,35 @@ private struct PageIndicator: View {
     }
 }
 
-/// Une page : illustration en haut, texte en dessous, défilable pour les grandes tailles de texte.
+/// Une page : la photo, la scène animée qui la chevauche, puis l'étiquette, le titre et la phrase.
+/// Défilable pour les grandes tailles de texte.
 private struct IntroPageView: View {
     let page: IntroPage
     let isActive: Bool
+    @State private var appeared = false
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     var body: some View {
         ScrollView {
-            VStack(alignment: .leading, spacing: 28) {
-                hero
-                    .frame(maxWidth: .infinity)
+            VStack(alignment: .leading, spacing: 24) {
+                VStack(spacing: -64) {
+                    IntroPhotoCard(page: page, isActive: isActive, appeared: shown)
+                    scene
+                        .padding(.horizontal, 14)
+                        .offset(y: shown ? 0 : 30)
+                        .opacity(shown ? 1 : 0)
+                }
 
                 VStack(alignment: .leading, spacing: 12) {
-                    Text(page.eyebrow.uppercased())
+                    Label(page.eyebrow, systemImage: page.eyebrowSymbol)
                         .font(.footnote.weight(.semibold))
-                        .tracking(0.8)
-                        .foregroundStyle(accent)
+                        .foregroundStyle(page.accent)
+                        .padding(.horizontal, 12)
+                        .padding(.vertical, 6)
+                        .background(page.accent.opacity(0.14), in: .capsule)
                     Text(page.title)
                         .font(.largeTitle.bold())
+                        .fontDesign(.rounded)
                         .foregroundStyle(Color.texte)
                         .fixedSize(horizontal: false, vertical: true)
                         .accessibilityAddTraits(.isHeader)
@@ -170,83 +284,210 @@ private struct IntroPageView: View {
                         .fixedSize(horizontal: false, vertical: true)
                 }
                 .accessibilityElement(children: .combine)
+                .offset(y: shown ? 0 : 16)
+                .opacity(shown ? 1 : 0)
             }
             .padding(.horizontal, 24)
-            .padding(.top, 16)
-            .padding(.bottom, 24)
+            .padding(.bottom, 16)
         }
         .scrollBounceBehavior(.basedOnSize)
-    }
-
-    private var accent: Color {
-        switch page {
-        case .problem, .solution: .grenier
-        case .solidarity: .solidarite
+        .scrollIndicators(.hidden)
+        .onChange(of: isActive, initial: true) { _, active in
+            guard active else { return }
+            if reduceMotion { appeared = true; return }
+            appeared = false
+            withAnimation(.spring(duration: 0.6, bounce: 0.3).delay(0.1)) { appeared = true }
         }
     }
+
+    private var shown: Bool { appeared || reduceMotion }
 
     @ViewBuilder
-    private var hero: some View {
+    private var scene: some View {
         switch page {
-        case .problem: ProblemHero(isActive: isActive)
-        case .solution: SolutionHero(isActive: isActive)
-        case .solidarity: SolidarityHero(isActive: isActive)
+        case .problem: ReceiptScene(isActive: isActive)
+        case .solution: TierScene(isActive: isActive)
+        case .solidarity: BasketScene(isActive: isActive)
         }
     }
 }
 
-// MARK: - Illustrations
-
-/// Grand symbole dans un carré teinté, taille qui suit Dynamic Type.
-private struct HeroSymbol: View {
-    let systemImage: String
-    let tint: Color
+/// La photo dans une carte aux grands coins, zoom lent tant que la page est visible,
+/// et la pastille du chiffre clé qui flotte en haut à gauche.
+private struct IntroPhotoCard: View {
+    let page: IntroPage
     let isActive: Bool
-    @ScaledMetric(relativeTo: .largeTitle) private var scaledSide: CGFloat = 84
+    let appeared: Bool
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
-    /// Grandit avec le texte, sans manger l'écran en AX5.
-    private var side: CGFloat { min(scaledSide, 120) }
-
     var body: some View {
-        Image(systemName: systemImage)
-            .resizable()
-            .scaledToFit()
-            .symbolRenderingMode(.hierarchical)
-            .foregroundStyle(tint)
-            .padding(side * 0.22)
-            .frame(width: side, height: side)
-            .background(tint.opacity(0.12), in: .rect(cornerRadius: side * 0.28))
-            .symbolEffect(.bounce, options: .nonRepeating, value: reduceMotion ? false : isActive)
-            .accessibilityHidden(true)
+        Color.clear
+            .frame(maxWidth: .infinity)
+            .containerRelativeFrame(.vertical) { height, _ in height * 0.40 }
+            .overlay {
+                Image(page.photo)
+                    .resizable()
+                    .scaledToFill()
+                    .scaleEffect(isActive && !reduceMotion ? 1.1 : 1)
+                    .animation(reduceMotion ? nil : .easeOut(duration: 8), value: isActive)
+                    .accessibilityLabel(page.photoDescription)
+            }
+            .clipShape(.rect(cornerRadius: 36))
+            .overlay(alignment: .topLeading) {
+                IntroChipView(chip: page.chips[0], accent: page.accent, isActive: isActive)
+                    .scaleEffect(appeared ? 1 : 0.6)
+                    .opacity(appeared ? 1 : 0)
+                    .animation(reduceMotion ? nil : .spring(duration: 0.55, bounce: 0.4).delay(0.2), value: appeared)
+                    .offset(x: -10, y: 22)
+            }
     }
 }
 
-/// Le problème : le chiffre de l'aide alimentaire à Montréal.
-private struct ProblemHero: View {
+/// Pastille blanche flottante (ombre douce, léger va-et-vient vertical).
+private struct IntroChipView: View {
+    let chip: IntroChip
+    let accent: Color
     let isActive: Bool
+    @State private var floating = false
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 16) {
-            HeroSymbol(systemImage: "cart.badge.questionmark", tint: .grenier, isActive: isActive)
-            VStack(alignment: .leading, spacing: 4) {
-                Text("1,25 million")
-                    .priceStyle(.largeTitle.bold())
+        HStack(spacing: 10) {
+            Image(systemName: chip.symbol)
+                .font(.subheadline.weight(.semibold))
+                .foregroundStyle(Color.onAccent)
+                .frame(width: 36, height: 36)
+                .background(accent, in: .circle)
+                .symbolEffect(.bounce, options: .nonRepeating, value: reduceMotion ? false : isActive)
+            VStack(alignment: .leading, spacing: 0) {
+                Text(chip.value)
+                    .font(.headline)
+                    .fontDesign(.rounded)
                     .foregroundStyle(Color.texte)
-                Text("de demandes d'aide alimentaire par mois à Montréal")
-                    .font(.subheadline)
+                Text(chip.caption)
+                    .font(.caption)
                     .foregroundStyle(Color.texteSecondaire)
-                    .fixedSize(horizontal: false, vertical: true)
             }
         }
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .grenierCard(padding: 20)
+        .padding(.leading, 8)
+        .padding(.trailing, 16)
+        .padding(.vertical, 8)
+        .background(Color.surface, in: .capsule)
+        .shadow(color: .black.opacity(0.14), radius: 16, y: 8)
+        .dynamicTypeSize(...DynamicTypeSize.xxLarge)
+        .offset(y: floating ? -4 : 4)
+        .animation(reduceMotion ? nil : .easeInOut(duration: 2.4).repeatForever(autoreverses: true), value: floating)
+        .onAppear { if !reduceMotion { floating = true } }
         .accessibilityElement(children: .combine)
     }
 }
 
-/// La solution : un mini lot dont les paliers se remplissent et le prix baisse.
-private struct SolutionHero: View {
+// MARK: - Scènes animées
+
+/// Carte blanche commune aux scènes, posée sur le bas de la photo.
+private struct SceneCard<Content: View>: View {
+    @ViewBuilder let content: Content
+
+    var body: some View {
+        content
+            .padding(18)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background(Color.surface, in: .rect(cornerRadius: 28))
+            .shadow(color: .black.opacity(0.16), radius: 24, y: 12)
+            .dynamicTypeSize(...DynamicTypeSize.xxLarge)
+    }
+}
+
+/// Le problème : un ticket de caisse qui s'imprime ligne par ligne, et le total qui grimpe.
+private struct ReceiptScene: View {
+    let isActive: Bool
+
+    private static let items: [(name: String, symbol: String, cents: Cents)] = [
+        ("Lait 2 L", "waterbottle.fill", 589),
+        ("Riz 2 kg", "takeoutbag.and.cup.and.straw.fill", 899),
+        ("Œufs ×12", "oval.portrait.fill", 529),
+        ("Poulet entier", "fork.knife", 1499)
+    ]
+
+    @State private var printed = Self.items.count
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
+    private var totalCents: Cents {
+        Self.items.prefix(printed).reduce(0) { $0 + $1.cents }
+    }
+
+    var body: some View {
+        SceneCard {
+            VStack(alignment: .leading, spacing: 10) {
+                HStack {
+                    Label("Ticket de la semaine", systemImage: "receipt.fill")
+                        .font(.subheadline.weight(.semibold))
+                        .foregroundStyle(Color.texte)
+                        .symbolRenderingMode(.hierarchical)
+                    Spacer()
+                    Image(systemName: "chart.line.uptrend.xyaxis")
+                        .font(.subheadline.weight(.bold))
+                        .foregroundStyle(Color.grenier)
+                        .symbolEffect(.bounce, value: printed)
+                        .accessibilityHidden(true)
+                }
+                ForEach(Array(Self.items.enumerated()), id: \.offset) { index, item in
+                    HStack(spacing: 8) {
+                        Image(systemName: item.symbol)
+                            .font(.caption)
+                            .foregroundStyle(Color.texteSecondaire)
+                            .frame(width: 18)
+                        Text(item.name)
+                            .font(.footnote)
+                            .foregroundStyle(Color.texte)
+                        Spacer()
+                        Text(Money.format(item.cents))
+                            .font(.footnote.monospacedDigit())
+                            .foregroundStyle(Color.texteSecondaire)
+                    }
+                    // Place réservée : la carte ne change pas de taille pendant l'impression.
+                    .opacity(index < printed ? 1 : 0)
+                    .offset(y: index < printed ? 0 : -6)
+                }
+                Divider().overlay(Color.texteSecondaire.opacity(0.3))
+                HStack {
+                    Text("Total")
+                        .font(.headline)
+                        .foregroundStyle(Color.texte)
+                    Spacer()
+                    Text(Money.format(totalCents))
+                        .font(.title3.bold().monospacedDigit())
+                        .fontDesign(.rounded)
+                        .foregroundStyle(Color.grenier)
+                        .contentTransition(.numericText(value: Double(totalCents)))
+                }
+            }
+        }
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel("Ticket de la semaine : lait, riz, œufs et poulet, total \(Money.format(Self.items.reduce(0) { $0 + $1.cents }))")
+        .task(id: isActive) { await play() }
+    }
+
+    private func play() async {
+        guard isActive, !reduceMotion else {
+            printed = Self.items.count
+            return
+        }
+        while !Task.isCancelled {
+            withAnimation(.smooth(duration: 0.3)) { printed = 0 }
+            try? await Task.sleep(for: .seconds(0.6))
+            for count in 1...Self.items.count {
+                if Task.isCancelled { return }
+                withAnimation(.spring(duration: 0.4, bounce: 0.3)) { printed = count }
+                try? await Task.sleep(for: .seconds(0.55))
+            }
+            try? await Task.sleep(for: .seconds(3))
+        }
+    }
+}
+
+/// La solution : des familles rejoignent le lot, le prix descend palier par palier, confettis au palier.
+private struct TierScene: View {
     let isActive: Bool
 
     private static let tiers = [
@@ -254,102 +495,232 @@ private struct SolutionHero: View {
         PriceTier(minShares: 11, priceCents: 260),
         PriceTier(minShares: 26, priceCents: 210)
     ]
-    private static let steps = [4, 12, 19, 28]
+    private static let steps = [3, 8, 12, 18, 23, 28]
+    private static let initials = ["AM", "JT", "FL", "SR", "KB", "MN"]
 
-    @State private var families = 24
+    @State private var families = 28
+    @State private var confettiStart: Date?
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
-    private var priceCents: Cents {
-        Self.tiers.last { families >= $0.minShares }?.priceCents ?? Self.tiers[0].priceCents
+    private var tierIndex: Int {
+        Self.tiers.lastIndex { families >= $0.minShares } ?? 0
     }
 
+    private var priceCents: Cents { Self.tiers[tierIndex].priceCents }
+
     var body: some View {
-        VStack(alignment: .leading, spacing: 16) {
-            HStack(alignment: .top, spacing: 12) {
-                Image(systemName: GrenierSymbol.offers)
-                    .font(.title2)
-                    .symbolRenderingMode(.hierarchical)
-                    .foregroundStyle(Color.grenier)
-                    .frame(minWidth: 44, minHeight: 44)
-                    .background(Color.grenier.opacity(0.12), in: .rect(cornerRadius: 12))
-                    .accessibilityHidden(true)
-                VStack(alignment: .leading, spacing: 2) {
-                    Text("Riz basmati")
-                        .font(.headline)
-                        .foregroundStyle(Color.texte)
-                    Text("\(families) familles · Parc-Ex Ouest")
-                        .font(.subheadline)
-                        .foregroundStyle(Color.texteSecondaire)
-                        .contentTransition(.numericText(value: Double(families)))
-                        .monospacedDigit()
+        SceneCard {
+            VStack(alignment: .leading, spacing: 12) {
+                HStack(spacing: 10) {
+                    avatars
+                    VStack(alignment: .leading, spacing: 0) {
+                        Text("\(families) familles")
+                            .font(.headline)
+                            .foregroundStyle(Color.texte)
+                            .contentTransition(.numericText(value: Double(families)))
+                            .monospacedDigit()
+                        Text("Légumes de saison · Parc-Ex")
+                            .font(.caption)
+                            .foregroundStyle(Color.texteSecondaire)
+                    }
+                    Spacer(minLength: 4)
+                    if tierIndex > 0 {
+                        Label("Palier \(tierIndex + 1)", systemImage: "lock.open.fill")
+                            .font(.caption.weight(.bold))
+                            .foregroundStyle(Color.onAccent)
+                            .padding(.horizontal, 10)
+                            .padding(.vertical, 5)
+                            .background(Color.economie, in: .capsule)
+                            .transition(.scale.combined(with: .opacity))
+                            .id(tierIndex)
+                    }
                 }
-                Spacer(minLength: 8)
-                Image(systemName: GrenierSymbol.savings)
-                    .font(.title3)
-                    .foregroundStyle(Color.economie)
-                    .symbolEffect(.bounce, value: priceCents)
-                    .accessibilityHidden(true)
+                PriceTag(priceCents: priceCents, unit: "kg", referenceCents: 410)
+                    .contentTransition(.numericText(value: Double(priceCents)))
+                TierProgressBar(
+                    tiers: Self.tiers,
+                    committedShares: families,
+                    totalShares: 32,
+                    unitSingular: "famille",
+                    unitPlural: "familles"
+                )
             }
-
-            PriceTag(priceCents: priceCents, unit: "kg", referenceCents: 410)
-
-            TierProgressBar(
-                tiers: Self.tiers,
-                committedShares: families,
-                totalShares: 32,
-                unitSingular: "famille",
-                unitPlural: "familles"
-            )
         }
-        .grenierCard(padding: 20)
+        .overlay {
+            if let confettiStart {
+                ConfettiRain(start: confettiStart)
+                    .clipShape(.rect(cornerRadius: 28))
+            }
+        }
+        .sensoryFeedback(.success, trigger: tierIndex) { old, new in new > old }
         .task(id: isActive) { await play() }
     }
 
-    /// Rejoue la montée des familles tant que la page est visible ; fixe sans animation si Reduce Motion.
+    private var avatars: some View {
+        let shown = Self.initials.prefix(min(Self.initials.count, max(1, families / 5)))
+        return HStack(spacing: -10) {
+            ForEach(Array(shown.enumerated()), id: \.offset) { index, initials in
+                Text(initials)
+                    .font(.caption2.weight(.bold))
+                    .foregroundStyle(Color.onAccent)
+                    .frame(width: 30, height: 30)
+                    .background([Color.grenier, .economie, .solidarite][index % 3], in: .circle)
+                    .overlay(Circle().stroke(Color.surface, lineWidth: 2))
+                    .transition(.scale.combined(with: .opacity))
+            }
+        }
+        .accessibilityHidden(true)
+    }
+
     private func play() async {
         guard isActive, !reduceMotion else {
-            families = 24
+            families = 28
             return
         }
         while !Task.isCancelled {
             for value in Self.steps {
-                withAnimation(.smooth(duration: 0.6)) { families = value }
-                try? await Task.sleep(for: .seconds(1.3))
                 if Task.isCancelled { return }
+                let before = Self.tiers.lastIndex { families >= $0.minShares } ?? 0
+                withAnimation(.spring(duration: 0.6, bounce: 0.35)) { families = value }
+                let after = Self.tiers.lastIndex { value >= $0.minShares } ?? 0
+                if after > before { confettiStart = .now }
+                try? await Task.sleep(for: .seconds(1.2))
             }
+            try? await Task.sleep(for: .seconds(2.5))
+            withAnimation(.smooth) { families = 3; confettiStart = nil }
+            try? await Task.sleep(for: .seconds(0.8))
         }
     }
 }
 
-/// La solidarité : un panier suspendu offert, en couleur Solidarite.
-private struct SolidarityHero: View {
+/// La solidarité : un panier part d'une maison, voyage sur un arc semé de cœurs
+/// et arrive chez une autre famille, sans nom.
+private struct BasketScene: View {
     let isActive: Bool
+
+    @State private var progress: CGFloat = 1
+    @State private var arrived = true
+    @State private var delivered = 12
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 16) {
-            HStack(alignment: .center, spacing: 16) {
-                HeroSymbol(systemImage: "basket.fill", tint: .solidarite, isActive: isActive)
-                Image(systemName: GrenierSymbol.solidarity)
-                    .font(.largeTitle)
-                    .foregroundStyle(Color.solidarite)
-                    .symbolEffect(.breathe, isActive: isActive && !reduceMotion)
-                    .accessibilityHidden(true)
-            }
-            VStack(alignment: .leading, spacing: 4) {
-                Text("Panier suspendu")
-                    .font(.headline)
-                    .foregroundStyle(Color.solidarite)
-                Text("12 paniers offerts ce mois-ci à Parc-Extension")
-                    .font(.subheadline)
-                    .foregroundStyle(Color.texteSecondaire)
-                    .fixedSize(horizontal: false, vertical: true)
+        SceneCard {
+            VStack(alignment: .leading, spacing: 14) {
+                GeometryReader { proxy in
+                    let width = proxy.size.width
+                    let height = proxy.size.height
+                    ZStack {
+                        ArcPath()
+                            .stroke(Color.solidarite.opacity(0.35), style: StrokeStyle(lineWidth: 2, dash: [5, 6]))
+                        ArcPath()
+                            .trim(from: 0, to: progress)
+                            .stroke(Color.solidarite, style: StrokeStyle(lineWidth: 3, lineCap: .round))
+                        house(symbol: "house.fill", label: "Toi")
+                            .position(x: 22, y: height - 18)
+                        house(symbol: "house.lodge.fill", label: "Une famille")
+                            .position(x: width - 22, y: height - 18)
+                        Image(systemName: "basket.fill")
+                            .font(.title3)
+                            .foregroundStyle(Color.onAccent)
+                            .frame(width: 40, height: 40)
+                            .background(Color.solidarite, in: .circle)
+                            .shadow(color: Color.solidarite.opacity(0.4), radius: 8, y: 4)
+                            .position(ArcPath.point(at: progress, in: CGRect(origin: .zero, size: proxy.size)))
+                        Image(systemName: "heart.fill")
+                            .font(.caption)
+                            .foregroundStyle(Color.solidarite.opacity(0.7))
+                            .position(ArcPath.point(at: max(0, progress - 0.18), in: CGRect(origin: .zero, size: proxy.size)))
+                            .opacity(progress > 0.2 && !arrived ? 1 : 0)
+                    }
+                }
+                .frame(height: 96)
+
+                HStack(spacing: 10) {
+                    Image(systemName: arrived ? "checkmark.seal.fill" : "shippingbox.and.arrow.backward.fill")
+                        .font(.title3)
+                        .foregroundStyle(Color.solidarite)
+                        .contentTransition(.symbolEffect(.replace))
+                    VStack(alignment: .leading, spacing: 0) {
+                        Text("\(delivered) paniers suspendus")
+                            .font(.headline)
+                            .foregroundStyle(Color.texte)
+                            .contentTransition(.numericText(value: Double(delivered)))
+                            .monospacedDigit()
+                        Text(arrived ? "Remis ce mois-ci, sans nom" : "En route, de façon anonyme")
+                            .font(.caption)
+                            .foregroundStyle(Color.texteSecondaire)
+                            .id(arrived)
+                            .transition(.asymmetric(
+                                insertion: .move(edge: .bottom).combined(with: .opacity),
+                                removal: .move(edge: .top).combined(with: .opacity)
+                            ))
+                    }
+                }
             }
         }
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(20)
-        .background(Color.solidarite.opacity(0.12), in: .rect(cornerRadius: 24))
-        .accessibilityElement(children: .combine)
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel("Un panier suspendu voyage de ta maison à une famille du groupe, de façon anonyme. \(delivered) paniers offerts ce mois-ci.")
+        .sensoryFeedback(.success, trigger: delivered)
+        .task(id: isActive) { await play() }
+    }
+
+    private func house(symbol: String, label: String) -> some View {
+        VStack(spacing: 2) {
+            Image(systemName: symbol)
+                .font(.title2)
+                .foregroundStyle(Color.solidarite)
+                .symbolRenderingMode(.hierarchical)
+            Text(label)
+                .font(.caption2)
+                .foregroundStyle(Color.texteSecondaire)
+                .fixedSize()
+        }
+    }
+
+    private func play() async {
+        guard isActive, !reduceMotion else {
+            progress = 1
+            arrived = true
+            return
+        }
+        delivered = 12
+        while !Task.isCancelled {
+            progress = 0
+            withAnimation(.smooth(duration: 0.3)) { arrived = false }
+            try? await Task.sleep(for: .seconds(0.5))
+            withAnimation(.easeInOut(duration: 2.2)) { progress = 1 }
+            try? await Task.sleep(for: .seconds(2.3))
+            if Task.isCancelled { return }
+            withAnimation(.spring(duration: 0.5, bounce: 0.4)) {
+                arrived = true
+                delivered += 1
+            }
+            try? await Task.sleep(for: .seconds(2.5))
+        }
+    }
+}
+
+/// Arc entre deux maisons, en bas à gauche et en bas à droite du cadre.
+private struct ArcPath: Shape {
+    func path(in rect: CGRect) -> Path {
+        var path = Path()
+        path.move(to: Self.start(in: rect))
+        path.addQuadCurve(to: Self.end(in: rect), control: Self.control(in: rect))
+        return path
+    }
+
+    private static func start(in rect: CGRect) -> CGPoint { CGPoint(x: rect.minX + 22, y: rect.maxY - 40) }
+    private static func end(in rect: CGRect) -> CGPoint { CGPoint(x: rect.maxX - 22, y: rect.maxY - 40) }
+    private static func control(in rect: CGRect) -> CGPoint { CGPoint(x: rect.midX, y: rect.minY - 30) }
+
+    /// Point sur l'arc à `t` (0…1), pour poser le panier.
+    static func point(at t: CGFloat, in rect: CGRect) -> CGPoint {
+        let p0 = start(in: rect), p1 = control(in: rect), p2 = end(in: rect)
+        let u = 1 - t
+        return CGPoint(
+            x: u * u * p0.x + 2 * u * t * p1.x + t * t * p2.x,
+            y: u * u * p0.y + 2 * u * t * p1.y + t * t * p2.y
+        )
     }
 }
 

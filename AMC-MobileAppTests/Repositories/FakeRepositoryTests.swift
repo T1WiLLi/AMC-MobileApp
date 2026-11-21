@@ -99,6 +99,21 @@ struct FakeRepositoryTests {
         #expect(all.count == 3)
     }
 
+    /// T-087 : les zones des lots sont des préfixes geohash ; un lot est visible dans une zone
+    /// si une de ses zones est un préfixe de la zone demandée, ou l'inverse.
+    @Test func offerFeedMatchesZonesByGeohashPrefix() async throws {
+        let repos = repositories()
+        // Geohash d'un groupe (plus long que les zones des lots).
+        let saintMichel = try await repos.offers.activeOffers(inZone: "f25dv").map(\.id)
+        #expect(Set(saintMichel) == [ID.potatoOffer, ID.riceOffer])
+        // Zone plus large que celles des lots : tous les lots dedans.
+        let wide = try await repos.offers.activeOffers(inZone: "f25").map(\.id)
+        #expect(Set(wide) == [ID.potatoOffer, ID.riceOffer, ID.appleOffer])
+        // Zones sans préfixe commun avec le lot.
+        #expect(try await repos.offers.activeOffers(inZone: "f25x").isEmpty)
+        #expect(try await repos.offers.activeOffers(inZone: "f25ev").map(\.id).contains(ID.riceOffer) == false)
+    }
+
     @Test func lookupsOfUnknownIdsThrowNotFound() async {
         let repos = repositories()
         await #expect(throws: AppError.notFound) { try await repos.users.user(id: "nope") }

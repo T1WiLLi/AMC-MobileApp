@@ -26,6 +26,9 @@ struct PriceTag: View {
             Text(Money.format(priceCents))
                 .priceStyle(font)
                 .foregroundStyle(.texte)
+                // Le montant ne se coupe jamais (« 11,50 » puis « $ » seul sur la ligne suivante) : seule l'unité passe à la ligne.
+                .lineLimit(1)
+                .fixedSize()
                 .contentTransition(reduceMotion ? .opacity : .numericText(value: Double(priceCents)))
                 .grenierAnimation(.smooth, value: priceCents)
             if let unit {

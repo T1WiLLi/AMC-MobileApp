@@ -1,13 +1,17 @@
 import SwiftUI
 
-/// Point d'entrée de l'interface. B-020 y branchera la navigation par portail (Familles / Vendeurs).
+/// Point d'entrée de l'interface : affiche la navigation du portail actif.
 struct RootView: View {
+    @AppStorage(Portal.storageKey) private var portal: Portal = .family
+
     var body: some View {
-        ContentUnavailableView(
-            "Grenier",
-            systemImage: "basket.fill",
-            description: Text("Le garde-manger du quartier.")
-        )
+        Group {
+            switch portal {
+            case .family: FamilyTabView()
+            case .vendor: VendorTabView()
+            }
+        }
+        .animation(.smooth, value: portal)
     }
 }
 

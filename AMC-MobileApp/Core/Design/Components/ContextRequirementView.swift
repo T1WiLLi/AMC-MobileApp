@@ -9,12 +9,15 @@ enum ContextRequirement: Sendable, CaseIterable {
     case group
     /// Compte sans profil vendeur rattaché.
     case vendor
+    /// Compte rattaché à aucun organisme.
+    case organization
 
     var title: LocalizedStringKey {
         switch self {
         case .household: "Crée ton ménage"
         case .group: "Rejoins un groupe"
         case .vendor: "Crée ton profil vendeur"
+        case .organization: "Aucun organisme rattaché"
         }
     }
 
@@ -26,6 +29,8 @@ enum ContextRequirement: Sendable, CaseIterable {
             "Les lots se commandent à plusieurs : rejoins le groupe de ton quartier pour débloquer les meilleurs prix."
         case .vendor:
             "Ton compte n'est pas encore rattaché à une ferme ou à un commerce. L'équipe LeGrenier vérifie chaque producteur avant d'ouvrir son portail."
+        case .organization:
+            "Ton compte n'est pas encore rattaché à un organisme. L'équipe LeGrenier vérifie chaque organisme avant d'ouvrir son portail."
         }
     }
 
@@ -34,6 +39,7 @@ enum ContextRequirement: Sendable, CaseIterable {
         case .household: "house.fill"
         case .group: "person.3.sequence.fill"
         case .vendor: "storefront.fill"
+        case .organization: "building.2.fill"
         }
     }
 
@@ -42,7 +48,7 @@ enum ContextRequirement: Sendable, CaseIterable {
         switch self {
         case .household: "Créer mon ménage"
         case .group: "Trouver un groupe"
-        case .vendor: "Revenir au portail Familles"
+        case .vendor, .organization: "Revenir au portail Familles"
         }
     }
 
@@ -50,7 +56,7 @@ enum ContextRequirement: Sendable, CaseIterable {
         switch self {
         case .household: "plus.circle.fill"
         case .group: "magnifyingglass"
-        case .vendor: "arrow.uturn.backward.circle.fill"
+        case .vendor, .organization: "arrow.uturn.backward.circle.fill"
         }
     }
 }

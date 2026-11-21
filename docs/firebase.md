@@ -103,9 +103,9 @@ Le backend est choisi au lancement (`BackendMode`) et écrit dans le log (`Backe
 
 | Mode | Quand |
 |---|---|
-| `fake` | SDK non lié, ou `GoogleService-Info.plist` absent sans argument émulateur (CI, previews, repo fraîchement cloné), ou argument `-useFakeBackend YES` |
-| `emulator` | argument `-useFirebaseEmulator YES` (Debug seulement ; le plist n'est pas nécessaire) |
-| `demoProject` | sinon ; **toujours en Release** (les arguments sont ignorés) |
+| `fake` | SDK non lié, tests unitaires (app hôte XCTest), `GoogleService-Info.plist` absent sans argument émulateur (CI, previews, repo fraîchement cloné), ou argument `-useFakeData` / `-useFakeBackend YES` |
+| `emulator` | argument `-useEmulator` / `-useFirebaseEmulator YES` (le plist n'est pas nécessaire) |
+| `demoProject` | sinon, dès que le plist est là, **en Debug comme en Release** (T-127 : plus aucune donnée fake ; seuls les arguments explicites ci-dessus l'évitent) |
 
 - **Xcode** : le schéma partagé `AMC-MobileApp` contient déjà les deux arguments, décochés. Product › Scheme › Edit Scheme… › Run › Arguments, cocher `-useFirebaseEmulator YES` (ou `-useFakeBackend YES`). Les tests n'utilisent pas ces arguments.
 - **Ligne de commande** : `xcrun simctl launch booted ca.amc2026.mobileapp -useFirebaseEmulator YES`.

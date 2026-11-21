@@ -16,7 +16,7 @@
 | Fonctionnalité | Statut |
 |---|---|
 | Présentation animée en 3 écrans au premier lancement | ✅ |
-| Connexion avec Apple, avec Google, ou par courriel et mot de passe | ✅ |
+| Connexion avec Google, ou par courriel et mot de passe | ✅ |
 | Création de compte par courriel avec lien de vérification et mot de passe oublié | ✅ |
 | Choix du portail à l'inscription : Famille, Vendeur, Organisme ; un même compte peut en avoir plusieurs | ✅ |
 | Bascule animée entre les portails, sans se déconnecter | ✅ |

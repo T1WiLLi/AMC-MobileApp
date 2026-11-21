@@ -1,6 +1,6 @@
 import Foundation
 
-/// Authentification de l'app. Implémentations : `FirebaseAuthService` (Google Sign-In, Apple, courriel et mot de passe)
+/// Authentification de l'app. Implémentations : `FirebaseAuthService` (Google Sign-In, courriel et mot de passe)
 /// et `FakeAuthService` (previews, tests).
 protocol AuthService: AnyObject {
     /// Utilisateur connecté au lancement (session restaurée), ou nil.
@@ -9,9 +9,6 @@ protocol AuthService: AnyObject {
     func authStateChanges() -> AsyncStream<AuthUser?>
     /// Ouvre la feuille Google et connecte l'utilisateur à Firebase.
     func signInWithGoogle() async throws -> AuthUser
-    /// Connecte à Firebase le jeton reçu de « Se connecter avec Apple ». `rawNonce` = nonce brut dont le SHA-256
-    /// est parti dans la requête Apple ; `fullName` n'arrive qu'à la première connexion.
-    func signInWithApple(idToken: String, rawNonce: String, fullName: PersonNameComponents?) async throws -> AuthUser
     /// Crée un compte courriel et mot de passe (le prénom devient le nom affiché). Le courriel n'est pas encore vérifié.
     func signUp(email: String, password: String, displayName: String) async throws -> AuthUser
     /// Connexion avec un compte courriel existant.
@@ -122,25 +119,6 @@ final class FakeAuthService: AuthService {
         currentUser = .sample
         continuation?.yield(currentUser)
         return .sample
-    }
-
-    /// Dernier nonce brut reçu par `signInWithApple` (tests).
-    private(set) var lastAppleNonce: String?
-
-    func signInWithApple(idToken: String, rawNonce: String, fullName: PersonNameComponents?) async throws -> AuthUser {
-        try await simulateCall()
-        lastAppleNonce = rawNonce
-        let name = fullName?.givenName ?? AuthUser.sample.displayName
-        let user = AuthUser(
-            id: "fake-apple-\(idToken.prefix(8))",
-            displayName: name,
-            email: "relais@privaterelay.appleid.com",
-            photoURL: nil,
-            isEmailVerified: true,
-            usesPassword: false
-        )
-        setCurrentUser(user)
-        return user
     }
 
     /// Ajoute un compte courriel existant (previews, tests).

@@ -16,6 +16,7 @@ struct PortalCard: View {
     let action: () -> Void
 
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @ScaledMetric(relativeTo: .title) private var iconSide: CGFloat = 52
     @ScaledMetric(relativeTo: .body) private var compactIconSide: CGFloat = 40
 
@@ -32,7 +33,8 @@ struct PortalCard: View {
                 .contentShape(.rect(cornerRadius: cornerRadius))
         }
         .buttonStyle(PortalCardButtonStyle())
-        .animation(.smooth, value: isSelected)
+        .grenierAnimation(.smooth, value: isSelected)
+        .grenierHaptic(.selection, trigger: isSelected)
         .accessibilityElement(children: .ignore)
         .accessibilityLabel(portal.title)
         .accessibilityValue(portal.tagline)
@@ -104,7 +106,7 @@ struct PortalCard: View {
             .padding(side * 0.24)
             .frame(width: side, height: side)
             .background(isSelected ? Color.grenier : Color.grenier.opacity(0.12), in: .rect(cornerRadius: corner))
-            .symbolEffect(.bounce, value: isSelected)
+            .symbolEffect(.bounce, value: reduceMotion ? false : isSelected)
             .accessibilityHidden(true)
     }
 
@@ -112,11 +114,12 @@ struct PortalCard: View {
         Image(systemName: isSelected ? "checkmark.circle.fill" : "circle")
             .font(size == .regular ? .title2 : .title3)
             .symbolRenderingMode(.palette)
+            // Cercle vide en Texte secondaire plein (6,2:1) : à 50 % il tombait à 2,2:1, sous le 3:1 des contrôles.
             .foregroundStyle(
-                isSelected ? Color.onAccent : Color.texteSecondaire.opacity(0.5),
-                isSelected ? Color.grenier : Color.texteSecondaire.opacity(0.5)
+                isSelected ? Color.onAccent : Color.texteSecondaire,
+                isSelected ? Color.grenier : Color.texteSecondaire
             )
-            .contentTransition(.symbolEffect(.replace))
+            .contentTransition(reduceMotion ? .opacity : .symbolEffect(.replace))
             .accessibilityHidden(true)
     }
 }
@@ -162,4 +165,9 @@ private struct PortalCardPreview: View {
 #Preview("Sombre") {
     PortalCardPreview()
         .preferredColorScheme(.dark)
+}
+
+#Preview("AX5") {
+    PortalCardPreview()
+        .dynamicTypeSize(.accessibility5)
 }

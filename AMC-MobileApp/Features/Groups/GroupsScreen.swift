@@ -15,22 +15,54 @@ struct GroupsScreen: View {
         NavigationStack {
             Group {
                 if let viewModel {
-                    StateView(
-                        state: viewModel.state,
-                        empty: .init(title: "Aucun groupe près de toi", systemImage: GrenierSymbol.groups,
-                                     message: "Aucun groupe de quartier n'est ouvert pour l'instant. Reviens bientôt."),
-                        retry: { await viewModel.load() }
-                    ) { items in
+                    switch viewModel.state {
+                    case .idle, .loading:
+                        GroupsLoadingSkeleton()
+                    case .empty:
+                        GroupsIllustratedState(
+                            scene: GroupsSymbolScene(
+                                systemImage: "map.fill",
+                                satellites: [
+                                    .init(systemImage: "house.fill", tint: .economie, degrees: -145),
+                                    .init(systemImage: "person.fill.questionmark", tint: .grenier, degrees: -35),
+                                    .init(systemImage: GrenierSymbol.offers, tint: .grenier, degrees: 145)
+                                ]
+                            ),
+                            title: "Aucun groupe près de toi",
+                            message: "Aucun groupe de quartier n'est ouvert pour l'instant. Reviens bientôt."
+                        ) {
+                            Button {
+                                Task { await viewModel.load() }
+                            } label: {
+                                Label("Actualiser", systemImage: "arrow.clockwise")
+                                    .fontWeight(.semibold)
+                            }
+                            .buttonStyle(.glass)
+                            .tint(.grenier)
+                            .controlSize(.large)
+                        }
+                    case .failed(let error):
+                        GroupsErrorState(error: error, retry: { await viewModel.load() })
+                    case .loaded(let items):
                         GroupList(items: items, viewModel: viewModel)
                     }
                 } else {
-                    ProgressView("Chargement…")
-                        .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    GroupsLoadingSkeleton()
                 }
             }
             .grenierBackground()
             .navigationTitle("Groupes")
             .profileToolbar()
+            .toolbar {
+                ToolbarItem(placement: .topBarTrailing) {
+                    NavigationLink {
+                        FamilyMapScreen()
+                    } label: {
+                        Label("Carte du quartier", systemImage: GrenierSymbol.map)
+                    }
+                    .accessibilityHint("Groupes, points de cueillette et producteurs autour de chez toi")
+                }
+            }
             .navigationDestination(for: GroupRoute.self) { route in
                 GroupDetailScreen(groupId: route.groupId)
             }
@@ -67,35 +99,199 @@ private struct GroupList: View {
         let others = items.filter { !$0.isMember }
         ScrollView {
             VStack(alignment: .leading, spacing: 24) {
-                if !mine.isEmpty {
-                    section(mine.count > 1 ? "Tes groupes" : "Ton groupe", items: mine)
+                GroupsHeroCard(
+                    myGroupCount: mine.count,
+                    nearbyCount: others.count,
+                    familyCount: items.reduce(0) { $0 + $1.group.householdCount }
+                )
+
+                VStack(alignment: .leading, spacing: 12) {
+                    GroupsSectionHeader(
+                        title: mine.count > 1 ? "Tes groupes" : "Ton groupe",
+                        systemImage: "checkmark.seal.fill",
+                        tint: .economie,
+                        count: mine.isEmpty ? nil : mine.count
+                    )
+                    if mine.isEmpty {
+                        NoGroupYetCard()
+                            .grenierTransition(.cardAppear)
+                    }
+                    rows(mine)
                 }
+
                 if !others.isEmpty {
-                    section("Groupes près de toi", items: others)
+                    VStack(alignment: .leading, spacing: 12) {
+                        GroupsSectionHeader(
+                            title: "Groupes près de toi",
+                            systemImage: "location.circle.fill",
+                            tint: .grenier,
+                            count: others.count
+                        )
+                        rows(others)
+                    }
                 }
             }
             .padding(.horizontal, 16)
             .padding(.bottom, 24)
         }
         .scrollEdgeEffectStyle(.soft, for: .top)
+        .grenierAnimation(.smooth, value: mine.map(\.id))
     }
 
-    private func section(_ title: String, items: [GroupsViewModel.Item]) -> some View {
-        VStack(alignment: .leading, spacing: 12) {
-            Text(title)
-                .font(.title3.bold())
-                .foregroundStyle(.texte)
-                .accessibilityAddTraits(.isHeader)
-            ForEach(items) { item in
-                GroupRow(
-                    item: item,
-                    isPending: viewModel.pendingGroupIds.contains(item.id),
-                    onJoin: { Task { await viewModel.join(groupId: item.id) } }
-                )
-            }
+    private func rows(_ items: [GroupsViewModel.Item]) -> some View {
+        ForEach(items) { item in
+            GroupRow(
+                item: item,
+                isPending: viewModel.pendingGroupIds.contains(item.id),
+                onJoin: { Task { await viewModel.join(groupId: item.id) } }
+            )
+            .grenierTransition(.cardAppear)
         }
     }
 }
+
+// MARK: - En-tête illustré
+
+/// Tête d'écran : une scène de quartier en symboles, la promesse en une phrase et trois chiffres clés.
+private struct GroupsHeroCard: View {
+    let myGroupCount: Int
+    let nearbyCount: Int
+    let familyCount: Int
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            ViewThatFits(in: .horizontal) {
+                HStack(spacing: 12) { scene; pitch }
+                VStack(alignment: .leading, spacing: 8) { scene; pitch }
+            }
+            ViewThatFits(in: .horizontal) {
+                HStack(spacing: 8) { tiles }
+                VStack(spacing: 8) { tiles }
+            }
+        }
+        .grenierCard(padding: 18)
+    }
+
+    private var scene: some View {
+        GroupsSymbolScene(
+            systemImage: GrenierSymbol.groups,
+            satellites: [
+                .init(systemImage: "house.fill", tint: .economie, degrees: -150),
+                .init(systemImage: GrenierSymbol.offers, tint: .grenier, degrees: -30),
+                .init(systemImage: GrenierSymbol.impact, tint: .economie, degrees: 40),
+                .init(systemImage: GrenierSymbol.solidarity, tint: .solidarite, degrees: 140)
+            ],
+            diameter: 76,
+            badgeBackground: .fond,
+            isAnimating: true
+        )
+    }
+
+    private var pitch: some View {
+        VStack(alignment: .leading, spacing: 4) {
+            Label("Groupes de quartier", systemImage: "mappin.and.ellipse")
+                .font(.caption.weight(.semibold))
+                .textCase(.uppercase)
+                .foregroundStyle(Color.grenier)
+            Text("Achète en gros avec tes voisins")
+                .font(.title3.bold())
+                .foregroundStyle(.texte)
+            Text("Plus vous êtes de familles, plus le prix baisse.")
+                .font(.subheadline)
+                .foregroundStyle(.texteSecondaire)
+        }
+        .fixedSize(horizontal: false, vertical: true)
+    }
+
+    @ViewBuilder
+    private var tiles: some View {
+        GroupsStatTile(value: "\(myGroupCount)", caption: myGroupCount > 1 ? "tes groupes" : "ton groupe",
+                       systemImage: "checkmark.seal.fill", tint: .economie)
+        GroupsStatTile(value: "\(nearbyCount)", caption: "à rejoindre",
+                       systemImage: "location.fill", tint: .grenier)
+        GroupsStatTile(value: "\(familyCount)", caption: familyCount > 1 ? "familles" : "famille",
+                       systemImage: "person.2.fill", tint: .solidarite)
+    }
+}
+
+/// Aucun groupe à soi : une invitation douce à en rejoindre un plus bas.
+private struct NoGroupYetCard: View {
+    var body: some View {
+        HStack(spacing: 14) {
+            Image(systemName: "person.crop.circle.badge.plus")
+                .font(.largeTitle)
+                .symbolRenderingMode(.hierarchical)
+                .foregroundStyle(Color.grenier)
+                .accessibilityHidden(true)
+            VStack(alignment: .leading, spacing: 2) {
+                Text("Pas encore de groupe")
+                    .font(.headline)
+                    .foregroundStyle(.texte)
+                Label("Rejoins un groupe près de toi, juste en dessous", systemImage: "hand.point.down.fill")
+                    .font(.subheadline)
+                    .foregroundStyle(.texteSecondaire)
+            }
+            Spacer(minLength: 0)
+        }
+        .grenierCard(padding: 14)
+        .accessibilityElement(children: .combine)
+    }
+}
+
+// MARK: - Squelette de chargement
+
+/// Chargement : la forme de l'écran en `.redacted`, qui pulse doucement (fixe sous Reduce Motion).
+private struct GroupsLoadingSkeleton: View {
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
+    var body: some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: 16) {
+                VStack(alignment: .leading, spacing: 12) {
+                    HStack(spacing: 12) {
+                        Circle().frame(width: 76, height: 76)
+                        VStack(alignment: .leading, spacing: 6) {
+                            Text("Groupes de quartier")
+                            Text("Achète en gros avec tes voisins").font(.title3.bold())
+                        }
+                    }
+                    HStack(spacing: 8) {
+                        ForEach(0..<3, id: \.self) { _ in
+                            RoundedRectangle(cornerRadius: 16).frame(height: 76)
+                        }
+                    }
+                }
+                .grenierCard(padding: 18)
+                Label("Groupes près de toi", systemImage: "location.circle.fill")
+                    .font(.title3.bold())
+                ForEach(0..<4, id: \.self) { _ in
+                    HStack(spacing: 12) {
+                        Circle().frame(width: 34, height: 34)
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text("Nom du groupe de quartier").font(.headline)
+                            Text("27 familles · Quartier · 900 m").font(.subheadline)
+                        }
+                        Spacer(minLength: 0)
+                    }
+                    .grenierCard(padding: 14)
+                }
+            }
+            .foregroundStyle(.texteSecondaire.opacity(0.35))
+            .redacted(reason: .placeholder)
+            .padding(.horizontal, 16)
+        }
+        .scrollDisabled(true)
+        .phaseAnimator(reduceMotion ? [1.0] : [1.0, 0.55]) { content, opacity in
+            content.opacity(opacity)
+        } animation: { _ in
+            .easeInOut(duration: 0.9)
+        }
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel("Chargement des groupes")
+    }
+}
+
+// MARK: - Ligne d'un groupe
 
 /// Un groupe : même contenu qu'un `GroupCard`, mais Rejoindre en `.glass` (une seule action principale par écran)
 /// et le reste de la carte pousse la fiche du groupe.
@@ -118,15 +314,19 @@ private struct GroupRow: View {
                 HStack(spacing: 12) {
                     AvatarStack(initials: [Self.initials(of: group.neighborhood)],
                                 extraCount: max(group.householdCount - 1, 0))
-                    VStack(alignment: .leading, spacing: 2) {
+                    VStack(alignment: .leading, spacing: 4) {
                         Text(group.name)
                             .font(.headline)
                             .foregroundStyle(.texte)
-                        Text(detailText)
-                            .font(.subheadline)
-                            .foregroundStyle(.texteSecondaire)
+                        ViewThatFits(in: .horizontal) {
+                            HStack(spacing: 10) { meta }
+                            VStack(alignment: .leading, spacing: 2) { meta }
+                        }
                     }
                     Spacer(minLength: 0)
+                    Image(systemName: "chevron.right")
+                        .font(.footnote.weight(.semibold))
+                        .foregroundStyle(.texteSecondaire)
                 }
                 .contentShape(.rect)
             }
@@ -138,24 +338,43 @@ private struct GroupRow: View {
             trailing
         }
         .grenierCard(padding: 14)
+        .contextMenu {
+            Label(detailText, systemImage: GrenierSymbol.groups)
+            if !item.isMember {
+                Button(action: onJoin) {
+                    Label("Rejoindre \(group.name)", systemImage: "person.badge.plus")
+                }
+                .disabled(isPending)
+            }
+        }
         .sensoryFeedback(.success, trigger: item.isMember)
         .animation(reduceMotion ? nil : .smooth, value: item.isMember)
     }
 
     @ViewBuilder
+    private var meta: some View {
+        GroupsMetaLabel(text: familiesText, systemImage: "person.2.fill", tint: .solidarite)
+        GroupsMetaLabel(text: group.neighborhood, systemImage: "mappin", tint: .grenier)
+        GroupsMetaLabel(text: GroupCard.distanceText(group.radiusMeters), systemImage: "circle.dashed", tint: .economie)
+    }
+
+    @ViewBuilder
     private var trailing: some View {
         if item.isMember {
-            Image(systemName: "checkmark.circle.fill")
+            Image(systemName: "checkmark.seal.fill")
                 .font(.title2)
+                .symbolRenderingMode(.hierarchical)
                 .foregroundStyle(Color.economie)
-                .symbolEffect(.bounce, value: item.isMember)
+                .groupsBounce(value: item.isMember)
+                .transition(reduceMotion ? .opacity : .scale.combined(with: .opacity))
                 .accessibilityLabel("Tu es membre")
         } else {
             Button(action: onJoin) {
                 if isPending {
                     ProgressView()
                 } else {
-                    Text("Rejoindre").fontWeight(.semibold)
+                    Label("Rejoindre", systemImage: "person.badge.plus")
+                        .fontWeight(.semibold)
                 }
             }
             .buttonStyle(.glass)
@@ -165,10 +384,13 @@ private struct GroupRow: View {
         }
     }
 
+    private var familiesText: String {
+        "\(group.householdCount) \(group.householdCount > 1 ? "familles" : "famille")"
+    }
+
     /// « 27 familles · Hochelaga · rayon 900 m »
     private var detailText: String {
-        let families = "\(group.householdCount) \(group.householdCount > 1 ? "familles" : "famille")"
-        return "\(families) · \(group.neighborhood) · rayon \(GroupCard.distanceText(group.radiusMeters))"
+        "\(familiesText) · \(group.neighborhood) · rayon \(GroupCard.distanceText(group.radiusMeters))"
     }
 
     /// « SM » pour Saint-Michel.

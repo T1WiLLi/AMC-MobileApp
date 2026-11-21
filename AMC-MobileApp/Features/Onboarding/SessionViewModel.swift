@@ -33,7 +33,8 @@ final class SessionViewModel {
     /// Nonce brut de la requête Apple en cours (son SHA-256 est dans la requête).
     private var appleNonce: String?
 
-    private let auth: AuthService
+    /// Lu par « Mon compte » (suppression du compte, RQ-021).
+    let auth: AuthService
     private let now: () -> Date
 
     init(auth: AuthService, now: @escaping () -> Date = Date.init) {

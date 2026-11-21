@@ -54,6 +54,9 @@ extension VendorRepository {
 /// Lots (`offers`).
 nonisolated protocol OfferRepository: Sendable {
     /// Fil des lots actifs qui desservent la zone ; `nil` = toutes les zones.
+    /// `zone` et `Offer.zones` sont des geohash de longueurs différentes (lot : préfixe court comme « f25d » ;
+    /// groupe : « f25dv… »). Un lot est visible dans la zone si une de ses zones est un préfixe de `zone`,
+    /// ou si `zone` est un préfixe d'une de ses zones (zone demandée plus large). Pas d'égalité exacte.
     func activeOffers(inZone zone: String?) async throws -> [Offer]
     func offers(ofVendor vendorId: String) async throws -> [Offer]
     func offer(id: String) async throws -> Offer
@@ -78,12 +81,23 @@ nonisolated protocol GroupOrderRepository: Sendable {
     func setShare(quantity: Int, householdId: String, groupOrderId: String) async throws -> GroupOrder
     /// Écoute en temps réel : émet l'état courant, puis chaque changement.
     func observeGroupOrder(id: String) async -> AsyncThrowingStream<GroupOrder, any Error>
+    /// RQ-063 : le coordonnateur choisit le point de cueillette et ses créneaux ; `nil` retire le point.
+    /// Les réservations des ménages sur un créneau retiré sont effacées. Lève `.orderClosed` si la commande
+    /// est annulée ou livrée.
+    @discardableResult
+    func setPickupPoint(_ pickupPointId: String?, slots: [PickupSlot], groupOrderId: String) async throws -> GroupOrder
+    /// RQ-064 : le ménage réserve un créneau (`start` d'un des `pickupSlots`) ; `nil` annule la réservation.
+    /// Lève `.notFound` sans part, `.invalidInput` si le créneau est inconnu ou complet.
+    @discardableResult
+    func reservePickupSlot(start: Date?, householdId: String, groupOrderId: String) async throws -> Share
 }
 
 /// Points de cueillette (`pickupPoints`).
 nonisolated protocol PickupPointRepository: Sendable {
     func pickupPoints() async throws -> [PickupPoint]
     func pickupPoint(id: String) async throws -> PickupPoint
+    /// RQ-062 : crée ou modifie le point d'un hôte (même id = mise à jour).
+    func savePickupPoint(_ point: PickupPoint) async throws
 }
 
 /// Tous les dépôts de l'app, à injecter dans les ViewModels.

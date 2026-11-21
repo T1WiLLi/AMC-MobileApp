@@ -62,7 +62,7 @@ nonisolated final class FirestoreGroupOrderRepository: GroupOrderRepository, @un
     // MARK: - Lectures
 
     func groupOrders(ofGroup groupId: String) async throws -> [GroupOrder] {
-        try await query(orders.whereField("groupId", isEqualTo: groupId))
+        try await PerfSignposts.measure("firestore.groupOrdersOfGroup") { try await query(orders.whereField("groupId", isEqualTo: groupId)) }
     }
 
     func groupOrders(ofOffer offerId: String) async throws -> [GroupOrder] {
@@ -86,7 +86,9 @@ nonisolated final class FirestoreGroupOrderRepository: GroupOrderRepository, @un
 
     func observeGroupOrder(id: String) async -> AsyncThrowingStream<GroupOrder, any Error> {
         let (stream, continuation) = AsyncThrowingStream<GroupOrder, any Error>.makeStream()
+        let firstSnapshot = PerfSignposts.begin("firestore.observeGroupOrder.firstSnapshot")
         let registration = orderRef(id).addSnapshotListener { snapshot, error in
+            firstSnapshot.end(failed: error != nil)
             if let error {
                 continuation.finish(throwing: Self.appError(from: error))
                 return
@@ -321,6 +323,56 @@ nonisolated final class FirestoreGroupOrderRepository: GroupOrderRepository, @un
         if total != order.committedShares || households != order.committedHouseholds {
             throw StaleShareList()
         }
+    }
+
+    // MARK: - Cueillette (T-077)
+
+    /// RQ-063 : point et créneaux choisis par le coordonnateur (`firestore.rules` le vérifie).
+    /// Les réservations sur un créneau retiré sont effacées dans le même lot d'écritures.
+    @discardableResult
+    func setPickupPoint(_ pickupPointId: String?, slots: [PickupSlot], groupOrderId: String) async throws -> GroupOrder {
+        var order = try await groupOrder(id: groupOrderId)
+        guard order.status != .cancelled, order.status != .delivered else { throw AppError.orderClosed }
+        let slots = pickupPointId == nil ? [] : try PickupSlotBook.validatedSlots(slots)
+        let shares = try await fetchShares(groupOrderId)
+        do {
+            let batch = db.batch()
+            let encodedSlots = try slots.map { try Firestore.Encoder().encode($0) }
+            batch.updateData([
+                "pickupPointId": pickupPointId.map { $0 as Any } ?? NSNull(),
+                "pickupSlots": encodedSlots,
+            ], forDocument: orderRef(groupOrderId))
+            let cleared = PickupSlotBook.clearingRemovedSlots(shares, keeping: slots)
+            for (before, after) in zip(shares, cleared) where before.pickupSlotStart != after.pickupSlotStart {
+                batch.updateData(["pickupSlotStart": FieldValue.delete()],
+                                 forDocument: sharesRef(groupOrderId).document(before.householdId))
+            }
+            try await batch.commit()
+        } catch {
+            throw Self.appError(from: error)
+        }
+        order.pickupPointId = pickupPointId
+        order.pickupSlots = slots
+        return order
+    }
+
+    /// RQ-064 : créneau du ménage. La capacité est vérifiée sur les parts lues juste avant
+    /// (pas de transaction : un dépassement d'une place reste possible si deux ménages réservent en même temps).
+    @discardableResult
+    func reservePickupSlot(start: Date?, householdId: String, groupOrderId: String) async throws -> Share {
+        let order = try await groupOrder(id: groupOrderId)
+        guard order.status != .cancelled, order.status != .delivered else { throw AppError.orderClosed }
+        let shares = try await fetchShares(groupOrderId)
+        let share = try PickupSlotBook.reserving(
+            start, householdId: householdId, slots: order.pickupSlots, shares: shares, now: now()
+        )
+        do {
+            let value: Any = share.pickupSlotStart.map { Timestamp(date: $0) as Any } ?? FieldValue.delete()
+            try await sharesRef(groupOrderId).document(householdId).updateData(["pickupSlotStart": value])
+        } catch {
+            throw Self.appError(from: error)
+        }
+        return share
     }
 
     // MARK: - Requêtes et décodage

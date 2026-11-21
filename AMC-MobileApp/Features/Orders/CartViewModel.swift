@@ -3,6 +3,9 @@
 // tous groupes confondus, avec prix du palier courant, économie et temps restant.
 // Usage : `CartViewModel(repositories:householdId:)`, puis `await load()` dans `.task` ;
 // `updateQuantity(_:to:)` et `cancel(_:)` rechargent le panier après l'écriture (pas d'optimisme).
+// Temps réel (T-096, S-05) : `.task { await viewModel.load(); await viewModel.observe() }` — chaque ligne suit
+// sa commande (palier, prix, total, économie recalculés quand d'autres familles réservent) ; s'arrête avec la
+// tâche. Une écoute coupée garde le panier affiché et met `isLive` à false.
 
 import Foundation
 import Observation
@@ -55,6 +58,8 @@ final class CartViewModel {
     private(set) var isSaving = false
     /// Dernière erreur d'une action ; remise à nil par la vue.
     var actionError: AppError?
+    /// L'écoute en direct tourne (`observe()`). Repasse à false quand elle s'arrête ou échoue.
+    private(set) var isLive = false
 
     private let repositories: AppRepositories
     private let householdId: String
@@ -80,6 +85,37 @@ final class CartViewModel {
         } catch {
             state = .failed(AppError(error))
         }
+    }
+
+    /// Suit en temps réel la commande de chaque ligne. À lancer dans `.task` après `load()` ; s'arrête avec la tâche.
+    func observe() async {
+        guard let content = state.value else { return }
+        // Abonnements ouverts avant de rendre la main : aucun changement n'est perdu une fois `isLive` vrai.
+        var orderUpdates: [AsyncThrowingStream<GroupOrder, any Error>] = []
+        for line in content.lines {
+            orderUpdates.append(await repositories.groupOrders.observeGroupOrder(id: line.groupOrder.id))
+        }
+        isLive = true
+        defer { isLive = false }
+        await withTaskGroup(of: Void.self) { tasks in
+            for updates in orderUpdates {
+                tasks.addTask { [weak self] in
+                    do {
+                        for try await order in updates {
+                            await self?.orderChanged(order)
+                        }
+                    } catch {}
+                }
+            }
+        }
+    }
+
+    private func orderChanged(_ order: GroupOrder) {
+        guard var content = state.value,
+              let index = content.lines.firstIndex(where: { $0.groupOrder.id == order.id }) else { return }
+        content.lines[index].groupOrder = order
+        content.lines[index].canEdit = Self.canEdit(order, offer: content.lines[index].offer, now: now())
+        state = .loaded(content)
     }
 
     // MARK: Actions

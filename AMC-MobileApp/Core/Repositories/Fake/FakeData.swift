@@ -34,6 +34,10 @@ nonisolated struct FakeData: Sendable {
         static let appleOffer = "offer-pommes-cortland"
         static let potatoOrder = "order-saint-michel-pommes-de-terre"
         static let jarryPickup = "pickup-jarry"
+        static let pieIXPickup = "pickup-pie-ix"
+        static let communityPickup = "pickup-centre-saint-michel"
+        static let fournil = "vendor-fournil"
+        static let jardinsUrbains = "vendor-jardins-urbains"
     }
 
     /// Saint-Michel : la commande de pommes de terre est à 19 parts, la part d'Amina fait franchir le palier de 20.
@@ -86,10 +90,21 @@ nonisolated struct FakeData: Sendable {
             vendors: [
                 Vendor(id: ID.fermeRive, legalName: "Ferme Bio-Rive", kind: .farm,
                        description: "Légumes biologiques cultivés à Mirabel depuis 1998.",
-                       photoURLs: [], servedZones: ["f25d", "f25e"], averageRating: 4.7, isVerified: true),
+                       photoURLs: [], servedZones: ["f25d", "f25e"], averageRating: 4.7, isVerified: true,
+                       storefrontGeohash: "f25dvuh"),
                 Vendor(id: ID.moulinsDuNord, legalName: "Les Moulins du Nord", kind: .wholesaler,
                        description: "Grossiste en céréales et légumineuses, entrepôt à Laval.",
-                       photoURLs: [], servedZones: ["f25d"], averageRating: 4.4, isVerified: true),
+                       photoURLs: [], servedZones: ["f25d"], averageRating: 4.4, isVerified: true,
+                       storefrontGeohash: "f25dvrh"),
+                // Producteurs du quartier, sans lot ouvert : visibles sur la carte des familles (T-091).
+                Vendor(id: ID.fournil, legalName: "Le Fournil du coin", kind: .bakery,
+                       description: "Boulangerie de quartier : pains au levain et viennoiseries du jour.",
+                       photoURLs: [], servedZones: ["f25dv"], averageRating: 4.9, isVerified: true,
+                       storefrontGeohash: "f25dve7"),
+                Vendor(id: ID.jardinsUrbains, legalName: "Coop Les Jardins urbains", kind: .cooperative,
+                       description: "Coopérative de jardins sur les toits : fines herbes, tomates et miel.",
+                       photoURLs: [], servedZones: ["f25dv"], averageRating: nil, isVerified: false,
+                       storefrontGeohash: "f25dvm2"),
             ],
             products: [
                 Product(id: ID.potatoes, vendorId: ID.fermeRive, name: "Pommes de terre jaunes", category: .produce,
@@ -123,7 +138,20 @@ nonisolated struct FakeData: Sendable {
             pickupPoints: [
                 PickupPoint(id: ID.jarryPickup, hostUserId: ID.amina, name: "Chez Amina, rue Jarry",
                             address: "Rue Jarry Est, Saint-Michel, Montréal", photoURL: nil, capacity: 25,
-                            accessibility: [.stepFree, .nearMetro], slots: [slot]),
+                            accessibility: [.stepFree, .nearMetro], slots: [slot], geohash: "f25dvs2"),
+                PickupPoint(id: ID.pieIXPickup, hostUserId: "user-karim", name: "Chez Karim, boul. Pie-IX",
+                            address: "8150 boul. Pie-IX, Saint-Michel, Montréal", photoURL: nil, capacity: 15,
+                            accessibility: [.parking],
+                            slots: PickupSlotBook.consecutiveSlots(from: saturday.addingTimeInterval(-2 * 3_600),
+                                                                   count: 3, duration: 3_600, capacity: 6),
+                            geohash: "f25dvk4"),
+                PickupPoint(id: ID.communityPickup, hostUserId: "user-sylvie",
+                            name: "Centre communautaire Saint-Michel",
+                            address: "7501 rue François-Perrault, Saint-Michel, Montréal", photoURL: nil, capacity: 60,
+                            accessibility: [.wheelchair, .stepFree, .elevator, .nearMetro],
+                            slots: PickupSlotBook.consecutiveSlots(from: saturday, count: 4, duration: 1_800,
+                                                                   capacity: 10),
+                            geohash: "f25dv94"),
             ]
         )
     }()

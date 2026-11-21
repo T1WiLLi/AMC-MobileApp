@@ -10,6 +10,8 @@ struct AMCMobileApp: App {
     @State private var appLock = AppLock()
     /// Contexte de démo rechargeable depuis l'écran caché (RQ-114, Features/Debug).
     @State private var demo: DemoEnvironment
+    /// Réseau et rechargement automatique (S-10) : lu par `RootView` et `.refreshOnForeground`.
+    @State private var network = NetworkMonitor()
 
     init() {
         // Fake, émulateur ou projet de démo (B-013) : voir `BackendMode` et docs/firebase.md §4.
@@ -26,6 +28,7 @@ struct AMCMobileApp: App {
                 // Réinitialisation de la démo : dépôts neufs, et `.id` recrée tous les écrans et leurs ViewModels.
                 .environment(\.appContext, demo.context)
                 .environment(demo)
+                .environment(network)
                 .id(demo.generation)
                 .appLock(appLock)
                 #if canImport(GoogleSignIn)

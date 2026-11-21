@@ -98,6 +98,8 @@ struct VendorDashboardScreen: View {
             .refreshable {
                 await viewModel.refresh()
             }
+            // Retour au premier plan ou du réseau : recharge sans repasser par le squelette.
+            .refreshOnForeground { await viewModel.refresh() }
         }
     }
 

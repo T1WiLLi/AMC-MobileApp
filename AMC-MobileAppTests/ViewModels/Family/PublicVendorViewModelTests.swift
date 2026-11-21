@@ -69,7 +69,9 @@ struct PublicVendorViewModelTests {
         #expect(profile.description == "Légumes biologiques cultivés à Mirabel depuis 1998.")
         #expect(profile.isVerified)
         #expect(profile.averageRating == 4.7)
-        #expect(profile.coverPhotoURL == nil)
+        #expect(profile.coverPhotoURL == DemoMedia.marcheBanner)
+        #expect(profile.photoURLs.count == 3)
+        #expect(profile.city == "Mirabel")
     }
 
     @Test func namesServedZonesFromGroupsOrFallsBackToCode() async throws {
@@ -158,7 +160,8 @@ struct PublicVendorViewModelTests {
         let profile = try #require(model.state.value)
 
         let labels = Set(Mirror(reflecting: profile).children.compactMap(\.label))
-        #expect(labels == ["id", "name", "kind", "description", "coverPhotoURL", "zones", "averageRating", "isVerified"])
+        #expect(labels == ["id", "name", "kind", "description", "coverPhotoURL", "photoURLs", "city", "neighborhood",
+                           "memberSince", "zones", "averageRating", "isVerified"])
 
         let forbidden = ["revenue", "revenu", "email", "courriel", "phone", "telephone", "address", "adresse", "geohash"]
         let allLabels = labels
@@ -167,5 +170,62 @@ struct PublicVendorViewModelTests {
         for label in allLabels {
             #expect(!forbidden.contains { label.lowercased().contains($0) }, "Champ privé exposé : \(label)")
         }
+    }
+
+    // MARK: Avis et confiance (T-157)
+
+    private func reviewModel(vendorId: String, householdId: String = ID.aminaHousehold) -> PublicVendorViewModel {
+        PublicVendorViewModel(vendorId: vendorId, repositories: .fake(behavior: .instant),
+                              viewer: .init(userId: ID.amina, householdId: householdId))
+    }
+
+    @Test func loadsReputationTrustAndEligibility() async throws {
+        let model = reviewModel(vendorId: ID.fermeRive)
+        await model.load()
+        let reputation = try #require(model.reputation.value)
+        #expect(reputation.summary.count == 5)
+        #expect(reputation.summary.average == 4.6)
+        #expect(reputation.trust.deliveredLots == 4)
+        #expect(reputation.trust.familiesServed == 21 + 17 + 29 + 14)
+        #expect(reputation.trust.lastSale?.productName == "Carottes nantaises")
+        #expect(reputation.myReview == nil)
+        #expect(reputation.eligibleSale?.id == "order-past-rive-carottes")
+        #expect(reputation.canReview)
+        #expect(model.state.value?.neighborhood == "Saint-Michel")
+        #expect(model.bestPriceByProduct[ID.potatoes] == 850)
+    }
+
+    @Test func householdThatNeverBoughtCannotReview() async throws {
+        let model = reviewModel(vendorId: ID.moulinsDuNord)
+        await model.load()
+        let reputation = try #require(model.reputation.value)
+        #expect(!reputation.canReview)
+        #expect(await model.saveReview(rating: 5, comment: "Super") == .permissionDenied)
+    }
+
+    @Test func savesThenEditsTheHouseholdReview() async throws {
+        let model = reviewModel(vendorId: ID.fermeRive)
+        await model.load()
+        #expect(await model.saveReview(rating: 4, comment: "  Très frais !  ") == nil)
+        let mine = try #require(model.reputation.value?.myReview)
+        #expect(mine.rating == 4)
+        #expect(mine.comment == "Très frais !")
+        #expect(mine.authorName == "Amina B.")
+        #expect(mine.id == VendorReview.documentId(vendorId: ID.fermeRive, householdId: ID.aminaHousehold))
+        #expect(model.reputation.value?.summary.count == 6)
+
+        #expect(await model.saveReview(rating: 2, comment: "") == nil)
+        let edited = try #require(model.reputation.value?.myReview)
+        #expect(edited.rating == 2)
+        #expect(edited.comment == nil)
+        #expect(edited.createdAt == mine.createdAt)
+        #expect(model.reputation.value?.summary.count == 6)
+    }
+
+    @Test func viewerWithoutHouseholdCannotReview() async {
+        let model = PublicVendorViewModel(vendorId: ID.fermeRive, repositories: .fake(behavior: .instant))
+        await model.load()
+        #expect(model.reputation.value?.canReview == false)
+        #expect(await model.saveReview(rating: 5, comment: "") == .unauthenticated)
     }
 }

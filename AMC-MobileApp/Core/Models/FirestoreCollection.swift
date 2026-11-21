@@ -15,6 +15,8 @@ nonisolated enum FirestoreCollection {
     static let pickupPoints = "pickupPoints"
     /// B-056 : invitations à usage unique des groupes privés (`groupInvitations/{code}`).
     static let groupInvitations = "groupInvitations"
+    /// T-157 : avis des familles sur les producteurs (`vendorReviews/{vendorId}_{householdId}`).
+    static let vendorReviews = "vendorReviews"
 
     static func householdPrivate(_ householdId: String) -> String { "households/\(householdId)/private" }
     static func members(ofGroup groupId: String) -> String { "groups/\(groupId)/members" }

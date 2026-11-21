@@ -230,6 +230,8 @@ nonisolated struct AppRepositories: Sendable {
     var organizations: any OrganizationRepository = FakeOrganizationRepository(
         organizations: [], profiles: [], donations: [], sponsorships: []
     )
+    /// T-157 : avis des familles sur les producteurs et ventes livrées (page producteur). Fake vide par défaut.
+    var reviews: any VendorReviewRepository = FakeVendorReviewRepository()
 
     /// Dépôts en mémoire VIDES (aucune persona de `FakeData`) : repli quand Firebase n'est pas configuré
     /// et contexte non résolu (`AppContext.unresolved`). Un écran qui les lit n'affiche rien plutôt que du faux.
@@ -263,7 +265,9 @@ nonisolated struct AppRepositories: Sendable {
             images: FakeImageStore(behavior: behavior),
             boroughStats: FakeBoroughStatsRepository(behavior: behavior, stats: FakeData.montrealBoroughs),
             deliveries: FakeVolunteerDeliveryRepository.demo(behavior: behavior),
-            organizations: FakeOrganizationRepository(behavior: behavior)
+            organizations: FakeOrganizationRepository(behavior: behavior),
+            reviews: FakeVendorReviewRepository(behavior: behavior, reviews: FakeData.demoVendorReviews,
+                                                sales: FakeData.demoVendorSales)
         )
     }
 }

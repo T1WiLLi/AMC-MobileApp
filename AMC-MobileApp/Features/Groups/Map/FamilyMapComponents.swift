@@ -239,15 +239,27 @@ struct FamilyMapPlaceCard: View {
             .tint(.grenier)
             .controlSize(.large)
             .accessibilityHint("Ouvre Plans")
-        case .producer(_, let offerId?, _):
-            NavigationLink(value: OfferRoute(offerId: offerId)) {
-                actionLabel("Voir son lot", systemImage: "basket.fill")
+        case .producer(let vendor, let offerId, _):
+            // T-157 : la page du producteur (étoiles, produits, prix, dernière vente) est l'action principale.
+            VStack(spacing: 8) {
+                NavigationLink {
+                    PublicVendorScreen(vendorId: vendor.id)
+                } label: {
+                    actionLabel("Voir le producteur", systemImage: "storefront.fill")
+                }
+                .buttonStyle(.glassProminent)
+                .tint(.grenier)
+                .controlSize(.large)
+                .accessibilityHint("Ouvre la page de \(vendor.legalName) : avis, produits et prix")
+                if let offerId {
+                    NavigationLink(value: OfferRoute(offerId: offerId)) {
+                        actionLabel("Voir son lot", systemImage: "basket.fill")
+                    }
+                    .buttonStyle(.glass)
+                    .tint(.grenier)
+                    .controlSize(.large)
+                }
             }
-            .buttonStyle(.glassProminent)
-            .tint(.grenier)
-            .controlSize(.large)
-        case .producer(_, nil, _):
-            EmptyView()
         }
     }
 

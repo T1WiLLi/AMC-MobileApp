@@ -39,6 +39,7 @@ extension AppRepositories {
         repositories.deliveries = FirestoreVolunteerDeliveryRepository()  // RQ-069 — groupOrders/{id}/deliveries
         repositories.organizations = FirestoreOrganizationRepository() // T-116 — organizations, groups/{id}/solidarity
         repositories.boroughStats = FirestoreBoroughStatsRepository() // RQ-093 — boroughStats
+        repositories.reviews = FirestoreVendorReviewRepository()     // T-157 — vendorReviews (+ ventes livrées)
         return repositories
         #else
         return .empty()

@@ -104,6 +104,18 @@ struct LockScreen: View {
             Image(systemName: "basket.fill")
                 .font(.largeTitle)
                 .imageScale(.large)
+                .symbolRenderingMode(.hierarchical)
+                .padding(24)
+                .background(Color.grenier.opacity(0.12), in: .circle)
+                // Cadenas en badge : le grenier est fermé, pas vide.
+                .overlay(alignment: .bottomTrailing) {
+                    Image(systemName: lock.isLocked ? "lock.fill" : "lock.open.fill")
+                        .font(.title3)
+                        .foregroundStyle(Color.onAccent)
+                        .padding(8)
+                        .background(Color.grenier, in: .circle)
+                        .contentTransition(.symbolEffect(.replace))
+                }
                 .symbolEffect(.bounce, value: lock.isLocked)
                 .foregroundStyle(Color.grenier)
                 .accessibilityHidden(true)

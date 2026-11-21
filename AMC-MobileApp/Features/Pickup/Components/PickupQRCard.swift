@@ -43,9 +43,15 @@ struct PickupQRCard: View {
                 .accessibilityHint("Montre-le à \(hostName) pour récupérer ta part.")
 
             VStack(spacing: 4) {
-                Text("Montre ce code à \(hostName)")
-                    .font(.title3.bold())
-                    .foregroundStyle(.texte)
+                Label {
+                    Text("Montre ce code à \(hostName)")
+                } icon: {
+                    Image(systemName: "qrcode.viewfinder")
+                        .symbolRenderingMode(.hierarchical)
+                        .foregroundStyle(Color.grenier)
+                }
+                .font(.title3.bold())
+                .foregroundStyle(.texte)
                 if let detail {
                     Text(detail)
                         .font(.subheadline)

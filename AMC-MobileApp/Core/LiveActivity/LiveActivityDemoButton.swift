@@ -54,7 +54,10 @@ struct LiveActivityDemoPanel: View {
                     .foregroundStyle(Color.grenier)
                     .contentTransition(.numericText())
             } else {
-                Text("Aucune activité en cours").font(.subheadline).foregroundStyle(.secondary)
+                Label("Aucune activité en cours", systemImage: "pause.circle")
+                    .symbolRenderingMode(.hierarchical)
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
             }
             LiveActivityDemoButton(controller: controller)
         }

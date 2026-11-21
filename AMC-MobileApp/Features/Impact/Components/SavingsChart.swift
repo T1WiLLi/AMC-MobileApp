@@ -25,9 +25,22 @@ struct SavingsChart: View {
         VStack(alignment: .leading, spacing: 16) {
             header
             if months.isEmpty {
-                Text("Tes économies apparaîtront ici après ta première cueillette.")
-                    .font(.subheadline)
-                    .foregroundStyle(.texteSecondaire)
+                // État vide illustré : petites barres en attente d'une première cueillette.
+                VStack(spacing: 10) {
+                    Image(systemName: "chart.bar.xaxis.ascending")
+                        .font(.largeTitle)
+                        .symbolRenderingMode(.hierarchical)
+                        .foregroundStyle(Color.economie)
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 12)
+                        .background(Color.economie.opacity(0.10), in: .rect(cornerRadius: 16))
+                        .symbolEffect(.pulse, options: .repeating, isActive: !reduceMotion)
+                        .accessibilityHidden(true)
+                    Label("Tes économies apparaîtront ici après ta première cueillette.", systemImage: "basket.fill")
+                        .symbolRenderingMode(.hierarchical)
+                        .font(.subheadline)
+                        .foregroundStyle(.texteSecondaire)
+                }
             } else {
                 chart
             }
@@ -46,9 +59,15 @@ struct SavingsChart: View {
             ? AnyLayout(VStackLayout(alignment: .leading, spacing: 4))
             : AnyLayout(HStackLayout(alignment: .firstTextBaseline))
         layout {
-            Text("Tes économies")
-                .font(.title3.bold())
-                .foregroundStyle(.texte)
+            Label {
+                Text("Tes économies")
+                    .foregroundStyle(.texte)
+            } icon: {
+                Image(systemName: GrenierSymbol.savings)
+                    .symbolRenderingMode(.hierarchical)
+                    .foregroundStyle(Color.economie)
+            }
+            .font(.title3.bold())
             if !dynamicTypeSize.isAccessibilitySize { Spacer(minLength: 8) }
             AnimatedCounter(value: current?.savedCents ?? 0, format: .money)
                 .priceStyle(.largeTitle.bold())

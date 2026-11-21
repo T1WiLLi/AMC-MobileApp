@@ -142,8 +142,11 @@ struct NotificationPermissionView: View {
     }
 
     private var laterButton: some View {
-        Button("Plus tard") {
+        Button {
             onFinish(status ?? .notDetermined)
+        } label: {
+            Label("Plus tard", systemImage: "clock.arrow.circlepath")
+                .symbolRenderingMode(.hierarchical)
         }
         .buttonStyle(.borderless)
         .foregroundStyle(Color.texteSecondaire)

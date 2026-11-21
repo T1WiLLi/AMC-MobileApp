@@ -554,6 +554,43 @@ describe('images en bytes (T-132, Q-033)', () => {
   })
 })
 
+describe('marque du groupe (B-036, T-152)', () => {
+  const branding = {
+    displayName: 'Les Voisins de Parc-Ex', emblem: 'leaf.fill',
+    accentLight: '#1E6B52', accentDark: '#7FD1AE', welcomeMessage: 'Bienvenue, voisin !'
+  }
+
+  beforeEach(async () => {
+    await env.withSecurityRulesDisabled(async (context) => {
+      await setDoc(doc(context.firestore(), 'groups/group-brand'), {
+        id: 'group-brand', name: 'Groupe marque', isPublic: true, inviteCode: 'BRAND', householdCount: 1, coordinatorIds: ['amina']
+      })
+    })
+  })
+
+  test('le coordonnateur change la marque', async () => {
+    await assertSucceeds(updateDoc(doc(amina(), 'groups/group-brand'), { branding }))
+  })
+  test('le coordonnateur revient à la marque par défaut (objet vide)', async () => {
+    await assertSucceeds(updateDoc(doc(amina(), 'groups/group-brand'), { branding: {} }))
+  })
+  test('un non-coordonnateur ne change pas la marque', async () => {
+    await assertFails(updateDoc(doc(intruder(), 'groups/group-brand'), { branding }))
+  })
+  test('la marque ne passe pas avec un autre champ', async () => {
+    await assertFails(updateDoc(doc(amina(), 'groups/group-brand'), { branding, name: 'Renommé' }))
+  })
+  test('refuse un champ inconnu dans la marque', async () => {
+    await assertFails(updateDoc(doc(amina(), 'groups/group-brand'), { branding: { ...branding, logoURL: 'https://x' } }))
+  })
+  test('refuse un accent qui n’est pas #RRGGBB', async () => {
+    await assertFails(updateDoc(doc(amina(), 'groups/group-brand'), { branding: { accentLight: 'vert' } }))
+  })
+  test('refuse un nom trop long', async () => {
+    await assertFails(updateDoc(doc(amina(), 'groups/group-brand'), { branding: { displayName: 'x'.repeat(41) } }))
+  })
+})
+
 describe('point de cueillette seedé (T-144)', () => {
   const seeded = {
     id: 'pickup-seed', groupId: 'group-parc-extension', neighborhood: 'parc-extension', hostUserId: 'amina',

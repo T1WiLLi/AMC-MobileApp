@@ -200,7 +200,27 @@ service cloud.firestore {
     match /groups/{groupId} {
       allow read: if isAuthenticated();
       allow create, delete: if false;
-      allow update: if isMembershipCountUpdate() || isMediaStampUpdate();
+      allow update: if isMembershipCountUpdate() || isMediaStampUpdate() || isBrandingUpdate();
+
+      // B-036 (T-152) : le coordonnateur change la marque du groupe (champ `branding` seulement).
+      // Champs absents = valeur par défaut (GroupBranding) ; accents en « #RRGGBB ».
+      function isBrandingUpdate() {
+        let branding = request.resource.data.branding;
+        return isGroupCoordinator(groupId)
+          && onlyChanges(['branding'])
+          && branding is map
+          && branding.keys().hasOnly(['displayName', 'emblem', 'accentLight', 'accentDark', 'welcomeMessage'])
+          && isOptionalString(branding, 'displayName', 40)
+          && isOptionalString(branding, 'emblem', 64)
+          && isOptionalString(branding, 'welcomeMessage', 160)
+          && isOptionalHex(branding, 'accentLight')
+          && isOptionalHex(branding, 'accentDark');
+      }
+
+      function isOptionalHex(data, field) {
+        return !(field in data) || data[field] == null
+          || (data[field] is string && data[field].matches('^#[0-9A-Fa-f]{6}$'));
+      }
 
       // T-132 : le coordonnateur pose photoUpdatedAt / bannerUpdatedAt (= request.time) après avoir écrit
       // groups/{groupId}/media/{photo|banner} ; rien d'autre ne bouge.

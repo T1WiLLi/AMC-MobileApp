@@ -69,7 +69,8 @@ extension SearchScreen {
             .init(name: "Farine de blé", vendor: "Les Moulins du Nord", region: "Lanaudière", category: .flour),
             .init(name: "Lentilles corail", vendor: "Coop Agrinord", region: "Abitibi", category: .legumes),
             .init(name: "Pommes Cortland", vendor: "Verger Bilodeau", region: "Saint-Joseph-du-Lac", category: .produce),
-            .init(name: "Huile de canola", vendor: "Coop Agrinord", region: "Montérégie", category: .oils)
+            .init(name: "Huile de canola", vendor: "Coop Agrinord", region: "Montérégie", category: .oils),
+            .init(name: "Œufs de poules en liberté", vendor: "Ferme Bio-Rive", region: "Saint-Jean-sur-Richelieu", category: .eggs)
         ]
     }
 

@@ -26,10 +26,16 @@ private struct ProfileSheet: View {
 
     var body: some View {
         ProfileScreen()
-            .toolbar {
-                ToolbarItem(placement: .cancellationAction) {
-                    Button("Fermer", systemImage: "xmark") { dismiss() }
-                }
+            // ProfileScreen a sa propre NavigationStack : un ToolbarItem posé d'ici n'y apparaît pas.
+            // Le bouton se superpose donc à l'emplacement de la barre, en verre comme un bouton de barre.
+            .overlay(alignment: .topTrailing) {
+                Button("Fermer", systemImage: "xmark") { dismiss() }
+                    .labelStyle(.iconOnly)
+                    .buttonStyle(.glass)
+                    .buttonBorderShape(.circle)
+                    .controlSize(.large)
+                    .padding(.top, 12)
+                    .padding(.trailing, 16)
             }
             .scrollContentBackground(.hidden)
             .presentationBackground(Color.fond)

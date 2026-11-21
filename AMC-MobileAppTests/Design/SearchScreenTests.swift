@@ -15,6 +15,7 @@ struct SearchScreenTests {
         #expect(SearchScreen.filter(catalog, query: "riz").map(\.name) == ["Riz basmati"])
         #expect(SearchScreen.filter(catalog, query: "FARINE").map(\.name) == ["Farine de blé"])
         #expect(SearchScreen.filter(catalog, query: "lentilles").map(\.name) == ["Lentilles corail"])
+        #expect(SearchScreen.filter(catalog, query: "œufs").map(\.name) == ["Œufs de poules en liberté"])
     }
 
     @Test func ignoresAccents() {

@@ -32,6 +32,7 @@ struct PlaceholderScreen: View {
                     Text("Ça arrive très bientôt.")
                         .font(.footnote)
                         .foregroundStyle(.texteSecondaire)
+                        .multilineTextAlignment(.center)
                 }
                 // Hauteur minimale = zone visible : centré quand ça tient, défile quand ça déborde (AX5).
                 .frame(maxWidth: .infinity, minHeight: visibleHeight)

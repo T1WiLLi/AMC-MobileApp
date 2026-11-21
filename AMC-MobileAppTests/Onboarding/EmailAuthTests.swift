@@ -176,6 +176,7 @@ struct EmailSessionTests {
     }
 }
 
+@MainActor
 struct EmailAuthValidationTests {
     @Test func emailFormat() {
         #expect(EmailAuthValidation.isValidEmail("amina@example.com"))

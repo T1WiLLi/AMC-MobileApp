@@ -34,7 +34,7 @@ struct ImpactScreen: View {
                             .refreshable { await load(viewModel) }
                         }
                     }
-                } else if context.groupId == nil {
+                } else if context.isResolved && !context.hasGroup {
                     ImpactIllustratedEmptyView(
                         title: "Pas encore d'impact",
                         message: "Rejoins un groupe de ton quartier pour voir ce que vous changez ensemble.",
@@ -50,8 +50,8 @@ struct ImpactScreen: View {
             .navigationTitle("Impact")
             .profileToolbar()
         }
-        .task {
-            guard viewModel == nil, let groupId = context.groupId else { return }
+        .task(id: context.groupId) {
+            guard viewModel == nil, context.hasGroup, let groupId = context.groupId else { return }
             let model = ImpactViewModel(repositories: context.repositories, householdId: context.householdId, groupId: groupId)
             viewModel = model
             await load(model)

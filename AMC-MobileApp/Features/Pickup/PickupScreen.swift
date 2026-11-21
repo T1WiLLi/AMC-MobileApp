@@ -29,7 +29,7 @@ struct PickupScreen: View {
                                 .refreshable { await viewModel.load() }
                         }
                     }
-                } else if context.groupId == nil {
+                } else if context.isResolved && !context.hasGroup {
                     PickupIllustratedEmptyView(
                         title: "Aucune cueillette prévue",
                         message: "Rejoins un groupe de ton quartier pour réserver ta première part.",
@@ -50,8 +50,8 @@ struct PickupScreen: View {
             // Retour sur l'onglet (ou depuis une fiche) : une part réservée entre-temps apparaît sans tirer pour actualiser.
             .onAppear { reloadIfAlreadyLoaded() }
         }
-        .task {
-            guard viewModel == nil, let groupId = context.groupId else { return }
+        .task(id: context.groupId) {
+            guard viewModel == nil, context.hasGroup, let groupId = context.groupId else { return }
             let model = PickupViewModel(repositories: context.repositories, householdId: context.householdId, groupId: groupId)
             viewModel = model
             await model.load()

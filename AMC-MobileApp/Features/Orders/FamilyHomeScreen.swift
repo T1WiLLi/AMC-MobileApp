@@ -12,7 +12,7 @@ struct FamilyHomeScreen: View {
     var body: some View {
         NavigationStack {
             Group {
-                if context.groupId == nil {
+                if context.isResolved && !context.hasGroup {
                     NoGroupView()
                 } else if let viewModel, !viewModel.state.isLoading, !isIdle(viewModel.state) {
                     StateView(
@@ -40,7 +40,7 @@ struct FamilyHomeScreen: View {
         // Retour au premier plan ou du réseau : `load()` garde le contenu affiché pendant le rechargement.
         .refreshOnForeground { await viewModel?.load() }
         .task(id: identity) {
-            guard let groupId = context.groupId else {
+            guard context.hasGroup, let groupId = context.groupId else {
                 viewModel = nil
                 loadedIdentity = nil
                 return

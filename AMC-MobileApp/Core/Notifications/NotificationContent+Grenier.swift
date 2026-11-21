@@ -35,8 +35,6 @@ nonisolated struct GrenierNotification: Sendable, Hashable {
         case deliveryArrived(pickupPointName: String)
         /// Rappel programmé 1 h avant le début du créneau de cueillette.
         case pickupReminder(pickupPointName: String, slot: PickupSlot)
-        /// Rappel programmé 24 h avant la date limite du lot (commande encore ouverte).
-        case deadlineReminder(deadline: Date)
     }
 
     /// Famille d'événement : sert aux identifiants et aux catégories.
@@ -46,7 +44,6 @@ nonisolated struct GrenierNotification: Sendable, Hashable {
         case outcome
         case delivery
         case pickupReminder
-        case deadlineReminder
 
         /// Identifiant stable pour une commande : programmer à nouveau remplace la notification précédente.
         func identifier(forOrder orderId: String) -> String {
@@ -63,7 +60,6 @@ nonisolated struct GrenierNotification: Sendable, Hashable {
         case .orderClosed, .orderCancelled: .outcome
         case .deliveryArrived: .delivery
         case .pickupReminder: .pickupReminder
-        case .deadlineReminder: .deadlineReminder
         }
     }
 
@@ -78,9 +74,6 @@ nonisolated struct GrenierNotification: Sendable, Hashable {
 
     /// Avance du rappel de cueillette sur le début du créneau.
     static let pickupReminderLead: TimeInterval = 60 * 60
-
-    /// Avance du rappel de date limite sur la fermeture du lot.
-    static let deadlineReminderLead: TimeInterval = 24 * 60 * 60
 
     /// Clés de `userInfo` pour ouvrir le bon écran quand on touche la notification.
     enum UserInfoKey {
@@ -105,8 +98,6 @@ extension GrenierNotification {
             "C'est arrivé à \(pickupPointName) !"
         case .pickupReminder:
             "Cueillette dans 1 h"
-        case .deadlineReminder:
-            "Plus que 24 h à \(order.groupName)"
         }
     }
 
@@ -126,9 +117,6 @@ extension GrenierNotification {
             let start = Self.hour(slot.start, calendar: calendar)
             let end = Self.hour(slot.end, calendar: calendar)
             return "\(product) t'attend à \(pickupPointName), de \(start) à \(end)."
-        case .deadlineReminder(let deadline):
-            let hour = Self.hour(deadline, calendar: calendar)
-            return "\(product) : la commande ferme demain à \(hour). Invite tes voisins pour faire baisser le prix."
         }
     }
 
@@ -155,28 +143,19 @@ extension GrenierNotification {
     }
 
     /// Date de livraison prévue : nil pour une notification immédiate.
-    /// Pour le rappel de cueillette, 1 h avant le créneau ; pour la date limite, 24 h avant
-    /// (nil si cette heure est déjà passée).
+    /// Pour le rappel de cueillette, 1 h avant le créneau (nil si cette heure est déjà passée).
     func fireDate(now: Date = .now) -> Date? {
-        let date: Date
-        switch event {
-        case .pickupReminder(_, let slot): date = slot.start.addingTimeInterval(-Self.pickupReminderLead)
-        case .deadlineReminder(let deadline): date = deadline.addingTimeInterval(-Self.deadlineReminderLead)
-        default: return nil
-        }
+        guard case .pickupReminder(_, let slot) = event else { return nil }
+        let date = slot.start.addingTimeInterval(-Self.pickupReminderLead)
         return date > now ? date : nil
     }
 
-    /// Un rappel n'a plus de sens si son heure est passée (créneau dans moins d'une heure,
-    /// fermeture dans moins de 24 h).
+    /// Le rappel de cueillette n'a plus de sens si le créneau commence dans moins d'une heure.
     func isExpired(now: Date = .now) -> Bool {
-        switch event {
-        case .pickupReminder, .deadlineReminder: fireDate(now: now) == nil
-        default: false
-        }
+        if case .pickupReminder = event { fireDate(now: now) == nil } else { false }
     }
 
-    /// Déclencheur : calendrier pour les rappels, immédiat (nil) sinon.
+    /// Déclencheur : calendrier pour le rappel de cueillette, immédiat (nil) sinon.
     func makeTrigger(calendar: Calendar = .current, now: Date = .now) -> UNNotificationTrigger? {
         guard let date = fireDate(now: now) else { return nil }
         let components = calendar.dateComponents([.year, .month, .day, .hour, .minute], from: date)

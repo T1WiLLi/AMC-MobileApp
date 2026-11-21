@@ -22,7 +22,7 @@ nonisolated final class FirestoreOfferRepository: OfferRepository, @unchecked Se
     func activeOffers(inZone zone: String?) async throws -> [Offer] {
         var query: Query = offersRef.whereField("status", isEqualTo: Offer.Status.active.rawValue)
         if let zone { query = query.whereField("zones", arrayContains: zone) }
-        return try await PerfSignposts.measure("firestore.activeOffers") { try await fetch(query) }
+        return try await fetch(query)
     }
 
     func offers(ofVendor vendorId: String) async throws -> [Offer] {

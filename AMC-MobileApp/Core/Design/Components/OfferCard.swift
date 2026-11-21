@@ -47,8 +47,6 @@ struct OfferCard: View {
                 }
                 if !isAccessibilityLayout { Spacer(minLength: 8) }
                 PriceTag(priceCents: currentPriceCents, unit: product.unit, font: .priceCompact)
-                    // Le prix garde sa largeur ; c'est l'incitation à gauche qui passe à la ligne.
-                    .layoutPriority(1)
             }
         }
         .grenierCard()

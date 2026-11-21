@@ -3,9 +3,6 @@ import SwiftUI
 
 /// Onglet Revenus du portail Vendeur (T-037) : revenus prévus, par lot, par quartier, familles servies
 /// et prochaines livraisons. Lit `VendorDashboardViewModel` via `VendorRevenueModel`.
-///
-/// T-085 : SF Symbols partout (en-tête illustré, chiffres clés, titres de section, lots, quartiers, livraisons),
-/// squelette de chargement et état vide illustrés. Les effets de symbole sont coupés sous Reduce Motion.
 struct VendorRevenueScreen: View {
     @State private var model: VendorRevenueModel
 
@@ -15,31 +12,27 @@ struct VendorRevenueScreen: View {
 
     var body: some View {
         NavigationStack {
-            content
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
-                .grenierBackground()
-                .navigationTitle("Revenus")
-                .profileToolbar()
-        }
-        .task {
-            if case .idle = model.state { await model.load() }
-        }
-    }
-
-    @ViewBuilder
-    private var content: some View {
-        switch model.state {
-        case .idle, .loading:
-            VendorRevenueSkeleton()
-        case .empty:
-            VendorRevenueEmptyState()
-        case .failed, .loaded:
-            StateView(state: model.state, retry: { await model.load() }) { revenue in
+            StateView(
+                state: model.state,
+                empty: .init(
+                    title: "Aucun revenu prévu",
+                    systemImage: "dollarsign.circle",
+                    message: "Publie un lot : tes revenus s'afficheront ici dès que des familles s'engagent."
+                ),
+                retry: { await model.load() }
+            ) { revenue in
                 ScrollView {
                     VendorRevenueContent(revenue: revenue)
                 }
                 .refreshable { await model.refresh() }
             }
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .grenierBackground()
+            .navigationTitle("Revenus")
+            .profileToolbar()
+        }
+        .task {
+            if case .idle = model.state { await model.load() }
         }
     }
 }
@@ -54,16 +47,16 @@ struct VendorRevenueContent: View {
             TotalCard(revenue: revenue)
             KeyFigures(revenue: revenue)
 
-            SectionTitle("Par lot", systemImage: "chart.bar.xaxis", tint: .grenier)
+            SectionTitle("Par lot")
             OfferRevenueChart(offers: revenue.offers)
                 .grenierCard()
 
             if !revenue.neighborhoods.isEmpty {
-                SectionTitle("Par quartier", systemImage: GrenierSymbol.map, tint: .solidarite)
+                SectionTitle("Par quartier")
                 NeighborhoodList(neighborhoods: revenue.neighborhoods)
             }
 
-            SectionTitle("Prochaines livraisons", systemImage: "truck.box.fill", tint: .economie)
+            SectionTitle("Prochaines livraisons")
             DeliveryList(deliveries: revenue.deliveries)
         }
         .padding(.horizontal, 16)
@@ -73,67 +66,36 @@ struct VendorRevenueContent: View {
 
 private struct SectionTitle: View {
     let title: LocalizedStringKey
-    let systemImage: String
-    let tint: Color
 
-    init(_ title: LocalizedStringKey, systemImage: String, tint: Color) {
-        self.title = title
-        self.systemImage = systemImage
-        self.tint = tint
-    }
+    init(_ title: LocalizedStringKey) { self.title = title }
 
     var body: some View {
-        Label {
-            Text(title)
-        } icon: {
-            Image(systemName: systemImage)
-                .symbolRenderingMode(.hierarchical)
-                .foregroundStyle(tint)
-        }
-        .font(.title2.bold())
-        .foregroundStyle(.texte)
-        .padding(.top, 12)
-        .accessibilityAddTraits(.isHeader)
+        Text(title)
+            .font(.title2.bold())
+            .foregroundStyle(.texte)
+            .padding(.top, 12)
+            .accessibilityAddTraits(.isHeader)
     }
 }
 
-/// En-tête : composition de symboles et grand montant des revenus prévus.
+/// Grand montant : revenus prévus totaux.
 private struct TotalCard: View {
     let revenue: VendorRevenueSummary
 
-    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
-
     var body: some View {
-        let layout = dynamicTypeSize.isAccessibilitySize
-            ? AnyLayout(VStackLayout(alignment: .leading, spacing: 12))
-            : AnyLayout(HStackLayout(alignment: .center, spacing: 16))
-        layout {
-            VStack(alignment: .leading, spacing: 6) {
-                Label("Revenus prévus", systemImage: "banknote.fill")
-                    .font(.subheadline)
-                    .foregroundStyle(.texteSecondaire)
-                    .symbolRenderingMode(.hierarchical)
-                Text(Money.format(revenue.totalCents))
-                    .priceStyle(.largeTitle.bold())
-                    .foregroundStyle(.texte)
-                    .contentTransition(.numericText(value: Double(revenue.totalCents)))
-                    .grenierAnimation(.smooth, value: revenue.totalCents)
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.6)
-                Label {
-                    Text(caption)
-                } icon: {
-                    Image(systemName: revenue.topOffer == nil ? "hourglass" : "star.fill")
-                        .contentTransition(.symbolEffect(.replace))
-                }
+        VStack(alignment: .leading, spacing: 6) {
+            Text("Revenus prévus")
+                .font(.subheadline)
+                .foregroundStyle(.texteSecondaire)
+            Text(Money.format(revenue.totalCents))
+                .priceStyle(.largeTitle.bold())
+                .foregroundStyle(.texte)
+                .contentTransition(.numericText())
+            Text(caption)
                 .font(.subheadline.weight(.semibold))
                 .foregroundStyle(Color.grenier)
-                .symbolRenderingMode(.hierarchical)
-            }
-            .frame(maxWidth: .infinity, alignment: .leading)
-
-            VendorRevenueHeroArt()
         }
+        .frame(maxWidth: .infinity, alignment: .leading)
         .grenierCard(padding: 20)
         .accessibilityElement(children: .combine)
     }
@@ -145,44 +107,6 @@ private struct TotalCard: View {
             return "\(lots) · surtout \(top.title.lowercased())"
         }
         return "\(lots) · aucun palier atteint pour l'instant"
-    }
-}
-
-/// Composition de symboles : billets au centre, entourés de la courbe, des familles et des caisses.
-private struct VendorRevenueHeroArt: View {
-    @ScaledMetric(relativeTo: .largeTitle) private var side: CGFloat = 88
-    @Environment(\.accessibilityReduceMotion) private var reduceMotion
-    @State private var appeared = false
-
-    var body: some View {
-        ZStack {
-            Circle()
-                .fill(Color.economie.opacity(0.12))
-            Image(systemName: "banknote.fill")
-                .font(.system(size: side * 0.36))
-                .symbolRenderingMode(.hierarchical)
-                .foregroundStyle(Color.economie)
-                .symbolEffect(.bounce, value: reduceMotion ? false : appeared)
-            satellite("chart.line.uptrend.xyaxis", tint: .grenier, angle: -45)
-            satellite(GrenierSymbol.groups, tint: .solidarite, angle: 75)
-            satellite(GrenierSymbol.offers, tint: .grenier, angle: 195)
-        }
-        .frame(width: side, height: side)
-        .padding(8)
-        .onAppear { appeared = true }
-        .accessibilityHidden(true)
-    }
-
-    private func satellite(_ symbol: String, tint: Color, angle: Double) -> some View {
-        let radius = side * 0.5
-        let radians = angle * .pi / 180
-        return Image(systemName: symbol)
-            .font(.system(size: side * 0.15))
-            .symbolRenderingMode(.hierarchical)
-            .foregroundStyle(tint)
-            .frame(width: side * 0.3, height: side * 0.3)
-            .background(Color.surface, in: .circle)
-            .offset(x: cos(radians) * radius, y: sin(radians) * radius)
     }
 }
 
@@ -198,19 +122,15 @@ private struct KeyFigures: View {
         layout {
             FigureTile(
                 title: "Familles servies",
-                value: revenue.familiesServed,
+                value: revenue.familiesServed.formatted(),
                 detail: neighborhoodsDetail,
-                detailImage: GrenierSymbol.map,
-                systemImage: GrenierSymbol.groups,
-                tint: .solidarite
+                systemImage: GrenierSymbol.groups
             )
             FigureTile(
                 title: "Parts engagées",
-                value: revenue.committedShares,
+                value: revenue.committedShares.formatted(),
                 detail: "sur \(revenue.totalShares.formatted()) offertes",
-                detailImage: "chart.pie.fill",
-                systemImage: GrenierSymbol.offers,
-                tint: .grenier
+                systemImage: GrenierSymbol.offers
             )
         }
     }
@@ -226,40 +146,28 @@ private struct KeyFigures: View {
 
 private struct FigureTile: View {
     let title: String
-    let value: Int
+    let value: String
     let detail: String
-    let detailImage: String
     let systemImage: String
-    let tint: Color
-
-    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 6) {
-            Label {
-                Text(title)
-            } icon: {
-                Image(systemName: systemImage)
-                    .foregroundStyle(tint)
-                    .symbolEffect(.bounce, value: reduceMotion ? 0 : value)
-            }
-            .font(.subheadline)
-            .foregroundStyle(.texteSecondaire)
-            .symbolRenderingMode(.hierarchical)
-            Text(value.formatted())
-                .priceStyle()
-                .foregroundStyle(.texte)
-                .contentTransition(.numericText(value: Double(value)))
-                .grenierAnimation(.smooth, value: value)
-            Label(detail, systemImage: detailImage)
+        VStack(alignment: .leading, spacing: 4) {
+            Label(title, systemImage: systemImage)
                 .font(.subheadline)
                 .foregroundStyle(.texteSecondaire)
                 .symbolRenderingMode(.hierarchical)
+            Text(value)
+                .priceStyle()
+                .foregroundStyle(.texte)
+                .contentTransition(.numericText())
+            Text(detail)
+                .font(.subheadline)
+                .foregroundStyle(.texteSecondaire)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .grenierCard()
         .accessibilityElement(children: .ignore)
-        .accessibilityLabel("\(title) : \(value.formatted()), \(detail)")
+        .accessibilityLabel("\(title) : \(value), \(detail)")
     }
 }
 
@@ -309,32 +217,20 @@ private struct OfferRevenueChart: View {
     }
 }
 
-/// Libellé d'une barre : sceau du palier atteint (ou caisse), nom du lot et montant.
 private struct OfferBarLabel: View {
     let offer: VendorRevenueSummary.OfferRevenue
 
     var body: some View {
-        HStack(alignment: .firstTextBaseline, spacing: 6) {
-            Image(systemName: offer.tierNumber == nil ? "shippingbox" : "checkmark.seal.fill")
-                .symbolRenderingMode(.hierarchical)
-                .foregroundStyle(offer.tierNumber == nil ? Color.texteSecondaire : Color.grenier)
+        HStack(alignment: .firstTextBaseline, spacing: 8) {
             Text(offer.title)
                 .font(.subheadline.weight(.semibold))
                 .foregroundStyle(.texte)
-            if let tier = offer.tierNumber {
-                Text("P\(tier)")
-                    .font(.caption.bold())
-                    .foregroundStyle(Color.grenier)
-                    .accessibilityLabel("Palier \(tier)")
-            }
             Text(Money.format(offer.revenueCents))
                 .font(.subheadline.weight(.semibold))
                 .fontDesign(.rounded)
                 .monospacedDigit()
                 .foregroundStyle(offer.revenueCents > 0 ? Color.grenier : Color.texteSecondaire)
-                .contentTransition(.numericText(value: Double(offer.revenueCents)))
         }
-        .font(.subheadline)
         .lineLimit(1)
         .minimumScaleFactor(0.7)
     }
@@ -383,7 +279,7 @@ private struct NeighborhoodList: View {
                 if index > 0 {
                     Divider().padding(.leading, 16)
                 }
-                NeighborhoodRow(entry: entry, rank: index)
+                NeighborhoodRow(entry: entry)
             }
         }
         .padding(.vertical, 4)
@@ -393,8 +289,6 @@ private struct NeighborhoodList: View {
 
 private struct NeighborhoodRow: View {
     let entry: VendorRevenueSummary.NeighborhoodRevenue
-    /// Rang du quartier (0 = celui qui rapporte le plus).
-    let rank: Int
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     @ScaledMetric(relativeTo: .headline) private var iconSize: CGFloat = 44
 
@@ -404,49 +298,35 @@ private struct NeighborhoodRow: View {
             : AnyLayout(HStackLayout(alignment: .center, spacing: 12))
         layout {
             if !dynamicTypeSize.isAccessibilitySize {
-                Image(systemName: rank == 0 && entry.revenueCents > 0 ? "crown.fill" : "mappin.and.ellipse")
-                    .font(.title3)
+                Image(systemName: GrenierSymbol.map)
                     .symbolRenderingMode(.hierarchical)
-                    .foregroundStyle(Color.solidarite)
+                    .foregroundStyle(Color.grenier)
                     .frame(width: iconSize, height: iconSize)
-                    .background(Color.solidarite.opacity(0.12), in: .rect(cornerRadius: 14))
+                    .background(Color.grenier.opacity(0.12), in: .rect(cornerRadius: 14))
                     .accessibilityHidden(true)
             }
-            VStack(alignment: .leading, spacing: 4) {
+            VStack(alignment: .leading, spacing: 2) {
                 Text(entry.neighborhood)
                     .font(.headline)
                     .foregroundStyle(.texte)
-                Label(groupsText, systemImage: GrenierSymbol.groups)
-                    .font(.subheadline)
-                    .foregroundStyle(.texteSecondaire)
-                Label(familiesText, systemImage: "house.fill")
+                Text(detail)
                     .font(.subheadline)
                     .foregroundStyle(.texteSecondaire)
             }
-            .symbolRenderingMode(.hierarchical)
             .frame(maxWidth: .infinity, alignment: .leading)
-            Label {
-                Text(Money.format(entry.revenueCents))
-                    .priceStyle(.priceCompact)
-                    .foregroundStyle(entry.revenueCents > 0 ? .texte : .texteSecondaire)
-                    .contentTransition(.numericText(value: Double(entry.revenueCents)))
-            } icon: {
-                Image(systemName: "dollarsign.circle.fill")
-                    .symbolRenderingMode(.hierarchical)
-                    .foregroundStyle(Color.economie)
-            }
-            .labelStyle(.titleAndIcon)
+            Text(Money.format(entry.revenueCents))
+                .priceStyle(.priceCompact)
+                .foregroundStyle(entry.revenueCents > 0 ? .texte : .texteSecondaire)
         }
         .padding(.horizontal, 16)
         .padding(.vertical, 12)
         .accessibilityElement(children: .ignore)
-        .accessibilityLabel("\(entry.neighborhood), \(Money.format(entry.revenueCents)). \(groupsText) · \(familiesText)")
+        .accessibilityLabel("\(entry.neighborhood), \(Money.format(entry.revenueCents)). \(detail)")
     }
 
-    private var groupsText: String { entry.groupNames.formatted(.list(type: .and)) }
-
-    private var familiesText: String {
-        entry.households == 1 ? "1 famille" : "\(entry.households) familles"
+    private var detail: String {
+        let families = entry.households == 1 ? "1 famille" : "\(entry.households) familles"
+        return "\(entry.groupNames.formatted(.list(type: .and))) · \(families)"
     }
 }
 
@@ -457,65 +337,32 @@ private struct DeliveryList: View {
 
     var body: some View {
         if deliveries.isEmpty {
-            NoDeliveryCard()
+            Label("Aucun lot ne ferme dans les 3 prochains jours.", systemImage: "calendar")
+                .font(.subheadline)
+                .foregroundStyle(.texteSecondaire)
+                .symbolRenderingMode(.hierarchical)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .grenierCard()
         } else {
             VStack(spacing: 12) {
                 ForEach(deliveries) { delivery in
                     DeliveryCard(delivery: delivery)
-                        .grenierTransition(.cardAppear)
                 }
             }
         }
     }
 }
 
-/// Aucune livraison dans les 3 jours : petite scène calendrier coché + camion au repos.
-private struct NoDeliveryCard: View {
-    @ScaledMetric(relativeTo: .title) private var side: CGFloat = 56
-
-    var body: some View {
-        HStack(spacing: 14) {
-            ZStack(alignment: .bottomTrailing) {
-                Image(systemName: "calendar")
-                    .font(.system(size: side * 0.5))
-                    .symbolRenderingMode(.hierarchical)
-                    .foregroundStyle(Color.economie)
-                    .frame(width: side, height: side)
-                    .background(Color.economie.opacity(0.12), in: .rect(cornerRadius: 16))
-                Image(systemName: "checkmark.circle.fill")
-                    .font(.system(size: side * 0.3))
-                    .symbolRenderingMode(.hierarchical)
-                    .foregroundStyle(Color.economie)
-                    .background(Color.surface, in: .circle)
-                    .offset(x: 6, y: 6)
-            }
-            .accessibilityHidden(true)
-            VStack(alignment: .leading, spacing: 2) {
-                Text("Rien à livrer d'ici 3 jours")
-                    .font(.headline)
-                    .foregroundStyle(.texte)
-                Text("Aucun lot ne ferme dans les 3 prochains jours.")
-                    .font(.subheadline)
-                    .foregroundStyle(.texteSecondaire)
-            }
-        }
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .grenierCard()
-        .accessibilityElement(children: .combine)
-    }
-}
-
 private struct DeliveryCard: View {
     let delivery: VendorRevenueSummary.Delivery
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
-    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @ScaledMetric(relativeTo: .headline) private var iconSize: CGFloat = 52
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
             HStack(alignment: .top, spacing: 12) {
                 if !dynamicTypeSize.isAccessibilitySize {
-                    Image(systemName: delivery.groupName == nil ? "shippingbox" : "truck.box.fill")
+                    Image(systemName: GrenierSymbol.offers)
                         .font(.title3)
                         .symbolRenderingMode(.hierarchical)
                         .foregroundStyle(Color.grenier)
@@ -523,30 +370,27 @@ private struct DeliveryCard: View {
                         .background(Color.grenier.opacity(0.12), in: .rect(cornerRadius: 14))
                         .accessibilityHidden(true)
                 }
-                VStack(alignment: .leading, spacing: 4) {
+                VStack(alignment: .leading, spacing: 2) {
                     Text(delivery.offerTitle)
                         .font(.headline)
                         .foregroundStyle(.texte)
-                    orderLabel
+                    Text(subtitle)
+                        .font(.subheadline)
+                        .foregroundStyle(.texteSecondaire)
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
             }
 
             VStack(alignment: .leading, spacing: 6) {
-                Label {
-                    Text(closesText)
-                } icon: {
-                    Image(systemName: "clock.fill")
-                        .symbolEffect(.pulse, isActive: !reduceMotion)
-                }
-                .foregroundStyle(Color.grenier)
-                .font(.subheadline.weight(.semibold))
-                Label(pickupText, systemImage: delivery.pickupPointName == nil ? "mappin.slash" : "mappin.and.ellipse")
+                Label(closesText, systemImage: "clock.fill")
+                    .foregroundStyle(Color.grenier)
+                    .font(.subheadline.weight(.semibold))
+                Label(pickupText, systemImage: "mappin.and.ellipse")
                     .foregroundStyle(delivery.pickupPointName == nil ? .texteSecondaire : .texte)
                     .font(.subheadline)
                 if let start = delivery.pickupStart {
                     Label("Cueillette \(start.formatted(.dateTime.weekday(.wide).day().month().hour().minute()))",
-                          systemImage: "calendar.badge.clock")
+                          systemImage: "calendar")
                         .foregroundStyle(.texteSecondaire)
                         .font(.subheadline)
                 }
@@ -558,25 +402,10 @@ private struct DeliveryCard: View {
         .accessibilityElement(children: .combine)
     }
 
-    @ViewBuilder
-    private var orderLabel: some View {
-        if let group = delivery.groupName {
-            let shares = delivery.shares == 1 ? "1 part" : "\(delivery.shares) parts"
-            Label("\(group) · \(shares) · \(Money.format(delivery.revenueCents))", systemImage: GrenierSymbol.groups)
-                .font(.subheadline)
-                .foregroundStyle(.texteSecondaire)
-                .symbolRenderingMode(.hierarchical)
-        } else {
-            Label {
-                Text("Aucune commande pour l'instant")
-            } icon: {
-                Image(systemName: "hourglass")
-                    .symbolEffect(.pulse, isActive: !reduceMotion)
-            }
-            .font(.subheadline)
-            .foregroundStyle(.texteSecondaire)
-            .symbolRenderingMode(.hierarchical)
-        }
+    private var subtitle: String {
+        guard let group = delivery.groupName else { return "Aucune commande pour l'instant" }
+        let shares = delivery.shares == 1 ? "1 part" : "\(delivery.shares) parts"
+        return "\(group) · \(shares) · \(Money.format(delivery.revenueCents))"
     }
 
     private var closesText: String {
@@ -585,95 +414,6 @@ private struct DeliveryCard: View {
 
     private var pickupText: String {
         delivery.pickupPointName ?? "Point de cueillette à choisir"
-    }
-}
-
-// MARK: - Chargement, état vide
-
-/// Squelette de chargement : grand montant, deux tuiles et le graphique en `.placeholder`.
-private struct VendorRevenueSkeleton: View {
-    var body: some View {
-        ScrollView {
-            VStack(alignment: .leading, spacing: 12) {
-                VStack(alignment: .leading, spacing: 6) {
-                    Label("Revenus prévus", systemImage: "banknote.fill")
-                        .font(.subheadline)
-                    Text("1 234,56 $")
-                        .priceStyle(.largeTitle.bold())
-                    Text("3 lots ouverts · surtout les pommes")
-                        .font(.subheadline)
-                }
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .grenierCard(padding: 20)
-                HStack(spacing: 12) {
-                    ForEach(0..<2, id: \.self) { _ in
-                        VStack(alignment: .leading, spacing: 6) {
-                            Label("Familles servies", systemImage: GrenierSymbol.groups)
-                                .font(.subheadline)
-                            Text("42").priceStyle()
-                        }
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                        .grenierCard()
-                    }
-                }
-                Label("Par lot", systemImage: "chart.bar.xaxis")
-                    .font(.title2.bold())
-                    .padding(.top, 12)
-                VStack(alignment: .leading, spacing: 14) {
-                    ForEach(0..<3, id: \.self) { _ in
-                        Text("Pommes Cortland · 480 $").font(.subheadline)
-                        Capsule().fill(Color.piste).frame(height: 16)
-                    }
-                }
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .grenierCard()
-            }
-            .padding(.horizontal, 16)
-        }
-        .redacted(reason: .placeholder)
-        .scrollDisabled(true)
-        .accessibilityElement(children: .ignore)
-        .accessibilityLabel("Chargement des revenus")
-    }
-}
-
-/// État vide illustré : billets en attente, entourés d'une caisse et des familles.
-private struct VendorRevenueEmptyState: View {
-    @Environment(\.accessibilityReduceMotion) private var reduceMotion
-
-    var body: some View {
-        ContentUnavailableView {
-            VStack(spacing: 12) {
-                ZStack {
-                    Circle()
-                        .fill(Color.economie.opacity(0.12))
-                        .frame(width: 120, height: 120)
-                    Image(systemName: "banknote")
-                        .font(.system(size: 48))
-                        .symbolRenderingMode(.hierarchical)
-                        .foregroundStyle(Color.economie)
-                    Image(systemName: GrenierSymbol.offers)
-                        .font(.title2)
-                        .symbolRenderingMode(.hierarchical)
-                        .foregroundStyle(Color.grenier)
-                        .padding(6)
-                        .background(Color.fond, in: .circle)
-                        .offset(x: 44, y: 38)
-                    Image(systemName: "hourglass")
-                        .font(.title3)
-                        .symbolRenderingMode(.hierarchical)
-                        .foregroundStyle(Color.solidarite)
-                        .symbolEffect(.pulse, isActive: !reduceMotion)
-                        .offset(x: -46, y: -38)
-                }
-                .accessibilityHidden(true)
-                Text("Aucun revenu prévu")
-            }
-        } description: {
-            Text("Publie un lot depuis l'onglet Lots : tes revenus s'afficheront ici dès que des familles s'engagent.")
-        }
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .grenierBackground()
     }
 }
 
@@ -744,9 +484,4 @@ extension FakeData {
 
 #Preview("Hors ligne") {
     VendorRevenueScreen(repositories: .fake(behavior: .failing(.offline)))
-}
-
-#Preview("Chargement") {
-    VendorRevenueSkeleton()
-        .grenierBackground()
 }

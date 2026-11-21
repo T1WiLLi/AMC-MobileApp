@@ -13,21 +13,9 @@ struct AMCMobileApp: App {
 
     init() {
         // Fake, émulateur ou projet de démo (B-013) : voir `BackendMode` et docs/firebase.md §4.
-        let mode = PerfSignposts.measure("launch.backendSetup") { FirebaseSetup.configure() }
+        let mode = FirebaseSetup.configure()
         _session = State(initialValue: SessionViewModel(auth: FirebaseSetup.makeAuthService(mode: mode)))
-        let demo = DemoEnvironment(mode: mode)
-        _demo = State(initialValue: demo)
-        // Notifications locales sans serveur (T-107) : iOS réveille l'app, qui compare au dernier état connu.
-        // Enregistré pendant le lancement, comme l'exige BGTaskScheduler ; le gestionnaire garde l'objet en vie.
-        let lastKnownState = UserDefaultsLastKnownStateStore()
-        let backgroundRefresh = BackgroundRefresh(
-            coordinator: NotificationCoordinator(scheduler: UserNotificationScheduler(), store: lastKnownState),
-            repositories: demo.context.repositories,
-            store: lastKnownState,
-            householdId: { demo.context.householdId }
-        )
-        backgroundRefresh.register()
-        backgroundRefresh.schedule()
+        _demo = State(initialValue: DemoEnvironment(mode: mode))
         // Démo : -resetOnboarding rejoue l'accueil, -demoFamilyPortal rouvre côté Familles. Ne touche pas Firebase.
         OnboardingKeys.applyLaunchArguments(ProcessInfo.processInfo.arguments)
     }
@@ -35,7 +23,6 @@ struct AMCMobileApp: App {
     var body: some Scene {
         WindowGroup {
             SessionGate(session: session)
-                .onAppear { PerfSignposts.markFirstScreen() }
                 // Réinitialisation de la démo : dépôts neufs, et `.id` recrée tous les écrans et leurs ViewModels.
                 .environment(\.appContext, demo.context)
                 .environment(demo)

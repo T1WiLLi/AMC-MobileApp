@@ -14,15 +14,10 @@ import {
   getDoc,
   getDocs,
   collection,
-  collectionGroup,
-  query,
-  where,
   serverTimestamp,
   setDoc,
   Timestamp,
-  updateDoc,
-  writeBatch,
-  type Firestore
+  updateDoc
 } from 'firebase/firestore'
 
 let env: RulesTestEnvironment
@@ -149,12 +144,6 @@ describe('groups/members', () => {
   test('pas pour le ménage d’un autre', async () => {
     await assertFails(setDoc(doc(intruder(), 'groups/group-parc-extension/members/household-amina'), { householdId: 'household-amina', role: 'member', joinedAt: serverTimestamp() }))
   })
-  test('groupes d’un ménage : requête de groupe de collections (B-017)', async () => {
-    await assertSucceeds(getDocs(query(collectionGroup(amina(), 'members'), where('householdId', '==', 'household-amina'))))
-  })
-  test('pas de requête de groupe de collections sans session', async () => {
-    await assertFails(getDocs(query(collectionGroup(anonymous(), 'members'), where('householdId', '==', 'household-amina'))))
-  })
 })
 
 describe('vendeur : products et offers', () => {
@@ -188,48 +177,19 @@ describe('vendeur : products et offers', () => {
 
 describe('groupOrders/shares', () => {
   const sharePath = 'groupOrders/order-1/shares/household-amina'
-  const orderPath = 'groupOrders/order-1'
-  const order = { id: 'order-1', groupId: 'group-parc-extension', offerId: 'offer-carottes', currentTierIndex: null, pickupSlots: [] }
-
-  // Comme FirestoreGroupOrderRepository.setShare (B-019) : la part et les compteurs de la commande
-  // sont écrits dans la même transaction. Un lot (batch) est évalué pareil par les règles.
-  const setShare = (db: Firestore, quantity: number, committedHouseholds: number) => {
-    const batch = writeBatch(db)
-    if (quantity > 0) {
-      batch.set(doc(db, sharePath), { ...share, quantity, updatedAt: Timestamp.now() })
-    } else {
-      batch.delete(doc(db, sharePath))
-    }
-    batch.set(doc(db, orderPath), { ...order, status: 'open', committedShares: quantity, committedHouseholds })
-    return batch.commit()
-  }
-
-  beforeEach(async () => {
-    await env.withSecurityRulesDisabled(async (c) => {
-      await setDoc(doc(c.firestore(), 'groups/group-parc-extension/members/household-amina'), { householdId: 'household-amina', role: 'member', joinedAt: serverTimestamp() })
-    })
-  })
-
-  test('le ménage réserve sa part', async () => {
-    // Seule, sans mettre à jour la commande : refusée.
-    await assertFails(setDoc(doc(amina(), sharePath), share))
-    await assertSucceeds(setShare(amina(), 2, 1))
-  })
+  test('le ménage réserve sa part', async () => { await assertSucceeds(setDoc(doc(amina(), sharePath), share)) })
   test('pas une part déjà payée', async () => { await assertFails(setDoc(doc(amina(), sharePath), { ...share, isPaid: true })) })
   test('pas de subvention auto-attribuée', async () => { await assertFails(setDoc(doc(amina(), sharePath), { ...share, subsidyCents: 500 })) })
-  test('pas la part d’un autre ménage', async () => { await assertFails(setShare(intruder(), 2, 1)) })
+  test('pas la part d’un autre ménage', async () => { await assertFails(setDoc(doc(intruder(), sharePath), share)) })
   test('pas sur une commande fermée', async () => {
     await assertFails(setDoc(doc(amina(), 'groupOrders/order-closed/shares/household-amina'), share))
   })
   test('change la quantité, pas le paiement', async () => {
-    await env.withSecurityRulesDisabled(async (c) => {
-      await setDoc(doc(c.firestore(), sharePath), share)
-      await setDoc(doc(c.firestore(), orderPath), { ...order, status: 'open', committedShares: 2, committedHouseholds: 1 })
-    })
-    await assertSucceeds(setShare(amina(), 3, 1))
+    await env.withSecurityRulesDisabled(async (c) => { await setDoc(doc(c.firestore(), sharePath), share) })
+    await assertSucceeds(updateDoc(doc(amina(), sharePath), { quantity: 3 }))
     await assertFails(updateDoc(doc(amina(), sharePath), { isPaid: true }))
     await assertFails(getDoc(doc(intruder(), sharePath)))
-    await assertSucceeds(setShare(amina(), 0, 0))
+    await assertSucceeds(deleteDoc(doc(amina(), sharePath)))
   })
 })
 

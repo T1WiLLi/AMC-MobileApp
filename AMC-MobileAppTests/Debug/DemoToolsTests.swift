@@ -56,14 +56,21 @@ struct DemoToolsTests {
     @Test func fiveQuickTapsOpenTheTools() {
         var counter = TapBurstCounter()
         let start = Date(timeIntervalSince1970: 0)
-        for i in 0..<4 { #expect(!counter.register(at: start.addingTimeInterval(Double(i) * 0.3))) }
-        #expect(counter.register(at: start.addingTimeInterval(1.5)))
+        for i in 0..<4 {
+            let opened = counter.register(at: start.addingTimeInterval(Double(i) * 0.3))
+            #expect(!opened)
+        }
+        let opened = counter.register(at: start.addingTimeInterval(1.5))
+        #expect(opened)
         #expect(counter.taps.isEmpty)
     }
 
     @Test func slowTapsDoNotOpenTheTools() {
         var counter = TapBurstCounter()
         let start = Date(timeIntervalSince1970: 0)
-        for i in 0..<10 { #expect(!counter.register(at: start.addingTimeInterval(Double(i) * 1.0))) }
+        for i in 0..<10 {
+            let opened = counter.register(at: start.addingTimeInterval(Double(i) * 1.0))
+            #expect(!opened)
+        }
     }
 }

@@ -572,6 +572,105 @@ service cloud.firestore {
       allow delete: if false;
     }
 
+    // ---------------------------------------------------------------
+    // groups/{groupId}/wishes/{wishId} — envies des familles (S-07)
+    // ---------------------------------------------------------------
+    // Champs : id (= id du doc), groupId (= groupe du chemin), householdId (ménage de l'auteur, immuable),
+    //   category, productId (optionnel), quantity (nombre > 0), unit, frequency,
+    //   wantedFrom / wantedUntil (timestamps optionnels), createdAt (immuable), updatedAt.
+    // Un membre du groupe écrit les envies de SON ménage seulement. Lecture : membres du groupe (l'agrégat
+    // anonyme se calcule côté client, sans Cloud Functions) et comptes vendeurs (Matcher). Les fiches des
+    // ménages restent illisibles de l'extérieur : un householdId n'apprend rien sur la famille.
+    // ---------------------------------------------------------------
+    function isAnyVendor() {
+      return isAuthenticated() && myUser().get('vendorId', '') != '';
+    }
+
+    function isOptionalTimestamp(data, field) {
+      return !(field in data) || data[field] == null || data[field] is timestamp;
+    }
+
+    function isValidWish(data, groupId, wishId) {
+      return data.keys().hasOnly(['id', 'groupId', 'householdId', 'category', 'productId', 'quantity', 'unit',
+                                  'frequency', 'wantedFrom', 'wantedUntil', 'createdAt', 'updatedAt'])
+        && data.keys().hasAll(['id', 'groupId', 'householdId', 'category', 'quantity', 'unit', 'frequency',
+                               'createdAt', 'updatedAt'])
+        && data.id == wishId
+        && data.groupId == groupId
+        && isShortString(data.householdId, 1, 128)
+        && data.category in ['grains', 'legumes', 'oils', 'flour', 'canned', 'eggs', 'meat', 'produce', 'household']
+        && isOptionalString(data, 'productId', 128)
+        && data.quantity is number && data.quantity > 0 && data.quantity <= 10000
+        && data.unit in ['kg', 'l', 'dozen', 'unit']
+        && data.frequency in ['once', 'weekly', 'biweekly', 'monthly']
+        && isOptionalTimestamp(data, 'wantedFrom')
+        && isOptionalTimestamp(data, 'wantedUntil')
+        && data.createdAt is timestamp
+        && data.updatedAt is timestamp;
+    }
+
+    match /groups/{groupId}/wishes/{wishId} {
+      allow read: if isGroupMember(groupId) || isAnyVendor();
+      allow create: if isValidWish(request.resource.data, groupId, wishId)
+        && isGroupMember(groupId)
+        && request.resource.data.householdId == myHouseholdId();
+      allow update: if isValidWish(request.resource.data, groupId, wishId)
+        && isGroupMember(groupId)
+        && resource.data.householdId == myHouseholdId()
+        && areImmutableFieldsUnchanged(['id', 'groupId', 'householdId', 'createdAt']);
+      // Un ménage qui a quitté le groupe peut encore retirer ses envies.
+      allow delete: if isAuthenticated() && resource.data.householdId == myHouseholdId();
+    }
+
+    // Requête collectionGroup('wishes') : envies de tous les groupes, pour les vendeurs.
+    match /{path=**}/wishes/{wishId} {
+      allow read: if isAnyVendor();
+    }
+
+    // ---------------------------------------------------------------
+    // vendors/{vendorId}/supplies/{supplyId} — disponibilités des vendeurs (S-08)
+    // ---------------------------------------------------------------
+    // Champs : id (= id du doc), vendorId (= vendeur du chemin), category, productId (optionnel, produit
+    //   de ce vendeur), quantity (nombre > 0), unit, availableFrom <= availableTo (timestamps),
+    //   servedZones (1 à 20 préfixes geohash), createdAt (immuable), updatedAt.
+    // Pas de PII : lisible par tout utilisateur connecté ; écrite par le vendeur propriétaire seulement.
+    // ---------------------------------------------------------------
+    function isValidSupply(data, vendorId, supplyId) {
+      return data.keys().hasOnly(['id', 'vendorId', 'category', 'productId', 'quantity', 'unit',
+                                  'availableFrom', 'availableTo', 'servedZones', 'createdAt', 'updatedAt'])
+        && data.keys().hasAll(['id', 'vendorId', 'category', 'quantity', 'unit', 'availableFrom',
+                               'availableTo', 'servedZones', 'createdAt', 'updatedAt'])
+        && data.id == supplyId
+        && data.vendorId == vendorId
+        && data.category in ['grains', 'legumes', 'oils', 'flour', 'canned', 'eggs', 'meat', 'produce', 'household']
+        && (!('productId' in data) || data.productId == null
+            || (isShortString(data.productId, 1, 128)
+                && get(/databases/$(database)/documents/products/$(data.productId)).data.vendorId == vendorId))
+        && data.quantity is number && data.quantity > 0 && data.quantity <= 1000000
+        && data.unit in ['kg', 'l', 'dozen', 'unit']
+        && data.availableFrom is timestamp
+        && data.availableTo is timestamp
+        && data.availableFrom <= data.availableTo
+        && data.servedZones is list && data.servedZones.size() >= 1 && data.servedZones.size() <= 20
+        && data.createdAt is timestamp
+        && data.updatedAt is timestamp;
+    }
+
+    match /vendors/{vendorId}/supplies/{supplyId} {
+      allow read: if isAuthenticated();
+      allow create: if isVendorOf(vendorId)
+        && isValidSupply(request.resource.data, vendorId, supplyId);
+      allow update: if isVendorOf(vendorId)
+        && isValidSupply(request.resource.data, vendorId, supplyId)
+        && areImmutableFieldsUnchanged(['id', 'vendorId', 'createdAt']);
+      allow delete: if isVendorOf(vendorId);
+    }
+
+    // Requête collectionGroup('supplies') : disponibilités de tous les vendeurs, pour le Matcher.
+    match /{path=**}/supplies/{supplyId} {
+      allow read: if isAuthenticated();
+    }
+
     // Tout le reste : refusé par défaut.
     match /{document=**} {
       allow read, write: if false;

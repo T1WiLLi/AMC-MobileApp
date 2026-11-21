@@ -78,8 +78,8 @@ final class ImpactViewModel {
             var impact = byProduct[product.id] ?? ProductImpact(product: product, shares: 0, kilograms: 0, savingsCents: 0)
 
             for share in try await repositories.groupOrders.shares(ofGroupOrder: order.id) where share.quantity > 0 {
-                let price = share.finalPriceCents ?? pricing.currentPriceCents
-                let savings = max(0, product.referenceGroceryPriceCents - price) * share.quantity
+                let savings = Self.savings(of: share, referenceUnitPriceCents: product.referenceGroceryPriceCents,
+                                           currentUnitPriceCents: pricing.currentPriceCents)
                 households.insert(share.householdId)
                 content.totalShares += share.quantity
                 content.neighborhoodSavingsCents += savings
@@ -101,6 +101,17 @@ final class ImpactViewModel {
         content.householdCount = households.count
         content.byProduct = byProduct.values.sorted { $0.savingsCents > $1.savingsCents }
         return content
+    }
+
+    /// Économie d'une part vs l'épicerie, jamais négative.
+    /// `Share.finalPriceCents` est le total figé à la clôture pour toute la part (quantité × prix unitaire,
+    /// voir `ShareAllocator`) ; tant qu'il est nil, on prend le prix unitaire du palier courant × quantité.
+    nonisolated static func savings(
+        of share: Share, referenceUnitPriceCents: Cents, currentUnitPriceCents: Cents
+    ) -> Cents {
+        let quantity = max(0, share.quantity)
+        let paidCents = share.finalPriceCents ?? currentUnitPriceCents * quantity
+        return max(0, referenceUnitPriceCents * quantity - paidCents)
     }
 
     /// Kilos dans une unité de part : « sac de 10 kg » → 10, « 2,5 kg » → 2.5 ; 0 si pas de kg.

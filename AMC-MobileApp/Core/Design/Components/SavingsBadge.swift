@@ -1,0 +1,65 @@
+import SwiftUI
+
+/// Pilule d'économie (maquette SavingsBadge). Vert = argent économisé, jamais une action.
+struct SavingsBadge: View {
+    enum Kind: Equatable {
+        /// Pilule pleine : « −37 % vs épicerie ».
+        case percent(Int)
+        /// Pilule légère : « 48 $ économisés ».
+        case amount(Cents)
+    }
+
+    let kind: Kind
+    /// Version courte pour les cartes : « −37 % ».
+    var compact = false
+
+    var body: some View {
+        Text(label)
+            .font(compact ? .caption.bold() : .subheadline.bold())
+            .fontDesign(.rounded)
+            .monospacedDigit()
+            .padding(.horizontal, compact ? 8 : 12)
+            .padding(.vertical, compact ? 4 : 6)
+            .foregroundStyle(isFilled ? Color.onAccent : Color.economie)
+            .background(isFilled ? Color.economie : Color.economie.opacity(0.12), in: .capsule)
+            .accessibilityLabel(accessibilityText)
+    }
+
+    private var isFilled: Bool {
+        if case .percent = kind { !compact } else { false }
+    }
+
+    private var label: String {
+        switch kind {
+        case .percent(let value): compact ? "−\(value) %" : "−\(value) % vs épicerie"
+        case .amount(let cents): "\(Money.formatRounded(cents)) économisés"
+        }
+    }
+
+    private var accessibilityText: String {
+        switch kind {
+        case .percent(let value): "\(value) pour cent moins cher qu'en épicerie"
+        case .amount(let cents): "\(Money.formatRounded(cents)) économisés"
+        }
+    }
+}
+
+#Preview("Clair") {
+    VStack(spacing: 12) {
+        HStack {
+            SavingsBadge(kind: .percent(37))
+            SavingsBadge(kind: .amount(4800))
+        }
+        SavingsBadge(kind: .percent(37), compact: true)
+    }
+    .padding()
+}
+
+#Preview("Sombre") {
+    HStack {
+        SavingsBadge(kind: .percent(37))
+        SavingsBadge(kind: .amount(4800))
+    }
+    .padding()
+    .preferredColorScheme(.dark)
+}

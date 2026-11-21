@@ -53,6 +53,16 @@ struct GroupsScreen: View {
             .grenierBackground()
             .navigationTitle("Groupes")
             .profileToolbar()
+            .toolbar {
+                ToolbarItem(placement: .topBarTrailing) {
+                    NavigationLink {
+                        FamilyMapScreen()
+                    } label: {
+                        Label("Carte du quartier", systemImage: GrenierSymbol.map)
+                    }
+                    .accessibilityHint("Groupes, points de cueillette et producteurs autour de chez toi")
+                }
+            }
             .navigationDestination(for: GroupRoute.self) { route in
                 GroupDetailScreen(groupId: route.groupId)
             }

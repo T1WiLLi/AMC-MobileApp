@@ -22,4 +22,7 @@ nonisolated struct Vendor: Identifiable, Codable, Sendable, Hashable {
     /// Note moyenne sur 5 ; nil tant qu'il n'y a aucun avis.
     var averageRating: Double?
     var isVerified: Bool
+    /// Comptoir ou kiosque du producteur en ville (marché, entrepôt), en geohash, pour la carte des familles (T-091).
+    /// nil : le producteur ne vend qu'aux points de cueillette et n'apparaît pas sur la carte.
+    var storefrontGeohash: String? = nil
 }

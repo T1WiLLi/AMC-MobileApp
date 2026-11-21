@@ -68,7 +68,7 @@ private struct PickupContentView: View {
                         .foregroundStyle(.texteSecondaire)
                         .padding(.horizontal, 4)
                 }
-                PickupQRCard(content: content)
+                PickupCodeCard(content: content)
                 PickupItemsCard(items: content.items)
                 PickupPointCard(content: content)
                 directionsButton
@@ -134,13 +134,13 @@ private struct PickupCountdownBanner: View {
 }
 
 /// Grande carte du QR : « Montre ce code à Amina », « Commande GRN-1234 · 2 articles ».
-private struct PickupQRCard: View {
+private struct PickupCodeCard: View {
     let content: PickupViewModel.Content
     @ScaledMetric(relativeTo: .largeTitle) private var qrSize: CGFloat = 220
 
     var body: some View {
         VStack(spacing: 12) {
-            QRCodeImage(payload: content.qrPayload)
+            PickupQRImage(payload: content.qrPayload)
                 .frame(width: min(qrSize, 300), height: min(qrSize, 300))
                 .padding(16)
                 // Le QR reste noir sur blanc, même en sombre, pour que tous les lecteurs le scannent.
@@ -256,7 +256,7 @@ private struct PickupPointCard: View {
 // MARK: - QR
 
 /// QR code net (pixels non lissés), généré par Core Image.
-struct QRCodeImage: View {
+private struct PickupQRImage: View {
     let payload: String
 
     var body: some View {

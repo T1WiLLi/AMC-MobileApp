@@ -36,9 +36,19 @@ nonisolated protocol VendorRepository: Sendable {
     func products(ofVendor vendorId: String) async throws -> [Product]
     func product(id: String) async throws -> Product
     func saveProduct(_ product: Product) async throws
+    /// Retire un produit du catalogue (T-089). Lève `.notFound` si l'id est inconnu ;
+    /// firestore.rules n'autorise que le vendeur propriétaire.
+    func deleteProduct(id: String) async throws
     /// Enregistre le profil du vendeur. Seuls `description`, `photoURLs` et `servedZones` peuvent changer
     /// (firestore.rules) ; tout autre changement lève `.permissionDenied`, un id inconnu `.notFound`.
     func saveVendor(_ vendor: Vendor) async throws
+}
+
+extension VendorRepository {
+    /// Par défaut (dépôt qui ne l'implémente pas encore) : refus explicite plutôt qu'un succès silencieux.
+    func deleteProduct(id: String) async throws {
+        throw AppError.unknown("deleteProduct n'est pas encore branché sur ce dépôt.")
+    }
 }
 
 /// Lots (`offers`).

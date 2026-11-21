@@ -35,6 +35,7 @@ struct VendorOffersScreen: View {
                 .grenierBackground()
                 .navigationTitle("Lots")
                 .profileToolbar()
+                .newProductToolbar(repositories: repositories, vendorId: vendorId)
                 .safeAreaInset(edge: .top) { publishedBanner }
                 .safeAreaInset(edge: .bottom) { createButton }
                 .navigationDestination(for: Route.self) { route in

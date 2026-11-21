@@ -22,7 +22,7 @@ struct FamilyTabView: View {
                 ImpactScreen()
             }
             Tab(value: .search, role: .search) {
-                SearchScreen()
+                SearchScreen(prompt: "Riz, pommes, producteur…", linksToOffers: true)
             }
         }
         .tabBarMinimizeBehavior(.onScrollDown)

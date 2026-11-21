@@ -83,7 +83,7 @@ extension AppContext {
     /// Mêmes personas et même latence que `.demo`, mais avec des dépôts neufs (les commandes passées pendant la démo disparaissent).
     static func reloadedDemo(behavior: FakeBehavior = .realistic) -> AppContext {
         AppContext(
-            repositories: .fake(behavior: behavior, data: .montreal),
+            repositories: .fake(behavior: behavior, data: .montreal).cached(),
             userId: FakeData.ID.amina,
             householdId: FakeData.ID.aminaHousehold,
             groupId: FakeData.ID.saintMichel,

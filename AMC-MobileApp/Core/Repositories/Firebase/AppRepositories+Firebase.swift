@@ -35,6 +35,7 @@ extension AppRepositories {
         )
         repositories.wishes = FirestoreGroupWishRepository()        // S-07 — groups/{id}/wishes
         repositories.supplies = FirestoreVendorSupplyRepository()   // S-08 — vendors/{id}/supplies
+        repositories.organizations = FirestoreOrganizationRepository() // T-116 — organizations, groups/{id}/solidarity
         return repositories
         #else
         return .empty()

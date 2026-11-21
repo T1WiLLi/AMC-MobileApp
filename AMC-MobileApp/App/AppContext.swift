@@ -24,12 +24,15 @@ struct AppContext: Sendable {
     /// Vendeur rattaché au compte (`users/{uid}.vendorId`) ; vide si la personne n'est pas vendeur.
     var vendorId: String
     var status: Status = .resolved
+    /// Organisme du portail Organismes (T-116) ; vide tant que le compte n'est rattaché à aucun organisme.
+    var organizationId: String = ""
 
     /// true une fois le contexte chargé depuis la session (ou fixé pour un test / une preview).
     var isResolved: Bool { status == .resolved && !userId.isEmpty }
     var hasHousehold: Bool { !householdId.isEmpty }
     var hasGroup: Bool { groupId?.isEmpty == false }
     var hasVendor: Bool { !vendorId.isEmpty }
+    var hasOrganization: Bool { !organizationId.isEmpty }
 
     /// Valeur par défaut hors session : aucun id, dépôts vides. Un écran qui le reçoit doit afficher un chargement,
     /// jamais des données de démo.
@@ -49,7 +52,8 @@ struct AppContext: Sendable {
         userId: FakeData.ID.amina,
         householdId: FakeData.ID.aminaHousehold,
         groupId: FakeData.ID.saintMichel,
-        vendorId: FakeData.ID.moulinsDuNord
+        vendorId: FakeData.ID.moulinsDuNord,
+        organizationId: FakeData.ID.laRuche
     )
 
     /// PREVIEWS ET TESTS SEULEMENT : comme `.demo`, sans latence.
@@ -58,7 +62,8 @@ struct AppContext: Sendable {
         userId: FakeData.ID.amina,
         householdId: FakeData.ID.aminaHousehold,
         groupId: FakeData.ID.saintMichel,
-        vendorId: FakeData.ID.moulinsDuNord
+        vendorId: FakeData.ID.moulinsDuNord,
+        organizationId: FakeData.ID.laRuche
     )
 
     /// Contexte de base injecté au lancement, avant la session :

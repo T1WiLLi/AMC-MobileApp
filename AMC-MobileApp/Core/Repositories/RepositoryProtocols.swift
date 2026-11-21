@@ -174,6 +174,10 @@ nonisolated struct AppRepositories: Sendable {
     /// S-07, S-08. Valeur par défaut (fakes vides) pour que les appels existants de l'init compilent tels quels.
     var wishes: any GroupWishRepository = FakeGroupWishRepository()
     var supplies: any VendorSupplyRepository = FakeVendorSupplyRepository()
+    /// T-116 : portail Organismes (fonds de solidarité, financements, parrainages).
+    var organizations: any OrganizationRepository = FakeOrganizationRepository(
+        organizations: [], profiles: [], donations: [], sponsorships: []
+    )
 
     /// Dépôts en mémoire VIDES (aucune persona de `FakeData`) : repli quand Firebase n'est pas configuré
     /// et contexte non résolu (`AppContext.unresolved`). Un écran qui les lit n'affiche rien plutôt que du faux.
@@ -202,7 +206,8 @@ nonisolated struct AppRepositories: Sendable {
             ),
             pickupPoints: FakePickupPointRepository(behavior: behavior, pickupPoints: data.pickupPoints),
             wishes: FakeGroupWishRepository(behavior: behavior, wishes: FakeData.demoWishes),
-            supplies: FakeVendorSupplyRepository(behavior: behavior, supplies: FakeData.demoSupplies)
+            supplies: FakeVendorSupplyRepository(behavior: behavior, supplies: FakeData.demoSupplies),
+            organizations: FakeOrganizationRepository(behavior: behavior)
         )
     }
 }

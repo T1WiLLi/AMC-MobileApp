@@ -41,6 +41,9 @@ struct RootView: View {
                         portalSwitch.switchPortal(from: .vendor, to: .family, reduceMotion: reduceMotion)
                     }
                 }
+            case .organization:
+                // T-116 : organisme de la session ; en démo fake, l'organisme de démo (AppContext.demo).
+                OrganizationTabView()
             }
         }
         .animation(.smooth, value: portal)

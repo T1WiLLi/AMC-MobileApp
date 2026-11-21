@@ -33,7 +33,7 @@ final class AppLock {
     /// Active le verrou après une vérification réussie (on ne verrouille pas quelqu'un qui ne peut pas déverrouiller).
     func enable() async -> Bool {
         do {
-            try await authenticator.authenticate(reason: String(localized: "Active le verrou de Grenier."))
+            try await authenticator.authenticate(reason: String(localized: "Active le verrou de LeGrenier."))
             isEnabled = true
             lastError = nil
             return true
@@ -53,7 +53,7 @@ final class AppLock {
         isUnlocking = true
         defer { isUnlocking = false }
         do {
-            try await authenticator.authenticate(reason: String(localized: "Déverrouille Grenier."))
+            try await authenticator.authenticate(reason: String(localized: "Déverrouille LeGrenier."))
             isLocked = false
             lastError = nil
         } catch {
@@ -119,7 +119,7 @@ struct LockScreen: View {
                 .symbolEffect(.bounce, value: lock.isLocked)
                 .foregroundStyle(Color.grenier)
                 .accessibilityHidden(true)
-            Text("Grenier est verrouillé")
+            Text("LeGrenier est verrouillé")
                 .font(.title2.bold())
                 .foregroundStyle(.texte)
             Text("Déverrouille avec \(lock.biometry.title) pour voir tes commandes et ton code de cueillette.")

@@ -85,7 +85,7 @@ struct GroupHeroHeader: View {
         }
         .frame(height: Self.bannerHeight)
         .accessibilityElement()
-        .accessibilityLabel(group.bannerURL == nil ? "Bannière aux couleurs de Grenier" : "Bannière du groupe \(group.name)")
+        .accessibilityLabel(group.bannerURL == nil ? "Bannière aux couleurs de LeGrenier" : "Bannière du groupe \(group.name)")
         .accessibilityAddTraits(.isImage)
     }
 

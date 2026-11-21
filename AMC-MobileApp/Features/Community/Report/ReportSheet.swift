@@ -62,7 +62,7 @@ struct ReportSheet: View {
                         Text(model.target.displayName)
                             .font(.headline)
                             .foregroundStyle(.texte)
-                        Text("Seule l'équipe Grenier verra ton signalement.")
+                        Text("Seule l'équipe LeGrenier verra ton signalement.")
                             .font(.footnote)
                             .foregroundStyle(.texteSecondaire)
                     }
@@ -193,7 +193,7 @@ struct ReportSheet: View {
                 .font(.title2.bold())
                 .fontDesign(.rounded)
                 .foregroundStyle(.texte)
-            Text("L'équipe Grenier va examiner \(model.target.kind.demonstrative). La personne signalée ne voit pas qui a signalé.")
+            Text("L'équipe LeGrenier va examiner \(model.target.kind.demonstrative). La personne signalée ne voit pas qui a signalé.")
                 .font(.subheadline)
                 .foregroundStyle(.texteSecondaire)
                 .multilineTextAlignment(.center)

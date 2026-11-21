@@ -95,7 +95,7 @@ struct FamilyMapLocationExplainer: View {
                     Text("Voir ce qui est près de toi")
                         .font(.headline)
                         .foregroundStyle(Color.texte)
-                    Text("Grenier utilise ta position seulement quand la carte est ouverte, pour trouver les groupes, les points de cueillette et les producteurs autour de toi. Elle n'est jamais montrée à tes voisins.")
+                    Text("LeGrenier utilise ta position seulement quand la carte est ouverte, pour trouver les groupes, les points de cueillette et les producteurs autour de toi. Elle n'est jamais montrée à tes voisins.")
                         .font(.subheadline)
                         .foregroundStyle(Color.texteSecondaire)
                         .fixedSize(horizontal: false, vertical: true)

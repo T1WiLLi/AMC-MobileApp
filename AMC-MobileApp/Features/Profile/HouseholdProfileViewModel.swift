@@ -87,7 +87,7 @@ final class HouseholdProfileViewModel {
         switch postalLookup {
         case .empty, .incomplete: nil
         case .invalid: String(localized: "Un code postal a la forme H2A 1B3.")
-        case .notServed: String(localized: "Grenier n'est pas encore offert dans ce secteur. Choisis le quartier le plus proche.")
+        case .notServed: String(localized: "LeGrenier n'est pas encore offert dans ce secteur. Choisis le quartier le plus proche.")
         case .found(let found): String(localized: "Quartier trouvé : \(found.name).")
         }
     }

@@ -68,7 +68,7 @@ struct SolidarityLeaderboardScreen: View {
         .toolbar {
             if let home = viewModel.home {
                 ToolbarItem(placement: .topBarTrailing) {
-                    ShareLink(item: "\(home.stats.shortName) est \(home.rank)\(home.rank == 1 ? "er" : "e") au classement solidaire de Montréal sur Grenier !") {
+                    ShareLink(item: "\(home.stats.shortName) est \(home.rank)\(home.rank == 1 ? "er" : "e") au classement solidaire de Montréal sur LeGrenier !") {
                         Label("Partager", systemImage: "square.and.arrow.up")
                     }
                 }

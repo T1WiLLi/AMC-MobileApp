@@ -251,7 +251,7 @@ private struct ProfileHeader: View {
                     symbol: "person.crop.circle.fill",
                     satellites: Portal.allCases.map { .init($0.systemImage, tint: $0.tint) }
                 )
-                Text("Ton profil Grenier")
+                Text("Ton profil LeGrenier")
                     .font(.title2.bold())
                     .fontDesign(.rounded)
                     .foregroundStyle(Color.texte)
@@ -368,7 +368,7 @@ private struct SecuritySection: View {
         } footer: {
             Label(
                 lock.biometry.canAuthenticate
-                    ? String(localized: "Grenier se verrouille quand tu quittes l'app. Ton code de cueillette et tes paiements restent protégés.")
+                    ? String(localized: "LeGrenier se verrouille quand tu quittes l'app. Ton code de cueillette et tes paiements restent protégés.")
                     : String(localized: "Configure Face ID ou un code dans les Réglages de l'iPhone pour activer le verrou."),
                 systemImage: lock.isEnabled ? "lock.fill" : "lock.open.fill"
             )

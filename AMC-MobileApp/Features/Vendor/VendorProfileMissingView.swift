@@ -22,10 +22,10 @@ struct VendorProfileMissingView: View {
         var components = URLComponents()
         components.scheme = "mailto"
         components.queryItems = [
-            URLQueryItem(name: "subject", value: "Créer mon profil producteur Grenier"),
+            URLQueryItem(name: "subject", value: "Créer mon profil producteur LeGrenier"),
             URLQueryItem(
                 name: "body",
-                value: "Bonjour,\n\nJe souhaite vendre aux groupes de quartier sur Grenier.\n\nRaison sociale :\nType (ferme, coopérative, grossiste, boulangerie…) :\nQuartiers desservis :\n\nMerci !"
+                value: "Bonjour,\n\nJe souhaite vendre aux groupes de quartier sur LeGrenier.\n\nRaison sociale :\nType (ferme, coopérative, grossiste, boulangerie…) :\nQuartiers desservis :\n\nMerci !"
             ),
         ]
         return components.url
@@ -60,7 +60,7 @@ struct VendorProfileMissingView: View {
 
                     VStack(alignment: .leading, spacing: 14) {
                         step(1, "envelope.fill", "Envoie ta demande", "Raison sociale, type de commerce et quartiers desservis.")
-                        step(2, "checkmark.seal.fill", "L'équipe Grenier vérifie", "Chaque producteur est vérifié avant de vendre aux familles.")
+                        step(2, "checkmark.seal.fill", "L'équipe LeGrenier vérifie", "Chaque producteur est vérifié avant de vendre aux familles.")
                         step(3, "shippingbox.fill", "Publie ton premier lot", "Tes paliers de prix, ta date limite, et c'est parti.")
                     }
                     .padding(16)

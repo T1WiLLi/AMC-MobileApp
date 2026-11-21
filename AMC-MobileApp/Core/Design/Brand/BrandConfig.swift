@@ -78,12 +78,12 @@ nonisolated struct BrandConfig: Sendable, Hashable {
 
     /// Marque par défaut.
     static let grenier = BrandConfig(
-        name: "Grenier",
+        name: "LeGrenier",
         logo: Logo(symbol: "basket.fill"),
         colors: Colors(),
         texts: Texts(
             tagline: String(localized: "Achète en gros avec les familles de ton quartier, directement aux producteurs."),
-            welcome: String(localized: "Bienvenue dans ton Grenier")
+            welcome: String(localized: "Bienvenue dans ton LeGrenier")
         )
     )
 

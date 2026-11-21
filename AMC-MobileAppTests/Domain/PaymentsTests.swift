@@ -162,7 +162,7 @@ struct PaymentsTests {
             share: h3, order: order(), offer: offer, productName: "Riz basmati",
             referencePricePerShareCents: 1_600, payment: payment
         ).plainText()
-        #expect(text.hasPrefix("Reçu Grenier"))
+        #expect(text.hasPrefix("Reçu LeGrenier"))
         #expect(text.contains("Riz basmati : 1 × 10 kg"))
         #expect(text.contains("Tu économises \(Money.format(610))"))
         #expect(text.contains("Ton don pour un panier suspendu : +\(Money.format(500))"))

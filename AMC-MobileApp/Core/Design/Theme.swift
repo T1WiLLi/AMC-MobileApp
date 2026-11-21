@@ -62,7 +62,7 @@ enum GrenierSymbol {
 #Preview("Palette") {
     let swatches: [(String, Color)] = [
         ("Fond", .fond), ("Surface", .surface), ("Texte", .texte), ("Texte secondaire", .texteSecondaire),
-        ("Grenier", .accentColor), ("Économie", .economie), ("Solidarité", .solidarite), ("Piste", .piste)
+        ("LeGrenier", .accentColor), ("Économie", .economie), ("Solidarité", .solidarite), ("Piste", .piste)
     ]
     ScrollView {
         VStack(alignment: .leading, spacing: 12) {

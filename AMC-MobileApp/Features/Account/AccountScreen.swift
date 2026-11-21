@@ -99,7 +99,7 @@ private struct DeletionDialogs: ViewModifier {
             Button("Se reconnecter") { session?.signOut() }
             Button("Plus tard", role: .cancel) { model.dismissDeletionMessage() }
         } message: {
-            Text("Pour protéger ton compte, Grenier demande une connexion récente avant de le supprimer. Reconnecte-toi, puis reviens ici.")
+            Text("Pour protéger ton compte, LeGrenier demande une connexion récente avant de le supprimer. Reconnecte-toi, puis reviens ici.")
         }
         .alert("Suppression impossible", isPresented: Binding(
             get: { if case .failed = model.deletionState { true } else { false } },

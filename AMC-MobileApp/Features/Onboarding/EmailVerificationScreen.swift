@@ -100,7 +100,7 @@ struct EmailVerificationScreen: View {
     /// Les trois gestes à faire, numérotés avec une icône chacun.
     private var steps: some View {
         VStack(alignment: .leading, spacing: 12) {
-            step(1, String(localized: "Ouvre le courriel de Grenier"), systemImage: "envelope.open.fill")
+            step(1, String(localized: "Ouvre le courriel de LeGrenier"), systemImage: "envelope.open.fill")
             step(2, String(localized: "Touche le lien d'activation"), systemImage: "link")
             step(3, String(localized: "Reviens ici : on vérifie tout seul"), systemImage: "arrow.uturn.backward.circle.fill")
         }

@@ -73,7 +73,7 @@ extension Receipt {
     @MainActor
     func plainText() -> String {
         var lines = [
-            String(localized: "Reçu Grenier"),
+            String(localized: "Reçu LeGrenier"),
             "\(productName) : \(quantity) × \(shareUnit)",
             String(localized: "Prix par part : \(Money.format(unitPriceCents))"),
             String(localized: "Prix final : \(Money.format(finalPriceCents))"),

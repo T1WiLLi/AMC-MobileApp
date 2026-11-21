@@ -22,7 +22,7 @@ struct SignInScreen: View {
                     .font(.largeTitle.bold())
                     .fontDesign(.rounded)
 
-                Text("Achetez en gros avec les familles de votre quartier, directement aux producteurs.")
+                Text("Achète en gros avec les familles de ton quartier, directement aux producteurs.")
                     .font(.body)
                     .foregroundStyle(.secondary)
                     .multilineTextAlignment(.center)
@@ -53,6 +53,7 @@ struct SignInScreen: View {
                             .font(.headline)
                     }
                     .frame(maxWidth: .infinity, minHeight: 44)
+                    .foregroundStyle(Color.onAccent)
                 }
                 .buttonStyle(.glassProminent)
                 .disabled(isSigningIn)
@@ -61,6 +62,9 @@ struct SignInScreen: View {
             .padding(.horizontal, 24)
             .padding(.bottom, 24)
         }
+        .frame(maxWidth: .infinity)
+        .grenierBackground()
+        .tint(.grenier)
         .animation(.smooth, value: session.errorMessage)
         .sensoryFeedback(.error, trigger: session.errorMessage) { _, new in new != nil }
     }
@@ -71,7 +75,7 @@ struct SignInScreen: View {
 }
 
 #Preview("Erreur, sombre") {
-    let session = SessionViewModel(auth: FakeAuthService(nextError: .failed("Réseau indisponible. Réessayez.")))
+    let session = SessionViewModel(auth: FakeAuthService(nextError: .failed("Réseau indisponible. Réessaie.")))
     return SignInScreen(session: session)
         .task { await session.signInWithGoogle() }
         .preferredColorScheme(.dark)

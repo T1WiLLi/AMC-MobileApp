@@ -17,7 +17,8 @@ struct PlaceholderScreen: View {
                 } description: {
                     Text(message)
                 } actions: {
-                    Text("Bientôt — \(epic)")
+                    // `epic` reste pour les développeurs ; jamais affiché (pas de jargon interne à l'écran).
+                    Text("Bientôt dans Grenier")
                         .font(.footnote)
                         .foregroundStyle(.secondary)
                 }

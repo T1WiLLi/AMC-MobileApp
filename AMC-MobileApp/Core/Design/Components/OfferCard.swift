@@ -16,12 +16,12 @@ struct OfferCard: View {
         let footerLayout = rowLayout(alignment: .firstTextBaseline)
         VStack(alignment: .leading, spacing: 14) {
             headerLayout {
-                ProductIcon(category: product.category)
+                ProductIcon(product: product)
                 VStack(alignment: .leading, spacing: 2) {
                     Text("\(product.name) · \(offer.shareUnit)")
                         .font(.headline)
                         .foregroundStyle(.texte)
-                    Text("\(Image(systemName: vendor.isVerified ? "checkmark.seal.fill" : "storefront.fill")) \(vendor.legalName) · \(Image(systemName: "clock.fill")) ferme \(deadlineText)")
+                    Text("\(Image(systemName: vendor.isVerified ? "checkmark.seal.fill" : "storefront.fill")) \(vendor.legalName) · \(Image(systemName: "clock.fill")) se termine \(deadlineText)")
                         .font(.subheadline)
                         .foregroundStyle(.texteSecondaire)
                         .symbolRenderingMode(.hierarchical)
@@ -90,7 +90,7 @@ struct OfferCard: View {
 
     /// Lecture VoiceOver courte : « Riz basmati, Ferme Lafleur, 2 dollars 60 le kilo, 37 pour cent moins cher… ».
     var accessibilityText: String {
-        var parts = ["\(product.name), \(offer.shareUnit)", vendor.legalName, "ferme \(deadlineText)", Money.spoken(currentPriceCents, per: product.unit)]
+        var parts = ["\(product.name), \(offer.shareUnit)", vendor.legalName, "se termine \(deadlineText)", Money.spoken(currentPriceCents, per: product.unit)]
         if savingsPercent > 0 { parts.append("\(savingsPercent) pour cent moins cher qu'en épicerie") }
         parts.append(progressText)
         if let nudge = progressBar.shortNudge { parts.append(Self.spokenPercent(nudge)) }
@@ -118,12 +118,21 @@ struct OfferCard: View {
 
 /// Icône du produit dans un carré teinté (52 pt, suit Dynamic Type).
 struct ProductIcon: View {
-    let category: Product.Category
+    let symbol: String
 
     @ScaledMetric(relativeTo: .title2) private var side: CGFloat = 52
 
+    init(category: Product.Category) {
+        symbol = Self.symbol(for: category)
+    }
+
+    /// À préférer : le nom du produit affine le symbole (une pomme n'a pas de carotte).
+    init(product: Product) {
+        symbol = Self.symbol(for: product)
+    }
+
     var body: some View {
-        Image(systemName: Self.symbol(for: category))
+        Image(systemName: symbol)
             .font(.title2)
             .symbolRenderingMode(.hierarchical)
             .foregroundStyle(Color.grenier)
@@ -132,9 +141,20 @@ struct ProductIcon: View {
             .accessibilityHidden(true)
     }
 
+    /// Symbole d'un produit précis : quelques légumes reconnus par leur nom, sinon celui de la catégorie.
+    static func symbol(for product: Product) -> String {
+        guard product.category == .produce else { return symbol(for: product.category) }
+        let name = product.name.folding(options: [.caseInsensitive, .diacriticInsensitive], locale: Locale(identifier: "fr_CA"))
+        if name.contains("carott") { return "carrot.fill" }
+        let leafy = ["laitue", "salade", "epinard", "chou", "kale", "roquette", "basilic"]
+        if leafy.contains(where: { name.contains($0) }) { return "leaf.fill" }
+        return symbol(for: .produce)
+    }
+
+    /// Symbole d'une catégorie. Fruits et légumes : un panier neutre (pommes et pommes de terre n'ont pas de carotte).
     static func symbol(for category: Product.Category) -> String {
         switch category {
-        case .produce: "carrot.fill"
+        case .produce: "basket.fill"
         case .grains: "shippingbox.fill"
         case .legumes: "leaf.fill"
         case .oils: "drop.fill"

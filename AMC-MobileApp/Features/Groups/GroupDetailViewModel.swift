@@ -23,6 +23,9 @@ final class GroupDetailViewModel {
         var nextSlot: PickupSlot?
         /// Commandes ouvertes du groupe (« Lots ouverts »).
         var openOrders: [OfferSummary]
+        /// Initiales des premiers ménages membres (« B » pour « Famille Benali »), tirées de leur nom réel.
+        /// Un ménage illisible (règles, réseau) est simplement omis : jamais d'initiales inventées.
+        var memberInitials: [String] = []
     }
 
     private(set) var state: LoadState<Content> = .idle
@@ -63,27 +66,54 @@ final class GroupDetailViewModel {
         if state.value == nil { state = .loading }
         let repositories = repositories, householdId = householdId, groupId = groupId
         state = await .run {
-            let group = try await repositories.groups.group(id: groupId)
-            let members = try await repositories.groups.members(ofGroup: groupId)
-            let orders = try await repositories.groupOrders.groupOrders(ofGroup: groupId)
-                .filter(OfferSummaryLoader.isActive)
-            var offers: [Offer] = []
-            for order in orders {
-                offers.append(try await repositories.offers.offer(id: order.offerId))
-            }
+            // Appels indépendants en parallèle.
+            async let groupLoad = repositories.groups.group(id: groupId)
+            async let membersLoad = repositories.groups.members(ofGroup: groupId)
+            async let ordersLoad = repositories.groupOrders.groupOrders(ofGroup: groupId)
+            let (group, members, allOrders) = try await (groupLoad, membersLoad, ordersLoad)
+            let orders = allOrders.filter(OfferSummaryLoader.isActive)
+
+            async let initials = Self.memberInitials(of: members, repositories: repositories)
+            async let pickupPointLoad: PickupPoint? = {
+                guard let pointId = orders.lazy.compactMap(\.pickupPointId).first else { return nil }
+                return try await repositories.pickupPoints.pickupPoint(id: pointId)
+            }()
+            let offers = try await FamilyHomeViewModel.offers(for: orders, repositories: repositories)
             let summaries = try await OfferSummaryLoader.summaries(
                 for: offers, groupOrders: orders, householdId: householdId, repositories: repositories
             )
-            var pickupPoint: PickupPoint?
-            if let pointId = orders.lazy.compactMap(\.pickupPointId).first {
-                pickupPoint = try await repositories.pickupPoints.pickupPoint(id: pointId)
-            }
+            let pickupPoint = try await pickupPointLoad
             let now = Date.now
             let nextSlot = orders.flatMap(\.pickupSlots).filter { $0.end > now }.min { $0.start < $1.start }
             return Content(group: group, members: members,
                            isMember: members.contains { $0.householdId == householdId },
-                           pickupPoint: pickupPoint, nextSlot: nextSlot, openOrders: summaries)
+                           pickupPoint: pickupPoint, nextSlot: nextSlot, openOrders: summaries,
+                           memberInitials: await initials)
         }
+    }
+
+    /// Initiales des trois premiers ménages membres, lues en parallèle depuis `households/{id}`.
+    nonisolated static func memberInitials(of members: [GroupMember], repositories: AppRepositories) async -> [String] {
+        let ids = Array(members.prefix(3).map(\.householdId))
+        let names = await withTaskGroup(of: (Int, String?).self) { group in
+            for (index, id) in ids.enumerated() {
+                group.addTask { (index, try? await repositories.users.household(id: id).name) }
+            }
+            var byIndex: [Int: String] = [:]
+            for await (index, name) in group { if let name { byIndex[index] = name } }
+            return ids.indices.compactMap { byIndex[$0] }
+        }
+        return names.compactMap(initials(ofHouseholdName:))
+    }
+
+    /// « Famille Benali » → « B », « Ménage Tremblay-Roy » → « TR », « Amina Benali » → « AB ».
+    nonisolated static func initials(ofHouseholdName name: String) -> String? {
+        let ignored: Set<String> = ["famille", "menage", "foyer", "maison", "les", "la", "le", "de", "des", "du"]
+        let words = name
+            .split(whereSeparator: { $0 == " " || $0 == "-" })
+            .filter { !ignored.contains($0.folding(options: [.caseInsensitive, .diacriticInsensitive], locale: nil).lowercased()) }
+        let letters = words.prefix(2).compactMap(\.first)
+        return letters.isEmpty ? nil : String(letters).uppercased()
     }
 
     /// Suit le groupe et ses lots ouverts en temps réel. À lancer dans `.task` après `load()` ; s'arrête avec la tâche.
@@ -123,12 +153,15 @@ final class GroupDetailViewModel {
     private func groupChanged(_ group: NeighborhoodGroup) async {
         guard state.value != nil else { return }
         let members = try? await repositories.groups.members(ofGroup: groupId)
+        var initials: [String]?
+        if let members { initials = await Self.memberInitials(of: members, repositories: repositories) }
         guard var content = state.value else { return }
         content.group = group
         if let members {
             content.members = members
             content.isMember = members.contains { $0.householdId == householdId }
         }
+        if let initials { content.memberInitials = initials }
         state = .loaded(content)
     }
 
@@ -154,9 +187,11 @@ final class GroupDetailViewModel {
             }
             let group = try await repositories.groups.group(id: groupId)
             let members = try await repositories.groups.members(ofGroup: groupId)
+            let initials = await Self.memberInitials(of: members, repositories: repositories)
             if var content = state.value {
                 content.group = group
                 content.members = members
+                content.memberInitials = initials
                 content.isMember = members.contains { $0.householdId == householdId }
                 state = .loaded(content)
             }

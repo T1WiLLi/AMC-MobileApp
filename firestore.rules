@@ -667,7 +667,9 @@ service cloud.firestore {
       // puis le modifie (nom, adresse, photo, capacité, accessibilité, créneaux).
       function isValidPickupPoint(data) {
         return data.keys().hasOnly(['id', 'hostUserId', 'name', 'address', 'photoURL', 'capacity',
-                                    'accessibility', 'slots'])
+                                    'accessibility', 'slots',
+                                    // Champs posés par le seed (T-144) : un point seedé reste modifiable par son hôte.
+                                    'groupId', 'neighborhood', 'latitude', 'longitude', 'geohash'])
           && data.keys().hasAll(['id', 'hostUserId', 'name', 'address', 'capacity', 'accessibility', 'slots'])
           && data.id == pickupPointId
           && data.hostUserId == request.auth.uid
@@ -676,13 +678,22 @@ service cloud.firestore {
           && data.slots is list && data.slots.size() <= 50
           && isIntIn(data.capacity, 1, 1000)
           && isStringList(data.accessibility, 10)
-          && isOptionalString(data, 'photoURL', 2048);
+          && isOptionalString(data, 'photoURL', 2048)
+          && isOptionalString(data, 'groupId', 128)
+          && isOptionalString(data, 'neighborhood', 60)
+          && isOptionalString(data, 'geohash', 12)
+          && (!('latitude' in data) || data.latitude == null
+              || (data.latitude is number && data.latitude >= -90 && data.latitude <= 90))
+          && (!('longitude' in data) || data.longitude == null
+              || (data.longitude is number && data.longitude >= -180 && data.longitude <= 180));
       }
 
       allow create: if isAuthenticated() && isValidPickupPoint(request.resource.data);
       allow update: if isAuthenticated()
         && resource.data.hostUserId == request.auth.uid
-        && isValidPickupPoint(request.resource.data);
+        && isValidPickupPoint(request.resource.data)
+        // Le groupe et le quartier d'un point ne changent pas (rattachement fait au seed ou à la création).
+        && areImmutableFieldsUnchanged(['groupId', 'neighborhood']);
       allow delete: if false;
     }
 

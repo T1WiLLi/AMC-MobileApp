@@ -9,7 +9,7 @@ import SwiftUI
 struct VendorRevenueScreen: View {
     @State private var model: VendorRevenueModel
 
-    init(repositories: AppRepositories = .fake(), vendorId: String = FakeData.ID.fermeRive) {
+    init(repositories: AppRepositories, vendorId: String) {
         _model = State(initialValue: VendorRevenueModel(repositories: repositories, vendorId: vendorId))
     }
 
@@ -53,6 +53,7 @@ struct VendorRevenueContent: View {
         VStack(alignment: .leading, spacing: 12) {
             TotalCard(revenue: revenue)
             KeyFigures(revenue: revenue)
+            ProductStatsLink() // T-119 : statistiques de ventes par produit
 
             SectionTitle("Par lot", systemImage: "chart.bar.xaxis", tint: .grenier)
             OfferRevenueChart(offers: revenue.offers)
@@ -721,29 +722,29 @@ extension FakeData {
 #endif
 
 #Preview("Clair") {
-    VendorRevenueScreen(repositories: .fake(data: .vendorRevenueDemo))
+    VendorRevenueScreen(repositories: .fake(data: .vendorRevenueDemo), vendorId: FakeData.ID.fermeRive)
 }
 
 #Preview("Sombre") {
-    VendorRevenueScreen(repositories: .fake(data: .vendorRevenueDemo))
+    VendorRevenueScreen(repositories: .fake(data: .vendorRevenueDemo), vendorId: FakeData.ID.fermeRive)
         .preferredColorScheme(.dark)
 }
 
 #Preview("AX5") {
-    VendorRevenueScreen(repositories: .fake(data: .vendorRevenueDemo))
+    VendorRevenueScreen(repositories: .fake(data: .vendorRevenueDemo), vendorId: FakeData.ID.fermeRive)
         .dynamicTypeSize(.accessibility5)
 }
 
 #Preview("Données de base") {
-    VendorRevenueScreen()
+    VendorRevenueScreen(repositories: .fake(), vendorId: FakeData.ID.fermeRive)
 }
 
 #Preview("Vide") {
-    VendorRevenueScreen(vendorId: "vendor-inconnu")
+    VendorRevenueScreen(repositories: .fake(), vendorId: "vendor-inconnu")
 }
 
 #Preview("Hors ligne") {
-    VendorRevenueScreen(repositories: .fake(behavior: .failing(.offline)))
+    VendorRevenueScreen(repositories: .fake(behavior: .failing(.offline)), vendorId: FakeData.ID.fermeRive)
 }
 
 #Preview("Chargement") {

@@ -1,4 +1,4 @@
-import Foundation
+import SwiftUI
 
 /// Les portails de Grenier. Un compte peut en avoir plusieurs ; le portail actif choisit la navigation.
 ///
@@ -8,6 +8,8 @@ import Foundation
 enum Portal: String, CaseIterable, Identifiable, Sendable {
     case family
     case vendor
+    /// Organismes communautaires et partenaires (T-116, RQ-081) : financent des paniers, parrainent des groupes.
+    case organization
 
     var id: String { rawValue }
 
@@ -15,6 +17,7 @@ enum Portal: String, CaseIterable, Identifiable, Sendable {
         switch self {
         case .family: "Familles"
         case .vendor: "Vendeurs"
+        case .organization: "Organismes"
         }
     }
 
@@ -22,6 +25,7 @@ enum Portal: String, CaseIterable, Identifiable, Sendable {
         switch self {
         case .family: "house.fill"
         case .vendor: "storefront.fill"
+        case .organization: "building.2.fill"
         }
     }
 
@@ -30,6 +34,7 @@ enum Portal: String, CaseIterable, Identifiable, Sendable {
         switch self {
         case .family: "J'achète avec mon quartier"
         case .vendor: "Je vends aux quartiers"
+        case .organization: "Je soutiens les quartiers"
         }
     }
 
@@ -38,6 +43,7 @@ enum Portal: String, CaseIterable, Identifiable, Sendable {
         switch self {
         case .family: "Côté familles"
         case .vendor: "Côté producteurs"
+        case .organization: "Côté organismes"
         }
     }
 
@@ -49,6 +55,16 @@ enum Portal: String, CaseIterable, Identifiable, Sendable {
         switch self {
         case .family: "Rejoins un groupe, réserve ta part et paie moins cher à chaque palier."
         case .vendor: "Publie tes lots, fixe tes paliers et vois la demande quartier par quartier."
+        case .organization: "Finance des paniers suspendus, parraine des groupes et suis ton impact dans les quartiers."
+        }
+    }
+
+    /// Teinte du portail (satellites du profil, pastilles) : Solidarite, Economie, Grenier.
+    var tint: Color {
+        switch self {
+        case .family: .solidarite
+        case .vendor: .economie
+        case .organization: .grenier
         }
     }
 

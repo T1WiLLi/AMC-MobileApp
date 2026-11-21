@@ -34,7 +34,7 @@ struct VendorProfileViewModelTests {
         #expect(model.servedZones == ["f25d", "f25e"])
         #expect(model.label(forZone: "f25d") == "Saint-Michel")
         #expect(model.label(forZone: "f25e") == "Hochelaga")
-        #expect(model.label(forZone: "zzzz") == "zzzz")
+        #expect(model.label(forZone: "zzzz") == "Secteur personnalisé")
         #expect(model.zoneSuggestions.isEmpty)
         #expect(!model.hasChanges)
         #expect(!model.canSave)
@@ -109,8 +109,8 @@ struct VendorProfileViewModelTests {
 
         #expect(model.addZone("  F25F ") == nil)
         #expect(model.servedZones == ["f25d", "f25e", "f25f"])
-        #expect(model.addZone("f25d") == .invalidInput("Tu dessers déjà cette zone."))
-        #expect(model.addZone("   ") == .invalidInput("Saisis un code de zone."))
+        #expect(model.addZone("f25d") == .invalidInput("Tu dessers déjà ce quartier."))
+        #expect(model.addZone("   ") == .invalidInput("Choisis un quartier."))
         #expect(model.servedZones.count == 3)
     }
 

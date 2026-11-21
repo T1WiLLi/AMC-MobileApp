@@ -91,7 +91,7 @@ struct NotificationContentTests {
         #expect(first.identifier == second.identifier)
         // Fermeture et annulation se remplacent l'une l'autre.
         #expect(Self.make(.orderClosed(finalPriceCents: 210, unit: "kg")).identifier == Self.make(.orderCancelled).identifier)
-        #expect(Set(GrenierNotification.Kind.allCases.map { $0.identifier(forOrder: "go-riz") }).count == 4)
+        #expect(Set(GrenierNotification.Kind.allCases.map { $0.identifier(forOrder: "go-riz") }).count == 5)
     }
 }
 

@@ -15,7 +15,19 @@ struct AMCMobileApp: App {
         // Fake, émulateur ou projet de démo (B-013) : voir `BackendMode` et docs/firebase.md §4.
         let mode = FirebaseSetup.configure()
         _session = State(initialValue: SessionViewModel(auth: FirebaseSetup.makeAuthService(mode: mode)))
-        _demo = State(initialValue: DemoEnvironment(mode: mode))
+        let demo = DemoEnvironment(mode: mode)
+        _demo = State(initialValue: demo)
+        // Notifications locales sans serveur (T-107) : iOS réveille l'app, qui compare au dernier état connu.
+        // Enregistré pendant le lancement, comme l'exige BGTaskScheduler ; le gestionnaire garde l'objet en vie.
+        let lastKnownState = UserDefaultsLastKnownStateStore()
+        let backgroundRefresh = BackgroundRefresh(
+            coordinator: NotificationCoordinator(scheduler: UserNotificationScheduler(), store: lastKnownState),
+            repositories: demo.context.repositories,
+            store: lastKnownState,
+            householdId: { demo.context.householdId }
+        )
+        backgroundRefresh.register()
+        backgroundRefresh.schedule()
         // Démo : -resetOnboarding rejoue l'accueil, -demoFamilyPortal rouvre côté Familles. Ne touche pas Firebase.
         OnboardingKeys.applyLaunchArguments(ProcessInfo.processInfo.arguments)
     }

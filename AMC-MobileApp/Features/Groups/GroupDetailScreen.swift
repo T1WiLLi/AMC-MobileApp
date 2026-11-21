@@ -8,7 +8,13 @@ struct GroupDetailScreen: View {
     let groupId: String
 
     @Environment(\.appContext) private var context
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var viewModel: GroupDetailViewModel?
+
+    /// Thème du groupe chargé (Grenier tant qu'il charge).
+    private var theme: GroupTheme {
+        viewModel?.state.value.map { GroupTheme(group: $0.group) } ?? .grenier
+    }
 
     var body: some View {
         Group {
@@ -38,7 +44,11 @@ struct GroupDetailScreen: View {
             }
         }
         .grenierBackground()
-        .navigationTitle(viewModel?.state.value?.group.name ?? "Groupe")
+        // B-034 : accent et emblème de la marque du groupe ; Grenier revient en quittant la fiche.
+        .environment(\.groupTheme, theme)
+        .tint(theme.accent)
+        .animation(reduceMotion ? nil : .smooth(duration: 0.45), value: theme)
+        .navigationTitle(theme.displayName ?? "Groupe")
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             if let group = viewModel?.state.value?.group {
@@ -78,6 +88,7 @@ struct GroupDetailScreen: View {
 // MARK: - Contenu
 
 private struct GroupDetailContent: View {
+    @Environment(\.groupTheme) private var theme
     let content: GroupDetailViewModel.Content
     let viewModel: GroupDetailViewModel
 
@@ -106,6 +117,39 @@ private struct GroupDetailContent: View {
                 }
 
                 openOrdersSection
+
+                // S-07 (T-108) : envies des familles, réservées aux membres.
+                if content.isMember {
+                    NavigationLink {
+                        GroupWishesScreen(groupId: group.id)
+                    } label: {
+                        Label {
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text("Ce que le groupe veut")
+                                    .font(.headline)
+                                    .foregroundStyle(.texte)
+                                Text("Dis ce que ta famille veut acheter, vois la demande du quartier.")
+                                    .font(.subheadline)
+                                    .foregroundStyle(.texteSecondaire)
+                                    .multilineTextAlignment(.leading)
+                            }
+                        } icon: {
+                            Image(systemName: "basket.fill")
+                                .font(.title2)
+                                .symbolRenderingMode(.hierarchical)
+                                .foregroundStyle(theme.accent)
+                        }
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .overlay(alignment: .trailing) {
+                            Image(systemName: "chevron.right")
+                                .font(.footnote.weight(.semibold))
+                                .foregroundStyle(.texteSecondaire)
+                                .accessibilityHidden(true)
+                        }
+                        .grenierCard()
+                    }
+                    .buttonStyle(.plain)
+                }
 
                 InvitationCard(group: group)
 
@@ -150,7 +194,7 @@ private struct GroupDetailContent: View {
                     .frame(maxWidth: .infinity)
                 }
                 .buttonStyle(.glassProminent)
-                .tint(.grenier)
+                .tint(theme.accent)
                 .controlSize(.large)
                 .disabled(viewModel.isUpdatingMembership)
                 .padding(.horizontal, 16)
@@ -167,11 +211,26 @@ private struct GroupDetailContent: View {
             Label("Groupe de quartier · \(group.neighborhood)".uppercased(), systemImage: "mappin.circle.fill")
                 .font(.caption.weight(.semibold))
                 .symbolRenderingMode(.hierarchical)
-                .foregroundStyle(Color.grenier)
-            Text(group.name)
-                .font(.largeTitle.bold())
-                .foregroundStyle(.texte)
-                .accessibilityAddTraits(.isHeader)
+                .foregroundStyle(theme.accent)
+            Label {
+                Text(theme.displayName ?? group.name)
+                    .font(.largeTitle.bold())
+                    .foregroundStyle(.texte)
+            } icon: {
+                Image(systemName: theme.emblem)
+                    .font(.title.weight(.semibold))
+                    .symbolRenderingMode(.hierarchical)
+                    .foregroundStyle(theme.accent)
+                    .contentTransition(.symbolEffect(.replace))
+                    .accessibilityHidden(true)
+            }
+            .accessibilityAddTraits(.isHeader)
+            if let welcome = theme.welcomeMessage {
+                Text(welcome)
+                    .font(.body)
+                    .foregroundStyle(.texteSecondaire)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
             ViewThatFits(in: .horizontal) {
                 HStack(spacing: 12) { members }
                 VStack(alignment: .leading, spacing: 8) { members }
@@ -211,7 +270,7 @@ private struct GroupDetailContent: View {
         GroupsStatTile(value: "\(group.householdCount)", caption: group.householdCount > 1 ? "familles" : "famille",
                        systemImage: "person.2.fill", tint: .solidarite)
         GroupsStatTile(value: "\(orders)", caption: orders > 1 ? "lots ouverts" : "lot ouvert",
-                       systemImage: GrenierSymbol.offers, tint: .grenier)
+                       systemImage: GrenierSymbol.offers, tint: theme.accent)
         GroupsStatTile(value: GroupCard.distanceText(group.radiusMeters), caption: "de rayon",
                        systemImage: "circle.dashed", tint: .economie)
     }
@@ -223,7 +282,7 @@ private struct GroupDetailContent: View {
             GroupsSectionHeader(
                 title: orders.count > 1 ? "Lots ouverts" : "Lot ouvert",
                 systemImage: GrenierSymbol.offers,
-                tint: .grenier,
+                tint: theme.accent,
                 count: orders.count
             )
             if orders.isEmpty {
@@ -231,7 +290,7 @@ private struct GroupDetailContent: View {
                     GroupsSymbolScene(
                         systemImage: "shippingbox",
                         satellites: [
-                            .init(systemImage: "clock.fill", tint: .grenier, degrees: -35),
+                            .init(systemImage: "clock.fill", tint: theme.accent, degrees: -35),
                             .init(systemImage: GrenierSymbol.impact, tint: .economie, degrees: 145)
                         ],
                         diameter: 64,
@@ -302,6 +361,7 @@ private struct MemberBanner: View {
 
 /// Carte MapKit centrée sur la zone du groupe (cercle) et le point de cueillette.
 private struct GroupMapHeader: View {
+    @Environment(\.groupTheme) private var theme
     let group: NeighborhoodGroup
     let hasPickupPoint: Bool
 
@@ -313,15 +373,15 @@ private struct GroupMapHeader: View {
         Map(initialPosition: .region(MKCoordinateRegion(center: center, latitudinalMeters: span, longitudinalMeters: span)),
             interactionModes: []) {
             MapCircle(center: center, radius: CLLocationDistance(group.radiusMeters))
-                .foregroundStyle(Color.grenier.opacity(0.12))
-                .stroke(Color.grenier.opacity(0.6), style: StrokeStyle(lineWidth: 1.5, dash: [4, 4]))
+                .foregroundStyle(theme.accent.opacity(0.12))
+                .stroke(theme.accent.opacity(0.6), style: StrokeStyle(lineWidth: 1.5, dash: [4, 4]))
             if hasPickupPoint {
                 Annotation("Point de cueillette", coordinate: center) {
                     Image(systemName: GrenierSymbol.offers)
                         .font(.headline)
                         .foregroundStyle(Color.onAccent)
                         .padding(10)
-                        .background(Color.grenier, in: .rect(cornerRadius: 14))
+                        .background(theme.accent, in: .rect(cornerRadius: 14))
                         .overlay(RoundedRectangle(cornerRadius: 14).stroke(Color.surface, lineWidth: 3))
                 }
             }
@@ -346,7 +406,7 @@ private struct GroupMapHeader: View {
         Label(text, systemImage: systemImage)
             .font(.caption.weight(.semibold))
             .symbolRenderingMode(.hierarchical)
-            .foregroundStyle(Color.grenier)
+            .foregroundStyle(theme.accent)
             .padding(.horizontal, 10)
             .padding(.vertical, 6)
             .glassEffect(.regular, in: .capsule)
@@ -356,6 +416,7 @@ private struct GroupMapHeader: View {
 // MARK: - Cueillette
 
 private struct PickupCard: View {
+    @Environment(\.groupTheme) private var theme
     let pickupPoint: PickupPoint?
     let slot: PickupSlot?
 
@@ -366,7 +427,7 @@ private struct PickupCard: View {
                 subtitle: pickupPoint.map { "Point de cueillette · \($0.address)" }
                     ?? "L'hôte sera choisi à la prochaine commande")
             Divider().overlay(Color.piste)
-            row(symbol: slot == nil ? "clock.badge.questionmark" : "clock.fill", tint: .grenier,
+            row(symbol: slot == nil ? "clock.badge.questionmark" : "clock.fill", tint: theme.accent,
                 title: slot.map(PickupTime.text(for:)) ?? "Horaire à venir",
                 subtitle: slot == nil ? "Annoncé dès qu'une commande est lancée" : "Prochaine cueillette")
         }
@@ -398,6 +459,7 @@ private struct PickupCard: View {
 // MARK: - Invitation
 
 private struct InvitationCard: View {
+    @Environment(\.groupTheme) private var theme
     let group: NeighborhoodGroup
 
     var body: some View {
@@ -422,10 +484,10 @@ private struct InvitationCard: View {
             .font(.title3.bold())
             .fontDesign(.monospaced)
             .symbolRenderingMode(.hierarchical)
-            .foregroundStyle(Color.grenier)
+            .foregroundStyle(theme.accent)
             .padding(.horizontal, 12)
             .padding(.vertical, 6)
-            .background(Color.grenier.opacity(0.12), in: .capsule)
+            .background(theme.accent.opacity(0.12), in: .capsule)
             .textSelection(.enabled)
             .accessibilityLabel("Code d'invitation \(group.inviteCode.map(String.init).joined(separator: " "))")
     }
@@ -436,7 +498,7 @@ private struct InvitationCard: View {
                 .fontWeight(.semibold)
         }
         .buttonStyle(.glass)
-        .tint(.grenier)
+        .tint(theme.accent)
     }
 }
 

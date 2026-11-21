@@ -48,6 +48,7 @@ struct PickupScreen: View {
             .grenierBackground()
             .navigationTitle("Cueillette")
             .profileToolbar()
+            .pickupTools(groupOrderId: viewModel?.state.value?.items.first?.groupOrderId)
         }
         .task {
             guard viewModel == nil, let groupId = context.groupId else { return }

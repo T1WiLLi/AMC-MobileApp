@@ -10,8 +10,9 @@ struct AMCMobileApp: App {
     @State private var appLock = AppLock()
 
     init() {
-        let firebaseReady = FirebaseSetup.configureIfAvailable()
-        _session = State(initialValue: SessionViewModel(auth: FirebaseSetup.makeAuthService(firebaseReady: firebaseReady)))
+        // Fake, émulateur ou projet de démo (B-013) : voir `BackendMode` et docs/firebase.md §4.
+        let mode = FirebaseSetup.configure()
+        _session = State(initialValue: SessionViewModel(auth: FirebaseSetup.makeAuthService(mode: mode)))
         // Démo : -resetOnboarding rejoue l'accueil, -demoFamilyPortal rouvre côté Familles. Ne touche pas Firebase.
         OnboardingKeys.applyLaunchArguments(ProcessInfo.processInfo.arguments)
     }

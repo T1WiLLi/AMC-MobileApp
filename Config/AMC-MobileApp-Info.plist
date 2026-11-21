@@ -23,5 +23,8 @@
 			</array>
 		</dict>
 	</array>
+	<!-- Nom affiché sous l'icône et dans la feuille système « … veut utiliser accounts.google.com » (sinon « AMC-MobileApp »). -->
+	<key>CFBundleDisplayName</key>
+	<string>Grenier</string>
 </dict>
 </plist>

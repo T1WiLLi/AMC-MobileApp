@@ -98,8 +98,9 @@ private struct FamilyHomeContent: View {
                 if mine.isEmpty {
                     NoOrderCard(hasOffersBelow: !content.newOffers.isEmpty)
                 } else {
-                    ForEach(mine) { summary in
+                    ForEach(Array(mine.enumerated()), id: \.element.id) { index, summary in
                         OrderLink(summary: summary)
+                            .grenierAppear(index: index)
                     }
                 }
             }
@@ -107,8 +108,9 @@ private struct FamilyHomeContent: View {
             if !others.isEmpty {
                 VStack(alignment: .leading, spacing: 12) {
                     GrenierSectionHeader("Commandes ouvertes de \(content.group.name)", systemImage: GrenierSymbol.groups)
-                    ForEach(others) { summary in
+                    ForEach(Array(others.enumerated()), id: \.element.id) { index, summary in
                         OrderLink(summary: summary)
+                            .grenierAppear(index: mine.count + index)
                     }
                 }
             }
@@ -130,6 +132,7 @@ private struct FamilyHomeContent: View {
                         }
                         NavigationLink(value: OfferRoute(offerId: summary.offer.id)) {
                             NewOfferRow(summary: summary)
+                                .grenierZoomSource(OfferRoute(offerId: summary.offer.id))
                         }
                         .buttonStyle(.plain)
                     }
@@ -256,6 +259,8 @@ private struct OrderLink: View {
                     committedShares: summary.committedShares,
                     committedHouseholds: summary.committedHouseholds
                 )
+                // La fiche du lot sort de la carte en zoom (T-123).
+                .grenierZoomSource(OfferRoute(offerId: summary.offer.id))
                 if summary.hasMyShare {
                     Label(
                         "Ta part : \(FrenchPlural.count(summary.myShareQuantity, "part"))",

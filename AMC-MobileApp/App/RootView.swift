@@ -7,6 +7,9 @@ struct RootView: View {
     @AppStorage(Portal.storageKey) private var portal: Portal = .family
     @Environment(NetworkMonitor.self) private var network: NetworkMonitor?
     @Environment(\.scenePhase) private var scenePhase
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    /// Bascule animée de portail (T-123), demandée depuis le profil ou le menu du bouton Profil.
+    @State private var portalSwitch = PortalSwitchCoordinator()
 
     private var isOffline: Bool { network?.isOnline == false }
 
@@ -18,6 +21,8 @@ struct RootView: View {
             }
         }
         .animation(.smooth, value: portal)
+        // L'écran du portail recule sous le voile, puis reprend sa place quand le voile s'efface.
+        .scaleEffect(portalSwitch.phase.contentScale(reduceMotion: reduceMotion))
         .overlay(alignment: .top) {
             if isOffline {
                 OfflineBadge()
@@ -28,6 +33,16 @@ struct RootView: View {
             }
         }
         .grenierAnimation(.smooth, value: isOffline)
+        .overlay { PortalSplashOverlay(phase: portalSwitch.phase) }
+        .environment(portalSwitch)
+        .onChange(of: portalSwitch.phase) { _, phase in
+            // Le voile couvre l'écran : on change de portail d'un coup, sans animation visible.
+            guard case .presenting(let destination) = phase, destination != portal else { return }
+            var transaction = Transaction()
+            transaction.disablesAnimations = true
+            withTransaction(transaction) { portal = destination }
+        }
+        .grenierHaptic(.success, trigger: portalSwitch.completedSwitches) { _, count in count > 0 }
         .onChange(of: scenePhase, initial: true) { _, phase in
             network?.scenePhaseChanged(to: phase)
         }

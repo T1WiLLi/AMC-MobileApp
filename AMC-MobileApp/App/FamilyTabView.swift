@@ -11,15 +11,19 @@ struct FamilyTabView: View {
         TabView(selection: $selection) {
             Tab("Accueil", systemImage: "house.fill", value: .home) {
                 FamilyHomeScreen()
+                    .grenierTabContent(isSelected: selection == .home)
             }
             Tab("Groupes", systemImage: "person.3.fill", value: .groups) {
                 GroupsScreen()
+                    .grenierTabContent(isSelected: selection == .groups)
             }
             Tab("Cueillette", systemImage: "qrcode", value: .pickup) {
                 PickupScreen()
+                    .grenierTabContent(isSelected: selection == .pickup)
             }
             Tab("Impact", systemImage: "leaf.fill", value: .impact) {
                 ImpactScreen()
+                    .grenierTabContent(isSelected: selection == .impact)
             }
             Tab(value: .search, role: .search) {
                 SearchScreen(prompt: "Riz, pommes, producteur…", linksToOffers: true)

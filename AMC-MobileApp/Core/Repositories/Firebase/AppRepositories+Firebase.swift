@@ -31,7 +31,8 @@ extension AppRepositories {
             vendors: FirestoreVendorRepository(),             // B-018 — vendors, products
             offers: FirestoreOfferRepository(),               // B-018 — offers
             groupOrders: FirestoreGroupOrderRepository(),     // B-019 — groupOrders, shares
-            pickupPoints: FirestorePickupPointRepository()    // B-018 — pickupPoints
+            pickupPoints: FirestorePickupPointRepository(),   // B-018 — pickupPoints
+            images: FirestoreImageStore()                     // T-122 — users|groups/{id}/media/{nom} (octets JPEG)
         )
         repositories.wishes = FirestoreGroupWishRepository()        // S-07 — groups/{id}/wishes
         repositories.supplies = FirestoreVendorSupplyRepository()   // S-08 — vendors/{id}/supplies

@@ -9,11 +9,30 @@
 
 import Foundation
 import Observation
+import UIKit
 
-/// Enregistre la photo de profil choisie et renvoie son URL. Une version Firebase Storage
-/// (`users/{uid}/…`, storage.rules) pourra remplacer la version locale.
+/// Enregistre la photo de profil choisie et renvoie son URL. Par défaut (T-122) : `ImageStoreProfilePhotoStore`,
+/// recadrée en 400 × 400 dans `users/{uid}/media/avatar` (base64 Firestore en live, mémoire en fake).
 nonisolated protocol ProfilePhotoStoring: Sendable {
     func store(_ data: Data, userId: String) async throws -> URL
+}
+
+/// T-122 : recadre en carré 400 × 400, compresse en JPEG et enregistre dans `users/{uid}/media/avatar`.
+/// Renvoie l'URL versionnée (`grenier-media:///users/{uid}/media/avatar?v=…`) à poser sur `AppUser.photoURL`.
+nonisolated struct ImageStoreProfilePhotoStore: ProfilePhotoStoring {
+    let imageStore: any ImageStore
+
+    func store(_ data: Data, userId: String) async throws -> URL {
+        let path = MediaPath.userAvatar(userId: userId)
+        let image = try await Task.detached(priority: .userInitiated) {
+            try ImageProcessing.prepare(data, spec: path.spec)
+        }.value
+        let url = try await imageStore.save(image, at: path)
+        if let decoded = UIImage(data: image.jpeg) {
+            await MediaImageLoader.shared.prime(decoded, for: url)
+        }
+        return url
+    }
 }
 
 /// Écrit la photo dans le dossier Caches de l'app (démo et dépôts fake).
@@ -72,12 +91,12 @@ final class AccountViewModel {
         repositories: AppRepositories,
         userId: String,
         auth: any AuthService,
-        photoStore: any ProfilePhotoStoring = LocalProfilePhotoStore()
+        photoStore: (any ProfilePhotoStoring)? = nil
     ) {
         self.repositories = repositories
         self.userId = userId
         self.auth = auth
-        self.photoStore = photoStore
+        self.photoStore = photoStore ?? ImageStoreProfilePhotoStore(imageStore: repositories.images)
     }
 
     // MARK: Lecture

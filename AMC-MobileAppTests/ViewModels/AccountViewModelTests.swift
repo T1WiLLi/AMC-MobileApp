@@ -39,7 +39,7 @@ struct AccountViewModelTests {
         let model = makeModel(users: makeData())
         await model.load()
         #expect(model.displayName == "Amina Benali")
-        #expect(model.photoURL == nil)
+        #expect(model.photoURL == DemoMedia.aminaAvatar)
         #expect(!model.hasChanges)
         #expect(!model.canSave)
         #expect(model.initials == "AB")

@@ -52,6 +52,19 @@ struct AccountScreen: View {
             if case .failed = new { true } else { new == .needsReauthentication }
         }
         .grenierHaptic(.success, trigger: model.deletionState) { _, new in new == .deleted }
+        .modifier(DeletionDialogs(model: model, session: session, isConfirmingFirstStep: $isConfirmingFirstStep))
+    }
+}
+
+/// Confirmations et alertes de la suppression, sorties de `body` : la chaîne entière dépassait
+/// le temps de vérification de types du compilateur (« unable to type-check this expression »).
+private struct DeletionDialogs: ViewModifier {
+    let model: AccountViewModel
+    let session: SessionViewModel?
+    @Binding var isConfirmingFirstStep: Bool
+
+    func body(content: Content) -> some View {
+        content
         // Premier temps : on explique ce qui disparaît.
         .confirmationDialog(
             "Supprimer ton compte ?",
@@ -97,7 +110,9 @@ struct AccountScreen: View {
             if case .failed(let message) = model.deletionState { Text(message) }
         }
     }
+}
 
+extension AccountScreen {
     private var form: some View {
         Form {
             photoSection

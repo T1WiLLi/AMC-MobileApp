@@ -87,7 +87,7 @@ struct VendorDemandMapScreen: View {
                 state: viewModel.state,
                 empty: .init(
                     title: "Aucune demande ici",
-                    systemImage: "map",
+                    systemImage: "binoculars.fill",
                     message: "Aucun groupe ne s'est encore engagé avec ces filtres. Essaie un autre produit ou toute la demande."
                 ),
                 retry: { await viewModel.load() }
@@ -106,6 +106,11 @@ struct VendorDemandMapScreen: View {
 
     private var loadingBadge: some View {
         HStack(spacing: 10) {
+            Image(systemName: "map.fill")
+                .symbolRenderingMode(.hierarchical)
+                .foregroundStyle(Color.grenier)
+                .symbolEffect(.pulse, isActive: !reduceMotion)
+                .accessibilityHidden(true)
             ProgressView()
             Text("Chargement de la demande…")
                 .font(.subheadline.weight(.semibold))
@@ -150,18 +155,33 @@ struct VendorDemandMapScreen: View {
     // MARK: Liste accessible
 
     private func listView(_ points: [DemandPoint]) -> some View {
-        List(points) { point in
-            Button {
-                select(point)
-            } label: {
-                DemandRow(point: point)
+        List {
+            Section {
+                DemandListHero(points: points, grouping: viewModel.grouping)
+                    .listRowInsets(EdgeInsets())
+                    .listRowBackground(Color.clear)
             }
-            .buttonStyle(.plain)
-            .listRowBackground(Color.surface)
-            .accessibilityElement(children: .ignore)
-            .accessibilityLabel(point.accessibilityDescription)
-            .accessibilityHint("Affiche les produits voulus")
-            .accessibilityAddTraits(point.id == viewModel.selectedPointID ? [.isButton, .isSelected] : .isButton)
+
+            Section {
+                ForEach(points) { point in
+                    Button {
+                        select(point)
+                    } label: {
+                        DemandRow(point: point)
+                    }
+                    .buttonStyle(.plain)
+                    .listRowBackground(Color.surface)
+                    .accessibilityElement(children: .ignore)
+                    .accessibilityLabel(point.accessibilityDescription)
+                    .accessibilityHint("Affiche les produits voulus")
+                    .accessibilityAddTraits(point.id == viewModel.selectedPointID ? [.isButton, .isSelected] : .isButton)
+                }
+            } header: {
+                Label("\(viewModel.grouping.title) par demande", systemImage: "chart.bar.fill")
+                    .symbolRenderingMode(.hierarchical)
+                    .foregroundStyle(Color.grenier)
+                    .accessibilityAddTraits(.isHeader)
+            }
         }
         .listStyle(.insetGrouped)
         .scrollContentBackground(.hidden)
@@ -182,6 +202,9 @@ struct VendorDemandMapScreen: View {
                 if isSearchFocused, !suggestions.isEmpty {
                     suggestionChips
                         .transition(.opacity.combined(with: .move(edge: .top)))
+                } else if displayMode == .map, let points = viewModel.state.value {
+                    DemandSummaryStrip(points: points)
+                        .transition(.opacity.combined(with: .move(edge: .top)))
                 }
             }
         }
@@ -190,6 +213,9 @@ struct VendorDemandMapScreen: View {
         .padding(.bottom, 8)
         .animation(reduceMotion ? nil : .smooth, value: isSearchFocused)
         .animation(reduceMotion ? nil : .smooth, value: suggestions.map(\.id))
+        .animation(reduceMotion ? nil : .smooth, value: displayMode)
+        .sensoryFeedback(.selection, trigger: displayMode)
+        .sensoryFeedback(.selection, trigger: filterSummary)
     }
 
     private var searchField: some View {
@@ -223,22 +249,35 @@ struct VendorDemandMapScreen: View {
 
     private var filterMenu: some View {
         Menu {
-            Picker("Regrouper par", selection: $viewModel.grouping) {
-                ForEach(DemandMapViewModel.Grouping.allCases) { Text($0.title).tag($0) }
-            }
-            Picker("Lots", selection: $viewModel.scope) {
-                ForEach(DemandMapViewModel.Scope.allCases) { Text($0.title).tag($0) }
-            }
-            Picker("Produit", selection: $viewModel.productFilter) {
-                Text("Tous les produits").tag(String?.none)
-                ForEach(viewModel.availableProducts) { product in
-                    Text(product.name).tag(String?.some(product.productId))
+            Picker(selection: $viewModel.grouping) {
+                ForEach(DemandMapViewModel.Grouping.allCases) { grouping in
+                    Label(grouping.title, systemImage: grouping.systemImage).tag(grouping)
                 }
+            } label: {
+                Label("Regrouper par", systemImage: "square.stack.3d.up.fill")
+            }
+            Picker(selection: $viewModel.scope) {
+                ForEach(DemandMapViewModel.Scope.allCases) { scope in
+                    Label(scope.title, systemImage: scope.systemImage).tag(scope)
+                }
+            } label: {
+                Label("Lots", systemImage: "shippingbox.fill")
+            }
+            Picker(selection: $viewModel.productFilter) {
+                Label("Tous les produits", systemImage: "square.grid.2x2.fill").tag(String?.none)
+                ForEach(viewModel.availableProducts) { product in
+                    Label(product.name, systemImage: "basket.fill").tag(String?.some(product.productId))
+                }
+            } label: {
+                Label("Produit", systemImage: "basket.fill")
             }
             .pickerStyle(.menu)
         } label: {
-            Image(systemName: "slider.horizontal.3")
+            Image(systemName: hasActiveFilters
+                  ? "line.3.horizontal.decrease.circle.fill"
+                  : "slider.horizontal.3")
                 .font(.body.weight(.semibold))
+                .contentTransition(.symbolEffect(.replace))
                 .foregroundStyle(hasActiveFilters ? Color.onAccent : Color.texte)
                 .frame(width: controlSize, height: controlSize)
                 .contentShape(.circle)
@@ -273,9 +312,15 @@ struct VendorDemandMapScreen: View {
                     Button {
                         apply(product)
                     } label: {
-                        Text(product.name)
+                        Label {
+                            Text(product.name)
+                                .foregroundStyle(Color.texte)
+                        } icon: {
+                            Image(systemName: "basket.fill")
+                                .symbolRenderingMode(.hierarchical)
+                                .foregroundStyle(Color.grenier)
+                        }
                             .font(.subheadline.weight(.semibold))
-                            .foregroundStyle(Color.texte)
                             .padding(.horizontal, 14)
                             .frame(minHeight: 44)
                     }
@@ -382,12 +427,19 @@ private struct DemandBubble: View {
     }
 
     var body: some View {
-        Text(point.committedHouseholds, format: .number)
-            .font(point.isHighDemand ? .title2.bold() : .headline)
-            .fontDesign(.rounded)
-            .monospacedDigit()
-            .minimumScaleFactor(0.6)
-            .lineLimit(1)
+        VStack(spacing: 0) {
+            if point.isHighDemand {
+                Image(systemName: "flame.fill")
+                    .font(.caption.bold())
+                    .symbolEffect(.bounce, options: .nonRepeating, value: reduceMotion ? false : isSelected)
+            }
+            Text(point.committedHouseholds, format: .number)
+                .font(point.isHighDemand ? .title2.bold() : .headline)
+                .fontDesign(.rounded)
+                .monospacedDigit()
+                .minimumScaleFactor(0.6)
+                .lineLimit(1)
+        }
             .foregroundStyle(point.isHighDemand ? Color.onAccent : Color.grenier)
             .padding(6)
             .frame(width: diameter, height: diameter)
@@ -446,15 +498,29 @@ private struct DemandRow: View {
                 .frame(minWidth: dotSize, minHeight: dotSize)
                 .background(point.isHighDemand ? Color.grenier : Color.grenier.opacity(0.14), in: .circle)
             VStack(alignment: .leading, spacing: 2) {
-                Text(point.displayName)
+                Label(point.displayName, systemImage: point.grouping.systemImage)
                     .font(.headline)
                     .foregroundStyle(Color.texte)
-                Text(point.summary)
+                    .symbolRenderingMode(.hierarchical)
+                Label(point.summary, systemImage: "person.2.fill")
                     .font(.subheadline)
                     .foregroundStyle(Color.texteSecondaire)
+                    .symbolRenderingMode(.hierarchical)
+                if let top = point.products.first {
+                    Label("Surtout : \(top.name)", systemImage: "basket.fill")
+                        .font(.subheadline)
+                        .foregroundStyle(Color.texteSecondaire)
+                        .symbolRenderingMode(.hierarchical)
+                }
             }
             if !dynamicTypeSize.isAccessibilitySize { Spacer(minLength: 8) }
             if point.isHighDemand { HighDemandBadge() }
+            if !dynamicTypeSize.isAccessibilitySize {
+                Image(systemName: "chevron.right")
+                    .font(.footnote.weight(.semibold))
+                    .foregroundStyle(Color.texteSecondaire)
+                    .accessibilityHidden(true)
+            }
         }
         .padding(.vertical, 4)
         .contentShape(.rect)
@@ -468,18 +534,23 @@ private struct DemandPointSheet: View {
     let onProposeOffer: ((DemandPoint) -> Void)?
 
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @ScaledMetric(relativeTo: .title) private var tileSide: CGFloat = 52
+    @State private var hasAppeared = false
 
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 16) {
                 header
+                statsRow
                 productsCard
                 if let onProposeOffer {
                     Button {
                         onProposeOffer(point)
                     } label: {
-                        Label("Proposer un lot ici", systemImage: "plus")
+                        Label("Proposer un lot ici", systemImage: "plus.circle.fill")
                             .font(.headline)
+                            .symbolEffect(.wiggle, options: .nonRepeating, value: reduceMotion ? false : hasAppeared)
                             .frame(maxWidth: .infinity)
                     }
                     .buttonStyle(.glassProminent)
@@ -492,14 +563,23 @@ private struct DemandPointSheet: View {
             .padding(.bottom, 16)
         }
         .scrollBounceBehavior(.basedOnSize)
+        .onAppear { hasAppeared = true }
     }
 
     private var header: some View {
         let layout = dynamicTypeSize.isAccessibilitySize
             ? AnyLayout(VStackLayout(alignment: .leading, spacing: 8))
-            : AnyLayout(HStackLayout(alignment: .firstTextBaseline, spacing: 12))
+            : AnyLayout(HStackLayout(alignment: .center, spacing: 12))
         return VStack(alignment: .leading, spacing: 4) {
             layout {
+                Image(systemName: point.grouping.systemImage)
+                    .font(.title2)
+                    .symbolRenderingMode(.hierarchical)
+                    .foregroundStyle(Color.grenier)
+                    .frame(width: min(tileSide, 80), height: min(tileSide, 80))
+                    .background(Color.grenier.opacity(0.12), in: .rect(cornerRadius: 14))
+                    .symbolEffect(.bounce, options: .nonRepeating, value: reduceMotion ? false : hasAppeared)
+                    .accessibilityHidden(true)
                 Text(point.displayName)
                     .font(.title.bold())
                     .foregroundStyle(Color.texte)
@@ -508,17 +588,42 @@ private struct DemandPointSheet: View {
                 if !dynamicTypeSize.isAccessibilitySize { Spacer(minLength: 0) }
                 if point.isHighDemand { HighDemandBadge() }
             }
-            Text(point.summary)
-                .font(.subheadline)
-                .foregroundStyle(Color.texteSecondaire)
+        }
+    }
+
+    /// Trois chiffres clés du point : familles engagées, parts, ménages membres.
+    private var statsRow: some View {
+        let layout = dynamicTypeSize.isAccessibilitySize
+            ? AnyLayout(VStackLayout(spacing: 8))
+            : AnyLayout(HStackLayout(alignment: .top, spacing: 8))
+        return layout {
+            DemandStatTile(
+                value: point.committedHouseholds,
+                label: FrenchPlural.word(point.committedHouseholds, "famille engagée", plural: "familles engagées"),
+                systemImage: "person.2.fill",
+                tint: .grenier
+            )
+            DemandStatTile(
+                value: point.committedShares,
+                label: FrenchPlural.word(point.committedShares, "part"),
+                systemImage: "shippingbox.fill",
+                tint: .economie
+            )
+            DemandStatTile(
+                value: point.householdCount,
+                label: FrenchPlural.word(point.householdCount, "membre"),
+                systemImage: "house.fill",
+                tint: .solidarite
+            )
         }
     }
 
     private var productsCard: some View {
         VStack(alignment: .leading, spacing: 0) {
-            Text("Produits voulus")
+            Label("Produits voulus", systemImage: "basket.fill")
                 .font(.footnote.weight(.semibold))
                 .foregroundStyle(Color.texteSecondaire)
+                .symbolRenderingMode(.hierarchical)
                 .textCase(.uppercase)
                 .padding(.bottom, 8)
                 .accessibilityAddTraits(.isHeader)
@@ -542,11 +647,19 @@ private struct ProductDemandRow: View {
             ? AnyLayout(VStackLayout(alignment: .leading, spacing: 4))
             : AnyLayout(HStackLayout(alignment: .firstTextBaseline, spacing: 12))
         layout {
-            Text(product.name)
-                .font(.body)
-                .foregroundStyle(Color.texte)
+            Label {
+                Text(product.name)
+                    .foregroundStyle(Color.texte)
+            } icon: {
+                Image(systemName: "shippingbox.fill")
+                    .symbolRenderingMode(.hierarchical)
+                    .foregroundStyle(Color.grenier)
+            }
+            .font(.body)
             if !dynamicTypeSize.isAccessibilitySize { Spacer(minLength: 8) }
-            Text(DemandFormatting.wantedQuantity(of: product))
+            Label(DemandFormatting.wantedQuantity(of: product), systemImage: "scalemass.fill")
+                .labelStyle(.titleAndIcon)
+                .symbolRenderingMode(.hierarchical)
                 .font(.body.weight(.semibold))
                 .fontDesign(.rounded)
                 .monospacedDigit()
@@ -559,13 +672,187 @@ private struct ProductDemandRow: View {
 
 private struct HighDemandBadge: View {
     var body: some View {
-        Text("Forte demande")
+        Label("Forte demande", systemImage: "flame.fill")
             .font(.subheadline.weight(.semibold))
             .foregroundStyle(Color.onAccent)
             .padding(.vertical, 6)
             .padding(.horizontal, 12)
             .background(Color.grenier, in: .capsule)
             .fixedSize()
+    }
+}
+
+/// Tuile de chiffre de la feuille : icône teintée, nombre arrondi, libellé.
+private struct DemandStatTile: View {
+    let value: Int
+    let label: String
+    let systemImage: String
+    let tint: Color
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 4) {
+            Image(systemName: systemImage)
+                .font(.title3)
+                .symbolRenderingMode(.hierarchical)
+                .foregroundStyle(tint)
+                .accessibilityHidden(true)
+            Text(value, format: .number)
+                .font(.title2.bold())
+                .fontDesign(.rounded)
+                .monospacedDigit()
+                .contentTransition(.numericText(value: Double(value)))
+                .foregroundStyle(Color.texte)
+            Text(label)
+                .font(.footnote)
+                .foregroundStyle(Color.texteSecondaire)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(12)
+        .background(tint.opacity(0.1), in: .rect(cornerRadius: 18))
+        .accessibilityElement(children: .combine)
+    }
+}
+
+// MARK: - Résumé de la demande
+
+/// Totaux de la demande affichée, pour le bandeau en verre et l'en-tête de la liste.
+private struct DemandTotals {
+    let households: Int
+    let shares: Int
+    let highDemandCount: Int
+
+    init(_ points: [DemandPoint]) {
+        households = points.reduce(0) { $0 + $1.committedHouseholds }
+        shares = points.reduce(0) { $0 + $1.committedShares }
+        highDemandCount = points.filter(\.isHighDemand).count
+    }
+
+    var accessibilityDescription: String {
+        var parts = [DemandFormatting.families(households), DemandFormatting.shares(shares)]
+        if highDemandCount > 0 {
+            parts.append("\(highDemandCount) en forte demande")
+        }
+        return parts.joined(separator: ", ")
+    }
+}
+
+/// Bandeau en verre sous la recherche, sur la carte : familles, parts, points en forte demande.
+private struct DemandSummaryStrip: View {
+    let points: [DemandPoint]
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
+
+    var body: some View {
+        let totals = DemandTotals(points)
+        let layout = dynamicTypeSize.isAccessibilitySize
+            ? AnyLayout(VStackLayout(alignment: .leading, spacing: 6))
+            : AnyLayout(HStackLayout(spacing: 14))
+        layout {
+            item(totals.households, systemImage: "person.2.fill", tint: .grenier)
+            item(totals.shares, systemImage: "shippingbox.fill", tint: .economie)
+            if totals.highDemandCount > 0 {
+                item(totals.highDemandCount, systemImage: "flame.fill", tint: .grenier)
+            }
+        }
+        .font(.subheadline.weight(.semibold))
+        .padding(.horizontal, 16)
+        .padding(.vertical, 10)
+        .glassEffect(.regular, in: .capsule)
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel("Demande affichée : \(totals.accessibilityDescription)")
+    }
+
+    private func item(_ value: Int, systemImage: String, tint: Color) -> some View {
+        HStack(spacing: 5) {
+            Image(systemName: systemImage)
+                .symbolRenderingMode(.hierarchical)
+                .foregroundStyle(tint)
+                .symbolEffect(.bounce, options: .nonRepeating, value: value)
+            Text(value, format: .number)
+                .fontDesign(.rounded)
+                .monospacedDigit()
+                .contentTransition(.numericText(value: Double(value)))
+                .foregroundStyle(Color.texte)
+        }
+    }
+}
+
+/// En-tête de la liste : petite scène de carte et totaux de la demande.
+private struct DemandListHero: View {
+    let points: [DemandPoint]
+    let grouping: DemandMapViewModel.Grouping
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
+
+    var body: some View {
+        let totals = DemandTotals(points)
+        let layout = dynamicTypeSize.isAccessibilitySize
+            ? AnyLayout(VStackLayout(alignment: .leading, spacing: 8))
+            : AnyLayout(HStackLayout(spacing: 12))
+        layout {
+            GrenierSymbolScene(
+                symbol: "map.fill",
+                satellites: [.init("person.2.fill"), .init("flame.fill"), .init("basket.fill", tint: .economie)],
+                trigger: totals.shares
+            )
+            VStack(alignment: .leading, spacing: 4) {
+                Text(DemandFormatting.families(totals.households))
+                    .font(.title2.bold())
+                    .fontDesign(.rounded)
+                    .foregroundStyle(Color.texte)
+                    .contentTransition(.numericText(value: Double(totals.households)))
+                Text("prêtes à acheter · \(DemandFormatting.shares(totals.shares))")
+                    .font(.subheadline)
+                    .foregroundStyle(Color.texteSecondaire)
+                    .fixedSize(horizontal: false, vertical: true)
+                if totals.highDemandCount > 0 {
+                    Label(
+                        "\(totals.highDemandCount) \(FrenchPlural.word(totals.highDemandCount, grouping.unitName, plural: grouping.unitNamePlural)) en forte demande",
+                        systemImage: "flame.fill"
+                    )
+                    .font(.subheadline.weight(.semibold))
+                    .foregroundStyle(Color.grenier)
+                    .fixedSize(horizontal: false, vertical: true)
+                }
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+        }
+        .grenierCard()
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel("Demande affichée : \(totals.accessibilityDescription)")
+    }
+}
+
+// MARK: - Icônes des filtres
+
+extension DemandMapViewModel.Grouping {
+    /// Symbole du niveau d'agrégation (menu des filtres, lignes, feuille).
+    var systemImage: String {
+        switch self {
+        case .group: "person.3.fill"
+        case .neighborhood: "building.2.fill"
+        case .geohash: "square.grid.3x3.fill"
+        }
+    }
+
+    /// « groupe », « quartier », « zone ».
+    fileprivate var unitName: String {
+        switch self {
+        case .group: "groupe"
+        case .neighborhood: "quartier"
+        case .geohash: "zone"
+        }
+    }
+
+    fileprivate var unitNamePlural: String { unitName + "s" }
+}
+
+extension DemandMapViewModel.Scope {
+    /// Symbole du périmètre des lots.
+    var systemImage: String {
+        switch self {
+        case .allOffers: "globe.americas.fill"
+        case .myOffers: "storefront.fill"
+        }
     }
 }
 

@@ -79,11 +79,18 @@ enum FirebaseSetup {
             break
         case .demoProject:
             if FirebaseApp.app() == nil { FirebaseApp.configure() }
+            // Cache disque explicite (S-10) : réglé ici, avant tout autre usage de Firestore.
+            if let app = FirebaseApp.app(), let cache = resolved.firestoreCache {
+                let firestore = Firestore.firestore(app: app)
+                let settings = firestore.settings
+                settings.cacheSettings = cacheSettings(for: cache)
+                firestore.settings = settings
+            }
         case .emulator:
             if FirebaseApp.app() == nil {
                 FirebaseApp.configure(options: emulatorOptions(options.emulator))
             }
-            if let app = FirebaseApp.app() { connect(app, to: options.emulator) }
+            if let app = FirebaseApp.app() { PerfSignposts.measure("firebase.connect") { connect(app, to: options.emulator) } }
         }
         #endif
 
@@ -130,16 +137,27 @@ extension FirebaseSetup {
     /// avant tout autre usage de ses clients.
     static func connect(_ app: FirebaseApp, to config: FirebaseEmulatorConfig) {
         Auth.auth(app: app).useEmulator(withHost: config.host, port: config.authPort)
-        // Cache en mémoire : les données de l'émulateur ne se mélangent pas au cache disque du projet de démo.
+        // Cache en mémoire (`BackendMode.emulator.firestoreCache`) : les données de l'émulateur ne se mélangent pas
+        // au cache disque du projet de démo.
         let firestore = Firestore.firestore(app: app)
         let settings = firestore.settings
         settings.host = "\(config.host):\(config.firestorePort)"
         settings.isSSLEnabled = false
-        settings.cacheSettings = MemoryCacheSettings()
+        settings.cacheSettings = cacheSettings(for: BackendMode.emulator.firestoreCache ?? .memory)
         firestore.settings = settings
         #if canImport(FirebaseStorage)
         Storage.storage(app: app).useEmulator(withHost: config.host, port: config.storagePort)
         #endif
+    }
+
+    /// Réglage Firestore correspondant à une politique de cache.
+    static func cacheSettings(for policy: FirestoreCachePolicy) -> any LocalCacheSettings & NSObject {
+        switch policy {
+        case .memory:
+            MemoryCacheSettings()
+        case .persistent(let sizeBytes):
+            PersistentCacheSettings(sizeBytes: NSNumber(value: sizeBytes))
+        }
     }
 
     /// true si ce Firestore vise un émulateur local d'un projet `demo-` (garde pour les tests).

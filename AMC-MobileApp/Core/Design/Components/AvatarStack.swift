@@ -1,6 +1,6 @@
 import SwiftUI
 
-/// Pile d'avatars à initiales qui se chevauchent (−10 pt), le dernier affiche « +21 » (maquette GroupCard).
+/// Pile d'avatars à initiales qui se chevauchent (−6 pt), le dernier affiche « +21 » (maquette GroupCard).
 /// Au plus 3 initiales sont affichées ; `extraCount` compte les membres en plus de celles-ci.
 struct AvatarStack: View {
     let initials: [String]
@@ -21,7 +21,7 @@ struct AvatarStack: View {
     var accessibilityText: String { FrenchPlural.count(memberCount, "membre") }
 
     var body: some View {
-        HStack(spacing: -10) {
+        HStack(spacing: -6) {
             ForEach(Array(shownInitials.enumerated()), id: \.offset) { index, text in
                 bubble(text, tint: Self.tints[index % Self.tints.count])
             }
@@ -38,10 +38,12 @@ struct AvatarStack: View {
             .font(.caption.bold())
             .minimumScaleFactor(0.6)
             .lineLimit(1)
-            .padding(2)
+            // Marge interne > chevauchement : la bulle suivante ne mange plus la fin des initiales (« SM » coupé en « SN »).
+            .padding(.horizontal, 7)
             .foregroundStyle(tint)
             .frame(width: size, height: size)
-            .background(tint.opacity(0.15), in: .circle)
+            // 12 % comme les autres teintes du design system : Grenier y reste au-dessus de 4,5:1.
+            .background(tint.opacity(0.12), in: .circle)
             .background(Color.surface, in: .circle)
             .overlay(Circle().stroke(Color.surface, lineWidth: 2))
     }
@@ -62,4 +64,13 @@ struct AvatarStack: View {
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .grenierBackground()
         .preferredColorScheme(.dark)
+}
+
+#Preview("AX5") {
+    AvatarStack(initials: ["AM", "FB", "RK"], extraCount: 121)
+        .padding()
+        .grenierCard()
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .grenierBackground()
+        .dynamicTypeSize(.accessibility5)
 }

@@ -13,8 +13,9 @@ struct AppContext: Sendable {
     var vendorId: String
 
     /// Données fake réalistes (latence 300–800 ms) : previews, CI, démo sans réseau.
+    /// Derrière le cache mémoire (T-112), comme en Firebase : un écran déjà vu se rouvre sans attendre.
     static let demo = AppContext(
-        repositories: .fake(),
+        repositories: .fake().cached(),
         userId: FakeData.ID.amina,
         householdId: FakeData.ID.aminaHousehold,
         groupId: FakeData.ID.saintMichel,

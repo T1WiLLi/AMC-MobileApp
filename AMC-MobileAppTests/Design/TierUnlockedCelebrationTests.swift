@@ -22,7 +22,8 @@ struct TierUnlockedCelebrationContentTests {
     }
 
     @Test func announcementSpeaksTheUnit() {
-        #expect(plain(content.announcement) == "Palier débloqué, nouveau prix 2,60 $ le kilo")
+        #expect(content.announcement == "Palier débloqué, nouveau prix 2 dollars 60 le kilo")
+        #expect(content.priceAccessibilityText == "Nouveau prix 2 dollars 60 le kilo, au lieu de 3 dollars 20")
     }
 
     @Test func pricesAreFormatted() {

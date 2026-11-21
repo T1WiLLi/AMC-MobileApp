@@ -1,5 +1,10 @@
 // GroupDetailViewModel.swift
 // F2 Fiche d'un groupe de quartier (T-019) : membres, lieu et horaire de cueillette, lots ouverts, rejoindre / quitter.
+//
+// Temps réel (T-096, S-05) : dans l'écran,
+//     .task { await viewModel.load(); await viewModel.observe() }
+// `observe()` suit le groupe (un ménage rejoint ou quitte → membres rechargés) et chaque lot ouvert
+// (parts, palier, prix). S'arrête avec la tâche ; une écoute coupée garde les données et met `isLive` à false.
 
 import Foundation
 import Observation
@@ -25,6 +30,8 @@ final class GroupDetailViewModel {
     private(set) var isUpdatingMembership = false
     /// Dernière erreur d'une action (rejoindre / quitter) ; remise à nil par la vue.
     var actionError: AppError?
+    /// L'écoute en direct tourne (`observe()`). Repasse à false quand elle s'arrête ou échoue.
+    private(set) var isLive = false
 
     private let repositories: AppRepositories
     private let householdId: String
@@ -61,6 +68,59 @@ final class GroupDetailViewModel {
                            isMember: members.contains { $0.householdId == householdId },
                            pickupPoint: pickupPoint, nextSlot: nextSlot, openOrders: summaries)
         }
+    }
+
+    /// Suit le groupe et ses lots ouverts en temps réel. À lancer dans `.task` après `load()` ; s'arrête avec la tâche.
+    func observe() async {
+        guard let content = state.value else { return }
+        // Abonnements ouverts avant de rendre la main : aucun changement n'est perdu une fois `isLive` vrai.
+        let groupUpdates = await repositories.groups.observeGroup(id: groupId)
+        var orderUpdates: [AsyncThrowingStream<GroupOrder, any Error>] = []
+        for orderId in content.openOrders.compactMap(\.groupOrder?.id) {
+            orderUpdates.append(await repositories.groupOrders.observeGroupOrder(id: orderId))
+        }
+        isLive = true
+        defer { isLive = false }
+        await withTaskGroup(of: Void.self) { tasks in
+            tasks.addTask { [weak self] in
+                var isFirst = true
+                do {
+                    for try await group in groupUpdates {
+                        // La première émission est l'état déjà chargé.
+                        if !isFirst { await self?.groupChanged(group) }
+                        isFirst = false
+                    }
+                } catch {}
+            }
+            for updates in orderUpdates {
+                tasks.addTask { [weak self] in
+                    do {
+                        for try await order in updates {
+                            await self?.orderChanged(order)
+                        }
+                    } catch {}
+                }
+            }
+        }
+    }
+
+    private func groupChanged(_ group: NeighborhoodGroup) async {
+        guard state.value != nil else { return }
+        let members = try? await repositories.groups.members(ofGroup: groupId)
+        guard var content = state.value else { return }
+        content.group = group
+        if let members {
+            content.members = members
+            content.isMember = members.contains { $0.householdId == householdId }
+        }
+        state = .loaded(content)
+    }
+
+    private func orderChanged(_ order: GroupOrder) {
+        guard var content = state.value,
+              let index = content.openOrders.firstIndex(where: { $0.groupOrder?.id == order.id }) else { return }
+        content.openOrders[index].groupOrder = order
+        state = .loaded(content)
     }
 
     func join() async { await changeMembership(join: true) }

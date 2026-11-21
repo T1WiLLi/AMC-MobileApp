@@ -14,15 +14,32 @@ struct SavingsBadge: View {
     var compact = false
 
     var body: some View {
-        Text(label)
-            .font(compact ? .caption.bold() : .subheadline.bold())
-            .fontDesign(.rounded)
-            .monospacedDigit()
-            .padding(.horizontal, compact ? 8 : 12)
-            .padding(.vertical, compact ? 4 : 6)
-            .foregroundStyle(isFilled ? Color.onAccent : Color.economie)
-            .background(isFilled ? Color.economie : Color.economie.opacity(0.12), in: .capsule)
-            .accessibilityLabel(accessibilityText)
+        HStack(alignment: .firstTextBaseline, spacing: compact ? 3 : 5) {
+            Image(systemName: symbol)
+                .imageScale(.small)
+                .symbolRenderingMode(.hierarchical)
+                .accessibilityHidden(true)
+            Text(label)
+                .contentTransition(.numericText())
+        }
+        .font(compact ? .caption.bold() : .subheadline.bold())
+        .fontDesign(.rounded)
+        .monospacedDigit()
+        .padding(.horizontal, compact ? 8 : 12)
+        .padding(.vertical, compact ? 4 : 6)
+        .foregroundStyle(isFilled ? Color.onAccent : Color.economie)
+        .background(isFilled ? Color.economie : Color.economie.opacity(0.12), in: .capsule)
+        .fixedSize(horizontal: false, vertical: true) // AX5 : la pilule passe sur deux lignes, jamais « … ».
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(accessibilityText)
+    }
+
+    /// Flèche vers le bas pour un pourcentage, pièce pour un montant économisé.
+    private var symbol: String {
+        switch kind {
+        case .percent: "arrow.down.circle.fill"
+        case .amount: "dollarsign.circle.fill"
+        }
     }
 
     private var isFilled: Bool {
@@ -36,10 +53,11 @@ struct SavingsBadge: View {
         }
     }
 
-    private var accessibilityText: String {
+    /// « 37 pour cent moins cher qu'en épicerie », « 48 dollars économisés ».
+    var accessibilityText: String {
         switch kind {
         case .percent(let value): "\(value) pour cent moins cher qu'en épicerie"
-        case .amount(let cents): "\(Money.formatRounded(cents)) économisés"
+        case .amount(let cents): "\(Money.spoken(cents)) économisés"
         }
     }
 }
@@ -62,4 +80,14 @@ struct SavingsBadge: View {
     }
     .padding()
     .preferredColorScheme(.dark)
+}
+
+#Preview("AX5") {
+    VStack(alignment: .leading, spacing: 12) {
+        SavingsBadge(kind: .percent(37))
+        SavingsBadge(kind: .amount(4_850))
+        SavingsBadge(kind: .percent(37), compact: true)
+    }
+    .padding()
+    .dynamicTypeSize(.accessibility5)
 }

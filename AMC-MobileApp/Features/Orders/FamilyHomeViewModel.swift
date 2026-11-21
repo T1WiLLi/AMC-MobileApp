@@ -43,34 +43,46 @@ final class FamilyHomeViewModel {
         if state.value == nil { state = .loading }
         let repositories = repositories, userId = userId, householdId = householdId, groupId = groupId
         state = await .run {
-            let user = try await repositories.users.user(id: userId)
-            let group = try await repositories.groups.group(id: groupId)
-            let orders = try await repositories.groupOrders.groupOrders(ofGroup: groupId)
+            // Appels indépendants en parallèle : l'accueil attend le plus lent, pas leur somme.
+            async let userLoad = repositories.users.user(id: userId)
+            async let groupLoad = repositories.groups.group(id: groupId)
+            async let ordersLoad = repositories.groupOrders.groupOrders(ofGroup: groupId)
+            async let feedLoad = repositories.offers.activeOffers(inZone: nil)
+            let (user, group, orders, allActive) = try await (userLoad, groupLoad, ordersLoad, feedLoad)
             let activeOrders = orders.filter(OfferSummaryLoader.isActive)
 
-            var orderOffers: [Offer] = []
-            for order in activeOrders {
-                orderOffers.append(try await repositories.offers.offer(id: order.offerId))
-            }
-            let current = try await OfferSummaryLoader.summaries(
+            async let saved = Self.savings(of: householdId, in: orders, repositories: repositories)
+            let orderOffers = try await Self.offers(for: activeOrders, repositories: repositories)
+            async let current = OfferSummaryLoader.summaries(
                 for: orderOffers, groupOrders: activeOrders, householdId: householdId, repositories: repositories
             )
 
             let launchedOfferIds = Set(orders.map(\.offerId))
-            let feed = try await repositories.offers.activeOffers(inZone: nil)
-                .filter { OfferSummaryLoader.offer($0, serves: group) && !launchedOfferIds.contains($0.id) }
-            let newOffers = try await OfferSummaryLoader.summaries(
+            let feed = allActive.filter { OfferSummaryLoader.offer($0, serves: group) && !launchedOfferIds.contains($0.id) }
+            async let newOffers = OfferSummaryLoader.summaries(
                 for: feed, groupOrders: [], householdId: householdId, repositories: repositories
             )
 
-            let saved = try await Self.savings(of: householdId, in: orders, repositories: repositories)
+            let (currentSummaries, newSummaries, savedCents) = try await (current, newOffers, saved)
             return Content(
                 user: user,
                 group: group,
-                currentOrders: current.filter(\.hasMyShare) + current.filter { !$0.hasMyShare },
-                newOffers: newOffers,
-                savedCents: saved
+                currentOrders: currentSummaries.filter(\.hasMyShare) + currentSummaries.filter { !$0.hasMyShare },
+                newOffers: newSummaries,
+                savedCents: savedCents
             )
+        }
+    }
+
+    /// Lots des commandes, chargés en parallèle, dans l'ordre des commandes.
+    nonisolated static func offers(for orders: [GroupOrder], repositories: AppRepositories) async throws -> [Offer] {
+        try await withThrowingTaskGroup(of: (Int, Offer).self) { group in
+            for (index, order) in orders.enumerated() {
+                group.addTask { (index, try await repositories.offers.offer(id: order.offerId)) }
+            }
+            var byIndex: [Int: Offer] = [:]
+            for try await (index, offer) in group { byIndex[index] = offer }
+            return orders.indices.compactMap { byIndex[$0] }
         }
     }
 

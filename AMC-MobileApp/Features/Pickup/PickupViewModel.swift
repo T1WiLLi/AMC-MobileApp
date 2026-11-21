@@ -55,7 +55,11 @@ final class PickupViewModel {
     }
 
     func load() async {
-        if state.value == nil { state = .loading }
+        // Rechargement (retour sur l'onglet) : on garde le contenu ou l'état vide affiché, sans clignoter.
+        switch state {
+        case .loaded, .empty: break
+        default: state = .loading
+        }
         let repositories = repositories, householdId = householdId, groupId = groupId
         do {
             let content = try await Self.content(householdId: householdId, groupId: groupId, repositories: repositories)

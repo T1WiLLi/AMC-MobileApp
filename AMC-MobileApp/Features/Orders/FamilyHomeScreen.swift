@@ -4,37 +4,48 @@ import SwiftUI
 /// « Bonjour Amina », économies, commandes en cours du groupe, nouveaux lots près de chez toi.
 struct FamilyHomeScreen: View {
     @Environment(\.appContext) private var context
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     @State private var viewModel: FamilyHomeViewModel?
+    /// Identité pour laquelle `viewModel` a été créé : un autre compte (ou un autre groupe) recrée le modèle.
+    @State private var loadedIdentity: String?
 
     var body: some View {
         NavigationStack {
             Group {
-                if let viewModel {
+                if context.groupId == nil {
+                    NoGroupView()
+                } else if let viewModel, !viewModel.state.isLoading, !isIdle(viewModel.state) {
                     StateView(
                         state: viewModel.state,
                         empty: .init(title: "Rien pour l'instant", systemImage: "basket",
                                      message: "Aucune commande ni aucun lot dans ton quartier. Reviens un peu plus tard."),
                         retry: { await viewModel.load() }
                     ) { content in
-                        FamilyHomeContent(content: content)
+                        FamilyHomeContent(content: content, largeGreeting: usesInlineTitle ? title : nil)
                     }
-                } else if context.groupId == nil {
-                    NoGroupView()
                 } else {
-                    ProgressView("Chargement…")
-                        .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    FamilyHomeSkeleton()
                 }
             }
             .grenierBackground()
-            .navigationTitle(title)
+            .navigationTitle(usesInlineTitle ? "Accueil" : title)
+            .navigationBarTitleDisplayMode(usesInlineTitle ? .inline : .automatic)
             .profileToolbar()
             .offerDestination()
             .refreshable { await viewModel?.load() }
+            // Retour depuis une fiche de lot ou depuis un autre onglet : une part réservée entre-temps
+            // (et le nouveau prix) s'affiche tout de suite. `load()` garde le contenu affiché pendant le rechargement.
+            .onAppear { reloadIfAlreadyLoaded() }
         }
         // Retour au premier plan ou du réseau : `load()` garde le contenu affiché pendant le rechargement.
         .refreshOnForeground { await viewModel?.load() }
-        .task {
-            guard viewModel == nil, let groupId = context.groupId else { return }
+        .task(id: identity) {
+            guard let groupId = context.groupId else {
+                viewModel = nil
+                loadedIdentity = nil
+                return
+            }
+            guard viewModel == nil || loadedIdentity != identity else { return }
             let model = FamilyHomeViewModel(
                 repositories: context.repositories,
                 userId: context.userId,
@@ -42,13 +53,32 @@ struct FamilyHomeScreen: View {
                 groupId: groupId
             )
             viewModel = model
+            loadedIdentity = identity
             await model.load()
         }
     }
 
+    /// Compte, ménage et groupe courants : la salutation suit la personne connectée.
+    private var identity: String {
+        "\(context.userId)|\(context.householdId)|\(context.groupId ?? "")"
+    }
+
+    /// Aux tailles d'accessibilité, le grand titre « Bonjour … » serait coupé : il passe dans le contenu, sur plusieurs lignes.
+    private var usesInlineTitle: Bool { dynamicTypeSize.isAccessibilitySize }
+
     private var title: String {
-        if let firstName = viewModel?.state.value?.firstName { return "Bonjour \(firstName)" }
+        if let firstName = viewModel?.state.value?.firstName, !firstName.isEmpty { return "Bonjour \(firstName)" }
         return "Accueil"
+    }
+
+    private func isIdle(_ state: LoadState<FamilyHomeViewModel.Content>) -> Bool {
+        if case .idle = state { true } else { false }
+    }
+
+    /// Recharge seulement après un premier chargement : la `.task` s'occupe du tout premier.
+    private func reloadIfAlreadyLoaded() {
+        guard let viewModel, viewModel.state.value != nil else { return }
+        Task { await viewModel.load() }
     }
 }
 
@@ -56,10 +86,20 @@ struct FamilyHomeScreen: View {
 
 private struct FamilyHomeContent: View {
     let content: FamilyHomeViewModel.Content
+    /// Salutation affichée dans le contenu (tailles d'accessibilité) : elle passe à la ligne au lieu d'être coupée.
+    var largeGreeting: String?
 
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 24) {
+                if let largeGreeting {
+                    Text(largeGreeting)
+                        .font(.largeTitle.bold())
+                        .foregroundStyle(Color.texte)
+                        .fixedSize(horizontal: false, vertical: true)
+                        .accessibilityAddTraits(.isHeader)
+                }
+
                 GroupBanner(
                     group: content.group,
                     orderCount: content.currentOrders.count,
@@ -187,12 +227,18 @@ private struct GroupBanner: View {
         .onAppear { hasAppeared = true }
     }
 
-    /// Côte à côte, ou empilées sous Dynamic Type accessibilité (rien n'est coupé).
+    /// Côte à côte quand les trois tiennent sur une ligne sans couper un mot, sinon empilées
+    /// (plus de « fa-milles » ni « com-mande » coupés en deux à la taille par défaut).
     private var chips: some View {
-        let layout = dynamicTypeSize >= .xxxLarge
-            ? AnyLayout(VStackLayout(alignment: .leading, spacing: 8))
-            : AnyLayout(HStackLayout(spacing: 8))
-        return layout {
+        ViewThatFits(in: .horizontal) {
+            HStack(spacing: 8) { chipViews(fixed: true) }
+            VStack(alignment: .leading, spacing: 8) { chipViews(fixed: false) }
+        }
+    }
+
+    @ViewBuilder
+    private func chipViews(fixed: Bool) -> some View {
+        Group {
             StatChip(
                 value: group.householdCount,
                 label: FrenchPlural.word(group.householdCount, "famille"),
@@ -212,6 +258,7 @@ private struct GroupBanner: View {
                 tint: .economie
             )
         }
+        .fixedSize(horizontal: fixed, vertical: true)
     }
 }
 
@@ -304,7 +351,7 @@ private struct NewOfferRow: View {
             ? AnyLayout(VStackLayout(alignment: .leading, spacing: 8))
             : AnyLayout(HStackLayout(alignment: .center, spacing: 12))
         layout {
-            ProductIcon(category: summary.product.category)
+            ProductIcon(product: summary.product)
             VStack(alignment: .leading, spacing: 2) {
                 Text(summary.product.name)
                     .font(.headline)
@@ -419,11 +466,13 @@ private struct NoOrderCard: View {
                     .symbolRenderingMode(.hierarchical)
                     .symbolEffect(.bounce.down, options: .repeat(.periodic(delay: 2.5)), isActive: !reduceMotion)
                     .multilineTextAlignment(.center)
+            } else {
+                FamilyCallToAction(destination: .browseOffers)
             }
         }
         .frame(maxWidth: .infinity)
         .grenierCard(padding: 20)
-        .accessibilityElement(children: .combine)
+        .accessibilityElement(children: .contain)
     }
 }
 
@@ -466,13 +515,49 @@ private struct NoGroupView: View {
                     .foregroundStyle(Color.texte)
             }
         } description: {
-            Text("Rejoins un groupe de ton quartier dans l'onglet Groupes pour acheter en gros avec tes voisins.")
+            Text("Rejoins un groupe de ton quartier pour acheter en gros avec tes voisins.")
         } actions: {
-            Label("Onglet Groupes, en bas de l'écran", systemImage: "arrow.down.circle.fill")
-                .font(.subheadline.weight(.semibold))
-                .foregroundStyle(Color.grenier)
-                .symbolRenderingMode(.hierarchical)
+            FamilyCallToAction(destination: .findGroup)
         }
+    }
+}
+
+// MARK: - Chargement
+
+/// Squelette de l'accueil : la vraie mise en page en formes neutres (aucune donnée inventée), au lieu d'un spinner.
+private struct FamilyHomeSkeleton: View {
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @State private var isPulsing = false
+
+    var body: some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: 24) {
+                block(height: 128)
+                block(height: 132, tint: .economie)
+                block(width: 180, height: 22)
+                block(height: 176)
+                block(width: 220, height: 22)
+                block(height: 92)
+            }
+            .padding(.horizontal, 16)
+            .padding(.top, 12)
+        }
+        .scrollDisabled(true)
+        .opacity(isPulsing ? 0.55 : 1)
+        .onAppear {
+            guard !reduceMotion else { return }
+            withAnimation(.easeInOut(duration: 0.9).repeatForever(autoreverses: true)) { isPulsing = true }
+        }
+        .allowsHitTesting(false)
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel("Chargement de l'accueil")
+    }
+
+    private func block(width: CGFloat? = nil, height: CGFloat, tint: Color = .texteSecondaire) -> some View {
+        RoundedRectangle(cornerRadius: height > 40 ? 24 : 8)
+            .fill(tint.opacity(0.14))
+            .frame(maxWidth: width ?? .infinity, alignment: .leading)
+            .frame(height: height)
     }
 }
 
@@ -522,5 +607,11 @@ private extension View {
 
 #Preview("Sans groupe") {
     NoGroupView()
+        .grenierBackground()
+        .environment(\.appContext, .instant)
+}
+
+#Preview("Chargement") {
+    FamilyHomeSkeleton()
         .grenierBackground()
 }

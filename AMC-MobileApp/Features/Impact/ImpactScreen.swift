@@ -21,23 +21,25 @@ struct ImpactScreen: View {
                         ImpactIllustratedEmptyView(
                             title: "Pas encore d'impact",
                             message: "Réserve ta première part : tes économies apparaîtront ici.",
-                            scene: .firstShare
+                            scene: .firstShare,
+                            action: .browseOffers
                         )
                     default:
                         // Erreur (illustrée, avec Réessayer) et contenu.
-                        StateView(state: viewModel.state, retry: { await viewModel.load() }) { content in
+                        StateView(state: viewModel.state, retry: { await load(viewModel) }) { content in
                             ImpactContentView(
                                 content: content,
                                 snapshot: ImpactSnapshot(content: content, firstName: firstName, neighborhoodName: neighborhoodName)
                             )
-                            .refreshable { await viewModel.load() }
+                            .refreshable { await load(viewModel) }
                         }
                     }
                 } else if context.groupId == nil {
                     ImpactIllustratedEmptyView(
                         title: "Pas encore d'impact",
                         message: "Rejoins un groupe de ton quartier pour voir ce que vous changez ensemble.",
-                        scene: .noGroup
+                        scene: .noGroup,
+                        action: .findGroup
                     )
                 } else {
                     ImpactSkeletonView()
@@ -50,17 +52,26 @@ struct ImpactScreen: View {
         }
         .task {
             guard viewModel == nil, let groupId = context.groupId else { return }
-            let repositories = context.repositories
-            let model = ImpactViewModel(repositories: repositories, householdId: context.householdId, groupId: groupId)
+            let model = ImpactViewModel(repositories: context.repositories, householdId: context.householdId, groupId: groupId)
             viewModel = model
-            // Prénom et quartier ne sont que décoratifs : leur absence ne bloque pas l'écran.
-            if let user = try? await repositories.users.user(id: context.userId) {
-                firstName = user.displayName.split(separator: " ").first.map(String.init) ?? user.displayName
-            }
-            if let group = try? await repositories.groups.group(id: groupId) {
-                neighborhoodName = group.neighborhood
-            }
-            await model.load()
+            await load(model)
+        }
+    }
+
+    /// Charge l'impact, le prénom et le quartier en parallèle. Rejoué par Réessayer et par l'actualisation :
+    /// un premier chargement interrompu ne laisse plus « Bravo ! » sans prénom ni « Novembre à » sans quartier.
+    private func load(_ model: ImpactViewModel) async {
+        guard let groupId = context.groupId else { return }
+        let repositories = context.repositories, userId = context.userId
+        // Prénom et quartier ne sont que décoratifs : leur absence ne bloque pas l'écran.
+        async let user = try? repositories.users.user(id: userId)
+        async let group = try? repositories.groups.group(id: groupId)
+        await model.load()
+        if let user = await user {
+            firstName = user.displayName.split(separator: " ").first.map(String.init) ?? user.displayName
+        }
+        if let group = await group {
+            neighborhoodName = group.neighborhood
         }
     }
 }
@@ -360,6 +371,8 @@ private struct ImpactIllustratedEmptyView: View {
     let title: LocalizedStringKey
     let message: LocalizedStringKey
     let scene: Scene
+    /// Prochaine étape proposée (rejoindre un groupe, voir les lots).
+    var action: FamilyCallToAction.Destination?
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     var body: some View {
@@ -371,6 +384,10 @@ private struct ImpactIllustratedEmptyView: View {
             }
         } description: {
             Text(message)
+        } actions: {
+            if let action {
+                FamilyCallToAction(destination: action)
+            }
         }
         .symbolEffectsRemoved(reduceMotion)
         .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -424,7 +441,7 @@ private struct ProductSavingsChart: View {
 
     /// Symbole du produit (même catalogue que `ProductIcon`), retrouvé par son nom sur l'axe.
     private var symbolsByName: [String: String] {
-        Dictionary(products.map { ($0.product.name, ProductIcon.symbol(for: $0.product.category)) },
+        Dictionary(products.map { ($0.product.name, ProductIcon.symbol(for: $0.product)) },
                    uniquingKeysWith: { first, _ in first })
     }
 

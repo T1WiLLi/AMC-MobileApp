@@ -534,3 +534,37 @@ describe('images en bytes (T-132, Q-033)', () => {
     await assertFails(updateDoc(doc(intruder(), 'groups/group-media'), { photoUpdatedAt: serverTimestamp() }))
   })
 })
+
+describe('point de cueillette seedé (T-144)', () => {
+  const seeded = {
+    id: 'pickup-seed', groupId: 'group-parc-extension', neighborhood: 'parc-extension', hostUserId: 'amina',
+    name: 'Sous-sol de l’église', address: '7495, rue Saint-Roch', latitude: 45.5302, longitude: -73.6305,
+    geohash: 'f25eh2', capacity: 40, accessibility: ['stepFree'], slots: []
+  }
+  beforeEach(async () => {
+    await env.withSecurityRulesDisabled(async (c) => { await setDoc(doc(c.firestore(), 'pickupPoints/pickup-seed'), seeded) })
+  })
+
+  test('l’hôte modifie un point seedé (capacité, créneaux)', async () => {
+    await assertSucceeds(updateDoc(doc(amina(), 'pickupPoints/pickup-seed'), { capacity: 30, slots: [] }))
+  })
+  test('l’hôte réenregistre le point entier (merge de l’app)', async () => {
+    await assertSucceeds(setDoc(doc(amina(), 'pickupPoints/pickup-seed'), { ...seeded, name: 'Église Saint-Roch' }, { merge: true }))
+  })
+  test('l’hôte ajuste la position', async () => {
+    await assertSucceeds(updateDoc(doc(amina(), 'pickupPoints/pickup-seed'), { latitude: 45.531, longitude: -73.63, geohash: 'f25eh3' }))
+  })
+  test('pas de latitude hors bornes', async () => {
+    await assertFails(updateDoc(doc(amina(), 'pickupPoints/pickup-seed'), { latitude: 120 }))
+  })
+  test('le groupe et le quartier ne changent pas', async () => {
+    await assertFails(updateDoc(doc(amina(), 'pickupPoints/pickup-seed'), { groupId: 'group-autre' }))
+    await assertFails(updateDoc(doc(amina(), 'pickupPoints/pickup-seed'), { neighborhood: 'verdun' }))
+  })
+  test('un autre utilisateur ne modifie pas le point', async () => {
+    await assertFails(updateDoc(doc(intruder(), 'pickupPoints/pickup-seed'), { capacity: 1 }))
+  })
+  test('refuse toujours un champ inconnu', async () => {
+    await assertFails(updateDoc(doc(amina(), 'pickupPoints/pickup-seed'), { secret: 'x' }))
+  })
+})

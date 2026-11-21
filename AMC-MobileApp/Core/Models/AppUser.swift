@@ -30,9 +30,16 @@ nonisolated struct AppUser: Identifiable, Codable, Sendable, Hashable {
     /// Catégories de produits aimées, choisies à l'onboarding (T-156). Absent sur les anciens profils.
     var favoriteCategories: [Product.Category]? = nil
     /// Onboarding après l'inscription (T-156) : `false` pour un compte tout neuf, `true` une fois fini.
-    /// Absent (`nil`) sur les profils d'avant T-156 : on ne leur remontre pas l'onboarding.
+    /// Absent (`nil`) sur les profils d'avant T-156.
     var onboardingCompleted: Bool? = nil
 
-    /// Le compte vient de s'inscrire et n'a pas encore fini l'onboarding.
-    var needsOnboarding: Bool { onboardingCompleted == false }
+    /// Le compte n'a pas encore fini l'onboarding.
+    /// Un profil sans drapeau (créé avant T-156 ou par un ancien build) le voit aussi tant qu'il n'a ni quartier
+    /// ni catégories : c'est un compte qui n'a jamais rien choisi. Les profils du seed ont un quartier.
+    var needsOnboarding: Bool {
+        switch onboardingCompleted {
+        case .some(let completed): !completed
+        case .none: neighborhood.isEmpty && (favoriteCategories ?? []).isEmpty
+        }
+    }
 }

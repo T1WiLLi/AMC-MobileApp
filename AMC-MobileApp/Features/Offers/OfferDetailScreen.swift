@@ -518,6 +518,10 @@ private struct OfferDetailContent: View {
                     committedShares: content.committedShares,
                     totalShares: content.offer.totalShares
                 )
+                // RQ-050 (T-104) : rien tant que le rythme suffit ou que le minimum est atteint.
+                if let order = content.groupOrder {
+                    MinimumRiskBadge(assessment: MinimumRisk.assess(offer: content.offer, order: order))
+                }
                 tierHint(content)
             }
             .grenierCard()

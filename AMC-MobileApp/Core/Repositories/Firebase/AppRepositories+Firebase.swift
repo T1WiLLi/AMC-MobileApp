@@ -47,11 +47,13 @@ extension AppRepositories {
         )
     }
 
-    /// Dépôts pour le mode choisi au lancement (`FirebaseSetup.configure()`).
-    nonisolated static func live(mode: BackendMode) -> AppRepositories {
-        switch mode {
+    /// Dépôts pour le mode choisi au lancement (`FirebaseSetup.configure()`), derrière le cache mémoire (T-112) :
+    /// les écrans relus souvent ne refont pas la requête, et les snapshots temps réel tiennent le cache à jour.
+    nonisolated static func live(mode: BackendMode, cache: RepositoryCache = RepositoryCache()) -> AppRepositories {
+        let repositories: AppRepositories = switch mode {
         case .fake: .fake()
         case .emulator, .demoProject: .firebase()
         }
+        return repositories.cached(by: cache)
     }
 }

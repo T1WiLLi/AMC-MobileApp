@@ -151,6 +151,45 @@ struct RepositoryCacheTests {
         #expect(viewModel.state.value?.committedShares == 22)
     }
 
+    // MARK: Fabrique
+
+    @MainActor
+    @Test func factoriesReturnCachedRepositories() {
+        for mode in BackendMode.allCases {
+            let repos = AppRepositories.live(mode: mode)
+            #expect(repos.groupOrders is CachedGroupOrderRepository)
+            #expect(repos.offers is CachedOfferRepository)
+            #expect(repos.groups is CachedGroupRepository)
+        }
+        #expect(AppContext.demo.repositories.groupOrders is CachedGroupOrderRepository)
+        #expect(AppContext.reloadedDemo().repositories.offers is CachedOfferRepository)
+        // Les tests gardent des dépôts sans cache.
+        #expect(!(AppContext.instant.repositories.groupOrders is CachedGroupOrderRepository))
+    }
+
+    @MainActor
+    @Test func liveFactorySnapshotReplacesTheCachedValueAndTheViewModelRepublishes() async throws {
+        let cache = RepositoryCache(ttl: 60)
+        let repos = AppRepositories.live(mode: .fake, cache: cache)
+        let viewModel = OfferDetailViewModel(
+            repositories: repos, offerId: ID.potatoOffer, householdId: ID.aminaHousehold, groupId: ID.saintMichel
+        )
+        await viewModel.load()
+        #expect(viewModel.state.value?.committedShares == 19)
+
+        let observation = Task { await viewModel.observe() }
+        defer { observation.cancel() }
+        try await waitUntil(timeout: 5) { viewModel.isLive }
+        for _ in 0..<20 { await Task.yield() }
+
+        // Un autre écran écrit par la même fabrique : 19 - 2 + 5 = 22.
+        try await repos.groupOrders.setShare(quantity: 5, householdId: "household-voisin-1", groupOrderId: ID.potatoOrder)
+        try await waitUntil(timeout: 5) { viewModel.state.value?.committedShares == 22 }
+
+        let cached: GroupOrder? = await cache.value(for: .groupOrder(ID.potatoOrder))
+        #expect(cached?.committedShares == 22)
+    }
+
     // MARK: Écritures
 
     @Test func openingAnOrderThroughTheDecoratorInvalidatesTheList() async throws {
@@ -257,8 +296,8 @@ struct RepositoryCacheTests {
 
     // MARK: Outils
 
-    private func waitUntil(_ condition: @escaping () async -> Bool) async throws {
-        for _ in 0..<500 {
+    private func waitUntil(timeout: Double = 2.5, _ condition: @escaping () async -> Bool) async throws {
+        for _ in 0..<Int(timeout * 200) {
             if await condition() { return }
             try await Task.sleep(for: .milliseconds(5))
         }

@@ -69,35 +69,54 @@ private struct OfferDetailContent: View {
         }
         .alert(
             viewModel.actionError?.title ?? "",
-            isPresented: Binding(
-                get: { viewModel.actionError != nil },
-                set: { if !$0 { viewModel.actionError = nil } }
-            ),
+            isPresented: errorPresented,
             presenting: viewModel.actionError
         ) { _ in
             Button("OK", role: .cancel) {}
         } message: { error in
             Text(error.message)
         }
-        .sheet(isPresented: Binding(
-            get: { viewModel.celebration != nil },
-            set: { if !$0 { viewModel.dismissCelebration() } }
-        )) {
-            if let celebration = viewModel.celebration ?? shownCelebration, let content = viewModel.state.value {
-                TierCelebrationView(
-                    celebration: celebration,
-                    tiers: content.offer.tiers,
-                    totalShares: content.offer.totalShares,
-                    shareUnit: content.offer.shareUnit,
-                    onDone: { viewModel.dismissCelebration() }
-                )
-            }
+        .sheet(isPresented: celebrationPresented) {
+            celebrationSheet
         }
         .onChange(of: viewModel.celebration) { _, newValue in
             if let newValue { shownCelebration = newValue }
         }
-        .sensoryFeedback(.impact(weight: .medium), trigger: viewModel.state.value?.myShareQuantity) { old, new in
-            old != nil && new != nil && old != new
+        .sensoryFeedback(.impact(weight: .medium), trigger: myShareQuantity) { (old: Int?, new: Int?) -> Bool in
+            guard let old, let new else { return false }
+            return old != new
+        }
+    }
+
+    /// Quantité réservée par le ménage, `nil` tant que le lot n'est pas chargé (déclencheur de l'haptique).
+    private var myShareQuantity: Int? {
+        viewModel.state.value?.myShareQuantity
+    }
+
+    private var errorPresented: Binding<Bool> {
+        Binding(
+            get: { viewModel.actionError != nil },
+            set: { if !$0 { viewModel.actionError = nil } }
+        )
+    }
+
+    private var celebrationPresented: Binding<Bool> {
+        Binding(
+            get: { viewModel.celebration != nil },
+            set: { if !$0 { viewModel.dismissCelebration() } }
+        )
+    }
+
+    @ViewBuilder
+    private var celebrationSheet: some View {
+        if let celebration = viewModel.celebration ?? shownCelebration, let content = viewModel.state.value {
+            TierCelebrationView(
+                celebration: celebration,
+                tiers: content.offer.tiers,
+                totalShares: content.offer.totalShares,
+                shareUnit: content.offer.shareUnit,
+                onDone: { viewModel.dismissCelebration() }
+            )
         }
     }
 

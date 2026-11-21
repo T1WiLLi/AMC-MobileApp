@@ -46,6 +46,12 @@ struct ProfileScreen: View {
                             .foregroundStyle(.secondary)
                     }
                 }
+
+                Section {
+                    // Geste caché (RQ-114) : 5 taps ou appui long ouvrent les outils de démo.
+                    AppVersionLabel()
+                        .demoToolsTrigger()
+                }
             }
             .navigationTitle("Profil")
             .sensoryFeedback(.selection, trigger: pendingPortal) { _, new in new != nil }

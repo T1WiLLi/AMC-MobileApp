@@ -48,6 +48,20 @@ struct EmailAuthForm: View {
 
     var body: some View {
         VStack(spacing: 14) {
+            Label {
+                Text(mode == .signIn ? "Avec ton courriel" : "Nouveau dans Grenier ?")
+                    .contentTransition(.opacity)
+            } icon: {
+                Image(systemName: mode == .signIn ? "envelope.circle.fill" : "person.crop.circle.badge.plus")
+                    .symbolRenderingMode(.hierarchical)
+                    .foregroundStyle(Color.grenier)
+                    .contentTransition(.symbolEffect(.replace))
+            }
+            .font(.headline)
+            .foregroundStyle(Color.texte)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .accessibilityAddTraits(.isHeader)
+
             Picker("Mode", selection: $mode.animation(reduceMotion ? nil : .smooth)) {
                 ForEach(Mode.allCases) { Text($0.title).tag($0) }
             }
@@ -56,6 +70,7 @@ struct EmailAuthForm: View {
 
             if mode == .signUp {
                 field(
+                    .firstName,
                     icon: "person.fill",
                     issue: attemptedSubmit && !firstNameIsValid ? "Ton prénom, pour que ton groupe te reconnaisse." : nil,
                     isValid: firstNameIsValid
@@ -70,7 +85,7 @@ struct EmailAuthForm: View {
                 .transition(.move(edge: .top).combined(with: .opacity))
             }
 
-            field(icon: "envelope.fill", issue: emailIssue, isValid: emailIsValid) {
+            field(.email, icon: "envelope.fill", issue: emailIssue, isValid: emailIsValid) {
                 TextField("Courriel", text: $email)
                     .textContentType(.emailAddress)
                     .keyboardType(.emailAddress)
@@ -82,7 +97,7 @@ struct EmailAuthForm: View {
             }
 
             VStack(alignment: .leading, spacing: 8) {
-                field(icon: "lock.fill", issue: passwordIssue, isValid: mode == .signUp && passwordIsLongEnough) {
+                field(.password, icon: showsPassword ? "lock.open.fill" : "lock.fill", issue: passwordIssue, isValid: mode == .signUp && passwordIsLongEnough) {
                     HStack {
                         Group {
                             if showsPassword {
@@ -211,17 +226,22 @@ struct EmailAuthForm: View {
     // MARK: Champ
 
     private func field<Content: View>(
+        _ kind: Field,
         icon: String,
         issue: String?,
         isValid: Bool,
         @ViewBuilder content: () -> Content
     ) -> some View {
-        VStack(alignment: .leading, spacing: 6) {
+        let isFocused = focus == kind
+        return VStack(alignment: .leading, spacing: 6) {
             HStack(spacing: 12) {
                 Image(systemName: icon)
                     .symbolRenderingMode(.hierarchical)
                     .foregroundStyle(issue == nil ? Color.grenier : .red)
                     .frame(width: 24)
+                    // Rebond à la prise du focus, frétillement quand une erreur apparaît.
+                    .symbolEffect(.bounce, options: .nonRepeating, value: reduceMotion ? false : isFocused)
+                    .symbolEffect(.wiggle, options: .nonRepeating, value: reduceMotion ? false : issue != nil)
                     .accessibilityHidden(true)
                 content()
                     .frame(minHeight: 44)
@@ -237,8 +257,12 @@ struct EmailAuthForm: View {
             .background(Color.surface, in: .rect(cornerRadius: 16))
             .overlay {
                 RoundedRectangle(cornerRadius: 16)
-                    .strokeBorder(issue == nil ? Color.clear : Color.red.opacity(0.7), lineWidth: 1)
+                    .strokeBorder(
+                        issue != nil ? Color.red.opacity(0.7) : (isFocused ? Color.grenier.opacity(0.6) : Color.clear),
+                        lineWidth: isFocused ? 1.5 : 1
+                    )
             }
+            .animation(reduceMotion ? nil : .smooth(duration: 0.2), value: isFocused)
 
             if let issue {
                 Label(issue, systemImage: "exclamationmark.circle.fill")
@@ -311,13 +335,18 @@ private struct PasswordResetSheet: View {
     var body: some View {
         NavigationStack {
             VStack(spacing: 20) {
-                Image(systemName: sent ? "checkmark.circle.fill" : "key.horizontal.fill")
-                    .font(.system(size: 48))
-                    .symbolRenderingMode(.hierarchical)
-                    .foregroundStyle(sent ? Color.economie : Color.grenier)
-                    .contentTransition(.symbolEffect(.replace))
-                    .symbolEffect(.bounce, value: sent)
-                    .accessibilityHidden(true)
+                // Scène qui change à l'envoi : clé et cadenas, puis courriel parti avec la coche.
+                GrenierSymbolScene(
+                    symbol: sent ? "checkmark.circle.fill" : "key.horizontal.fill",
+                    tint: sent ? .economie : .grenier,
+                    satellites: sent
+                        ? [.init("envelope.fill"), .init("paperplane.fill", tint: .economie)]
+                        : [.init("lock.fill"), .init("envelope.fill")],
+                    trigger: sent,
+                    isCompact: true
+                )
+                .id(sent)
+                .transition(.opacity)
 
                 Text(sent ? "Lien envoyé ! Ouvre le courriel pour choisir un nouveau mot de passe." : "Entre ton courriel : on t'envoie un lien pour choisir un nouveau mot de passe.")
                     .font(.body)

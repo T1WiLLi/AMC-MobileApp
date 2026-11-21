@@ -13,12 +13,16 @@ struct SignInScreen: View {
         VStack(spacing: 32) {
 
             VStack(spacing: 16) {
-                Image(systemName: "basket.fill")
-                    .font(.system(size: 80))
-                    .symbolRenderingMode(.hierarchical)
-                    .foregroundStyle(.tint)
-                    .symbolEffect(.bounce, value: isSigningIn)
-                    .accessibilityHidden(true)
+                GrenierSymbolScene(
+                    symbol: "basket.fill",
+                    satellites: [
+                        .init("carrot.fill", tint: .economie),
+                        .init(GrenierSymbol.groups, tint: .grenier),
+                        .init("leaf.fill", tint: .economie),
+                        .init(GrenierSymbol.solidarity, tint: .solidarite)
+                    ],
+                    trigger: isSigningIn
+                )
 
                 Text("Grenier")
                     .font(.largeTitle.bold())
@@ -28,17 +32,17 @@ struct SignInScreen: View {
                     .font(.body)
                     .foregroundStyle(.secondary)
                     .multilineTextAlignment(.center)
+                    .fixedSize(horizontal: false, vertical: true)
+
+                ValuePropositions()
             }
             .padding(.horizontal)
             .padding(.top, 32)
 
             VStack(spacing: 12) {
                 if let message = session.errorMessage {
-                    Label(message, systemImage: "exclamationmark.triangle.fill")
-                        .font(.footnote)
-                        .foregroundStyle(.red)
-                        .multilineTextAlignment(.center)
-                        .transition(.opacity)
+                    SignInErrorBanner(message: message)
+                        .transition(.opacity.combined(with: .scale(scale: 0.95)))
                 }
 
                 if AppleSignIn.isEnabled {
@@ -77,6 +81,14 @@ struct SignInScreen: View {
                     .padding(.vertical, 4)
 
                 EmailAuthForm(session: session)
+
+                Label("Connexion sécurisée", systemImage: "lock.shield.fill")
+                    .font(.footnote)
+                    .foregroundStyle(Color.texteSecondaire)
+                    .symbolRenderingMode(.hierarchical)
+                    .multilineTextAlignment(.center)
+                    .fixedSize(horizontal: false, vertical: true)
+                    .padding(.top, 8)
             }
             .padding(.horizontal, 24)
             .padding(.bottom, 24)
@@ -89,6 +101,68 @@ struct SignInScreen: View {
         .tint(.grenier)
         .animation(.smooth, value: session.errorMessage)
         .sensoryFeedback(.error, trigger: session.errorMessage) { _, new in new != nil }
+    }
+}
+
+/// Trois promesses de Grenier en pastilles à icône, empilées sous Dynamic Type accessibilité.
+private struct ValuePropositions: View {
+    var body: some View {
+        // Sur une ligne si elles tiennent sans couper, sinon empilées.
+        ViewThatFits(in: .horizontal) {
+            HStack(spacing: 8) { chips }
+                .fixedSize()
+            VStack(alignment: .center, spacing: 8) { chips }
+        }
+        .accessibilityElement(children: .combine)
+    }
+
+    @ViewBuilder private var chips: some View {
+        chip("Prix de gros", systemImage: GrenierSymbol.savings, tint: .economie)
+        chip("Producteurs d'ici", systemImage: GrenierSymbol.impact, tint: .economie)
+        chip("Entre voisins", systemImage: GrenierSymbol.groups, tint: .grenier)
+    }
+
+    private func chip(_ title: String, systemImage: String, tint: Color) -> some View {
+        Label {
+            Text(title)
+                .foregroundStyle(Color.texte)
+                .fixedSize(horizontal: false, vertical: true)
+        } icon: {
+            Image(systemName: systemImage)
+                .symbolRenderingMode(.hierarchical)
+                .foregroundStyle(tint)
+        }
+        .font(.caption.weight(.semibold))
+        .padding(.horizontal, 10)
+        .padding(.vertical, 6)
+        .background(tint.opacity(0.12), in: .capsule)
+    }
+}
+
+/// Erreur de connexion : carte teintée avec icône qui frétille à l'apparition.
+private struct SignInErrorBanner: View {
+    let message: String
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @State private var hasAppeared = false
+
+    var body: some View {
+        HStack(alignment: .top, spacing: 10) {
+            Image(systemName: "exclamationmark.triangle.fill")
+                .symbolRenderingMode(.hierarchical)
+                .foregroundStyle(.red)
+                .symbolEffect(.wiggle, options: .nonRepeating, value: reduceMotion ? false : hasAppeared)
+                .accessibilityHidden(true)
+            Text(message)
+                .foregroundStyle(Color.texte)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+        .font(.footnote)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(12)
+        .background(Color.red.opacity(0.1), in: .rect(cornerRadius: 16))
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel("Erreur : \(message)")
+        .onAppear { hasAppeared = true }
     }
 }
 

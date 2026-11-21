@@ -4,7 +4,7 @@ import SwiftUI
 struct AMCMobileApp: App {
     var body: some Scene {
         WindowGroup {
-            ItemListView(viewModel: ItemListViewModel(service: InMemoryItemService()))
+            RootView()
         }
     }
 }

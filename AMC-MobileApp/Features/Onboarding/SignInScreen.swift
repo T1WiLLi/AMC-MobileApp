@@ -1,4 +1,3 @@
-import AuthenticationServices
 import SwiftUI
 
 /// Écran de connexion (T-124, maquette Claude Design « Grenier — Connexion et inscription ») :
@@ -7,10 +6,6 @@ import SwiftUI
 struct SignInScreen: View {
     let session: SessionViewModel
     @State private var mode: EmailAuthForm.Mode = .signIn
-    @Environment(\.colorScheme) private var colorScheme
-    /// Hauteur du bouton Apple : le libellé de `SignInWithAppleButton` suit la hauteur du bouton,
-    /// pas Dynamic Type ; on la fait donc grandir avec le texte (plafonnée pour garder le bouton lisible).
-    @ScaledMetric(relativeTo: .headline) private var appleButtonHeight: CGFloat = 48
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     /// Hauteur visible de l'écran (hors zones sûres), pour choisir la taille du bandeau.
@@ -22,8 +17,7 @@ struct SignInScreen: View {
     /// Le défilement reste possible en très grand texte (Dynamic Type accessibilité).
     private var heroStyle: SignInHero.Style {
         if mode == .signUp || dynamicTypeSize >= .xxLarge { return .minimal }
-        let fullHeroNeeds: CGFloat = AppleSignIn.isEnabled ? 760 : 700
-        return viewportHeight >= fullHeroNeeds ? .full : .compact
+        return viewportHeight >= 700 ? .full : .compact
     }
 
     var body: some View {
@@ -104,20 +98,6 @@ struct SignInScreen: View {
 
     @ViewBuilder private var socialButtons: some View {
         VStack(spacing: 10) {
-            if AppleSignIn.isEnabled {
-                SignInWithAppleButton(mode == .signIn ? .continue : .signUp) { request in
-                    session.prepareAppleSignIn(request)
-                } onCompletion: { result in
-                    Task { await session.completeAppleSignIn(result) }
-                }
-                .signInWithAppleButtonStyle(colorScheme == .dark ? .white : .black)
-                .frame(maxWidth: .infinity)
-                .frame(height: min(appleButtonHeight, 110))
-                .clipShape(.rect(cornerRadius: 16))
-                .disabled(isSigningIn)
-                .accessibilityHint("Ouvre la connexion Apple")
-            }
-
             Button {
                 Task { await session.signInWithGoogle() }
             } label: {
@@ -284,7 +264,7 @@ private struct ProduceIllustration: View {
     }
 }
 
-/// Erreur de connexion (Google, Apple) : carte rouge pâle, icône dans un carré, frétille à l'apparition.
+/// Erreur de connexion (Google) : carte rouge pâle, icône dans un carré, frétille à l'apparition.
 private struct SignInErrorBanner: View {
     let message: String
     @Environment(\.accessibilityReduceMotion) private var reduceMotion

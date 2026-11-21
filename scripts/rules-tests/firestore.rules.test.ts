@@ -723,9 +723,11 @@ describe('groupes privés et invitations (B-056)', () => {
     const used = await invitationData('ABC234')
     assert.equal(used?.usedBy, 'household-intrus')
     // Le ménage repart, puis essaie de revenir avec la même invitation.
-    const leave = writeBatch(intruder())
-    leave.delete(doc(intruder(), `${privatePath}/members/household-intrus`))
-    leave.update(doc(intruder(), privatePath), { householdCount: increment(-1), lastMembershipChange: 'household-intrus' })
+    // Une seule instance Firestore pour tout le lot (sinon « different Firestore instance »).
+    const db = intruder()
+    const leave = writeBatch(db)
+    leave.delete(doc(db, `${privatePath}/members/household-intrus`))
+    leave.update(doc(db, privatePath), { householdCount: increment(-1), lastMembershipChange: 'household-intrus' })
     await assertSucceeds(leave.commit())
     await assertFails(joinWithInvitation(intruder(), 'ABC234'))
   })

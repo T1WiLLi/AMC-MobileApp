@@ -12,6 +12,8 @@ struct AMCMobileApp: App {
     init() {
         let firebaseReady = FirebaseSetup.configureIfAvailable()
         _session = State(initialValue: SessionViewModel(auth: FirebaseSetup.makeAuthService(firebaseReady: firebaseReady)))
+        // Démo : -resetOnboarding rejoue l'accueil, -demoFamilyPortal rouvre côté Familles. Ne touche pas Firebase.
+        OnboardingKeys.applyLaunchArguments(ProcessInfo.processInfo.arguments)
     }
 
     var body: some Scene {

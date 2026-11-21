@@ -176,7 +176,7 @@ private struct GroupDetailContent: View {
             .padding(.horizontal, 16)
             .padding(.bottom, 24)
         }
-        .scrollEdgeEffectStyle(.soft, for: .top)
+        .grenierScrollEdge()
         .safeAreaInset(edge: .bottom) {
             if !content.isMember {
                 Button {

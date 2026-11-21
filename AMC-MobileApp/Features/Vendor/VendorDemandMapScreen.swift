@@ -487,23 +487,33 @@ private struct DemandRow: View {
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     @ScaledMetric(relativeTo: .body) private var dotSize: CGFloat = 40
 
+    // B-041 : rangée lisible (quartier, familles, parts, produit principal) et jauge horizontale fine,
+    // au lieu de la pilule « Forte demande » qui mangeait la moitié de la carte.
     var body: some View {
-        let layout = dynamicTypeSize.isAccessibilitySize
-            ? AnyLayout(VStackLayout(alignment: .leading, spacing: 8))
-            : AnyLayout(HStackLayout(spacing: 12))
-        layout {
-            Text(point.interestedHouseholds, format: .number)
-                .font(.headline)
-                .fontDesign(.rounded)
-                .monospacedDigit()
-                .foregroundStyle(point.isHighDemand ? Color.onAccent : Color.grenier)
-                .frame(minWidth: dotSize, minHeight: dotSize)
-                .background(point.isHighDemand ? Color.grenier : Color.grenier.opacity(0.14), in: .circle)
-            VStack(alignment: .leading, spacing: 2) {
-                Label(point.displayName, systemImage: point.grouping.systemImage)
+        HStack(alignment: .top, spacing: 12) {
+            if !dynamicTypeSize.isAccessibilitySize {
+                Text(point.interestedHouseholds, format: .number)
                     .font(.headline)
-                    .foregroundStyle(Color.texte)
-                    .symbolRenderingMode(.hierarchical)
+                    .fontDesign(.rounded)
+                    .monospacedDigit()
+                    .minimumScaleFactor(0.7)
+                    .foregroundStyle(point.isHighDemand ? Color.onAccent : Color.grenier)
+                    .frame(width: dotSize, height: dotSize)
+                    .background(point.isHighDemand ? Color.grenier : Color.grenier.opacity(0.14), in: .circle)
+            }
+            VStack(alignment: .leading, spacing: 4) {
+                HStack(alignment: .firstTextBaseline, spacing: 6) {
+                    Label(point.displayName, systemImage: point.grouping.systemImage)
+                        .font(.headline)
+                        .foregroundStyle(Color.texte)
+                        .symbolRenderingMode(.hierarchical)
+                    if point.isHighDemand {
+                        Image(systemName: "flame.fill")
+                            .font(.subheadline)
+                            .foregroundStyle(Color.grenier)
+                            .accessibilityLabel("Forte demande")
+                    }
+                }
                 Label(point.summary, systemImage: "person.2.fill")
                     .font(.subheadline)
                     .foregroundStyle(Color.texteSecondaire)
@@ -513,19 +523,40 @@ private struct DemandRow: View {
                         .font(.subheadline)
                         .foregroundStyle(Color.texteSecondaire)
                         .symbolRenderingMode(.hierarchical)
+                        .lineLimit(2)
+                }
+                DemandGauge(intensity: point.intensity, isHigh: point.isHighDemand)
+                    .padding(.top, 4)
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            Image(systemName: "chevron.right")
+                .font(.footnote.weight(.semibold))
+                .foregroundStyle(Color.texteSecondaire)
+                .frame(minHeight: dotSize)
+                .accessibilityHidden(true)
+        }
+        .padding(.vertical, 6)
+        .contentShape(.rect)
+    }
+}
+
+/// Jauge horizontale de l'intensité de la demande (0 à 1, relative au point le plus demandé).
+private struct DemandGauge: View {
+    let intensity: Double
+    let isHigh: Bool
+
+    var body: some View {
+        Capsule()
+            .fill(Color.grenier.opacity(0.14))
+            .frame(height: 6)
+            .overlay(alignment: .leading) {
+                GeometryReader { proxy in
+                    Capsule()
+                        .fill(isHigh ? Color.grenier : Color.grenier.opacity(0.6))
+                        .frame(width: max(6, proxy.size.width * min(max(intensity, 0), 1)))
                 }
             }
-            if !dynamicTypeSize.isAccessibilitySize { Spacer(minLength: 8) }
-            if point.isHighDemand { HighDemandBadge() }
-            if !dynamicTypeSize.isAccessibilitySize {
-                Image(systemName: "chevron.right")
-                    .font(.footnote.weight(.semibold))
-                    .foregroundStyle(Color.texteSecondaire)
-                    .accessibilityHidden(true)
-            }
-        }
-        .padding(.vertical, 4)
-        .contentShape(.rect)
+            .accessibilityHidden(true)
     }
 }
 

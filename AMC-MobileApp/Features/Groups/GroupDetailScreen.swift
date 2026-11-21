@@ -148,6 +148,39 @@ private struct GroupDetailContent: View {
 
                     openOrdersSection
 
+                    // S-07 (T-108) : envies des familles, réservées aux membres.
+                    if content.isMember {
+                        NavigationLink {
+                            GroupWishesScreen(groupId: group.id)
+                        } label: {
+                            Label {
+                                VStack(alignment: .leading, spacing: 2) {
+                                    Text("Ce que le groupe veut")
+                                        .font(.headline)
+                                        .foregroundStyle(.texte)
+                                    Text("Dis ce que ta famille veut acheter, vois la demande du quartier.")
+                                        .font(.subheadline)
+                                        .foregroundStyle(.texteSecondaire)
+                                        .multilineTextAlignment(.leading)
+                                }
+                            } icon: {
+                                Image(systemName: "basket.fill")
+                                    .font(.title2)
+                                    .symbolRenderingMode(.hierarchical)
+                                    .foregroundStyle(theme.accent)
+                            }
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .overlay(alignment: .trailing) {
+                                Image(systemName: "chevron.right")
+                                    .font(.footnote.weight(.semibold))
+                                    .foregroundStyle(.texteSecondaire)
+                                    .accessibilityHidden(true)
+                            }
+                            .grenierCard()
+                        }
+                        .buttonStyle(.plain)
+                    }
+
                     InvitationCard(group: group)
 
                     if content.isMember {

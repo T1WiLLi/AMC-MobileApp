@@ -21,6 +21,7 @@ import {
   serverTimestamp,
   setDoc,
   Timestamp,
+  Bytes,
   updateDoc,
   increment,
   writeBatch,
@@ -463,57 +464,73 @@ describe('envies des familles et disponibilités des vendeurs (S-07, S-08)', () 
   })
 })
 
-describe('images en base64 (T-122)', () => {
-  const groupPath = 'groups/group-parc-extension'
-  const jpeg = (size = 1_000) => ({
-    data: 'A'.repeat(size), contentType: 'image/jpeg', width: 400, height: 400, updatedAt: serverTimestamp()
-  })
-  const mediaURL = (path: string) => `grenier-media:///${path}?v=1732200000000`
+describe('images en bytes (T-132, Q-033)', () => {
+  const jpeg = (size: number) => Bytes.fromUint8Array(new Uint8Array(size).fill(0xff))
+  const media = (size = 2048) => ({ data: jpeg(size), contentType: 'image/jpeg', width: 256, height: 256, updatedAt: serverTimestamp() })
 
   beforeEach(async () => {
     await env.withSecurityRulesDisabled(async (context) => {
-      await updateDoc(doc(context.firestore(), groupPath), { coordinatorIds: ['amina'] })
+      await setDoc(doc(context.firestore(), 'groups/group-media'), {
+        id: 'group-media', name: 'Groupe photo', isPublic: true, inviteCode: 'PHOTO', householdCount: 1, coordinatorIds: ['amina']
+      })
     })
   })
 
-  test('photo de profil : seulement la sienne, seulement « avatar »', async () => {
-    await assertSucceeds(setDoc(doc(amina(), 'users/amina/media/avatar'), jpeg()))
-    await assertSucceeds(updateDoc(doc(amina(), 'users/amina'), { photoURL: mediaURL('users/amina/media/avatar') }))
-    await assertFails(setDoc(doc(intruder(), 'users/amina/media/avatar'), jpeg()))
-    await assertFails(setDoc(doc(amina(), 'users/amina/media/autre'), jpeg()))
+  test('écrit son avatar', async () => {
+    await assertSucceeds(setDoc(doc(amina(), 'users/amina/media/avatar'), media()))
+  })
+  test('pose photoUpdatedAt sur son profil', async () => {
+    await assertSucceeds(updateDoc(doc(amina(), 'users/amina'), { photoUpdatedAt: serverTimestamp() }))
+  })
+  test('n’écrit pas l’avatar d’un autre', async () => {
+    await assertFails(setDoc(doc(intruder(), 'users/amina/media/avatar'), media()))
+  })
+  test('refuse un autre id que avatar', async () => {
+    await assertFails(setDoc(doc(amina(), 'users/amina/media/galerie'), media()))
+  })
+  test('refuse une image de plus de 300 Kio', async () => {
+    await assertFails(setDoc(doc(amina(), 'users/amina/media/avatar'), media(300 * 1024 + 1)))
+  })
+  test('refuse un autre format que JPEG', async () => {
+    await assertFails(setDoc(doc(amina(), 'users/amina/media/avatar'), { ...media(), contentType: 'image/png' }))
+  })
+  test('refuse un champ en trop', async () => {
+    await assertFails(setDoc(doc(amina(), 'users/amina/media/avatar'), { ...media(), owner: 'amina' }))
+  })
+  test('refuse une date choisie par le client', async () => {
+    await assertFails(setDoc(doc(amina(), 'users/amina/media/avatar'), { ...media(), updatedAt: Timestamp.fromMillis(0) }))
+  })
+  test('un connecté lit un avatar, un anonyme non', async () => {
+    await env.withSecurityRulesDisabled(async (context) => {
+      await setDoc(doc(context.firestore(), 'users/amina/media/avatar'), { ...media(), updatedAt: Timestamp.now() })
+    })
+    await assertSucceeds(getDoc(doc(intruder(), 'users/amina/media/avatar')))
+    await assertFails(getDoc(doc(anonymous(), 'users/amina/media/avatar')))
+  })
+  test('supprime son avatar, pas celui d’un autre', async () => {
+    await env.withSecurityRulesDisabled(async (context) => {
+      await setDoc(doc(context.firestore(), 'users/amina/media/avatar'), { ...media(), updatedAt: Timestamp.now() })
+    })
+    await assertFails(deleteDoc(doc(intruder(), 'users/amina/media/avatar')))
     await assertSucceeds(deleteDoc(doc(amina(), 'users/amina/media/avatar')))
   })
-  test('le coordinateur pose la photo et la bannière du groupe', async () => {
-    await assertSucceeds(setDoc(doc(amina(), `${groupPath}/media/photo`), jpeg()))
-    await assertSucceeds(setDoc(doc(amina(), `${groupPath}/media/banner`), { ...jpeg(), width: 1200, height: 450 }))
-    await assertSucceeds(updateDoc(doc(amina(), groupPath), {
-      photoURL: mediaURL(`${groupPath}/media/photo`), bannerURL: mediaURL(`${groupPath}/media/banner`)
-    }))
-    await assertSucceeds(updateDoc(doc(amina(), groupPath), { bannerURL: null }))
+  test('le coordonnateur écrit la photo et la bannière du groupe', async () => {
+    await assertSucceeds(setDoc(doc(amina(), 'groups/group-media/media/photo'), media()))
+    await assertSucceeds(setDoc(doc(amina(), 'groups/group-media/media/banner'), { ...media(), width: 1200, height: 400 }))
   })
-  test('un autre membre ne change pas les images du groupe', async () => {
-    await assertFails(setDoc(doc(intruder(), `${groupPath}/media/photo`), jpeg()))
-    await assertFails(updateDoc(doc(intruder(), groupPath), { photoURL: mediaURL(`${groupPath}/media/photo`) }))
-    await assertFails(deleteDoc(doc(intruder(), `${groupPath}/media/photo`)))
+  test('un non-coordonnateur n’écrit pas la photo du groupe', async () => {
+    await assertFails(setDoc(doc(intruder(), 'groups/group-media/media/photo'), media()))
   })
-  test('le coordinateur ne change rien d’autre avec les images', async () => {
-    await assertFails(updateDoc(doc(amina(), groupPath), { photoURL: mediaURL(`${groupPath}/media/photo`), householdCount: 99 }))
-    await assertFails(setDoc(doc(amina(), `${groupPath}/media/logo`), jpeg()))
+  test('refuse un autre id que photo ou banner', async () => {
+    await assertFails(setDoc(doc(amina(), 'groups/group-media/media/logo'), media()))
   })
-  test('image invalide refusée : trop lourde, pas une image, champ en trop, date du client', async () => {
-    await assertFails(setDoc(doc(amina(), `${groupPath}/media/banner`), jpeg(750_000)))
-    await assertFails(setDoc(doc(amina(), `${groupPath}/media/banner`), { ...jpeg(), contentType: 'text/html' }))
-    await assertFails(setDoc(doc(amina(), `${groupPath}/media/banner`), { ...jpeg(), owner: 'amina' }))
-    await assertFails(setDoc(doc(amina(), `${groupPath}/media/banner`), { ...jpeg(), updatedAt: Timestamp.fromMillis(0) }))
+  test('le coordonnateur pose photoUpdatedAt et bannerUpdatedAt', async () => {
+    await assertSucceeds(updateDoc(doc(amina(), 'groups/group-media'), { photoUpdatedAt: serverTimestamp(), bannerUpdatedAt: serverTimestamp() }))
   })
-  test('lecture par les connectés seulement', async () => {
-    await env.withSecurityRulesDisabled(async (context) => {
-      await setDoc(doc(context.firestore(), `${groupPath}/media/photo`), { ...jpeg(), updatedAt: Timestamp.now() })
-      await setDoc(doc(context.firestore(), 'users/amina/media/avatar'), { ...jpeg(), updatedAt: Timestamp.now() })
-    })
-    await assertSucceeds(getDoc(doc(intruder(), `${groupPath}/media/photo`)))
-    await assertSucceeds(getDoc(doc(intruder(), 'users/amina/media/avatar')))
-    await assertFails(getDoc(doc(anonymous(), `${groupPath}/media/photo`)))
-    await assertFails(getDoc(doc(anonymous(), 'users/amina/media/avatar')))
+  test('le coordonnateur ne change rien d’autre sur le groupe', async () => {
+    await assertFails(updateDoc(doc(amina(), 'groups/group-media'), { photoUpdatedAt: serverTimestamp(), name: 'Renommé' }))
+  })
+  test('un non-coordonnateur ne pose pas photoUpdatedAt', async () => {
+    await assertFails(updateDoc(doc(intruder(), 'groups/group-media'), { photoUpdatedAt: serverTimestamp() }))
   })
 })

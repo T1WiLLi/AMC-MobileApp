@@ -1,13 +1,14 @@
 // MediaReference.swift
 // Images de profil, de groupe et bannières (T-122) : où elles vivent et comment on les nomme.
 //
-// Spark (gratuit) n'a pas Cloud Storage : une image est un JPEG compressé, encodé en base64 dans son
-// propre petit document Firestore (< 1 Mo) :
+// Spark (gratuit) n'a pas Cloud Storage : une image est un JPEG compressé (octets, 300 Kio au plus) dans son
+// propre petit document Firestore (règles T-132) :
 //   users/{uid}/media/avatar        photo de profil (écrite par son propriétaire)
 //   groups/{groupId}/media/photo    photo du groupe (écrite par un coordinateur)
 //   groups/{groupId}/media/banner   bannière du groupe (écrite par un coordinateur)
 //
-// Le document parent garde une URL versionnée qui pointe vers ce média, sans aucune URL Storage :
+// Le document parent garde la date d'envoi (`photoUpdatedAt` / `bannerUpdatedAt`, serverTimestamp) ; l'app en déduit
+// une URL versionnée qui pointe vers ce média, sans aucune URL Storage :
 //   AppUser.photoURL / NeighborhoodGroup.photoURL / bannerURL = grenier-media:///groups/g1/media/banner?v=1732200000000
 // `v` change à chaque envoi : les listes savent qu'une image existe et le cache mémoire est invalidé tout seul.
 // Les données fake utilisent des images du catalogue d'assets : grenier-asset:///BannerSaintMichel.
@@ -107,12 +108,12 @@ nonisolated enum MediaURL {
 nonisolated struct ImageSpec: Hashable, Sendable {
     var width: Int
     var height: Int
-    /// Qualité JPEG de départ ; baisse au besoin pour tenir sous `maxBase64Bytes`.
+    /// Qualité JPEG de départ ; baisse au besoin pour tenir sous `targetBytes` et `maxBytes`.
     var quality: CGFloat
     /// Taille visée (indicative) des données JPEG.
     var targetBytes: Int
-    /// Au-delà, l'image est refusée (le document Firestore doit rester bien sous 1 Mo ; règle : < 750 000).
-    var maxBase64Bytes: Int = 700_000
+    /// Au-delà, l'image est refusée (firestore.rules : `data` en octets, 300 Kio au plus).
+    var maxBytes: Int = 290_000
 
     /// Photo de profil et photo de groupe : 400 × 400, JPEG 0,7 (< 80 Ko visés).
     static let square = ImageSpec(width: 400, height: 400, quality: 0.7, targetBytes: 80_000)

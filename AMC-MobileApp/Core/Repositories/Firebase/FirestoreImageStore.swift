@@ -1,9 +1,9 @@
 // FirestoreImageStore.swift
-// Images en base64 dans Firestore (T-122) : Cloud Storage exige le forfait Blaze, Firestore reste gratuit.
+// Images JPEG dans Firestore (T-122, règles T-132) : Cloud Storage exige le forfait Blaze, Firestore reste gratuit.
 // Un document par image, bien sous la limite de 1 Mo :
-//   { data: <JPEG base64>, contentType: "image/jpeg", width, height, updatedAt: horodatage serveur }
+//   { data: <octets JPEG, 300 Kio au plus>, contentType: "image/jpeg", width, height, updatedAt: horodatage serveur }
 // firestore.rules : `users/{uid}/media/avatar` écrit par son propriétaire ; `groups/{id}/media/{photo|banner}`
-// écrit par un coordinateur du groupe ; lecture par tout utilisateur connecté ; `data` < 750 000 caractères.
+// écrit par un coordinateur du groupe ; lecture par tout utilisateur connecté ; contentType image/jpeg.
 
 #if canImport(FirebaseFirestore)
 import Foundation
@@ -18,12 +18,12 @@ nonisolated final class FirestoreImageStore: ImageStore, @unchecked Sendable {
     }
 
     func save(_ image: PreparedImage, at path: MediaPath) async throws -> URL {
-        guard image.base64Size < 750_000 else {
+        guard image.jpeg.count <= 300 * 1_024 else {
             throw AppError.invalidInput("Cette image est trop lourde, même compressée. Essaie une autre photo.")
         }
         do {
             try await db.document(path.documentPath).setData([
-                "data": image.jpeg.base64EncodedString(),
+                "data": image.jpeg, // type bytes de Firestore
                 "contentType": "image/jpeg",
                 "width": image.width,
                 "height": image.height,
@@ -44,7 +44,7 @@ nonisolated final class FirestoreImageStore: ImageStore, @unchecked Sendable {
             throw FirestoreGroupOrderRepository.appError(from: error)
         }
         guard snapshot.exists else { throw AppError.notFound }
-        guard let base64 = snapshot.get("data") as? String, let data = Data(base64Encoded: base64) else {
+        guard let data = snapshot.get("data") as? Data else {
             throw AppError.unknown("Image \(path.documentPath) illisible.")
         }
         return data

@@ -52,13 +52,13 @@ struct GroupImagesTests {
         let banner = try ImageProcessing.prepare(photo(), spec: .banner)
         #expect(banner.width == 1_200)
         #expect(banner.height == 450)
-        #expect(banner.base64Size < ImageSpec.banner.maxBase64Bytes)
+        #expect(banner.jpeg.count <= ImageSpec.banner.maxBytes)
         let decoded = try #require(UIImage(data: banner.jpeg))
         #expect(decoded.size == CGSize(width: 1_200, height: 450))
 
         let square = try ImageProcessing.prepare(photo(width: 600, height: 3_000), spec: .square)
         #expect(UIImage(data: square.jpeg)?.size == CGSize(width: 400, height: 400))
-        #expect(square.jpeg.count < 750_000)
+        #expect(square.jpeg.count <= ImageSpec.square.maxBytes)
     }
 
     @Test func prepareRejectsSomethingThatIsNotAnImage() {

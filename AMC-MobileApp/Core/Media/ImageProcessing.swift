@@ -19,7 +19,7 @@ nonisolated enum ImageProcessing {
     }
 
     /// Recadre au centre au format de `spec`, redimensionne, puis compresse en JPEG.
-    /// La qualité baisse par pas de 0,1 tant que l'image dépasse `spec.targetBytes`, jusqu'à `minimumQuality` ;
+    /// La qualité baisse par pas de 0,1 tant que l'image dépasse `spec.targetBytes` (ou `maxBytes`), jusqu'à `minimumQuality` ;
     /// lève `.invalidInput` si ce n'est pas une image ou si elle reste trop lourde pour Firestore.
     static func prepare(_ imageData: Data, spec: ImageSpec) throws -> PreparedImage {
         guard let image = UIImage(data: imageData), image.size.width > 0, image.size.height > 0 else {
@@ -42,11 +42,11 @@ nonisolated enum ImageProcessing {
         guard var jpeg = rendered.jpegData(compressionQuality: quality) else {
             throw AppError.invalidInput("Impossible de compresser cette image.")
         }
-        while jpeg.count > spec.targetBytes, quality - 0.1 >= minimumQuality - 0.001 {
+        while jpeg.count > min(spec.targetBytes, spec.maxBytes), quality - 0.1 >= minimumQuality - 0.001 {
             quality -= 0.1
             if let smaller = rendered.jpegData(compressionQuality: quality) { jpeg = smaller }
         }
-        guard PreparedImage.base64Size(of: jpeg.count) <= spec.maxBase64Bytes else {
+        guard jpeg.count <= spec.maxBytes else {
             throw AppError.invalidInput("Cette image est trop lourde, même compressée. Essaie une autre photo.")
         }
         return PreparedImage(jpeg: jpeg, width: spec.width, height: spec.height)

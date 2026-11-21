@@ -20,6 +20,31 @@ nonisolated struct NeighborhoodGroup: Identifiable, Codable, Sendable, Hashable 
     var photoURL: URL? = nil
     /// T-122 : bannière du groupe (`…/media/banner?v=…`), nil = dégradé aux couleurs de Grenier.
     var bannerURL: URL? = nil
+    /// Firestore (règles T-132) : date du dernier envoi de `groups/{id}/media/photo`, posée en `serverTimestamp`.
+    /// Le dépôt Firestore en déduit `photoURL` (`resolvingMediaURLs()`).
+    var photoUpdatedAt: Date? = nil
+    /// Idem pour `groups/{id}/media/banner`.
+    var bannerUpdatedAt: Date? = nil
+
+    /// URL versionnées déduites des dates d'envoi Firestore (le cache des images suit la version).
+    func resolvingMediaURLs() -> NeighborhoodGroup {
+        var group = self
+        if let date = photoUpdatedAt {
+            group.photoURL = MediaPath.groupPhoto(groupId: id).url(version: MediaVersion.make(date))
+        }
+        if let date = bannerUpdatedAt {
+            group.bannerURL = MediaPath.groupBanner(groupId: id).url(version: MediaVersion.make(date))
+        }
+        return group
+    }
+
+    /// Champ de date d'envoi Firestore d'une image.
+    static func updatedAtField(_ kind: GroupImageKind) -> String {
+        switch kind {
+        case .photo: "photoUpdatedAt"
+        case .banner: "bannerUpdatedAt"
+        }
+    }
 }
 
 /// Les deux images d'un groupe (T-122).

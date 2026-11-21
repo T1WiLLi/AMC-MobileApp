@@ -1,6 +1,6 @@
 // ImageStore.swift
 // Stockage des images de profil, de groupe et des bannières (T-122).
-// Live : `FirestoreImageStore` (base64 dans `…/media/{nom}`, gratuit sur Spark). Previews, tests et mode fake :
+// Live : `FirestoreImageStore` (octets JPEG dans `…/media/{nom}`, gratuit sur Spark). Previews, tests et mode fake :
 // `FakeImageStore` en mémoire (les données de démo, elles, pointent vers le catalogue d'assets).
 
 import Foundation
@@ -21,7 +21,7 @@ nonisolated enum MediaVersion {
     }
 }
 
-/// Images en mémoire. Mêmes limites que les règles Firestore (taille du base64).
+/// Images en mémoire. Mêmes limites que les règles Firestore (300 Kio au plus).
 actor FakeImageStore: ImageStore {
     private let behavior: FakeBehavior
     private(set) var images: [MediaPath: PreparedImage] = [:]
@@ -33,7 +33,7 @@ actor FakeImageStore: ImageStore {
 
     func save(_ image: PreparedImage, at path: MediaPath) async throws -> URL {
         try await behavior.simulate()
-        guard image.base64Size < 750_000 else { throw AppError.permissionDenied }
+        guard image.jpeg.count <= 300 * 1_024 else { throw AppError.permissionDenied }
         images[path] = image
         // Deux envois dans la même milliseconde gardent des versions distinctes.
         lastVersion = max(MediaVersion.make(), lastVersion + 1)

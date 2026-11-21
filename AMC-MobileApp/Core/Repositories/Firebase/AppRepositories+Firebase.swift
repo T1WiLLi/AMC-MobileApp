@@ -14,15 +14,20 @@
 // Le même dépôt sert pour l'émulateur et le projet de démo : `FirebaseSetup` a déjà pointé Firestore au bon endroit.
 
 import Foundation
+#if canImport(FirebaseCore)
+import FirebaseCore
+#endif
 
 extension AppRepositories {
     /// Dépôts Firebase. Les dépôts pas encore écrits en Firestore retombent sur les fakes.
     nonisolated static func firebase() -> AppRepositories {
         let fallback = AppRepositories.fake()
-        #if canImport(FirebaseFirestore)
-        let firestoreVendors: (any VendorRepository)? = FirestoreVendorRepository()
-        let firestoreOffers: (any OfferRepository)? = FirestoreOfferRepository()
-        let firestorePickupPoints: (any PickupPointRepository)? = FirestorePickupPointRepository()
+        #if canImport(FirebaseFirestore) && canImport(FirebaseCore)
+        // Sans FirebaseApp par défaut (tests, configuration ratée), `Firestore.firestore()` plante : fakes.
+        let isConfigured = FirebaseApp.app() != nil
+        let firestoreVendors: (any VendorRepository)? = isConfigured ? FirestoreVendorRepository() : nil
+        let firestoreOffers: (any OfferRepository)? = isConfigured ? FirestoreOfferRepository() : nil
+        let firestorePickupPoints: (any PickupPointRepository)? = isConfigured ? FirestorePickupPointRepository() : nil
         #else
         let firestoreVendors: (any VendorRepository)? = nil
         let firestoreOffers: (any OfferRepository)? = nil

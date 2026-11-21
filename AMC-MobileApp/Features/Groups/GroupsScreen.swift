@@ -342,30 +342,21 @@ private struct GroupRow: View {
             ? AnyLayout(VStackLayout(alignment: .leading, spacing: 12))
             : AnyLayout(HStackLayout(alignment: .center, spacing: 12))
         layout {
-            NavigationLink(value: GroupRoute(groupId: group.id)) {
-                HStack(spacing: 12) {
-                    // T-122 : photo du groupe (initiales du quartier sur un dégradé s'il n'en a pas).
-                    GroupAvatarView(group: group, size: min(photoSize, 72))
-                    VStack(alignment: .leading, spacing: 4) {
-                        Text(group.name)
-                            .font(.headline)
-                            .foregroundStyle(.texte)
-                        ViewThatFits(in: .horizontal) {
-                            HStack(spacing: 10) { meta }
-                            VStack(alignment: .leading, spacing: 2) { meta }
-                        }
-                    }
-                    Spacer(minLength: 0)
-                    Image(systemName: "chevron.right")
-                        .font(.footnote.weight(.semibold))
-                        .foregroundStyle(.texteSecondaire)
+            // La fiche n'est ouverte qu'aux membres : pour un non-membre, elle finissait sur « Action non permise ».
+            // On garde la carte telle quelle, sans chevron, et l'action reste « Rejoindre ».
+            if item.isMember {
+                NavigationLink(value: GroupRoute(groupId: group.id)) {
+                    summary(showsChevron: true)
                 }
-                .contentShape(.rect)
+                .buttonStyle(.plain)
+                .accessibilityElement(children: .ignore)
+                .accessibilityLabel("\(group.name), \(detailText), tu es membre")
+                .accessibilityHint("Ouvre la fiche du groupe.")
+            } else {
+                summary(showsChevron: false)
+                    .accessibilityElement(children: .ignore)
+                    .accessibilityLabel("\(group.name), \(detailText)")
             }
-            .buttonStyle(.plain)
-            .accessibilityElement(children: .ignore)
-            .accessibilityLabel("\(group.name), \(detailText)\(item.isMember ? ", tu es membre" : "")")
-            .accessibilityHint("Ouvre la fiche du groupe.")
 
             trailing
         }
@@ -383,6 +374,29 @@ private struct GroupRow: View {
         }
         .sensoryFeedback(.success, trigger: item.isMember)
         .animation(reduceMotion ? nil : .smooth, value: item.isMember)
+    }
+
+    private func summary(showsChevron: Bool) -> some View {
+        HStack(spacing: 12) {
+            // T-122 : photo du groupe (initiales du quartier sur un dégradé s'il n'en a pas).
+            GroupAvatarView(group: group, size: min(photoSize, 72))
+            VStack(alignment: .leading, spacing: 4) {
+                Text(group.name)
+                    .font(.headline)
+                    .foregroundStyle(.texte)
+                ViewThatFits(in: .horizontal) {
+                    HStack(spacing: 10) { meta }
+                    VStack(alignment: .leading, spacing: 2) { meta }
+                }
+            }
+            Spacer(minLength: 0)
+            if showsChevron {
+                Image(systemName: "chevron.right")
+                    .font(.footnote.weight(.semibold))
+                    .foregroundStyle(.texteSecondaire)
+            }
+        }
+        .contentShape(.rect)
     }
 
     @ViewBuilder

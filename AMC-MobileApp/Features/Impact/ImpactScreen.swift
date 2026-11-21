@@ -440,13 +440,7 @@ private struct ImpactSkeletonView: View {
 /// Économies du quartier par produit (le modèle n'a pas de série mensuelle pour `SavingsChart`).
 private struct ProductSavingsChart: View {
     let products: [ImpactViewModel.ProductImpact]
-    @ScaledMetric(relativeTo: .body) private var barHeight: CGFloat = 44
-
-    /// Symbole du produit (même catalogue que `ProductIcon`), retrouvé par son nom sur l'axe.
-    private var symbolsByName: [String: String] {
-        Dictionary(products.map { ($0.product.name, ProductIcon.symbol(for: $0.product)) },
-                   uniquingKeysWith: { first, _ in first })
-    }
+    @ScaledMetric(relativeTo: .body) private var barHeight: CGFloat = 10
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
@@ -466,54 +460,79 @@ private struct ProductSavingsChart: View {
         .grenierCard()
     }
 
+    /// Une ligne par produit : nom et montant sur la même ligne, barre en dessous.
+    /// (Swift Charts décalait les libellés longs de l'axe Y par rapport à leur barre sur iPhone.)
     private var chart: some View {
-        Chart(products) { item in
-            BarMark(
-                x: .value(String(localized: "Économie"), Double(item.savingsCents) / 100),
-                y: .value(String(localized: "Produit"), item.product.name)
-            )
-            .foregroundStyle(item.id == products.first?.id ? Color.economie : Color.economie.opacity(0.35))
-            .clipShape(.rect(cornerRadius: 8))
-            .annotation(position: .trailing, alignment: .leading) {
-                HStack(spacing: 3) {
-                    Image(systemName: "arrow.down.circle.fill")
-                        .symbolRenderingMode(.hierarchical)
-                    Text(Money.formatRounded(item.savingsCents))
-                        .fontDesign(.rounded)
-                }
-                .font(.caption.bold())
-                .foregroundStyle(.economie)
+        VStack(alignment: .leading, spacing: 14) {
+            ForEach(products) { item in
+                ProductSavingsRow(
+                    name: item.product.name,
+                    symbol: ProductIcon.symbol(for: item.product),
+                    savingsCents: item.savingsCents,
+                    fraction: Double(item.savingsCents) / 100 / maxSavings,
+                    isTop: item.id == products.first?.id,
+                    barHeight: barHeight
+                )
             }
         }
-        .chartXAxis(.hidden)
-        .chartYAxis {
-            AxisMarks { value in
-                AxisValueLabel {
-                    if let name = value.as(String.self) {
-                        axisLabel(name)
-                    }
-                }
-            }
-        }
-        .chartXScale(domain: 0...(maxSavings * 1.4))
-        .frame(height: CGFloat(products.count) * barHeight + 16)
+        .accessibilityElement(children: .contain)
         .accessibilityChartDescriptor(ProductSavingsDescriptor(products: products))
-    }
-
-    private func axisLabel(_ name: String) -> some View {
-        Label {
-            Text(name)
-        } icon: {
-            Image(systemName: symbolsByName[name] ?? GrenierSymbol.offers)
-                .symbolRenderingMode(.hierarchical)
-                .foregroundStyle(Color.grenier)
-        }
-        .font(.subheadline)
-        .foregroundStyle(Color.texte)
     }
 
     private var maxSavings: Double {
         max(1, Double(products.map(\.savingsCents).max() ?? 0) / 100)
+    }
+}
+
+private struct ProductSavingsRow: View {
+    let name: String
+    let symbol: String
+    let savingsCents: Cents
+    /// Longueur de la barre, de 0 à 1 (1 = produit qui fait le plus économiser).
+    let fraction: Double
+    let isTop: Bool
+    let barHeight: CGFloat
+
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @State private var isShown = false
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            HStack(alignment: .firstTextBaseline, spacing: 8) {
+                Label {
+                    Text(name)
+                        .foregroundStyle(Color.texte)
+                        .fixedSize(horizontal: false, vertical: true)
+                } icon: {
+                    Image(systemName: symbol)
+                        .symbolRenderingMode(.hierarchical)
+                        .foregroundStyle(Color.grenier)
+                }
+                .font(.subheadline)
+                Spacer(minLength: 8)
+                HStack(spacing: 3) {
+                    Image(systemName: "arrow.down.circle.fill")
+                        .symbolRenderingMode(.hierarchical)
+                    Text(Money.formatRounded(savingsCents))
+                        .fontDesign(.rounded)
+                        .monospacedDigit()
+                }
+                .font(.caption.bold())
+                .foregroundStyle(.economie)
+                .fixedSize()
+            }
+            GeometryReader { proxy in
+                Capsule()
+                    .fill(isTop ? Color.economie : Color.economie.opacity(0.35))
+                    .frame(width: max(barHeight, proxy.size.width * (isShown ? fraction : 0)))
+            }
+            .frame(height: barHeight)
+            .background(Color.economie.opacity(0.08), in: .capsule)
+        }
+        .accessibilityElement(children: .combine)
+        .onAppear {
+            withAnimation(reduceMotion ? nil : .smooth(duration: 0.6)) { isShown = true }
+        }
     }
 }
 

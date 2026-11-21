@@ -24,6 +24,7 @@ struct SearchScreen: View {
     /// l'onglet Recherche réapparaissait sans son champ (barre d'onglets classique, saisie perdue).
     @State private var openedOffer: OfferRoute?
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
 
     private var results: [Suggestion] { Self.filter(offerSuggestions ?? suggestions, query: query) }
 
@@ -39,11 +40,14 @@ struct SearchScreen: View {
                                 } label: {
                                     HStack {
                                         SuggestionRow(suggestion: suggestion)
-                                        Spacer(minLength: 8)
-                                        Image(systemName: "chevron.forward")
-                                            .font(.footnote.weight(.semibold))
-                                            .foregroundStyle(.tertiary)
-                                            .accessibilityHidden(true)
+                                        // Aux tailles AX, le chevron mange la largeur du nom : on le retire.
+                                        if !dynamicTypeSize.isAccessibilitySize {
+                                            Spacer(minLength: 8)
+                                            Image(systemName: "chevron.forward")
+                                                .font(.footnote.weight(.semibold))
+                                                .foregroundStyle(.tertiary)
+                                                .accessibilityHidden(true)
+                                        }
                                     }
                                     .contentShape(.rect)
                                 }
@@ -59,6 +63,10 @@ struct SearchScreen: View {
                             query.isEmpty ? emptyTitle : FrenchPlural.count(results.count, "produit"),
                             systemImage: query.isEmpty ? "sparkles" : "line.3.horizontal.decrease.circle.fill"
                         )
+                        // L'icône reste à la taille du texte de base : à AX5 elle coupait « Sug-gestions ».
+                        .imageScale(dynamicTypeSize.isAccessibilitySize ? .small : .medium)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.7)
                         .foregroundStyle(Color.grenier)
                         .symbolRenderingMode(.hierarchical)
                         .contentTransition(.symbolEffect(.replace))
@@ -205,8 +213,14 @@ extension SearchScreen {
     private struct SuggestionRow: View {
         let suggestion: Suggestion
 
+        @Environment(\.dynamicTypeSize) private var dynamicTypeSize
+
         var body: some View {
-            HStack(spacing: 12) {
+            // Icône au-dessus du texte aux tailles AX : côte à côte, les noms se coupaient en plein mot (« Pomm-es »).
+            let layout = dynamicTypeSize.isAccessibilitySize
+                ? AnyLayout(VStackLayout(alignment: .leading, spacing: 8))
+                : AnyLayout(HStackLayout(spacing: 12))
+            layout {
                 ProductIcon(category: suggestion.category)
                 VStack(alignment: .leading, spacing: 2) {
                     Text(suggestion.name)

@@ -5,6 +5,8 @@ description: Workflow Git/GitHub de AMC-MobileApp pour plusieurs agents en paral
 
 # Workflow Git
 
+> **CI éclair (2026-11-21, décision de willi)** : le check requis « Build et tests (iOS 26) » tourne en ~6 s sur ubuntu et **ne compile plus** (secrets, marqueurs de conflit, .gitkeep, tests Tmp*). **Compiler localement (`build-for-testing`) avant chaque push est obligatoire**, et après un merge de main dans ta branche. La CI complète (build + tests iOS) est `ci-full.yml`, à lancer à la main dans Actions.
+
 - Repo : https://github.com/T1WiLLi/AMC-MobileApp (remote `origin`)
 - Branche principale : `main`, **protégée** : le check CI « Build et tests (iOS 26) » est obligatoire pour merger, pas de push direct, pas de force-push. Toujours buildable.
 - `gh` CLI est connecté : utilise-le pour les PR, les checks et le merge.

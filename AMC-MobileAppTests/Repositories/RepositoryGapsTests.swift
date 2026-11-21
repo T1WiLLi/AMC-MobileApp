@@ -18,7 +18,7 @@ struct RepositoryGapsTests {
         )
 
         let groups = try await repo.groups(ofHousehold: ID.aminaHousehold)
-        #expect(Set(groups.map(\.id)) == [privateGroup.id, ID.saintMichel])
+        #expect(Set(groups.map(\.id)) == [privateGroup.id, ID.saintMichel, ID.villerayKitchen])
         #expect(groups.map(\.name) == groups.map(\.name).sorted())
         #expect(groups.contains { !$0.isPublic })
         #expect(try await repo.groups(ofHousehold: "household-inconnu").isEmpty)

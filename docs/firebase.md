@@ -199,6 +199,6 @@ GRENIER_DEMO_PASSWORD='…' npm --prefix scripts/seed run seed:firestore -- --ta
 
 - Restreindre la clé d'API iOS (Google Cloud Console › Identifiants) aux API Firebase utilisées et à l'app `ca.amc2026.mobileapp` : aujourd'hui elle répond sans restriction.
 - Activer App Check (App Attest) ; ne jamais committer de jeton de debug.
-- `groups.inviteCode` est lisible par tout utilisateur connecté : le déplacer dans une sous-collection privée avant d'avoir de vrais groupes privés.
+- `groups.inviteCode` est lisible par tout utilisateur connecté. Depuis B-056 il n'ouvre que les groupes **publics** ; un groupe privé (`isPublic: false`, jamais listé : `allow list` exige `isPublic == true`) s'ouvre seulement avec une invitation à usage unique `groupInvitations/{code}` (créée, listée et révoquée par le créateur du groupe, `createdBy` ou à défaut le premier coordonnateur), consommée dans la même transaction que l'adhésion (`invitationCode` sur `groups/{id}/members/{householdId}`). Le document d'un groupe privé reste lisible par son id.
 - Les lots en brouillon (`status: draft`) sont lisibles par les connectés : filtrer côté app.
 - Activer la protection contre la suppression de la base `(default)`.

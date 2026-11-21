@@ -71,7 +71,7 @@ test('loads groups, pickup points, users, households and group orders in the app
   const raw = async (name: string) => JSON.parse(await readFile(new URL(`./fixtures/${name}.json`, import.meta.url), 'utf8'))
   const [rawPickups, rawUsers, rawOrders] = await Promise.all([raw('pickupPoints'), raw('users'), raw('groupOrders')])
 
-  assert.equal(seed.groups.length, 8)
+  assert.equal(seed.groups.length, 9)
   assert.equal(seed.pickupPoints.length, 9)
   assert.equal(seed.users.length, rawUsers.length)
   assert.equal(seed.households.length, 60)
@@ -118,7 +118,7 @@ test('loads groups, pickup points, users, households and group orders in the app
   assert.deepEqual(profile.data, { isSubsidized: false })
   const share = seed.documents.find(({ path }) => path.startsWith(`groupOrders/${order.id}/shares/`))!
   assert.deepEqual(share.data, rawOrders[0].shares[0])
-  assert.equal(seed.documents.length, 6 + 40 + 25 + 8 + 9 + rawUsers.length + 60 * 3 + rawOrders.length + rawShares.length)
+  assert.equal(seed.documents.length, 6 + 40 + 25 + 9 + 9 + rawUsers.length + 60 * 3 + rawOrders.length + rawShares.length)
 })
 
 test('creates one demo account per user, including the three personas', async () => {

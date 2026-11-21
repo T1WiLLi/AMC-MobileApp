@@ -65,7 +65,8 @@ struct GroupDetailScreen: View {
                     }
                 }
             }
-            if let group = viewModel?.state.value?.group {
+            // B-056 : un groupe privé ne se partage pas par son code fixe (invitations à usage unique).
+            if let group = viewModel?.state.value?.group, group.isPublic {
                 ToolbarItem(placement: .topBarTrailing) {
                     ShareLink(item: GroupInvite.message(for: group)) {
                         Label("Partager le groupe", systemImage: "square.and.arrow.up")
@@ -129,6 +130,11 @@ private struct GroupDetailContent: View {
     let imageEditor: GroupImageEditorViewModel?
 
     @State private var isConfirmingLeave = false
+    /// B-056 : visibilité et invitations, pour le créateur du groupe seulement.
+    @State private var invitations: GroupInvitationsViewModel?
+    /// B-056 : feuille « Rejoindre avec un code » (groupe privé).
+    @State private var isJoiningWithCode = false
+    @Environment(\.appContext) private var context
     /// Le nom passe dans la barre de navigation une fois la bannière remontée.
     @State private var showsNavigationTitle = false
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
@@ -197,7 +203,15 @@ private struct GroupDetailContent: View {
                         .buttonStyle(.plain)
                     }
 
-                    InvitationCard(group: group)
+                    // B-056 : le créateur choisit public ou privé et gère les invitations à usage unique.
+                    if let invitations {
+                        GroupPrivacyCard(model: invitations) { viewModel.replaceGroup($0) }
+                    }
+                    if group.isPublic {
+                        InvitationCard(group: group)
+                    } else if invitations == nil {
+                        PrivateGroupNote(isMember: content.isMember)
+                    }
 
                     if content.isMember {
                         Button(role: .destructive) {
@@ -240,16 +254,34 @@ private struct GroupDetailContent: View {
                     .accessibilityHidden(!showsNavigationTitle)
             }
         }
+        .task(id: viewModel.isCreator) {
+            guard viewModel.isCreator, invitations == nil else { return }
+            let userId = context.userId
+            let model = GroupInvitationsViewModel(repositories: context.repositories, group: group, userId: userId)
+            invitations = model
+            await model.load()
+        }
+        .sheet(isPresented: $isJoiningWithCode) {
+            JoinWithCodeSheet(repositories: context.repositories, householdId: context.householdId) { _ in
+                Task { await viewModel.load() }
+            }
+        }
         .safeAreaInset(edge: .bottom) {
             if !content.isMember {
                 Button {
-                    Task { await viewModel.join() }
+                    // B-056 : un groupe privé s'ouvre seulement avec une invitation.
+                    if group.isPublic {
+                        Task { await viewModel.join() }
+                    } else {
+                        isJoiningWithCode = true
+                    }
                 } label: {
                     Group {
                         if viewModel.isUpdatingMembership {
                             ProgressView()
                         } else {
-                            Label("Rejoindre le groupe", systemImage: "person.badge.plus")
+                            Label(group.isPublic ? "Rejoindre le groupe" : "Rejoindre avec une invitation",
+                                  systemImage: group.isPublic ? "person.badge.plus" : "ticket.fill")
                                 .symbolEffect(.wiggle, options: .repeat(.periodic(delay: 3)), isActive: !reduceMotion)
                         }
                     }

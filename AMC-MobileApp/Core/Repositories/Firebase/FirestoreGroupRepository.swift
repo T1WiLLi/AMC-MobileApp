@@ -34,6 +34,9 @@ nonisolated final class FirestoreGroupRepository: GroupRepository, @unchecked Se
     private func membersRef(_ groupId: String) -> CollectionReference {
         db.collection(FirestoreCollection.members(ofGroup: groupId))
     }
+    private func invitationRef(_ code: String) -> DocumentReference {
+        db.collection(FirestoreCollection.groupInvitations).document(code)
+    }
 
     // MARK: - Lectures
 
@@ -140,6 +143,131 @@ nonisolated final class FirestoreGroupRepository: GroupRepository, @unchecked Se
             try await groupRef(groupId).updateData(["branding": data])
         } catch {
             throw FirestoreGroupOrderRepository.appError(from: error)
+        }
+    }
+
+    // MARK: - B-056 Visibilité et invitations
+    // Règles : le créateur seul (`createdBy`, sinon le premier coordonnateur) change `isPublic`, crée, liste
+    // et révoque les invitations. Rejoindre un groupe privé consomme l'invitation dans la même transaction
+    // que l'adhésion et le compteur ; les règles refusent l'un sans l'autre.
+
+    func setVisibility(isPublic: Bool, ofGroup groupId: String, byUserId userId: String) async throws -> NeighborhoodGroup {
+        var group = try await group(id: groupId)
+        try GroupRules.requireCreator(userId, of: group)
+        guard group.isPublic != isPublic else { return group }
+        do {
+            try await groupRef(groupId).updateData(["isPublic": isPublic])
+        } catch {
+            throw FirestoreGroupOrderRepository.appError(from: error)
+        }
+        group.isPublic = isPublic
+        return group
+    }
+
+    func invitations(ofGroup groupId: String, byUserId userId: String) async throws -> [GroupInvitation] {
+        let group = try await group(id: groupId)
+        try GroupRules.requireCreator(userId, of: group)
+        // `createdBy` dans la requête : les règles ne laissent lister que ses propres invitations.
+        let query = db.collection(FirestoreCollection.groupInvitations)
+            .whereField("groupId", isEqualTo: groupId)
+            .whereField("createdBy", isEqualTo: userId)
+        return GroupRules.sortedForDisplay(try await FirestoreDocument.query(GroupInvitation.self, query, idKey: "code"))
+    }
+
+    func createInvitation(forGroup groupId: String, byUserId userId: String) async throws -> GroupInvitation {
+        let group = try await group(id: groupId)
+        var taken: Set<String> = []
+        // Un code déjà pris (rare) : on en tire un autre, au plus trois fois.
+        for _ in 0..<3 {
+            let invitation = try GroupRules.makeInvitation(for: group, byUserId: userId, existingCodes: taken)
+            let ref = invitationRef(invitation.code)
+            do {
+                if try await ref.getDocument().exists {
+                    taken.insert(invitation.code)
+                    continue
+                }
+                // `createdAt` doit valoir `request.time` : horodatage du serveur.
+                try await ref.setData([
+                    "code": invitation.code,
+                    "groupId": groupId,
+                    "createdBy": userId,
+                    "createdAt": FieldValue.serverTimestamp(),
+                ])
+            } catch {
+                throw FirestoreGroupOrderRepository.appError(from: error)
+            }
+            return invitation
+        }
+        throw AppError.unknown("Impossible de créer une invitation pour l'instant. Réessaie.")
+    }
+
+    func revokeInvitation(code: String, ofGroup groupId: String, byUserId userId: String) async throws -> GroupInvitation {
+        let group = try await group(id: groupId)
+        let ref = invitationRef(GroupRules.normalizedInviteCode(code))
+        let invitation = try await FirestoreDocument.fetch(GroupInvitation.self, ref, idKey: "code")
+        let revoked = try GroupRules.revoking(invitation, in: group, byUserId: userId)
+        guard invitation.status == .active else { return revoked }
+        do {
+            try await ref.updateData(["revokedAt": FieldValue.serverTimestamp()])
+        } catch {
+            throw FirestoreGroupOrderRepository.appError(from: error)
+        }
+        return revoked
+    }
+
+    func join(withCode input: String, householdId: String) async throws -> NeighborhoodGroup {
+        let code = try GroupRules.validatedInviteCode(GroupRules.inviteCode(fromUserInput: input) ?? input)
+        let ref = invitationRef(code)
+        let snapshot: DocumentSnapshot
+        do {
+            snapshot = try await ref.getDocument()
+        } catch {
+            throw FirestoreGroupOrderRepository.appError(from: error)
+        }
+        if snapshot.exists {
+            let invitation = try FirestoreTransactions.decode(GroupInvitation.self, snapshot, idKey: "code")
+            try GroupRules.validateForJoining(invitation)
+            try await consume(code: code, groupId: invitation.groupId, householdId: householdId)
+            return try await group(id: invitation.groupId)
+        }
+        // Pas d'invitation : code fixe d'un groupe public (RQ-026).
+        let query = groupsRef.whereField("isPublic", isEqualTo: true).whereField("inviteCode", isEqualTo: code)
+        let matches = try await FirestoreDocument.query(NeighborhoodGroup.self, query, idKey: "id")
+        guard let group = matches.first(where: { GroupRules.acceptsFixedCode($0, code: code) }) else {
+            throw GroupRules.unknownInviteCodeError
+        }
+        try await join(groupId: group.id, householdId: householdId)
+        return try await self.group(id: group.id)
+    }
+
+    /// Invitation relue, adhésion, compteur et `usedBy` / `usedAt` dans une seule transaction : deux voisins
+    /// qui utilisent le même lien en même temps, un seul entre. Déjà membre : rien n'est écrit.
+    private func consume(code: String, groupId: String, householdId: String) async throws {
+        let invitationRef = invitationRef(code)
+        let memberRef = membersRef(groupId).document(householdId)
+        let groupRef = groupRef(groupId)
+        _ = try await FirestoreTransactions.run(db) { transaction -> Bool in
+            let invitation = try FirestoreTransactions.decode(
+                GroupInvitation.self, try transaction.getDocument(invitationRef), idKey: "code"
+            )
+            guard invitation.groupId == groupId else { throw AppError.notFound }
+            if try transaction.getDocument(memberRef).exists { return false }
+            try GroupRules.validateForJoining(invitation)
+            transaction.setData([
+                "householdId": householdId,
+                "role": GroupMember.Role.member.rawValue,
+                "joinedAt": FieldValue.serverTimestamp(),
+                "invitationCode": code,
+            ], forDocument: memberRef)
+            transaction.updateData([
+                "householdCount": FieldValue.increment(Int64(1)),
+                "lastMembershipChange": householdId,
+            ], forDocument: groupRef)
+            transaction.updateData([
+                "usedBy": householdId,
+                "usedAt": FieldValue.serverTimestamp(),
+            ], forDocument: invitationRef)
+            return true
         }
     }
 

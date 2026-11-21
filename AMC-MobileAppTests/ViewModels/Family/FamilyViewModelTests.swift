@@ -75,9 +75,11 @@ struct FamilyViewModelTests {
         let viewModel = GroupsViewModel(repositories: repositories(), householdId: ID.aminaHousehold)
         await viewModel.load()
         let items = try #require(viewModel.state.value)
-        #expect(items.map(\.id) == [ID.saintMichel, ID.hochelaga])
-        #expect(items.map(\.isMember) == [true, false])
-        #expect(viewModel.myGroups.map(\.id) == [ID.saintMichel])
+        // B-056 : le groupe privé d'Amina est dans « Tes groupes », jamais dans les groupes à rejoindre.
+        #expect(items.map(\.id) == [ID.villerayKitchen, ID.saintMichel, ID.hochelaga])
+        #expect(items.map(\.isMember) == [true, true, false])
+        #expect(viewModel.myGroups.map(\.id) == [ID.villerayKitchen, ID.saintMichel])
+        #expect(items.last?.distanceText != nil)
 
         await viewModel.join(groupId: ID.hochelaga)
         let joined = try #require(viewModel.state.value?.first { $0.id == ID.hochelaga })

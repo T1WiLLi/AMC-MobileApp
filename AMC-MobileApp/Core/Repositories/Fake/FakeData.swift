@@ -17,6 +17,8 @@ nonisolated struct FakeData: Sendable {
     /// Parts par id de commande groupée.
     var shares: [String: [Share]]
     var pickupPoints: [PickupPoint]
+    /// B-056 : invitations à usage unique des groupes privés.
+    var invitations: [GroupInvitation] = []
 
     /// Ids utiles dans les previews et les tests.
     enum ID {
@@ -24,6 +26,8 @@ nonisolated struct FakeData: Sendable {
         static let aminaHousehold = "household-benali"
         static let saintMichel = "group-saint-michel"
         static let hochelaga = "group-hochelaga"
+        /// B-056 : groupe privé créé par Amina, sur invitation seulement.
+        static let villerayKitchen = "group-villeray-prive"
         static let fermeRive = "vendor-ferme-rive"
         static let moulinsDuNord = "vendor-moulins-du-nord"
         static let potatoes = "product-pommes-de-terre"
@@ -54,6 +58,11 @@ nonisolated struct FakeData: Sendable {
         let saintMichelMembers =
             [GroupMember(householdId: ID.aminaHousehold, role: .coordinator, joinedAt: now.addingTimeInterval(-30 * day))]
             + neighborHouseholds.map { GroupMember(householdId: $0.id, role: .member, joinedAt: now.addingTimeInterval(-10 * day)) }
+
+        // B-056 : Amina a créé un groupe privé avec trois voisins.
+        let villerayMembers =
+            [GroupMember(householdId: ID.aminaHousehold, role: .coordinator, joinedAt: now.addingTimeInterval(-20 * day))]
+            + neighborHouseholds.prefix(3).map { GroupMember(householdId: $0.id, role: .member, joinedAt: now.addingTimeInterval(-5 * day)) }
 
         // 19 parts réparties sur 11 ménages voisins (Amina n'a pas encore pris la sienne).
         let quantities = [2, 1, 3, 1, 2, 1, 2, 2, 1, 2, 2]
@@ -94,8 +103,16 @@ nonisolated struct FakeData: Sendable {
                                                           accentDark: "#D79BE0",
                                                           welcomeMessage: "Hochelaga, on se serre les coudes."),
                                   photoURL: DemoMedia.hochelagaPhoto, bannerURL: DemoMedia.hochelagaBanner),
+                // B-056 : groupe privé, jamais listé ; on y entre avec une invitation d'Amina.
+                NeighborhoodGroup(id: ID.villerayKitchen, name: "Cuisine collective Villeray", neighborhood: "Villeray",
+                                  centerGeohash: "f25du", radiusMeters: 1_000, coordinatorIds: [ID.amina],
+                                  householdCount: villerayMembers.count, isPublic: false, inviteCode: "",
+                                  branding: GroupBranding(emblem: "fork.knife.circle.fill", accentLight: "#A0442C",
+                                                          accentDark: "#F0A58C",
+                                                          welcomeMessage: "Bienvenue à la cuisine collective !"),
+                                  createdBy: ID.amina),
             ],
-            members: [ID.saintMichel: saintMichelMembers],
+            members: [ID.saintMichel: saintMichelMembers, ID.villerayKitchen: villerayMembers],
             vendors: [
                 Vendor(id: ID.fermeRive, legalName: "Ferme Bio-Rive", kind: .farm,
                        description: "Légumes biologiques cultivés à Mirabel depuis 1998.",
@@ -161,6 +178,15 @@ nonisolated struct FakeData: Sendable {
                             slots: PickupSlotBook.consecutiveSlots(from: saturday, count: 4, duration: 1_800,
                                                                    capacity: 10),
                             geohash: "f25dv94"),
+            ],
+            invitations: [
+                GroupInvitation(code: "VIL4K7", groupId: ID.villerayKitchen, createdBy: ID.amina,
+                                createdAt: now.addingTimeInterval(-2 * 3_600)),
+                GroupInvitation(code: "VILR2M", groupId: ID.villerayKitchen, createdBy: ID.amina,
+                                createdAt: now.addingTimeInterval(-6 * day), usedBy: "household-voisin-3",
+                                usedAt: now.addingTimeInterval(-5 * day)),
+                GroupInvitation(code: "VILX9P", groupId: ID.villerayKitchen, createdBy: ID.amina,
+                                createdAt: now.addingTimeInterval(-4 * day), revokedAt: now.addingTimeInterval(-3 * day)),
             ]
         )
     }()

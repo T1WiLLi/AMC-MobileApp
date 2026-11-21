@@ -51,12 +51,16 @@ actor FakeGroupRepository: GroupRepository {
     private let behavior: FakeBehavior
     private var groups: [String: NeighborhoodGroup]
     private var members: [String: [GroupMember]]
+    /// B-056 : invitations à usage unique, par code.
+    private var invitations: [String: GroupInvitation]
     private var broadcaster = FakeBroadcaster<NeighborhoodGroup>()
 
-    init(behavior: FakeBehavior = .instant, groups: [NeighborhoodGroup] = [], members: [String: [GroupMember]] = [:]) {
+    init(behavior: FakeBehavior = .instant, groups: [NeighborhoodGroup] = [], members: [String: [GroupMember]] = [:],
+         invitations: [GroupInvitation] = []) {
         self.behavior = behavior
         self.groups = Dictionary(uniqueKeysWithValues: groups.map { ($0.id, $0) })
         self.members = members
+        self.invitations = Dictionary(invitations.map { ($0.code, $0) }, uniquingKeysWith: { first, _ in first })
     }
 
     func groups(inNeighborhood neighborhood: String?) async throws -> [NeighborhoodGroup] {
@@ -88,11 +92,78 @@ actor FakeGroupRepository: GroupRepository {
 
     func join(groupId: String, householdId: String) async throws {
         try await behavior.simulate()
+        guard let group = groups[groupId] else { throw AppError.notFound }
+        guard !isMember(householdId, of: groupId) else { return }
+        // Même règle que firestore.rules (B-056) : un groupe privé s'ouvre seulement avec une invitation.
+        guard group.isPublic else { throw AppError.permissionDenied }
+        addMember(householdId, to: group)
+    }
+
+    // MARK: B-056 Visibilité et invitations
+
+    func setVisibility(isPublic: Bool, ofGroup groupId: String, byUserId userId: String) async throws -> NeighborhoodGroup {
+        try await behavior.simulate()
         guard var group = groups[groupId] else { throw AppError.notFound }
-        guard !members[groupId, default: []].contains(where: { $0.householdId == householdId }) else { return }
-        members[groupId, default: []].append(GroupMember(householdId: householdId, role: .member, joinedAt: .now))
+        try GroupRules.requireCreator(userId, of: group)
+        group.isPublic = isPublic
+        update(group)
+        return group
+    }
+
+    func invitations(ofGroup groupId: String, byUserId userId: String) async throws -> [GroupInvitation] {
+        try await behavior.simulate()
+        guard let group = groups[groupId] else { throw AppError.notFound }
+        try GroupRules.requireCreator(userId, of: group)
+        return GroupRules.sortedForDisplay(invitations.values.filter { $0.groupId == groupId })
+    }
+
+    func createInvitation(forGroup groupId: String, byUserId userId: String) async throws -> GroupInvitation {
+        try await behavior.simulate()
+        guard let group = groups[groupId] else { throw AppError.notFound }
+        let taken = Set(invitations.keys).union(groups.values.map(\.inviteCode))
+        let invitation = try GroupRules.makeInvitation(for: group, byUserId: userId, existingCodes: taken)
+        invitations[invitation.code] = invitation
+        return invitation
+    }
+
+    func revokeInvitation(code: String, ofGroup groupId: String, byUserId userId: String) async throws -> GroupInvitation {
+        try await behavior.simulate()
+        guard let group = groups[groupId] else { throw AppError.notFound }
+        let code = GroupRules.normalizedInviteCode(code)
+        guard let invitation = invitations[code] else { throw AppError.notFound }
+        let revoked = try GroupRules.revoking(invitation, in: group, byUserId: userId)
+        invitations[code] = revoked
+        return revoked
+    }
+
+    func join(withCode input: String, householdId: String) async throws -> NeighborhoodGroup {
+        try await behavior.simulate()
+        let code = try GroupRules.validatedInviteCode(GroupRules.inviteCode(fromUserInput: input) ?? input)
+        if let invitation = invitations[code] {
+            guard let group = groups[invitation.groupId] else { throw AppError.notFound }
+            if isMember(householdId, of: group.id) { return group }
+            // Consommation et adhésion ensemble (la transaction Firestore fait de même).
+            invitations[code] = try GroupRules.consuming(invitation, byHousehold: householdId)
+            return addMember(householdId, to: group)
+        }
+        guard let group = groups.values.first(where: { GroupRules.acceptsFixedCode($0, code: code) }) else {
+            throw GroupRules.unknownInviteCodeError
+        }
+        if isMember(householdId, of: group.id) { return group }
+        return addMember(householdId, to: group)
+    }
+
+    private func isMember(_ householdId: String, of groupId: String) -> Bool {
+        members[groupId, default: []].contains { $0.householdId == householdId }
+    }
+
+    @discardableResult
+    private func addMember(_ householdId: String, to group: NeighborhoodGroup) -> NeighborhoodGroup {
+        var group = group
+        members[group.id, default: []].append(GroupMember(householdId: householdId, role: .member, joinedAt: .now))
         group.householdCount += 1
         update(group)
+        return group
     }
 
     func leave(groupId: String, householdId: String) async throws {

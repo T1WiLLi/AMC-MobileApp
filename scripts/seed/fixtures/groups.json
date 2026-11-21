@@ -150,5 +150,29 @@
     "pickupPointIds": [
       "pickup-villeray-1"
     ]
+  },
+  {
+    "id": "group-cuisine-parc-ex",
+    "name": "Cuisine collective Parc-Ex",
+    "neighborhood": "parc-extension",
+    "description": "Groupe privé d'une cuisine collective de Parc-Extension : on y entre seulement avec une invitation de sa créatrice.",
+    "centerGeohash": "f25eh8",
+    "latitude": 45.531,
+    "longitude": -73.629,
+    "radiusMeters": 1000,
+    "coordinatorIds": [
+      "user-jean"
+    ],
+    "createdBy": "user-jean",
+    "householdCount": 0,
+    "isPublic": false,
+    "inviteCode": "",
+    "pickupPointIds": [],
+    "branding": {
+      "emblem": "fork.knife.circle.fill",
+      "accentLight": "#A0442C",
+      "accentDark": "#F0A58C",
+      "welcomeMessage": "Bienvenue à la cuisine collective !"
+    }
   }
 ]

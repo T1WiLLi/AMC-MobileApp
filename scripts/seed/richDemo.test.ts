@@ -33,9 +33,10 @@ test('the rich demo has the expected volume', async () => {
   assert.ok(seed.vendors.length >= 10, 'vendeurs')
   assert.ok(seed.products.length >= 60, 'produits')
   assert.ok(seed.offers.filter(({ status }) => status === 'active').length >= 30, 'lots actifs')
-  assert.equal(seed.groups.length, 8)
+  assert.equal(seed.groups.length, 9)
   for (const group of seed.groups) {
-    assert.ok(group.householdCount >= 8 && group.householdCount <= 25, group.id)
+    // B-056 : le groupe privé de démo n'a encore aucun membre (on y entre sur invitation).
+    if (group.isPublic) assert.ok(group.householdCount >= 8 && group.householdCount <= 25, group.id)
     assert.equal(seed.members.filter(({ groupId }) => groupId === group.id).length, group.householdCount)
   }
   assert.ok(seed.wishes.length >= 50, 'envies')

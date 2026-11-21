@@ -197,10 +197,45 @@ service cloud.firestore {
         && after.get('householdCount', 0) == before.get('householdCount', 0) + delta;
     }
 
+    // B-056 : un groupe est public (listé) ou privé (jamais listé, sur invitation à usage unique).
+    // Champ `isPublic` absent = public. Le créateur (`createdBy`, sinon le premier coordonnateur) seul
+    // change la visibilité et gère les invitations (`groupInvitations/{code}`).
+    function isPublicGroupData(data) {
+      return data.get('isPublic', true) == true;
+    }
+
+    function groupCreatorId(data) {
+      let coordinators = data.get('coordinatorIds', []);
+      return data.get('createdBy', coordinators.size() > 0 ? coordinators[0] : '');
+    }
+
+    function isGroupCreator(groupId) {
+      return isAuthenticated() && exists(groupPath(groupId))
+        && groupCreatorId(get(groupPath(groupId)).data) == request.auth.uid;
+    }
+
+    function invitationPath(code) {
+      return /databases/$(database)/documents/groupInvitations/$(code);
+    }
+
+    // Adhésion à un groupe privé : l'invitation nommée par `invitationCode`, pas encore utilisée ni révoquée,
+    // est consommée par ce ménage dans la même requête (transaction FirestoreGroupRepository.consume).
+    function isConsumingInvitation(groupId, householdId) {
+      let code = request.resource.data.get('invitationCode', '');
+      return code is string && code.size() > 0
+        && exists(invitationPath(code))
+        && get(invitationPath(code)).data.groupId == groupId
+        && get(invitationPath(code)).data.get('usedBy', null) == null
+        && get(invitationPath(code)).data.get('revokedAt', null) == null
+        && getAfter(invitationPath(code)).data.get('usedBy', null) == householdId;
+    }
+
     match /groups/{groupId} {
-      allow read: if isAuthenticated();
+      allow get: if isAuthenticated();
+      // Les groupes privés ne sont jamais listés : une requête doit filtrer `isPublic == true`.
+      allow list: if isAuthenticated() && resource.data.isPublic == true;
       allow create, delete: if false;
-      allow update: if isMembershipCountUpdate() || isMediaStampUpdate() || isBrandingUpdate();
+      allow update: if isMembershipCountUpdate() || isMediaStampUpdate() || isBrandingUpdate() || isVisibilityUpdate();
 
       // B-036 (T-152) : le coordonnateur change la marque du groupe (champ `branding` seulement).
       // Champs absents = valeur par défaut (GroupBranding) ; accents en « #RRGGBB ».
@@ -220,6 +255,14 @@ service cloud.firestore {
       function isOptionalHex(data, field) {
         return !(field in data) || data[field] == null
           || (data[field] is string && data[field].matches('^#[0-9A-Fa-f]{6}$'));
+      }
+
+      // B-056 : le créateur rend son groupe public ou privé ; rien d'autre ne bouge.
+      function isVisibilityUpdate() {
+        return isAuthenticated()
+          && groupCreatorId(resource.data) == request.auth.uid
+          && onlyChanges(['isPublic'])
+          && request.resource.data.isPublic is bool;
       }
 
       // T-132 : le coordonnateur pose photoUpdatedAt / bannerUpdatedAt (= request.time) après avoir écrit
@@ -250,14 +293,64 @@ service cloud.firestore {
       match /members/{householdId} {
         allow read: if isAuthenticated();
         allow create: if isMemberOfHousehold(householdId)
-          && request.resource.data.keys().hasOnly(['householdId', 'role', 'joinedAt'])
+          && request.resource.data.keys().hasOnly(['householdId', 'role', 'joinedAt', 'invitationCode'])
           && request.resource.data.householdId == householdId
           && request.resource.data.role == 'member'
           && request.resource.data.joinedAt == request.time
-          && isCountChangedBy(groupId, householdId, 1);
+          && isCountChangedBy(groupId, householdId, 1)
+          && (isPublicGroupData(get(groupPath(groupId)).data) || isConsumingInvitation(groupId, householdId));
         allow update: if false;
         allow delete: if isMemberOfHousehold(householdId)
           && (!exists(groupPath(groupId)) || isCountChangedBy(groupId, householdId, -1));
+      }
+    }
+
+    // ---------------------------------------------------------------
+    // groupInvitations/{code} — invitations à usage unique des groupes privés (B-056)
+    // ---------------------------------------------------------------
+    // Champs : code (= id du doc, 6 lettres ou chiffres), groupId, createdBy (= créateur du groupe),
+    //   createdAt (= request.time), usedBy / usedAt (posés une seule fois en rejoignant), revokedAt.
+    // Lecture d'une invitation par son code : tout connecté (celui qui l'a reçue). Liste : le créateur,
+    // ses propres invitations seulement (`createdBy == uid` dans la requête).
+    // ---------------------------------------------------------------
+    match /groupInvitations/{code} {
+      allow get: if isAuthenticated();
+      allow list: if isAuthenticated() && resource.data.createdBy == request.auth.uid;
+      allow create: if isAuthenticated()
+        && code.matches('^[A-Z0-9]{6}$')
+        && request.resource.data.keys().hasOnly(['code', 'groupId', 'createdBy', 'createdAt'])
+        && request.resource.data.code == code
+        && request.resource.data.groupId is string
+        && isGroupCreator(request.resource.data.groupId)
+        && request.resource.data.createdBy == request.auth.uid
+        && request.resource.data.createdAt == request.time;
+      allow update: if isInvitationRevocation() || isInvitationConsumption();
+      allow delete: if false;
+
+      function isUnusedInvitation() {
+        return resource.data.get('usedBy', null) == null && resource.data.get('revokedAt', null) == null;
+      }
+
+      // Le créateur annule une invitation pas encore utilisée.
+      function isInvitationRevocation() {
+        return isGroupCreator(resource.data.groupId)
+          && isUnusedInvitation()
+          && onlyChanges(['revokedAt'])
+          && request.resource.data.revokedAt == request.time;
+      }
+
+      // Un ménage l'utilise en rejoignant le groupe dans la même transaction (adhésion qui la nomme).
+      function isInvitationConsumption() {
+        let householdId = request.resource.data.get('usedBy', '');
+        let member = memberPath(resource.data.groupId, householdId);
+        return isUnusedInvitation()
+          && onlyChanges(['usedBy', 'usedAt'])
+          && householdId is string && householdId.size() > 0
+          && isMemberOfHousehold(householdId)
+          && request.resource.data.usedAt == request.time
+          && !exists(member)
+          && existsAfter(member)
+          && getAfter(member).data.get('invitationCode', '') == code;
       }
     }
 

@@ -44,6 +44,9 @@ nonisolated protocol VendorRepository: Sendable {
 /// Lots (`offers`).
 nonisolated protocol OfferRepository: Sendable {
     /// Fil des lots actifs qui desservent la zone ; `nil` = toutes les zones.
+    /// `zone` et `Offer.zones` sont des geohash de longueurs différentes (lot : préfixe court comme « f25d » ;
+    /// groupe : « f25dv… »). Un lot est visible dans la zone si une de ses zones est un préfixe de `zone`,
+    /// ou si `zone` est un préfixe d'une de ses zones (zone demandée plus large). Pas d'égalité exacte.
     func activeOffers(inZone zone: String?) async throws -> [Offer]
     func offers(ofVendor vendorId: String) async throws -> [Offer]
     func offer(id: String) async throws -> Offer

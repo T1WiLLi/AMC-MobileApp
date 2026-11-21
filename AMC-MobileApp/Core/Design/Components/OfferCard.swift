@@ -1,6 +1,6 @@
 import SwiftUI
 
-/// Un lot dans le fil (maquette OfferCard) : produit, vendeur, échéance, économie, paliers, prix courant.
+/// Un lot dans le fil (maquette F1) : produit, vendeur, échéance, économie, paliers, incitation et prix courant.
 struct OfferCard: View {
     let offer: Offer
     let product: Product
@@ -9,9 +9,13 @@ struct OfferCard: View {
     var committedShares = 0
     var committedHouseholds = 0
 
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
+
     var body: some View {
+        let headerLayout = rowLayout(alignment: .top)
+        let footerLayout = rowLayout(alignment: .firstTextBaseline)
         VStack(alignment: .leading, spacing: 14) {
-            HStack(alignment: .top, spacing: 12) {
+            headerLayout {
                 ProductIcon(category: product.category)
                 VStack(alignment: .leading, spacing: 2) {
                     Text("\(product.name) · \(offer.shareUnit)")
@@ -21,28 +25,47 @@ struct OfferCard: View {
                         .font(.subheadline)
                         .foregroundStyle(.texteSecondaire)
                 }
-                Spacer(minLength: 8)
+                if !isAccessibilityLayout { Spacer(minLength: 8) }
                 if savingsPercent > 0 {
                     SavingsBadge(kind: .percent(savingsPercent), compact: true)
                 }
             }
 
-            TierProgressBar(tiers: offer.tiers, committedShares: committedShares, totalShares: offer.totalShares, compact: true)
+            progressBar
 
-            HStack(alignment: .firstTextBaseline) {
-                Text(progressText)
-                    .font(.subheadline)
-                    .foregroundStyle(.texteSecondaire)
-                    .monospacedDigit()
-                Spacer()
-                PriceTag(priceCents: currentPriceCents, unit: nil, font: .priceCompact)
+            footerLayout {
+                if let nudge = progressBar.shortNudge {
+                    Text(nudge)
+                        .font(.subheadline.weight(.semibold))
+                        .foregroundStyle(Color.grenier)
+                        .monospacedDigit()
+                } else {
+                    Text(progressText)
+                        .font(.subheadline)
+                        .foregroundStyle(.texteSecondaire)
+                        .monospacedDigit()
+                }
+                if !isAccessibilityLayout { Spacer(minLength: 8) }
+                PriceTag(priceCents: currentPriceCents, unit: product.unit, font: .priceCompact)
             }
         }
         .grenierCard()
-        .accessibilityElement(children: .combine)
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(accessibilityText)
+        .accessibilityHint("Ouvre le lot")
     }
 
     // MARK: - Calculs (testés)
+
+    var progressBar: TierProgressBar {
+        TierProgressBar(
+            tiers: offer.tiers,
+            committedShares: committedShares,
+            totalShares: offer.totalShares,
+            compact: true,
+            minimumToLaunch: offer.minimumSharesToLaunch
+        )
+    }
 
     /// Prix du palier atteint, ou du premier palier si aucun n'est atteint.
     var currentPriceCents: Cents {
@@ -55,9 +78,27 @@ struct OfferCard: View {
         Money.savingsPercent(price: currentPriceCents, reference: product.referenceGroceryPriceCents)
     }
 
+    /// « 24 familles · 24 parts sur 40 »
     var progressText: String {
-        let families = committedHouseholds > 1 ? "familles" : "famille"
-        return "\(committedHouseholds) \(families) · \(committedShares) parts sur \(offer.totalShares)"
+        "\(FrenchPlural.count(committedHouseholds, "famille")) · \(FrenchPlural.count(committedShares, "part")) sur \(offer.totalShares)"
+    }
+
+    /// Lecture VoiceOver courte : « Riz basmati, Ferme Lafleur, 2,60 $ le kg, −37 %, encore 1 part pour −19 % ».
+    var accessibilityText: String {
+        var parts = ["\(product.name), \(offer.shareUnit)", vendor.legalName, "ferme \(deadlineText)", "\(Money.format(currentPriceCents)) le \(product.unit)"]
+        if savingsPercent > 0 { parts.append("\(savingsPercent) pour cent moins cher qu'en épicerie") }
+        parts.append(progressText)
+        if let nudge = progressBar.shortNudge { parts.append(nudge) }
+        return parts.joined(separator: ", ")
+    }
+
+    private var isAccessibilityLayout: Bool { dynamicTypeSize.isAccessibilitySize }
+
+    /// Ligne horizontale, empilée aux tailles d'accessibilité pour ne rien écraser.
+    private func rowLayout(alignment: VerticalAlignment) -> AnyLayout {
+        isAccessibilityLayout
+            ? AnyLayout(VStackLayout(alignment: .leading, spacing: 8))
+            : AnyLayout(HStackLayout(alignment: alignment, spacing: 12))
     }
 
     private var deadlineText: String {
@@ -65,16 +106,18 @@ struct OfferCard: View {
     }
 }
 
-/// Icône du produit dans un carré teinté de 52 pt.
+/// Icône du produit dans un carré teinté (52 pt, suit Dynamic Type).
 struct ProductIcon: View {
     let category: Product.Category
+
+    @ScaledMetric(relativeTo: .title2) private var side: CGFloat = 52
 
     var body: some View {
         Image(systemName: Self.symbol(for: category))
             .font(.title2)
             .symbolRenderingMode(.hierarchical)
             .foregroundStyle(Color.grenier)
-            .frame(width: 52, height: 52)
+            .frame(width: side, height: side)
             .background(Color.grenier.opacity(0.12), in: .rect(cornerRadius: 14))
             .accessibilityHidden(true)
     }
@@ -117,17 +160,30 @@ enum CardPreviewData {
 
 #Preview("Clair") {
     ScrollView {
-        OfferCard(offer: CardPreviewData.offer, product: CardPreviewData.product, vendor: CardPreviewData.vendor, committedShares: 24, committedHouseholds: 24)
-            .padding()
+        VStack(spacing: 12) {
+            OfferCard(offer: CardPreviewData.offer, product: CardPreviewData.product, vendor: CardPreviewData.vendor, committedShares: 25, committedHouseholds: 25)
+            OfferCard(offer: CardPreviewData.offer, product: CardPreviewData.product, vendor: CardPreviewData.vendor, committedShares: 3, committedHouseholds: 3)
+            OfferCard(offer: CardPreviewData.offer, product: CardPreviewData.product, vendor: CardPreviewData.vendor, committedShares: 30, committedHouseholds: 28)
+        }
+        .padding()
     }
     .grenierBackground()
 }
 
 #Preview("Sombre") {
-    OfferCard(offer: CardPreviewData.offer, product: CardPreviewData.product, vendor: CardPreviewData.vendor, committedShares: 24, committedHouseholds: 24)
+    OfferCard(offer: CardPreviewData.offer, product: CardPreviewData.product, vendor: CardPreviewData.vendor, committedShares: 25, committedHouseholds: 25)
         .padding()
         .frame(maxHeight: .infinity)
         .grenierBackground()
         .preferredColorScheme(.dark)
+}
+
+#Preview("AX5") {
+    ScrollView {
+        OfferCard(offer: CardPreviewData.offer, product: CardPreviewData.product, vendor: CardPreviewData.vendor, committedShares: 25, committedHouseholds: 25)
+            .padding()
+    }
+    .grenierBackground()
+    .dynamicTypeSize(.accessibility5)
 }
 #endif

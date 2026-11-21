@@ -1,6 +1,7 @@
 import SwiftUI
 
 /// Un groupe de quartier (maquette GroupCard) : avatars, nom, familles, point de cueillette, distance, Rejoindre.
+/// Carte opaque ; Rejoindre reste secondaire (`.glass`) pour garder une seule action principale par écran.
 struct GroupCard: View {
     let group: NeighborhoodGroup
     /// Initiales de quelques membres pour la pile d'avatars.
@@ -11,9 +12,15 @@ struct GroupCard: View {
     var isMember = false
     var onJoin: (() -> Void)?
 
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
+
+    /// Membres en plus des initiales affichées, pour que la pile annonce exactement `householdCount`.
+    var extraMembers: Int { max(group.householdCount - memberInitials.prefix(3).count, 0) }
+
     var body: some View {
-        HStack(spacing: 12) {
-            AvatarStack(initials: memberInitials, extraCount: max(group.householdCount - memberInitials.prefix(3).count, 0))
+        let layout = rowLayout
+        layout {
+            AvatarStack(initials: memberInitials, extraCount: extraMembers)
             VStack(alignment: .leading, spacing: 2) {
                 Text(group.name)
                     .font(.headline)
@@ -22,7 +29,7 @@ struct GroupCard: View {
                     .font(.subheadline)
                     .foregroundStyle(.texteSecondaire)
             }
-            Spacer(minLength: 8)
+            if !dynamicTypeSize.isAccessibilitySize { Spacer(minLength: 8) }
             if isMember {
                 Label("Membre", systemImage: "checkmark.circle.fill")
                     .labelStyle(.iconOnly)
@@ -31,7 +38,7 @@ struct GroupCard: View {
                     .accessibilityLabel("Tu es membre")
             } else if let onJoin {
                 Button("Rejoindre", action: onJoin)
-                    .buttonStyle(.glassProminent)
+                    .buttonStyle(.glass)
                     .tint(.grenier)
                     .fontWeight(.semibold)
             }
@@ -40,9 +47,16 @@ struct GroupCard: View {
         .accessibilityElement(children: .contain)
     }
 
+    /// Ligne horizontale, empilée aux tailles d'accessibilité.
+    private var rowLayout: AnyLayout {
+        dynamicTypeSize.isAccessibilitySize
+            ? AnyLayout(VStackLayout(alignment: .leading, spacing: 10))
+            : AnyLayout(HStackLayout(spacing: 12))
+    }
+
     /// « 24 familles · cueillette rue Ogilvy · 450 m »
     var detailText: String {
-        var parts = ["\(group.householdCount) \(group.householdCount > 1 ? "familles" : "famille")"]
+        var parts = [FrenchPlural.count(group.householdCount, "famille")]
         if let pickupLabel { parts.append("cueillette \(pickupLabel)") }
         if let distanceMeters { parts.append(Self.distanceText(distanceMeters)) }
         return parts.joined(separator: " · ")
@@ -71,5 +85,13 @@ struct GroupCard: View {
         .frame(maxHeight: .infinity)
         .grenierBackground()
         .preferredColorScheme(.dark)
+}
+
+#Preview("AX5") {
+    GroupCard(group: CardPreviewData.group, memberInitials: ["FB", "RK"], pickupLabel: "rue Ogilvy", distanceMeters: 450, onJoin: {})
+        .padding()
+        .frame(maxHeight: .infinity)
+        .grenierBackground()
+        .dynamicTypeSize(.accessibility5)
 }
 #endif

@@ -178,6 +178,12 @@ service cloud.firestore {
       }
     }
 
+    // Requête de groupe de collections « groupes d'un ménage » (B-017) : lecture seule,
+    // mêmes droits que groups/{id}/members ci-dessus.
+    match /{path=**}/members/{householdId} {
+      allow read: if isAuthenticated();
+    }
+
     // ---------------------------------------------------------------
     // vendors/{vendorId}
     // ---------------------------------------------------------------

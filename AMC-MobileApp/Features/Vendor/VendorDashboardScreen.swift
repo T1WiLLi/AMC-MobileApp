@@ -41,7 +41,7 @@ struct VendorDashboardScreen: View {
                 .padding(.bottom, 24)
                 .frame(maxWidth: .infinity, alignment: .leading)
             }
-            .scrollEdgeEffectStyle(.soft, for: .top)
+            .grenierScrollEdge()
             .onScrollGeometryChange(for: Bool.self) { geometry in
                 geometry.contentOffset.y + geometry.contentInsets.top > 90
             } action: { _, isPastHeader in

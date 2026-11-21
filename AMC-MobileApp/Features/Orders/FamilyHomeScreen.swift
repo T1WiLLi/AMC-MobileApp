@@ -79,7 +79,7 @@ private struct FamilyHomeContent: View {
             .padding(.horizontal, 16)
             .padding(.bottom, 24)
         }
-        .scrollEdgeEffectStyle(.soft, for: .top)
+        .grenierScrollEdge()
         // Rechargement qui change les économies : retour haptique, le montant défile à l'écran.
         .grenierHaptic(.success, trigger: content.savedCents)
     }

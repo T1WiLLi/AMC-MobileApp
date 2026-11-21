@@ -70,7 +70,7 @@ private struct SlotBookingContent: View {
             .padding(.horizontal, 16)
             .padding(.bottom, 24)
         }
-        .scrollEdgeEffectStyle(.soft, for: .top)
+        .grenierScrollEdge()
         .grenierAnimation(.smooth, value: content)
     }
 }

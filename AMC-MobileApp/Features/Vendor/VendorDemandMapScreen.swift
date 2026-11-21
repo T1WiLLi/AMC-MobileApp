@@ -185,7 +185,7 @@ struct VendorDemandMapScreen: View {
         }
         .listStyle(.insetGrouped)
         .scrollContentBackground(.hidden)
-        .scrollEdgeEffectStyle(.soft, for: .top)
+        .grenierScrollEdge()
         .contentMargins(.top, 8, for: .scrollContent)
     }
 

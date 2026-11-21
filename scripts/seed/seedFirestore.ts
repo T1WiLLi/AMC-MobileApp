@@ -2,7 +2,9 @@
 // Écrit chaque document des fixtures à son id stable (set complet) et crée ou met à jour un compte Auth
 // par utilisateur de users.json (uid = id du document, B-029) : relancer le script remet la démo dans son
 // état initial sans toucher aux autres documents ni aux autres comptes Auth.
-// Mot de passe des comptes : GRENIER_DEMO_PASSWORD, sinon généré et affiché une seule fois.
+// Mot de passe des comptes : GRENIER_DEMO_PASSWORD (appliqué à tous les comptes de démo). Sans cette variable,
+// les comptes existants GARDENT leur mot de passe (celui que l'équipe partage) ; seuls les comptes créés
+// reçoivent un mot de passe généré, affiché une seule fois.
 //
 //   Émulateur (défaut) : npm --prefix scripts/seed run seed:firestore
 //   Projet réel        : npm --prefix scripts/seed run seed:firestore -- --target cloud --yes
@@ -35,9 +37,10 @@ async function buildWrites(seedDay: number) {
 type DemoAccount = ReturnType<typeof demoAccounts>[number]
 
 // Comptes Auth de démo (B-029) par l'API REST Identity Toolkit, émulateur comme projet réel :
-// crée les comptes manquants et remet à jour les autres (courriel, nom, mot de passe). Ne supprime rien.
+// crée les comptes manquants et remet à jour les autres (courriel, nom, et mot de passe seulement si
+// `keepExistingPasswords` est faux). Ne supprime rien.
 async function syncAccounts(base: string, projectId: string, token: () => Promise<string>,
-  accounts: DemoAccount[], password: string) {
+  accounts: DemoAccount[], password: string, keepExistingPasswords: boolean) {
   const call = async (method: string, body: unknown) => {
     const response = await fetch(`${base}/v1/projects/${projectId}/${method}`, {
       method: 'POST',
@@ -55,7 +58,8 @@ async function syncAccounts(base: string, projectId: string, token: () => Promis
   for (const { uid, email, displayName } of accounts) {
     const fields = { localId: uid, email, displayName, password, emailVerified: true }
     if (existing.has(uid)) {
-      await call('accounts:update', fields)
+      const { password: _unchanged, ...withoutPassword } = fields
+      await call('accounts:update', keepExistingPasswords ? withoutPassword : fields)
     } else {
       await call('accounts', fields)
       created += 1
@@ -146,7 +150,12 @@ async function seedFirestore() {
     for (const account of accounts.filter(({ uid }) => (personaUserIds as readonly string[]).includes(uid))) {
       console.log(`  ${account.displayName} : ${account.email}`)
     }
-    console.log(passwordNotice(generated, password))
+    if (!generated) {
+      console.log(passwordNotice(generated, password))
+      return
+    }
+    if (updated > 0) console.log('Mots de passe des comptes existants inchangés (GRENIER_DEMO_PASSWORD absent).')
+    if (created > 0) console.log(passwordNotice(generated, password, 'créés '))
   }
 
   let credential: Credential | undefined
@@ -175,7 +184,7 @@ async function seedFirestore() {
     console.log(`Seed terminé : ${writes.length} documents (${summary}).`)
     const cloud = credential
     reportAccounts(await syncAccounts('https://identitytoolkit.googleapis.com', projectId,
-      async () => (await cloud.getAccessToken()).access_token, accounts, password))
+      async () => (await cloud.getAccessToken()).access_token, accounts, password, generated))
     return
   }
 
@@ -189,7 +198,7 @@ async function seedFirestore() {
     }
     console.log(`Seed terminé : ${writes.length} documents (${summary}).`)
     reportAccounts(await syncAccounts(`http://${authHost}/identitytoolkit.googleapis.com`, projectId,
-      async () => 'owner', accounts, password))
+      async () => 'owner', accounts, password, generated))
   } finally {
     await db.terminate()
     await deleteApp(app)

@@ -42,9 +42,12 @@ struct TierEditorScreen: View {
         repositories: AppRepositories = .fake(),
         vendorId: String = FakeData.ID.fermeRive,
         offerId: String? = nil,
+        supply: VendorSupply? = nil,
         onSaved: ((Offer) -> Void)? = nil
     ) {
-        _model = State(initialValue: TierEditorViewModel(repositories: repositories, vendorId: vendorId, offerId: offerId))
+        let model = TierEditorViewModel(repositories: repositories, vendorId: vendorId, offerId: offerId)
+        if let supply { model.prefill(from: supply) }
+        _model = State(initialValue: model)
         _showsErrors = State(initialValue: false)
         self.onSaved = onSaved
     }

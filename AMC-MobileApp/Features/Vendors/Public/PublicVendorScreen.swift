@@ -102,7 +102,7 @@ private struct PublicVendorPage: View {
             }
             .padding(.bottom, 32)
         }
-        .scrollEdgeEffectStyle(.soft, for: .top)
+        .grenierScrollEdge()
         .grenierBackground()
     }
 }

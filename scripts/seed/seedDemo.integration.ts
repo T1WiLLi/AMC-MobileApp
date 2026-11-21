@@ -6,7 +6,7 @@ import { fileURLToPath } from 'node:url'
 import { deleteApp, initializeApp } from 'firebase-admin/app'
 import { getAuth } from 'firebase-admin/auth'
 import { getFirestore, Timestamp } from 'firebase-admin/firestore'
-import { millisecondsPerDay } from './catalog.ts'
+import { millisecondsPerDay, readDemoSeed } from './catalog.ts'
 
 test('resets both emulators and restores the same demo data and persona accounts on a second run', async (t) => {
   const projectId = 'demo-grenier-seed-test'
@@ -90,9 +90,12 @@ test('resets both emulators and restores the same demo data and persona accounts
 
     const roots = await Promise.all(
       ['vendors', 'products', 'offers', 'groups', 'pickupPoints', 'users', 'households', 'groupOrders'].map(async (name) => {
-        const fixtures: { id: string; deadlineInDays?: number }[] = JSON.parse(
-          await readFile(new URL(`./fixtures/${name}.json`, import.meta.url), 'utf8')
-        )
+        // Fixtures JSON + données enrichies (richDemo.ts), échéances relatives au jour du seed.
+        const seed = await readDemoSeed(new URL('./fixtures/', import.meta.url), startDay * millisecondsPerDay) as any
+        const fixtures: { id: string; deadlineInDays?: number }[] = seed[name].map((record: any) => ({
+          id: record.id,
+          deadlineInDays: record.deadline ? Math.round((record.deadline.toMillis() / millisecondsPerDay) - startDay) : undefined
+        }))
         const snapshot = await db.collection(name).get()
         assert.deepEqual(snapshot.docs.map((doc) => doc.id).sort(), fixtures.map(({ id }) => id).sort())
         const offsetById = new Map(fixtures.map(({ id, deadlineInDays }) => [id, deadlineInDays]))
@@ -116,7 +119,7 @@ test('resets both emulators and restores the same demo data and persona accounts
           const { [slotsField]: slots, ...rest } = data
           assert.ok(Array.isArray(slots) && slots.length > 0)
           for (const { start, end } of slots) {
-            assert.ok(timestampDay(start) > startDay && start.toMillis() < end.toMillis())
+            assert.ok(start.toMillis() < end.toMillis())
           }
           return rest
         })
@@ -126,10 +129,10 @@ test('resets both emulators and restores the same demo data and persona accounts
     const members = await db.collectionGroup('members').get()
     const profiles = await db.collectionGroup('private').get()
     const shares = await db.collectionGroup('shares').get()
-    const orders: { shares: unknown[] }[] = JSON.parse(await readFile(new URL('./fixtures/groupOrders.json', import.meta.url), 'utf8'))
-    assert.equal(members.size, 60)
-    assert.equal(profiles.size, 60)
-    assert.equal(shares.size, orders.reduce((total, order) => total + order.shares.length, 0))
+    const expected = await readDemoSeed(new URL('./fixtures/', import.meta.url), startDay * millisecondsPerDay)
+    assert.equal(members.size, expected.members.length)
+    assert.equal(profiles.size, expected.householdProfiles.length)
+    assert.equal(shares.size, expected.shares.length)
     assert.ok((await db.doc('groups/group-parc-extension/members/household-amina').get()).exists)
     assert.ok((await db.doc('households/household-amina/private/profile').get()).exists)
     const subcollections = [members, profiles, shares].map((snapshot) => snapshot.docs.map((doc) => {

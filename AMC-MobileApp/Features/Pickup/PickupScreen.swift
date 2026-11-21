@@ -5,8 +5,7 @@ struct PickupScreen: View {
         PlaceholderScreen(
             title: "Cueillette",
             systemImage: "qrcode",
-            message: "Ton code QR, le point de cueillette et ton créneau (maquette F5).",
-            epic: "E08"
+            message: "Ton code QR, le point de cueillette et ton créneau."
         )
     }
 }

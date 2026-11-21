@@ -36,6 +36,14 @@ Règles :
 
 ## Build et tests
 
+Chaque pull request vers `main` lance le workflow GitHub Actions **iOS CI**. Le runner `macos-26` vérifie qu’il utilise Xcode 26, compile le projet et exécute les tests sur un seul iPhone 17 avec le runtime iOS disponible le plus récent. Un échec de compilation ou de test fait échouer le check **Build and test (iOS)**. Le workflow fonctionne sans signature ni secret à configurer.
+
+Pour reproduire les vérifications localement avec Xcode 26, utilisez un simulateur iOS 26 installé. `xcrun simctl list devices available` liste les simulateurs disponibles. Adaptez `destination` au besoin.
+
 ```bash
-xcodebuild test -project AMC-MobileApp.xcodeproj -scheme AMC-MobileApp -destination 'platform=iOS Simulator,name=iPhone 17 Pro'
+destination='platform=iOS Simulator,name=iPhone 17,OS=latest'
+xcodebuild -project AMC-MobileApp.xcodeproj -scheme AMC-MobileApp \
+  -destination "$destination" CODE_SIGNING_ALLOWED=NO build
+xcodebuild -project AMC-MobileApp.xcodeproj -scheme AMC-MobileApp \
+  -destination "$destination" -parallel-testing-enabled NO CODE_SIGNING_ALLOWED=NO test
 ```

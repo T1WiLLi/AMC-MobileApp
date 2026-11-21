@@ -1,0 +1,40 @@
+name: iOS CI
+
+on:
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  build-and-test:
+    name: Build and test (iOS)
+    runs-on: macos-26
+    timeout-minutes: 30
+    env:
+      SIMULATOR_DESTINATION: 'platform=iOS Simulator,name=iPhone 17,OS=latest'
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+
+      - name: Verify Xcode 26
+        run: |
+          xcode_version=$(xcodebuild -version)
+          echo "$xcode_version"
+          if ! grep -qE '^Xcode 26\.' <<< "$xcode_version"; then
+            echo '::error::This workflow requires Xcode 26.'
+            exit 1
+          fi
+
+      - name: Build
+        run: >-
+          xcodebuild -project AMC-MobileApp.xcodeproj -scheme AMC-MobileApp
+          -destination "$SIMULATOR_DESTINATION" CODE_SIGNING_ALLOWED=NO build
+
+      - name: Test
+        run: >-
+          xcodebuild -project AMC-MobileApp.xcodeproj -scheme AMC-MobileApp
+          -destination "$SIMULATOR_DESTINATION" -parallel-testing-enabled NO
+          CODE_SIGNING_ALLOWED=NO test

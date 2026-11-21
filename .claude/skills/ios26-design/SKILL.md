@@ -8,6 +8,8 @@ description: Règles de design et d'implémentation SwiftUI pour AMC-MobileApp �
 L'app cible **iOS 26.0 uniquement** (Swift 6, SwiftUI). Aucun `if #available` pour des versions plus anciennes.
 Tout tourne sur des **données fake** : pas de backend, pas de réseau. L'objectif est une app qui a l'air d'une vraie app Apple de 2026.
 
+**Design system du projet (Grenier)** : lis `docs/maquettes/DESIGN-SYSTEM.md` (couleurs, typo, composants, navigation, données de démo) et regarde les images dans `docs/maquettes/` avant toute vue. Il fait foi pour les choix visuels.
+
 Si le skill `apple-design` est disponible dans ton environnement, lis-le aussi : il complète celui-ci (HIG, finition visuelle).
 
 ## Liquid Glass d'abord

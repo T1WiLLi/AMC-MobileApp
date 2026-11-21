@@ -31,7 +31,7 @@ struct TierProgressBar: View {
                 }
             }
             .frame(height: compact ? 6 : 10)
-            .animation(reduceMotion ? nil : .smooth, value: committedShares)
+            .grenierAnimation(.smooth, value: committedShares)
 
             if !compact {
                 legendLayout {
@@ -42,13 +42,15 @@ struct TierProgressBar: View {
                             .foregroundStyle(index == currentIndex ? Color.texte : Color.texteSecondaire)
                             .frame(maxWidth: .infinity, alignment: legendAlignment(for: index))
                             .monospacedDigit()
+                            .fixedSize(horizontal: false, vertical: true)
                     }
                 }
                 if let nudge {
                     Text(nudge)
                         .font(.subheadline.weight(.semibold))
                         .foregroundStyle(Color.grenier)
-                        .contentTransition(.numericText())
+                        .contentTransition(reduceMotion ? .opacity : .numericText())
+                        .fixedSize(horizontal: false, vertical: true)
                 }
             }
         }
@@ -105,7 +107,7 @@ struct TierProgressBar: View {
     var accessibilityText: String {
         var text = "\(count(committedShares)) \(FrenchPlural.word(committedShares, "engagée"))"
         if let currentIndex {
-            text += ", prix actuel \(Money.format(sorted[currentIndex].priceCents))"
+            text += ", prix actuel \(Money.spoken(sorted[currentIndex].priceCents))"
         }
         if let nudge { text += ". \(nudge)" }
         return text
@@ -170,4 +172,15 @@ struct TierProgressBar: View {
         .frame(maxHeight: .infinity)
         .grenierBackground()
         .preferredColorScheme(.dark)
+}
+
+#Preview("AX5") {
+    let tiers = [PriceTier(minShares: 1, priceCents: 320), PriceTier(minShares: 11, priceCents: 260), PriceTier(minShares: 26, priceCents: 210)]
+    ScrollView {
+        TierProgressBar(tiers: tiers, committedShares: 24, totalShares: 40, unitSingular: "famille", unitPlural: "familles")
+            .grenierCard()
+            .padding()
+    }
+    .grenierBackground()
+    .dynamicTypeSize(.accessibility5)
 }

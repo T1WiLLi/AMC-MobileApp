@@ -20,7 +20,9 @@ struct GroupCard: View {
     var body: some View {
         let layout = rowLayout
         layout {
+            // Le nombre de familles est déjà lu dans le détail : la pile d'avatars ne le répète pas.
             AvatarStack(initials: memberInitials, extraCount: extraMembers)
+                .accessibilityHidden(true)
             VStack(alignment: .leading, spacing: 2) {
                 Text(group.name)
                     .font(.headline)
@@ -29,18 +31,24 @@ struct GroupCard: View {
                     .font(.subheadline)
                     .foregroundStyle(.texteSecondaire)
             }
+            .fixedSize(horizontal: false, vertical: true)
+            .accessibilityElement(children: .ignore)
+            .accessibilityLabel("\(group.name), \(detailText)")
+            .accessibilityAddTraits(.isHeader)
             if !dynamicTypeSize.isAccessibilitySize { Spacer(minLength: 8) }
             if isMember {
                 Label("Membre", systemImage: "checkmark.circle.fill")
                     .labelStyle(.iconOnly)
                     .font(.title2)
                     .foregroundStyle(Color.economie)
-                    .accessibilityLabel("Tu es membre")
+                    .accessibilityLabel("Tu es membre de \(group.name)")
             } else if let onJoin {
                 Button("Rejoindre", action: onJoin)
                     .buttonStyle(.glass)
                     .tint(.grenier)
                     .fontWeight(.semibold)
+                    .accessibilityLabel("Rejoindre \(group.name)")
+                    .accessibilityHint("Ajoute ta famille à ce groupe d'achat")
             }
         }
         .grenierCard(padding: 14)
@@ -88,10 +96,21 @@ struct GroupCard: View {
 }
 
 #Preview("AX5") {
-    GroupCard(group: CardPreviewData.group, memberInitials: ["FB", "RK"], pickupLabel: "rue Ogilvy", distanceMeters: 450, onJoin: {})
-        .padding()
-        .frame(maxHeight: .infinity)
-        .grenierBackground()
-        .dynamicTypeSize(.accessibility5)
+    ScrollView {
+        GroupCard(group: CardPreviewData.group, memberInitials: ["FB", "RK"], pickupLabel: "rue Ogilvy", distanceMeters: 450, onJoin: {})
+            .padding()
+    }
+    .grenierBackground()
+    .dynamicTypeSize(.accessibility5)
+}
+
+#Preview("AX5 sombre") {
+    ScrollView {
+        GroupCard(group: CardPreviewData.group, memberInitials: ["AM", "FB", "RK"], pickupLabel: "rue Ogilvy", distanceMeters: 1_200, isMember: true)
+            .padding()
+    }
+    .grenierBackground()
+    .dynamicTypeSize(.accessibility5)
+    .preferredColorScheme(.dark)
 }
 #endif

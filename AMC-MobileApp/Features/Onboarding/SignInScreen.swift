@@ -1,14 +1,14 @@
 import SwiftUI
 
-/// Écran de connexion (Google uniquement), iOS 26 Liquid Glass. Les couleurs de marque viendront de B-021.
+/// Écran de connexion : Google, ou courriel et mot de passe (avec vérification du courriel). iOS 26 Liquid Glass.
 struct SignInScreen: View {
     let session: SessionViewModel
 
     private var isSigningIn: Bool { session.state == .signingIn }
 
     var body: some View {
+        ScrollView {
         VStack(spacing: 32) {
-            Spacer()
 
             VStack(spacing: 16) {
                 Image(systemName: "basket.fill")
@@ -28,8 +28,7 @@ struct SignInScreen: View {
                     .multilineTextAlignment(.center)
             }
             .padding(.horizontal)
-
-            Spacer()
+            .padding(.top, 32)
 
             VStack(spacing: 12) {
                 if let message = session.errorMessage {
@@ -58,15 +57,43 @@ struct SignInScreen: View {
                 .buttonStyle(.glassProminent)
                 .disabled(isSigningIn)
                 .accessibilityHint("Ouvre la connexion Google")
+
+                OrSeparator()
+                    .padding(.vertical, 4)
+
+                EmailAuthForm(session: session)
             }
             .padding(.horizontal, 24)
             .padding(.bottom, 24)
         }
         .frame(maxWidth: .infinity)
+        }
+        .scrollDismissesKeyboard(.interactively)
+        .scrollBounceBehavior(.basedOnSize)
         .grenierBackground()
         .tint(.grenier)
         .animation(.smooth, value: session.errorMessage)
         .sensoryFeedback(.error, trigger: session.errorMessage) { _, new in new != nil }
+    }
+}
+
+/// Séparateur « ou » entre Google et le formulaire courriel.
+private struct OrSeparator: View {
+    var body: some View {
+        HStack(spacing: 12) {
+            line
+            Text("ou")
+                .font(.footnote.weight(.semibold))
+                .foregroundStyle(Color.texteSecondaire)
+            line
+        }
+        .accessibilityHidden(true)
+    }
+
+    private var line: some View {
+        Rectangle()
+            .fill(Color.texteSecondaire.opacity(0.3))
+            .frame(height: 1)
     }
 }
 

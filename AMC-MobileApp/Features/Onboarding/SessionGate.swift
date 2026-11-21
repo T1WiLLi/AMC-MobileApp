@@ -12,7 +12,8 @@ struct SessionGate: View {
         AppFlowStep.resolve(
             hasSeenIntro: hasSeenIntro,
             isSignedIn: session.currentUser != nil,
-            hasChosenPortal: hasChosenPortal
+            hasChosenPortal: hasChosenPortal,
+            needsEmailVerification: session.pendingVerificationUser != nil
         )
     }
 
@@ -24,6 +25,9 @@ struct SessionGate: View {
                     .transition(transition)
             case .signIn:
                 SignInScreen(session: session)
+                    .transition(transition)
+            case .emailVerification:
+                EmailVerificationScreen(session: session)
                     .transition(transition)
             case .portalChoice:
                 PortalChoiceScreen { hasChosenPortal = true }
@@ -55,6 +59,10 @@ struct SessionGate: View {
 
 #Preview("Connecté") {
     SessionGate(session: SessionViewModel(auth: FakeAuthService(signedInUser: .sample)))
+}
+
+#Preview("Courriel à vérifier") {
+    SessionGate(session: SessionViewModel(auth: FakeAuthService(signedInUser: .unverifiedSample)))
 }
 
 #Preview("Sombre") {

@@ -118,7 +118,7 @@ extension FirebaseSetup {
             options = fromFile
         } else {
             options = FirebaseOptions(googleAppID: "1:000000000000:ios:0000000000000000", gcmSenderID: "000000000000")
-            options.apiKey = "AIzaDemoGrenierEmulatorOnly000000000000"
+            options.apiKey = "ADemoGrenierEmulatorOnly000000000000000"
             options.bundleID = Bundle.main.bundleIdentifier ?? "ca.amc2026.mobileapp"
         }
         options.projectID = config.projectID

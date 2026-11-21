@@ -13,6 +13,7 @@ struct SolidarityFundCard: View {
     var basketCostCents: Cents?
 
     @ScaledMetric(relativeTo: .title2) private var iconSize: CGFloat = 52
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     init(groupName: String, balanceCents: Cents, basketsThisMonth: Int, basketCostCents: Cents? = nil) {
         self.groupName = groupName
@@ -42,14 +43,26 @@ struct SolidarityFundCard: View {
             }
 
             VStack(alignment: .leading, spacing: 2) {
-                Text(Money.formatRounded(max(0, balanceCents)))
-                    .priceStyle()
-                    .foregroundStyle(Color.solidarite)
-                    .contentTransition(.numericText())
-                Text(capacityText)
-                    .font(.subheadline)
-                    .foregroundStyle(.texteSecondaire)
-                    .fixedSize(horizontal: false, vertical: true)
+                Label {
+                    Text(Money.formatRounded(max(0, balanceCents)))
+                        .contentTransition(.numericText())
+                } icon: {
+                    Image(systemName: "banknote.fill")
+                        .symbolRenderingMode(.hierarchical)
+                        .symbolEffect(.bounce, value: reduceMotion ? 0 : balanceCents)
+                }
+                .priceStyle()
+                .foregroundStyle(Color.solidarite)
+                Label {
+                    Text(capacityText)
+                        .fixedSize(horizontal: false, vertical: true)
+                } icon: {
+                    Image(systemName: "basket.fill")
+                        .symbolRenderingMode(.hierarchical)
+                        .foregroundStyle(Color.solidarite)
+                }
+                .font(.subheadline)
+                .foregroundStyle(.texteSecondaire)
             }
             .accessibilityElement(children: .combine)
 
@@ -71,7 +84,8 @@ struct SolidarityFundCard: View {
                 Text("Personne ne sait qui donne ni qui reçoit.")
                     .fixedSize(horizontal: false, vertical: true)
             } icon: {
-                Image(systemName: "lock.fill")
+                Image(systemName: "lock.shield.fill")
+                    .symbolRenderingMode(.hierarchical)
             }
             .font(.footnote)
             .foregroundStyle(.texteSecondaire)

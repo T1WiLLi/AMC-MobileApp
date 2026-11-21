@@ -18,6 +18,7 @@ struct SearchScreen: View {
     /// Lot ouvert en feuille. Une feuille plutôt qu'un push : la fiche masque la barre d'onglets, et au retour
     /// l'onglet Recherche réapparaissait sans son champ (barre d'onglets classique, saisie perdue).
     @State private var openedOffer: OfferRoute?
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     private var results: [Suggestion] { Self.filter(offerSuggestions ?? suggestions, query: query) }
 
@@ -49,9 +50,23 @@ struct SearchScreen: View {
                             }
                         }
                     } header: {
-                        Text(query.isEmpty ? emptyTitle : FrenchPlural.count(results.count, "produit"))
+                        Label(
+                            query.isEmpty ? emptyTitle : FrenchPlural.count(results.count, "produit"),
+                            systemImage: query.isEmpty ? "sparkles" : "line.3.horizontal.decrease.circle.fill"
+                        )
+                        .foregroundStyle(Color.grenier)
+                        .symbolRenderingMode(.hierarchical)
+                        .contentTransition(.symbolEffect(.replace))
                     } footer: {
-                        if query.isEmpty { Text(emptyMessage) }
+                        if query.isEmpty {
+                            Label {
+                                Text(emptyMessage)
+                            } icon: {
+                                Image(systemName: "person.3.fill")
+                                    .foregroundStyle(Color.grenier)
+                            }
+                            .symbolRenderingMode(.hierarchical)
+                        }
                     }
                 }
             }
@@ -59,14 +74,31 @@ struct SearchScreen: View {
             .grenierBackground()
             .overlay {
                 if results.isEmpty {
-                    ContentUnavailableView(
-                        "Aucun produit trouvé",
-                        systemImage: "magnifyingglass",
-                        description: Text("Essaie un autre produit ou le nom d'un producteur.")
-                    )
+                    ContentUnavailableView {
+                        VStack(spacing: 12) {
+                            StateIllustration(systemImage: "magnifyingglass")
+                                .symbolEffect(.wiggle, value: reduceMotion ? "" : query)
+                            Text("Aucun produit trouvé")
+                                .font(.title2.bold())
+                                .foregroundStyle(.texte)
+                        }
+                    } description: {
+                        Text("Essaie un autre produit ou le nom d'un producteur.")
+                    } actions: {
+                        Button {
+                            query = ""
+                        } label: {
+                            Label("Voir les suggestions", systemImage: "sparkles")
+                                .symbolRenderingMode(.hierarchical)
+                        }
+                        .buttonStyle(.glass)
+                        .tint(.grenier)
+                    }
+                    .grenierTransition(.cardAppear)
                 }
             }
-            .animation(.smooth, value: results)
+            .grenierAnimation(.smooth, value: results)
+            .grenierHaptic(.warning, trigger: results.isEmpty) { _, new in new }
             .navigationTitle("Recherche")
             .profileToolbar()
             .sheet(item: $openedOffer) { route in
@@ -158,9 +190,10 @@ extension SearchScreen {
                     Text(suggestion.name)
                         .font(.headline)
                         .foregroundStyle(.texte)
-                    Text("\(suggestion.vendor) · \(suggestion.region)")
+                    Text("\(Image(systemName: "storefront.fill")) \(suggestion.vendor) · \(Image(systemName: suggestion.offerId == nil ? "mappin.and.ellipse" : "scalemass.fill")) \(suggestion.region)")
                         .font(.subheadline)
                         .foregroundStyle(.texteSecondaire)
+                        .symbolRenderingMode(.hierarchical)
                 }
             }
             .padding(.vertical, 2)

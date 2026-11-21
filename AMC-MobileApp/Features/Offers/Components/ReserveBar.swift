@@ -50,14 +50,23 @@ struct ReserveBar: View {
                 .foregroundStyle(.texte)
                 .contentTransition(.numericText(value: Double(quote.totalCents)))
             if quote.savingsCents > 0 {
-                Text("−\(Money.format(quote.savingsCents)) vs épicerie")
-                    .font(.subheadline.weight(.semibold))
-                    .fontDesign(.rounded)
-                    .monospacedDigit()
-                    .foregroundStyle(.economie)
-                    .contentTransition(.numericText(value: Double(quote.savingsCents)))
+                Label {
+                    Text("−\(Money.format(quote.savingsCents)) vs épicerie")
+                        .contentTransition(.numericText(value: Double(quote.savingsCents)))
+                } icon: {
+                    Image(systemName: "arrow.down.circle.fill")
+                        .symbolRenderingMode(.hierarchical)
+                        .symbolEffect(.bounce, value: reduceMotion ? 0 : quote.savingsCents)
+                }
+                .labelStyle(TightLabelStyle())
+                .font(.subheadline.weight(.semibold))
+                .fontDesign(.rounded)
+                .monospacedDigit()
+                .foregroundStyle(.economie)
             } else {
-                Text("Payé à la cueillette")
+                Label("Payé à la cueillette", systemImage: "creditcard.fill")
+                    .labelStyle(TightLabelStyle())
+                    .symbolRenderingMode(.hierarchical)
                     .font(.subheadline)
                     .foregroundStyle(.texteSecondaire)
             }
@@ -74,11 +83,17 @@ struct ReserveBar: View {
     private var reserveButton: some View {
         Button(action: onReserve) {
             ZStack {
-                Text("Réserver \(quantityText)")
-                    .font(.headline)
-                    .multilineTextAlignment(.center)
-                    .contentTransition(.numericText(value: Double(quantity)))
-                    .opacity(isLoading ? 0 : 1)
+                Label {
+                    Text("Réserver \(quantityText)")
+                        .multilineTextAlignment(.center)
+                        .contentTransition(.numericText(value: Double(quantity)))
+                } icon: {
+                    Image(systemName: "cart.fill.badge.plus")
+                        .symbolRenderingMode(.hierarchical)
+                        .symbolEffect(.wiggle, value: reduceMotion ? 0 : quantity)
+                }
+                .font(.headline)
+                .opacity(isLoading ? 0 : 1)
                 if isLoading {
                     ProgressView()
                         .tint(Color.onAccent)

@@ -22,10 +22,17 @@ struct SharePicker: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
-            Text("Ta part")
-                .font(.title3.bold())
-                .foregroundStyle(.texte)
-                .accessibilityAddTraits(.isHeader)
+            Label {
+                Text("Ta part")
+                    .foregroundStyle(.texte)
+            } icon: {
+                Image(systemName: "basket.fill")
+                    .symbolRenderingMode(.hierarchical)
+                    .foregroundStyle(Color.grenier)
+                    .symbolEffect(.bounce, value: reduceMotion ? 0 : quantity)
+            }
+            .font(.title3.bold())
+            .accessibilityAddTraits(.isHeader)
 
             if resolvedSteps.count > 1 {
                 Picker("Ta part", selection: stepSelection) {
@@ -38,7 +45,8 @@ struct SharePicker: View {
 
             Stepper(value: clampedQuantity, in: bounds) {
                 HStack(alignment: .firstTextBaseline) {
-                    Text("Quantité")
+                    Label("Quantité", systemImage: "scalemass.fill")
+                        .symbolRenderingMode(.hierarchical)
                         .foregroundStyle(.texteSecondaire)
                     Spacer(minLength: 8)
                     Text(label(for: quantity))
@@ -69,12 +77,23 @@ struct SharePicker: View {
         let quote = ShareMath.quote(shares: quantity, tier: tier, product: product)
         Group {
             if quote.savingsCents > 0 {
-                Text("Tu économises \(Text(Money.formatRounded(quote.savingsCents)).bold().foregroundStyle(.economie)) sur ta part.")
-                    .contentTransition(.numericText(value: Double(quote.savingsCents)))
+                Label {
+                    Text("Tu économises \(Text(Money.formatRounded(quote.savingsCents)).bold().foregroundStyle(.economie)) sur ta part.")
+                        .contentTransition(.numericText(value: Double(quote.savingsCents)))
+                } icon: {
+                    Image(systemName: GrenierSymbol.savings)
+                        .foregroundStyle(Color.economie)
+                }
             } else {
-                Text("Le prix baisse quand d'autres familles se joignent au lot.")
+                Label {
+                    Text("Le prix baisse quand d'autres familles se joignent au lot.")
+                } icon: {
+                    Image(systemName: "person.3.fill")
+                        .foregroundStyle(Color.grenier)
+                }
             }
         }
+        .symbolRenderingMode(.hierarchical)
         .font(.subheadline)
         .foregroundStyle(.texteSecondaire)
         .fixedSize(horizontal: false, vertical: true)

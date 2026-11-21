@@ -64,8 +64,8 @@ struct InviteCard: View {
 
             ShareLink(
                 item: shareMessage,
-                subject: Text("Rejoins \(group.name) sur Grenier"),
-                preview: SharePreview(String(localized: "Rejoins \(group.name) sur Grenier"), image: Image(systemName: GrenierSymbol.groups))
+                subject: Text("Rejoins \(group.name) sur LeGrenier"),
+                preview: SharePreview(String(localized: "Rejoins \(group.name) sur LeGrenier"), image: Image(systemName: GrenierSymbol.groups))
             ) {
                 Label("Partager l'invitation", systemImage: "square.and.arrow.up")
                     .frame(maxWidth: .infinity)
@@ -106,9 +106,9 @@ struct InviteCard: View {
     /// « Rejoins Parc-Ex Ouest sur Grenier : il manque 1 famille pour débloquer −19 %. Code d'invitation : PARCEX »
     static func shareMessage(groupName: String, inviteCode: String, missingFamilies: Int?, discountPercent: Int?) -> String {
         let head = if let line = urgencyLine(missingFamilies: missingFamilies, discountPercent: discountPercent) {
-            String(localized: "Rejoins \(groupName) sur Grenier : \(line).")
+            String(localized: "Rejoins \(groupName) sur LeGrenier : \(line).")
         } else {
-            String(localized: "Rejoins \(groupName) sur Grenier : on achète en gros entre voisins, directement aux producteurs.")
+            String(localized: "Rejoins \(groupName) sur LeGrenier : on achète en gros entre voisins, directement aux producteurs.")
         }
         return String(localized: "\(head) Code d'invitation : \(inviteCode)")
     }

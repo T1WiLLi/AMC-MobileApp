@@ -783,7 +783,7 @@ private struct OfferDetailContent: View {
     }
 
     private func shareText(_ content: OfferDetailViewModel.Content) -> String {
-        String(localized: "\(content.product.name) (\(content.offer.shareUnit)) à \(Money.format(content.pricing.currentPriceCents)) avec \(content.vendor.legalName) sur Grenier. Plus on est de familles, plus le prix baisse !")
+        String(localized: "\(content.product.name) (\(content.offer.shareUnit)) à \(Money.format(content.pricing.currentPriceCents)) avec \(content.vendor.legalName) sur LeGrenier. Plus on est de familles, plus le prix baisse !")
     }
 
     // MARK: Formatage

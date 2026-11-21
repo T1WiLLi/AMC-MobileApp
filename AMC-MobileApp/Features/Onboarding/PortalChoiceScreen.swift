@@ -53,7 +53,7 @@ struct PortalChoiceScreen: View {
             .buttonStyle(.glassProminent)
             .tint(.grenier)
             .disabled(!model.canContinue)
-            .accessibilityHint(model.canContinue ? String(localized: "Ouvre Grenier") : String(localized: "Choisis d'abord un portail"))
+            .accessibilityHint(model.canContinue ? String(localized: "Ouvre LeGrenier") : String(localized: "Choisis d'abord un portail"))
             .padding(.horizontal, 24)
             .padding(.vertical, 12)
         }
@@ -68,7 +68,7 @@ struct PortalChoiceScreen: View {
                     .font(.headline)
                     .foregroundStyle(Color.grenier)
             }
-            Text("Comment veux-tu utiliser Grenier ?")
+            Text("Comment veux-tu utiliser LeGrenier ?")
                 .font(.largeTitle.bold())
                 .foregroundStyle(Color.texte)
                 .fixedSize(horizontal: false, vertical: true)

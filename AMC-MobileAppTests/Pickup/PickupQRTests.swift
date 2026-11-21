@@ -124,7 +124,7 @@ struct PickupQRCardTests {
 struct InviteCardTests {
     @Test func shareMessageMatchesSpec() {
         let message = InviteCard.shareMessage(groupName: "Parc-Ex Ouest", inviteCode: "PARCEX", missingFamilies: 1, discountPercent: 19)
-        #expect(message == "Rejoins Parc-Ex Ouest sur Grenier : il manque 1 famille pour débloquer −19 %. Code d'invitation : PARCEX")
+        #expect(message == "Rejoins Parc-Ex Ouest sur LeGrenier : il manque 1 famille pour débloquer −19 %. Code d'invitation : PARCEX")
     }
 
     @Test func urgencyLinePlural() {
@@ -136,7 +136,7 @@ struct InviteCardTests {
 
     @Test func shareMessageWithoutTier() {
         let message = InviteCard.shareMessage(groupName: "Parc-Ex Ouest", inviteCode: "PARCEX", missingFamilies: nil, discountPercent: nil)
-        #expect(message.hasPrefix("Rejoins Parc-Ex Ouest sur Grenier : on achète en gros"))
+        #expect(message.hasPrefix("Rejoins Parc-Ex Ouest sur LeGrenier : on achète en gros"))
         #expect(message.hasSuffix("Code d'invitation : PARCEX"))
     }
 

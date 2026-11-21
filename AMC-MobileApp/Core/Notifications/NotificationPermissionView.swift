@@ -138,7 +138,7 @@ struct NotificationPermissionView: View {
         }
         .buttonStyle(.glass)
         .tint(Color.grenier)
-        .accessibilityHint("Ouvre les réglages de Grenier pour activer les notifications.")
+        .accessibilityHint("Ouvre les réglages de LeGrenier pour activer les notifications.")
     }
 
     private var laterButton: some View {

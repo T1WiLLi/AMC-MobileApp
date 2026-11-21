@@ -93,7 +93,7 @@ private struct PreferencesForm: View {
             } label: {
                 Label("Langue de l'app", systemImage: "globe")
             }
-            Button("Ouvrir les Réglages de Grenier", systemImage: "gear") {
+            Button("Ouvrir les Réglages de LeGrenier", systemImage: "gear") {
                 if let url = URL(string: UIApplication.openSettingsURLString) { openURL(url) }
             }
         } header: {

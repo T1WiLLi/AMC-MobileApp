@@ -45,7 +45,7 @@ enum AppError: Error, Equatable, Sendable {
         case .orderClosed:
             String(localized: "La date limite est passée : les parts ne peuvent plus être modifiées.")
         case .liveActivitiesDisabled:
-            String(localized: "Active-les dans Réglages > Grenier pour suivre ta commande sur l'écran verrouillé.")
+            String(localized: "Active-les dans Réglages > LeGrenier pour suivre ta commande sur l'écran verrouillé.")
         case .invalidInput(let detail):
             detail
         case .unknown:

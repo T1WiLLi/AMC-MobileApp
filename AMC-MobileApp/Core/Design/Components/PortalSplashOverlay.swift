@@ -76,7 +76,7 @@ struct PortalSplashOverlay: View {
                 }
 
             VStack(spacing: 6) {
-                Text("Grenier")
+                Text("LeGrenier")
                     .font(.subheadline.weight(.semibold))
                     .textCase(.uppercase)
                     .tracking(2)

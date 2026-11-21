@@ -361,7 +361,7 @@ private struct VendorIdentityHeader: View {
                     HStack(spacing: 8) { badges }
                     VStack(alignment: .leading, spacing: 6) { badges }
                 }
-                Label("Raison sociale et type : modifiables par l'équipe Grenier.", systemImage: "lock.fill")
+                Label("Raison sociale et type : modifiables par l'équipe LeGrenier.", systemImage: "lock.fill")
                     .font(.caption)
                     .foregroundStyle(.secondary)
                     .symbolRenderingMode(.hierarchical)

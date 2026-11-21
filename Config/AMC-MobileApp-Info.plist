@@ -5,14 +5,14 @@
 	<!-- Fusionné avec l'Info.plist généré par Xcode (GENERATE_INFOPLIST_FILE = YES). -->
 	<!-- Nom affiché sous l'icône. -->
 	<key>CFBundleDisplayName</key>
-	<string>Grenier</string>
+	<string>LeGrenier</string>
 	<!-- Schéma d'URL de retour Google Sign-In = REVERSED_CLIENT_ID de GoogleService-Info.plist. -->
 	<!-- Face ID : verrou de l'app et confirmation des paiements (Core/Security). -->
 	<key>NSFaceIDUsageDescription</key>
-	<string>Grenier utilise Face ID pour protéger ton compte et confirmer tes paiements.</string>
+	<string>LeGrenier utilise Face ID pour protéger ton compte et confirmer tes paiements.</string>
 	<!-- Carte des familles (T-091) : position pendant l'utilisation, sinon la carte reste sur le quartier du ménage. -->
 	<key>NSLocationWhenInUseUsageDescription</key>
-	<string>Grenier utilise ta position pendant que la carte est ouverte pour te montrer les groupes, les points de cueillette et les producteurs près de chez toi. Elle n'est jamais partagée avec tes voisins.</string>
+	<string>LeGrenier utilise ta position pendant que la carte est ouverte pour te montrer les groupes, les points de cueillette et les producteurs près de chez toi. Elle n'est jamais partagée avec tes voisins.</string>
 	<!-- Live Activity de la commande (cible GrenierWidgets, Core/LiveActivity), démarrée localement. -->
 	<key>NSSupportsLiveActivities</key>
 	<true/>

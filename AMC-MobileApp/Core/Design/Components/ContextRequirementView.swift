@@ -25,7 +25,7 @@ enum ContextRequirement: Sendable, CaseIterable {
         case .group:
             "Les lots se commandent à plusieurs : rejoins le groupe de ton quartier pour débloquer les meilleurs prix."
         case .vendor:
-            "Ton compte n'est pas encore rattaché à une ferme ou à un commerce. L'équipe Grenier vérifie chaque producteur avant d'ouvrir son portail."
+            "Ton compte n'est pas encore rattaché à une ferme ou à un commerce. L'équipe LeGrenier vérifie chaque producteur avant d'ouvrir son portail."
         }
     }
 

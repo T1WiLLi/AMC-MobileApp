@@ -553,7 +553,7 @@ private struct InvitationCard: View {
 
 private enum GroupInvite {
     static func message(for group: NeighborhoodGroup) -> String {
-        "Rejoins « \(group.name) » sur Grenier pour acheter en gros avec tes voisins de \(group.neighborhood). Code : \(group.inviteCode)"
+        "Rejoins « \(group.name) » sur LeGrenier pour acheter en gros avec tes voisins de \(group.neighborhood). Code : \(group.inviteCode)"
     }
 }
 

@@ -52,7 +52,7 @@ private struct PublicVendorContent: View {
                     .grenierBackground()
             case .empty:
                 ContentUnavailableView("Producteur introuvable", systemImage: "storefront",
-                                       description: Text("Ce producteur n'est plus sur Grenier."))
+                                       description: Text("Ce producteur n'est plus sur LeGrenier."))
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
                     .grenierBackground()
             case .loaded(let profile):
@@ -65,7 +65,7 @@ private struct PublicVendorContent: View {
         .toolbar {
             if let profile = viewModel.profile {
                 ToolbarItem(placement: .topBarTrailing) {
-                    ShareLink(item: String(localized: "Découvre \(profile.name) sur Grenier : des produits locaux achetés en groupe, moins cher.")) {
+                    ShareLink(item: String(localized: "Découvre \(profile.name) sur LeGrenier : des produits locaux achetés en groupe, moins cher.")) {
                         Label("Partager le producteur", systemImage: "square.and.arrow.up")
                     }
                 }
@@ -190,7 +190,7 @@ private struct VendorIdentity: View {
                 Pill(title: profile.kind.title, systemImage: profile.kind.systemImage, tint: .grenier)
                 if profile.isVerified {
                     Pill(title: String(localized: "Vérifié"), systemImage: "checkmark.seal.fill", tint: .economie)
-                        .accessibilityLabel("Producteur vérifié par Grenier")
+                        .accessibilityLabel("Producteur vérifié par LeGrenier")
                 }
                 if let rating = profile.averageRating {
                     let text = rating.formatted(.number.precision(.fractionLength(1)).locale(Locale(identifier: "fr_CA")))

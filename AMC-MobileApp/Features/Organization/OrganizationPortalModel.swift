@@ -201,7 +201,7 @@ final class OrganizationPortalModel {
         }
         let quartiers = FrenchPlural.count(impact.groupsReached, "groupe de quartier", plural: "groupes de quartier")
         return "\(snapshot.organization.name) a financé \(FrenchPlural.count(impact.basketsFunded, "panier")) "
-            + "pour \(FrenchPlural.count(impact.familiesHelped, "famille")) dans \(quartiers) avec Grenier."
+            + "pour \(FrenchPlural.count(impact.familiesHelped, "famille")) dans \(quartiers) avec LeGrenier."
     }
 
     // MARK: Actions

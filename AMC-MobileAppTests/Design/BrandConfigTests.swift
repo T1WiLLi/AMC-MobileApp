@@ -29,7 +29,7 @@ struct BrandConfigTests {
 
     @Test func blankStringsAndBadColorsAreIgnored() {
         let brand = Self.decode(##"{"name":"  ","logo":{"symbol":""},"colors":{"accentLight":"orange","accentDark":"#12"}}"##)
-        #expect(brand.name == "Grenier")
+        #expect(brand.name == "LeGrenier")
         #expect(brand.logo.symbol == BrandConfig.grenier.logo.symbol)
         #expect(brand.colors.accentLight == nil)
         #expect(brand.colors.accentDark == nil)
@@ -46,7 +46,7 @@ struct BrandConfigTests {
 
     @Test func bundledBrandIsReadable() {
         let brand = BrandConfig.load()
-        #expect(brand.name == "Grenier")
+        #expect(brand.name == "LeGrenier")
         #expect(brand.colors.accentLight == "#A84D18")
         #expect(brand.colors.accentDark == "#F08A4B")
     }

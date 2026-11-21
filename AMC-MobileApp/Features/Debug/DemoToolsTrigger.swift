@@ -68,7 +68,7 @@ struct AppVersionLabel: View {
                 .monospacedDigit()
                 .foregroundStyle(.secondary)
         } label: {
-            Label("Version de Grenier", systemImage: "info.circle")
+            Label("Version de LeGrenier", systemImage: "info.circle")
                 .symbolRenderingMode(.hierarchical)
         }
         .accessibilityElement(children: .combine)

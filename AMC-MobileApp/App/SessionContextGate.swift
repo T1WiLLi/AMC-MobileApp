@@ -60,7 +60,7 @@ struct SessionLoadingView: View {
                 .padding()
             }
             .redacted(reason: .placeholder)
-            .navigationTitle("Grenier")
+            .navigationTitle("LeGrenier")
             .grenierBackground()
         }
         .accessibilityElement(children: .ignore)

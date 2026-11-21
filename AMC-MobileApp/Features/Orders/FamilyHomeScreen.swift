@@ -52,6 +52,8 @@ struct FamilyHomeScreen: View {
             // (et le nouveau prix) s'affiche tout de suite. `load()` garde le contenu affiché pendant le rechargement.
             .onAppear { reloadIfAlreadyLoaded() }
         }
+        // Bascule de portail : le voile attend que l'accueil ait son contenu.
+        .portalContentReady(.family, when: isContentReady)
         // Retour au premier plan ou du réseau : `load()` garde le contenu affiché pendant le rechargement.
         .refreshOnForeground { await viewModel?.load() }
         .task(id: identity) {
@@ -84,6 +86,13 @@ struct FamilyHomeScreen: View {
     private var title: String {
         if let firstName = viewModel?.state.value?.firstName, !firstName.isEmpty { return String(localized: "Bonjour \(firstName)") }
         return String(localized: "Accueil")
+    }
+
+    /// L'accueil montre autre chose que le squelette.
+    private var isContentReady: Bool {
+        if context.isResolved && !context.hasGroup { return true }
+        guard let viewModel else { return false }
+        return !viewModel.state.isLoading && !isIdle(viewModel.state)
     }
 
     private func isIdle(_ state: LoadState<FamilyHomeViewModel.Content>) -> Bool {

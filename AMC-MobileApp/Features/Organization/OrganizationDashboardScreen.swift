@@ -68,6 +68,18 @@ struct OrganizationDashboardScreen: View {
             .grenierBackground()
             .navigationTitle("Tableau")
             .profileToolbar()
+            .portalContentReady(.organization, when: isContentReady)
+        }
+    }
+}
+
+private extension OrganizationDashboardScreen {
+    /// Le tableau montre autre chose que le squelette (sans modèle : rien à attendre).
+    var isContentReady: Bool {
+        guard let model else { return true }
+        switch model.state {
+        case .idle, .loading: return false
+        default: return true
         }
     }
 }

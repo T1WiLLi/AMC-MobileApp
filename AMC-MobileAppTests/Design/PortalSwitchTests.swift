@@ -47,6 +47,29 @@ struct PortalSwitchTests {
         #expect(recorder.sleeps == [timeline.presentAt, timeline.hold, timeline.reveal])
     }
 
+    @Test func waitsForTheDestinationContentBeforeRevealing() async {
+        let (coordinator, recorder) = makeCoordinator()
+        coordinator.setContentReady(false, for: .vendor)
+        coordinator.switchPortal(from: .family, to: .vendor, reduceMotion: false)
+        await coordinator.waitUntilIdle()
+        let timeline = PortalTransitionTimeline.standard(reduceMotion: false)
+        let polls = recorder.sleeps.dropFirst(2).dropLast()
+        // Jamais prêt : le voile attend au plus `maxContentWait`, puis se lève quand même.
+        #expect(!polls.isEmpty && polls.allSatisfy { $0 == PortalTransitionTimeline.contentPollStep })
+        #expect(polls.reduce(0, +) <= PortalTransitionTimeline.maxContentWait + 0.0001)
+        #expect(recorder.sleeps.last == timeline.reveal)
+        #expect(coordinator.phase == .idle)
+    }
+
+    @Test func doesNotWaitWhenTheDestinationIsReady() async {
+        let (coordinator, recorder) = makeCoordinator()
+        coordinator.setContentReady(true, for: .vendor)
+        coordinator.switchPortal(from: .family, to: .vendor, reduceMotion: false)
+        await coordinator.waitUntilIdle()
+        let timeline = PortalTransitionTimeline.standard(reduceMotion: false)
+        #expect(recorder.sleeps == [timeline.presentAt, timeline.hold, timeline.reveal])
+    }
+
     @Test func ignoresSamePortal() {
         let (coordinator, _) = makeCoordinator()
         #expect(!coordinator.switchPortal(from: .family, to: .family, reduceMotion: false))

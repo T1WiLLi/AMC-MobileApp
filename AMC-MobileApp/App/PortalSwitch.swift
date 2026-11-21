@@ -100,6 +100,12 @@ struct PortalTransitionTimeline: Equatable, Sendable {
     var revealAt: Double { presentAt + hold }
     var total: Double { revealAt + reveal }
 
+    /// Attente maximale, après `hold`, du contenu du portail de destination (chargement de l'accueil).
+    /// Sans ça, le voile se lève sur un squelette et le titre saute (« Accueil » → « Bonjour Sam »).
+    static let maxContentWait: Double = 1.6
+    /// Pas de l'attente du contenu.
+    static let contentPollStep: Double = 0.05
+
     static func standard(reduceMotion: Bool) -> PortalTransitionTimeline {
         reduceMotion
             ? PortalTransitionTimeline(cover: 0.2, presentAt: 0.36, hold: 0.42, reveal: 0.2)
@@ -129,6 +135,9 @@ final class PortalSwitchCoordinator {
     @ObservationIgnored private let sleep: @MainActor (Double) async -> Void
     @ObservationIgnored private let announce: @MainActor (String) -> Void
     @ObservationIgnored private var task: Task<Void, Never>?
+    /// Contenu de l'accueil de chaque portail : prêt (`true`) ou en chargement (`false`).
+    /// Absent = l'écran ne le signale pas : le voile n'attend pas.
+    @ObservationIgnored private var contentReady: [Portal: Bool] = [:]
 
     init(
         sleep: @escaping @MainActor (Double) async -> Void = { seconds in
@@ -153,6 +162,11 @@ final class PortalSwitchCoordinator {
         return true
     }
 
+    /// Signalé par l'accueil d'un portail (`portalContentReady(_:when:)`).
+    func setContentReady(_ ready: Bool, for portal: Portal) {
+        contentReady[portal] = ready
+    }
+
     /// Attend la fin de la bascule en cours (tests).
     func waitUntilIdle() async {
         await task?.value
@@ -164,6 +178,12 @@ final class PortalSwitchCoordinator {
         completedSwitches += 1
         announce(destination.switchAnnouncement)
         await sleep(timeline.hold)
+        // Le voile reste tant que l'accueil du portail charge encore (au plus `maxContentWait`).
+        var waited = 0.0
+        while contentReady[destination] == false, waited < PortalTransitionTimeline.maxContentWait {
+            await sleep(PortalTransitionTimeline.contentPollStep)
+            waited += PortalTransitionTimeline.contentPollStep
+        }
         move(to: .revealing(destination), timeline: timeline, reduceMotion: reduceMotion)
         await sleep(timeline.reveal)
         // Voile déjà invisible : retour à l'état initial sans animation.
@@ -175,5 +195,28 @@ final class PortalSwitchCoordinator {
         withAnimation(timeline.animation(for: newPhase, reduceMotion: reduceMotion)) {
             phase = newPhase
         }
+    }
+}
+
+// MARK: - Contenu prêt
+
+extension View {
+    /// Signale au coordinateur de bascule si l'accueil de `portal` a son contenu : le voile ne se lève
+    /// qu'une fois l'écran chargé (au plus `PortalTransitionTimeline.maxContentWait` de plus).
+    func portalContentReady(_ portal: Portal, when ready: Bool) -> some View {
+        modifier(PortalContentReadyReporter(portal: portal, ready: ready))
+    }
+}
+
+private struct PortalContentReadyReporter: ViewModifier {
+    @Environment(PortalSwitchCoordinator.self) private var coordinator: PortalSwitchCoordinator?
+    let portal: Portal
+    let ready: Bool
+
+    func body(content: Content) -> some View {
+        content
+            .onChange(of: ready, initial: true) { _, isReady in
+                coordinator?.setContentReady(isReady, for: portal)
+            }
     }
 }

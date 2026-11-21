@@ -184,13 +184,21 @@ nonisolated final class FirestoreGroupOrderRepository: GroupOrderRepository, @un
                     share.quantity = quantity
                     share.updatedAt = now
                     newShares.append(share)
-                    transaction.setData(try Firestore.Encoder().encode(share), forDocument: shareRef)
+                    if mine == nil {
+                        transaction.setData(try Firestore.Encoder().encode(share), forDocument: shareRef)
+                    } else {
+                        // Seuls les champs qui changent : réécrire toute la part ferait bouger les dates
+                        // (aller-retour Date ↔ Timestamp) et les null du seed, et firestore.rules refuserait.
+                        transaction.updateData(
+                            ["quantity": quantity, "updatedAt": Timestamp(date: now)], forDocument: shareRef
+                        )
+                    }
                 } else if mine != nil {
                     transaction.deleteDocument(shareRef)
                 }
                 // Même recalcul que le fake (RQ-051) : quantité, ménages, palier et statut.
                 let updated = try TierEngine.recalculated(order, offer: offer, shares: newShares)
-                transaction.setData(try Firestore.Encoder().encode(updated), forDocument: orderRef)
+                transaction.updateData(Self.counterFields(updated), forDocument: orderRef)
                 return updated
             }
         }
@@ -227,14 +235,15 @@ nonisolated final class FirestoreGroupOrderRepository: GroupOrderRepository, @un
                         eligibleHouseholdIds: eligibleHouseholdIds, solidarityFundCents: solidarityFundCents
                     )
                     for share in result.shares {
-                        transaction.setData(
-                            try Firestore.Encoder().encode(share),
-                            forDocument: self.sharesRef(groupOrderId).document(share.householdId)
-                        )
+                        transaction.updateData([
+                            "finalPriceCents": share.finalPriceCents.map { $0 as Any } ?? NSNull(),
+                            "subsidyCents": share.subsidyCents,
+                            "qrCode": share.qrCode.map { $0 as Any } ?? NSNull(),
+                        ], forDocument: self.sharesRef(groupOrderId).document(share.householdId))
                     }
                     allocation = result
                 }
-                transaction.setData(try Firestore.Encoder().encode(closed), forDocument: orderRef)
+                transaction.updateData(Self.counterFields(closed), forDocument: orderRef)
                 return Closure(order: closed, outcome: outcome, allocation: allocation)
             }
         }
@@ -314,6 +323,17 @@ nonisolated final class FirestoreGroupOrderRepository: GroupOrderRepository, @un
             if snapshot.exists { shares.append(try decodeShare(snapshot)) }
         }
         return (order, offer, shares)
+    }
+
+    /// Champs d'une commande que recalculent `TierEngine.recalculated` et `TierEngine.closed`.
+    /// On n'écrit qu'eux (pas `pickupSlots`, `pickupPointId`) : voir `setShare`.
+    private static func counterFields(_ order: GroupOrder) -> [String: Any] {
+        [
+            "committedShares": order.committedShares,
+            "committedHouseholds": order.committedHouseholds,
+            "currentTierIndex": order.currentTierIndex.map { $0 as Any } ?? FieldValue.delete(),
+            "status": order.status.rawValue,
+        ]
     }
 
     /// Les parts lues expliquent-elles tout `committedShares` ? Sinon une part a été ajoutée entre-temps.

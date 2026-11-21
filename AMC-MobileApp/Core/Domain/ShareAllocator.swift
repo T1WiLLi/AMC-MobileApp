@@ -14,7 +14,8 @@ nonisolated enum ShareAllocator {
         var fundRemainingCents: Cents
         /// Parts du lot que personne n'a prises (le vendeur les garde).
         var unallocatedShares: Int
-        /// Total à encaisser auprès des familles, subventions déduites.
+        /// Total à encaisser auprès des familles : prix finaux − subventions + paniers suspendus,
+        /// soit la somme des `PaymentSimulator.amountDue` des parts.
         var totalDueCents: Cents
     }
 
@@ -49,7 +50,8 @@ nonisolated enum ShareAllocator {
         }
 
         // Solidarité : le fonds paie les parts admissibles, en entier s'il suffit, sinon au prorata.
-        let fund = solidarityFundCents + active.reduce(0) { $0 + $1.suspendedAmountCents }
+        let contributedCents = active.reduce(0) { $0 + $1.suspendedAmountCents }
+        let fund = solidarityFundCents + contributedCents
         let eligibleIndices = result.indices.filter { eligibleHouseholdIds.contains(result[$0].householdId) }
         let eligibleTotal = eligibleIndices.reduce(0) { $0 + (result[$1].finalPriceCents ?? 0) }
         let budget = min(fund, eligibleTotal)
@@ -66,7 +68,8 @@ nonisolated enum ShareAllocator {
             fundUsedCents: budget,
             fundRemainingCents: fund - budget,
             unallocatedShares: offer.totalShares - committed,
-            totalDueCents: totalPrice - budget
+            // Les familles paient aussi les paniers suspendus qu'elles ont ajoutés (T-093 : ils manquaient).
+            totalDueCents: totalPrice - budget + contributedCents
         )
     }
 

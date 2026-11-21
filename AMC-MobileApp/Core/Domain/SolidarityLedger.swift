@@ -93,7 +93,8 @@ nonisolated enum SolidarityLedger {
         guard amountCents > 0 else {
             throw AppError.invalidInput("Choisis un montant plus grand que 0 $.")
         }
-        guard share.suspendedAmountCents + amountCents <= maxSuspendedAmountCents else {
+        // Comparé sans additionner : un montant énorme ferait déborder l'addition (plantage, T-093).
+        guard amountCents <= maxSuspendedAmountCents - share.suspendedAmountCents else {
             throw AppError.invalidInput("Tu peux offrir jusqu'à 200 $ de paniers suspendus par commande.")
         }
         var share = share

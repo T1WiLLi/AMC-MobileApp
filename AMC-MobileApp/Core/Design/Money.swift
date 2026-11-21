@@ -19,7 +19,8 @@ enum Money {
 
     /// Pourcentage d'économie d'un prix par rapport à une référence, arrondi (37 pour −37 %). 0 si pas d'économie.
     static func savingsPercent(price: Cents, reference: Cents) -> Int {
-        guard reference > 0, price < reference else { return 0 }
+        // Un prix négatif (donnée corrompue) donnerait plus de 100 % (T-093).
+        guard reference > 0, price >= 0, price < reference else { return 0 }
         return Int((Double(reference - price) / Double(reference) * 100).rounded())
     }
 

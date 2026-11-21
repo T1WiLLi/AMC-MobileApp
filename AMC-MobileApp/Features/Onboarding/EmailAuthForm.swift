@@ -27,6 +27,10 @@ struct EmailAuthForm: View {
     @State private var email = ""
     @State private var password = ""
     @State private var showsPassword = false
+    /// Largeur de l'icône de tête et côté du bouton œil : suivent Dynamic Type pour ne jamais déborder
+    /// sur le libellé (à AX5, un symbole dans un cadre fixe dépassait sur « Mot de passe »).
+    @ScaledMetric(relativeTo: .body) private var fieldIconWidth: CGFloat = 24
+    @ScaledMetric(relativeTo: .body) private var eyeButtonSide: CGFloat = 44
     @State private var attemptedSubmit = false
     @State private var showsReset = false
     /// Champs déjà quittés une fois : on n'affiche l'erreur de format qu'après.
@@ -48,7 +52,7 @@ struct EmailAuthForm: View {
     private var serverError: AuthError? { session.emailAuthError }
 
     var body: some View {
-        VStack(spacing: 12) {
+        VStack(spacing: 10) {
             if mode == .signUp {
                 WelcomeAvatar(firstName: trimmedFirstName)
                     .transition(.move(edge: .top).combined(with: .opacity))
@@ -109,7 +113,7 @@ struct EmailAuthForm: View {
                         Image(systemName: showsPassword ? "eye.slash.fill" : "eye.fill")
                             .contentTransition(.symbolEffect(.replace))
                             .foregroundStyle(Color.texteSecondaire)
-                            .frame(width: 44, height: 44)
+                            .frame(width: eyeButtonSide, height: eyeButtonSide)
                             .contentShape(.rect)
                     }
                     .buttonStyle(.plain)
@@ -153,12 +157,11 @@ struct EmailAuthForm: View {
                             .font(.headline)
                     }
                 }
-                .frame(maxWidth: .infinity, minHeight: 46)
+                .frame(maxWidth: .infinity, minHeight: 44)
                 .foregroundStyle(canSubmit ? Color.onAccent : Color.texteSecondaire)
             }
             .buttonStyle(.glassProminent)
             .disabled(!canSubmit)
-            .padding(.top, 4)
             .accessibilityHint(canSubmit ? "" : "Remplis les champs pour continuer")
         }
         .animation(reduceMotion ? nil : .smooth, value: serverError)
@@ -232,7 +235,7 @@ struct EmailAuthForm: View {
                 Image(systemName: icon)
                     .symbolRenderingMode(.hierarchical)
                     .foregroundStyle(issue == nil ? Color.grenier : .red)
-                    .frame(width: 24)
+                    .frame(width: fieldIconWidth)
                     // Rebond à la prise du focus, frétillement quand une erreur apparaît.
                     .symbolEffect(.bounce, options: .nonRepeating, value: reduceMotion ? false : isFocused)
                     .symbolEffect(.wiggle, options: .nonRepeating, value: reduceMotion ? false : issue != nil)
@@ -258,8 +261,8 @@ struct EmailAuthForm: View {
             }
             .padding(.leading, 14)
             .padding(.trailing, 6)
-            .padding(.vertical, 8)
-            .frame(minHeight: 58)
+            .padding(.vertical, 6)
+            .frame(minHeight: 54)
             .background(isFocused || issue != nil ? Color.surface : Color.fond, in: .rect(cornerRadius: 16))
             .overlay {
                 RoundedRectangle(cornerRadius: 16)
@@ -314,7 +317,7 @@ private struct WelcomeAvatar: View {
                         .contentTransition(.numericText())
                 }
             }
-            .frame(width: 60, height: 60)
+            .frame(width: 52, height: 52)
             .overlay(Circle().strokeBorder(Color.surface, lineWidth: 3))
             .shadow(color: .black.opacity(0.08), radius: 6, y: 2)
 

@@ -39,11 +39,32 @@ struct BackendModeTests {
         #expect(resolve(BackendLaunchOptions(useFakeBackend: true, useFirebaseEmulator: true)) == .fake)
     }
 
-    @Test func releaseIgnoresFlags() {
-        for options in [BackendLaunchOptions(useFakeBackend: true), BackendLaunchOptions(useFirebaseEmulator: true)] {
-            #expect(resolve(options, debug: false) == .demoProject)
-            #expect(resolve(plist: false, options, debug: false) == .fake)
+    @Test func releaseUsesDemoProjectUnlessExplicitFlag() {
+        // T-127 : en Release aussi, le plist mène au vrai projet de démo ; un argument explicite reste honoré.
+        #expect(resolve(debug: false) == .demoProject)
+        #expect(resolve(BackendLaunchOptions(useFakeBackend: true), debug: false) == .fake)
+        #expect(resolve(BackendLaunchOptions(useFirebaseEmulator: true), debug: false) == .emulator)
+        #expect(resolve(plist: false, debug: false) == .fake)
+    }
+
+    @Test func unitTestsAlwaysFake() {
+        let options = BackendLaunchOptions(useFirebaseEmulator: true, isRunningTests: true)
+        for debug in [true, false] {
+            #expect(resolve(options, debug: debug) == .fake)
+            #expect(resolve(BackendLaunchOptions(isRunningTests: true), debug: debug) == .fake)
         }
+    }
+
+    @Test func detectsXCTestHost() {
+        let environment = ["XCTestConfigurationFilePath": "/tmp/x.xctestconfiguration"]
+        #expect(BackendLaunchOptions(arguments: ["app"], environment: environment).isRunningTests)
+        #expect(!BackendLaunchOptions(arguments: ["app"], environment: [:]).isRunningTests)
+    }
+
+    @Test func shortAliases() {
+        #expect(BackendLaunchOptions(arguments: ["app", "-useFakeData"], environment: [:]).useFakeBackend)
+        #expect(BackendLaunchOptions(arguments: ["app", "-useEmulator", "YES"], environment: [:]).useFirebaseEmulator)
+        #expect(!BackendLaunchOptions(arguments: ["app", "-useEmulator", "NO"], environment: [:]).useFirebaseEmulator)
     }
 
     @Test func onlyFakeSkipsFirebase() {
@@ -105,10 +126,13 @@ struct BackendModeTests {
     // MARK: - Fabriques de dépôts
 
     @Test func liveRepositoriesForEveryMode() async throws {
-        for mode in BackendMode.allCases {
+        // Fake : les données de démo en mémoire.
+        #expect(!(try await AppRepositories.live(mode: .fake).pickupPoints.pickupPoints()).isEmpty)
+        // Firebase sans FirebaseApp configurée (tests) : dépôts vides, jamais les personas de FakeData (T-127).
+        for mode in [BackendMode.emulator, .demoProject] {
             let repos = AppRepositories.live(mode: mode)
-            let points = try await repos.pickupPoints.pickupPoints()
-            #expect(!points.isEmpty)
+            #expect(try await repos.pickupPoints.pickupPoints().isEmpty)
+            #expect(try await repos.vendors.vendors().isEmpty)
         }
     }
 }

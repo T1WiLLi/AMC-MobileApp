@@ -3,6 +3,7 @@ import SwiftUI
 /// Profil commun aux deux portails, avec la bascule de portail (RQ-006).
 struct ProfileScreen: View {
     @AppStorage(Portal.storageKey) private var portal: Portal = .family
+    @AppStorage(AppTheme.storageKey) private var appTheme: AppTheme = .grenier
     /// Optionnel : absent dans les previews et les tests qui n'injectent pas de session.
     @Environment(SessionViewModel.self) private var session: SessionViewModel?
     /// Optionnel : absent dans les previews sans verrou.
@@ -82,6 +83,21 @@ struct ProfileScreen: View {
                     SecuritySection(lock: appLock)
                 }
 
+                // B-035 : thèmes interchangeables (accent, fond, coins), aperçu en direct.
+                Section {
+                    NavigationLink {
+                        ThemePickerScreen()
+                    } label: {
+                        Label {
+                            LabeledContent("Thème", value: appTheme.title)
+                        } icon: {
+                            RowIcon(systemImage: "paintpalette.fill", tint: .grenier)
+                        }
+                    }
+                } header: {
+                    ProfileSectionHeader("Apparence", systemImage: "paintbrush.pointed.fill")
+                }
+
                 Section {
                     if let user = session?.currentUser {
                         Label {
@@ -107,7 +123,8 @@ struct ProfileScreen: View {
                                 Label {
                                     Text("Modifier ou supprimer mon compte")
                                 } icon: {
-                                    RowIcon(systemImage: "person.crop.circle.badge.gearshape", tint: .grenier)
+                                    // « person.crop.circle.badge.gearshape » n'existe pas dans SF Symbols : la tuile restait vide.
+                                    RowIcon(systemImage: "gearshape.fill", tint: .grenier)
                                 }
                             }
                         }
@@ -144,6 +161,8 @@ struct ProfileScreen: View {
             .grenierBackground()
             .navigationTitle("Profil")
         }
+        // B-035 : la feuille ouverte suit le thème choisi en direct.
+        .appThemed()
     }
 
     /// Capsule de verre « Familles | Vendeurs » (T-123) et la promesse du portail choisi.

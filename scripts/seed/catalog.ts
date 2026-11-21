@@ -1,11 +1,11 @@
 import { readFile } from 'node:fs/promises'
 import { randomBytes } from 'node:crypto'
 import { Timestamp } from 'firebase-admin/firestore'
+import { enrichFixtures, type RawFixtures } from './richDemo.ts'
 
-type Fixture = Record<string, unknown> & { id: string }
+export type Fixture = Record<string, unknown> & { id: string }
 
 export const millisecondsPerDay = 86_400_000
-const firestoreBatchLimit = 500
 
 async function readFixtures(directory: URL, filename: string): Promise<Fixture[]> {
   const source = new URL(filename, directory)
@@ -53,12 +53,18 @@ const isStringArray = (value: unknown) => Array.isArray(value) && value.every(is
 const isInteger = (value: unknown) => Number.isSafeInteger(value)
 
 export async function readCatalog(directory: URL, seedDay: number) {
-  const [vendors, products, offerFixtures] = await Promise.all([
+  const [vendors, products, offers] = await Promise.all([
     readFixtures(directory, 'vendors.json'),
     readFixtures(directory, 'products.json'),
     readFixtures(directory, 'offers.json')
   ])
+  return validateCatalog(vendors, products, offers, seedDay)
+}
 
+/** Lots terminés : seule leur échéance peut être dans le passé. */
+const pastStatuses = new Set(['closed', 'cancelled'])
+
+function validateCatalog(vendors: Fixture[], products: Fixture[], offerFixtures: Fixture[], seedDay: number) {
   requireFields('vendors', vendors, {
     legalName: isString,
     kind: isString,
@@ -94,16 +100,19 @@ export async function readCatalog(directory: URL, seedDay: number) {
     if (productVendors.get(String(offer.productId)) !== offer.vendorId) {
       throw new Error(`offers/${offer.id} : le produit appartient à un autre vendeur`)
     }
+    const minimum = pastStatuses.has(String(offer.status)) ? -365 : 0
     if (typeof deadlineInDays !== 'number' || !Number.isSafeInteger(deadlineInDays) ||
-        deadlineInDays < 0) {
+        deadlineInDays < minimum || deadlineInDays > 365) {
       throw new Error(`Échéance invalide dans offers.json : ${offer.id}`)
     }
-    return { ...offer, deadline: Timestamp.fromMillis(seedDay + deadlineInDays * millisecondsPerDay) }
+    const tiers = offer.tiers as { minShares: number, priceCents: number }[]
+    if (tiers.some((tier, index) => index > 0 &&
+        (tier.minShares <= tiers[index - 1]!.minShares || tier.priceCents >= tiers[index - 1]!.priceCents)) ||
+        tiers.at(-1)!.minShares > Number(offer.totalShares)) {
+      throw new Error(`offers/${offer.id} : paliers mal triés ou au-delà du nombre de parts`)
+    }
+    return { ...offer, deadline: Timestamp.fromMillis(seedDay + deadlineInDays * millisecondsPerDay) } as Fixture
   })
-
-  if (vendors.length + products.length + offers.length > firestoreBatchLimit) {
-    throw new Error('Le catalogue dépasse 500 documents, la limite du lot Firestore')
-  }
   return { vendors, products, offers }
 }
 
@@ -127,9 +136,9 @@ export function montrealTime(day: number, minutes: number): number {
 }
 
 const isDayOffset = (value: unknown): value is number =>
-  typeof value === 'number' && Number.isSafeInteger(value) && value >= 0 && value <= 365
+  typeof value === 'number' && Number.isSafeInteger(value) && value >= -365 && value <= 365
 
-type Slot = { start: Timestamp, end: Timestamp }
+type Slot = { start: Timestamp, end: Timestamp, capacity?: number }
 
 function slot(owner: string, day: number, start: number, end: number): Slot {
   if (!(start < end)) {
@@ -163,22 +172,48 @@ export const demoEmailDomain = 'demo.grenier.local'
 
 export type SeedDocument = { path: string, data: Record<string, unknown> }
 
+const categories = new Set(['grains', 'legumes', 'oils', 'flour', 'canned', 'eggs', 'meat', 'produce', 'household'])
+const measureUnits = new Set(['kg', 'l', 'dozen', 'unit'])
+const wishFrequencies = new Set(['once', 'weekly', 'biweekly', 'monthly'])
+
+async function readRawFixtures(directory: URL): Promise<RawFixtures> {
+  const [vendors, products, offers, groups, pickupPoints, users, households, groupOrders] = await Promise.all(
+    ['vendors', 'products', 'offers', 'groups', 'pickupPoints', 'users', 'households', 'groupOrders']
+      .map((name) => readFixtures(directory, `${name}.json`)))
+  return {
+    vendors: vendors!, products: products!, offers: offers!, groups: groups!, pickupPoints: pickupPoints!,
+    users: users!, households: households!, groupOrders: groupOrders!, wishes: [], supplies: []
+  } as RawFixtures
+}
+
 /**
  * Charge toutes les fixtures et les convertit au format lu par l'app :
- * collections racines, plus `groups/{id}/members`, `households/{id}/private/profile`
- * et `groupOrders/{id}/shares`.
+ * collections racines, plus `groups/{id}/members`, `households/{id}/private/profile`,
+ * `groupOrders/{id}/shares`, `groups/{id}/wishes` et `vendors/{id}/supplies`.
+ *
+ * `rich` (par défaut) ajoute les données enrichies de `richDemo.ts` (T-130) ; `rich: false` ne garde que
+ * les fichiers JSON.
+ *
+ * Zones : les fixtures nomment les quartiers par leur slug (`parc-extension`), l'app compare des geohash
+ * (`OfferSummaryLoader.offer(_:serves:)`, `Matcher.serves`). Les zones des lots et des disponibilités
+ * deviennent le `centerGeohash` du groupe du quartier (6 caractères), celles des vendeurs son préfixe de
+ * 4 caractères (`VendorProfileViewModel.zonePrecision`, pour l'étiquette du quartier).
  */
-export async function readDemoSeed(directory: URL, seedDay: number) {
-  const [catalog, groupFixtures, pickupFixtures, users, householdFixtures, orderFixtures] = await Promise.all([
-    readCatalog(directory, seedDay),
-    readFixtures(directory, 'groups.json'),
-    readFixtures(directory, 'pickupPoints.json'),
-    readFixtures(directory, 'users.json'),
-    readFixtures(directory, 'households.json'),
-    readFixtures(directory, 'groupOrders.json')
-  ])
+export async function readDemoSeed(directory: URL, seedDay: number, { rich = true }: { rich?: boolean } = {}) {
+  const base = await readRawFixtures(directory)
+  const raw = (rich ? enrichFixtures(base) : base) as unknown as Record<keyof RawFixtures, Fixture[]>
+  const catalog = validateCatalog(raw.vendors, raw.products, raw.offers, seedDay)
+  const { groups: groupFixtures, pickupPoints: pickupFixtures, users, households: householdFixtures,
+    groupOrders: orderFixtures, wishes: wishFixtures, supplies: supplyFixtures } = raw
+  for (const [collection, records] of Object.entries(raw)) {
+    if (new Set(records.map(({ id }) => id)).size !== records.length) {
+      throw new Error(`${collection} contient un identifiant en double`)
+    }
+  }
   const vendorIds = new Set(catalog.vendors.map(({ id }) => id))
-  const offerIds = new Set(catalog.offers.map(({ id }) => id))
+  const productVendors = new Map(catalog.products.map(({ id, vendorId }) => [id, vendorId]))
+  const offersById = new Map(catalog.offers.map((offer) => [offer.id, offer]))
+  const offerIds = new Set(offersById.keys())
   const groupIds = new Set(groupFixtures.map(({ id }) => id))
   const pickupIds = new Set(pickupFixtures.map(({ id }) => id))
   const userIds = new Set(users.map(({ id }) => id))
@@ -236,22 +271,51 @@ export async function readDemoSeed(directory: URL, seedDay: number) {
     pickupSlotsInDays: (value) => isRecordArray(value) && value.length > 0,
     shares: isRecordArray
   })
+  requireFields('wishes', wishFixtures, {
+    groupId: isIn(groupIds),
+    householdId: isIn(householdIds),
+    category: isIn(categories),
+    unit: isIn(measureUnits),
+    productId: (value) => value === undefined || productVendors.has(String(value)),
+    quantity: (value) => typeof value === 'number' && value > 0 && value <= 10_000,
+    frequency: isIn(wishFrequencies),
+    createdInDays: isDayOffset
+  })
+  requireFields('supplies', supplyFixtures, {
+    vendorId: isIn(vendorIds),
+    category: isIn(categories),
+    unit: isIn(measureUnits),
+    quantity: (value) => typeof value === 'number' && value > 0 && value <= 1_000_000,
+    availableFromInDays: isDayOffset,
+    availableToInDays: isDayOffset,
+    servedZones: (value) => isStringArray(value) && (value as string[]).length > 0 && (value as string[]).length <= 20,
+    createdInDays: isDayOffset
+  })
   for (const id of personaUserIds) {
     if (!userIds.has(id)) {
       throw new Error(`users.json doit contenir le persona ${id}`)
     }
   }
 
+  // Zones : slug de quartier → geohash (voir plus haut). Une zone déjà en geohash reste telle quelle.
+  const centerOf = new Map(groupFixtures.map(({ neighborhood, centerGeohash }) => [String(neighborhood), String(centerGeohash)]))
+  const zoneGeohashes = (zones: unknown, precision?: number) =>
+    [...new Set((zones as string[]).map((zone) => (centerOf.get(zone) ?? zone).slice(0, precision)))]
+  const vendors = catalog.vendors.map((vendor) => ({ ...vendor, servedZones: zoneGeohashes(vendor.servedZones, 4) }))
+  const offers = catalog.offers.map((offer) => ({ ...offer, zones: zoneGeohashes(offer.zones) }))
+
+  const day = (offset: number) => Timestamp.fromMillis(seedDay + offset * millisecondsPerDay)
   const pickupPoints = pickupFixtures.map(({ slotTemplates, ...point }): Fixture & { slots: Slot[] } => ({
     ...point,
     slots: (slotTemplates as Record<string, unknown>[]).map((template) => {
       const owner = `pickupPoints/${point.id}`
-      const { inDays } = template
-      if (!isDayOffset(inDays)) {
-        throw new Error(`${owner} : inDays invalide`)
+      const { inDays, capacity } = template
+      if (!isDayOffset(inDays) || !(capacity === undefined || (isInteger(capacity) && Number(capacity) > 0))) {
+        throw new Error(`${owner} : inDays ou capacity invalide`)
       }
-      return slot(owner, seedDay + inDays * millisecondsPerDay,
+      const result = slot(owner, seedDay + inDays * millisecondsPerDay,
         clockMinutes(owner, template.start), clockMinutes(owner, template.end))
+      return capacity === undefined ? result : { ...result, capacity: Number(capacity) }
     })
   }))
 
@@ -275,45 +339,101 @@ export async function readDemoSeed(directory: URL, seedDay: number) {
   const shares: (Record<string, unknown> & { groupOrderId: string, householdId: string })[] = []
   const groupOrders = orderFixtures.map(({ pickupSlotsInDays, shares: orderShares, ...order }): Fixture & { pickupSlots: Slot[] } => {
     const owner = `groupOrders/${order.id}`
+    const pickupSlots = (pickupSlotsInDays as Record<string, unknown>[]).map((template) => {
+      const { inDays, startHour, endHour } = template
+      if (!isDayOffset(inDays) || !isInteger(startHour) || !isInteger(endHour) ||
+          Number(startHour) < 0 || Number(endHour) > 24) {
+        throw new Error(`${owner} : créneau invalide`)
+      }
+      return slot(owner, seedDay + inDays * millisecondsPerDay, Number(startHour) * 60, Number(endHour) * 60)
+    })
     const seen = new Set<string>()
-    for (const share of orderShares as Record<string, unknown>[]) {
+    let quantity = 0
+    for (const { pickupSlotIndex, ...share } of orderShares as Record<string, unknown>[]) {
       const householdId = share.householdId
       if (typeof householdId !== 'string' || groupOf.get(householdId) !== order.groupId || seen.has(householdId)) {
         throw new Error(`${owner} : part invalide pour ${String(householdId)}`)
       }
       if (!isInteger(share.quantity) || !isNullableInteger(share.finalPriceCents) || !isBoolean(share.isPaid) ||
           !isInteger(share.suspendedAmountCents) || !isInteger(share.subsidyCents) ||
-          !(share.qrCode === null || isString(share.qrCode)) || !isBoolean(share.isPickedUp)) {
+          !(share.qrCode === null || isString(share.qrCode)) || !isBoolean(share.isPickedUp) ||
+          !(pickupSlotIndex === undefined || (isInteger(pickupSlotIndex) && pickupSlots[Number(pickupSlotIndex)]))) {
         throw new Error(`${owner}/shares/${householdId} : champ invalide`)
       }
       seen.add(householdId)
-      shares.push({ ...share, householdId, groupOrderId: order.id })
+      quantity += Number(share.quantity)
+      shares.push({
+        ...share, householdId, groupOrderId: order.id,
+        ...(pickupSlotIndex === undefined ? {} : { pickupSlotStart: pickupSlots[Number(pickupSlotIndex)]!.start })
+      })
+    }
+    // Compteurs, palier et statut cohérents avec les parts et le lot (comme les règles Firestore).
+    const offer = offersById.get(String(order.offerId))!
+    const tiers = offer.tiers as { minShares: number }[]
+    const tierIndex = tiers.reduce<number | null>((found, tier, index) =>
+      Number(order.committedShares) >= tier.minShares ? index : found, null)
+    if (order.committedShares !== quantity || order.committedHouseholds !== seen.size) {
+      throw new Error(`${owner} : committedShares ou committedHouseholds diffère des parts`)
+    }
+    if (order.status !== 'cancelled' && order.currentTierIndex !== tierIndex) {
+      throw new Error(`${owner} : currentTierIndex (${order.currentTierIndex}) devrait être ${tierIndex}`)
+    }
+    if ((order.status === 'open' || order.status === 'reached') &&
+        order.status !== (quantity >= Number(offer.minimumSharesToLaunch) ? 'reached' : 'open')) {
+      throw new Error(`${owner} : statut incohérent avec le minimum du lot`)
+    }
+    return { ...order, pickupSlots }
+  })
+
+  const wishes = wishFixtures.map(({ wantedFromInDays, wantedUntilInDays, createdInDays, ...wish }): Fixture => {
+    const owner = `wishes/${wish.id}`
+    if (groupOf.get(String(wish.householdId)) !== wish.groupId) {
+      throw new Error(`${owner} : le ménage n'est pas membre du groupe`)
+    }
+    for (const value of [wantedFromInDays, wantedUntilInDays]) {
+      if (value !== undefined && !isDayOffset(value)) throw new Error(`${owner} : période invalide`)
+    }
+    if (wantedFromInDays !== undefined && wantedUntilInDays !== undefined &&
+        Number(wantedUntilInDays) < Number(wantedFromInDays)) {
+      throw new Error(`${owner} : la fin de la période précède son début`)
     }
     return {
-      ...order,
-      pickupSlots: (pickupSlotsInDays as Record<string, unknown>[]).map((template) => {
-        const { inDays, startHour, endHour } = template
-        if (!isDayOffset(inDays) || !isInteger(startHour) || !isInteger(endHour) ||
-            Number(startHour) < 0 || Number(endHour) > 24) {
-          throw new Error(`${owner} : créneau invalide`)
-        }
-        return slot(owner, seedDay + inDays * millisecondsPerDay, Number(startHour) * 60, Number(endHour) * 60)
-      })
+      ...wish,
+      ...(wantedFromInDays === undefined ? {} : { wantedFrom: day(Number(wantedFromInDays)) }),
+      ...(wantedUntilInDays === undefined ? {} : { wantedUntil: day(Number(wantedUntilInDays)) }),
+      createdAt: day(Number(createdInDays)),
+      updatedAt: day(Number(createdInDays))
+    }
+  })
+  const supplies = supplyFixtures.map(({ availableFromInDays, availableToInDays, createdInDays, ...supply }): Fixture => {
+    const owner = `supplies/${supply.id}`
+    if (supply.productId !== undefined && productVendors.get(String(supply.productId)) !== supply.vendorId) {
+      throw new Error(`${owner} : le produit appartient à un autre vendeur`)
+    }
+    if (Number(availableToInDays) < Number(availableFromInDays)) {
+      throw new Error(`${owner} : la fin de la disponibilité précède son début`)
+    }
+    return {
+      ...supply,
+      availableFrom: day(Number(availableFromInDays)),
+      availableTo: day(Number(availableToInDays)),
+      servedZones: zoneGeohashes(supply.servedZones),
+      createdAt: day(Number(createdInDays)),
+      updatedAt: day(Number(createdInDays))
     }
   })
 
-  const roots = { ...catalog, groups: groupFixtures, pickupPoints, users, households, groupOrders }
+  const roots = { vendors, products: catalog.products, offers, groups: groupFixtures, pickupPoints, users, households, groupOrders }
   const documents: SeedDocument[] = [
     ...Object.entries(roots as Record<string, Fixture[]>).flatMap(([collection, records]) =>
       records.map((data) => ({ path: `${collection}/${data.id}`, data }))),
     ...members.map(({ groupId, ...data }) => ({ path: `groups/${groupId}/members/${data.householdId}`, data })),
     ...householdProfiles.map(({ householdId, ...data }) => ({ path: `households/${householdId}/private/profile`, data })),
-    ...shares.map(({ groupOrderId, ...data }) => ({ path: `groupOrders/${groupOrderId}/shares/${data.householdId}`, data }))
+    ...shares.map(({ groupOrderId, ...data }) => ({ path: `groupOrders/${groupOrderId}/shares/${data.householdId}`, data })),
+    ...wishes.map((data) => ({ path: `groups/${data.groupId}/wishes/${data.id}`, data })),
+    ...supplies.map((data) => ({ path: `vendors/${data.vendorId}/supplies/${data.id}`, data }))
   ]
-  if (documents.length > firestoreBatchLimit) {
-    throw new Error(`Le seed compte ${documents.length} documents, au-delà de la limite du lot Firestore (500)`)
-  }
-  return { ...roots, members, householdProfiles, shares, documents }
+  return { ...roots, members, householdProfiles, shares, wishes, supplies, documents }
 }
 
 /** Comptes Auth de démo : un par utilisateur de users.json, uid = id du document. */

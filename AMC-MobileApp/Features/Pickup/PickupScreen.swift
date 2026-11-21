@@ -109,7 +109,7 @@ private struct PickupContentView: View {
             .padding(.horizontal, 16)
             .padding(.bottom, 24)
         }
-        .scrollEdgeEffectStyle(.soft, for: .top)
+        .grenierScrollEdge()
         .onAppear { brightness.raise() }
         .onDisappear { brightness.restore() }
     }

@@ -5,6 +5,9 @@ import SwiftUI
 struct FamilyHomeScreen: View {
     @Environment(\.appContext) private var context
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
+    /// Contexte de session : rechargé au retour sur l'Accueil sans groupe et au tirer-pour-rafraîchir,
+    /// pour qu'un groupe rejoint ailleurs (onglet Groupes, lien d'invitation) s'affiche tout de suite.
+    @Environment(SessionContextStore.self) private var contextStore: SessionContextStore?
     @State private var viewModel: FamilyHomeViewModel?
     /// Identité pour laquelle `viewModel` a été créé : un autre compte (ou un autre groupe) recrée le modèle.
     @State private var loadedIdentity: String?
@@ -15,7 +18,11 @@ struct FamilyHomeScreen: View {
         NavigationStack {
             Group {
                 if context.isResolved && !context.hasGroup {
-                    NoGroupView()
+                    // Dans un ScrollView pour que le tirer-pour-rafraîchir marche aussi sans groupe.
+                    ScrollView {
+                        NoGroupView()
+                            .containerRelativeFrame(.vertical)
+                    }
                 } else if let viewModel, !viewModel.state.isLoading, !isIdle(viewModel.state) {
                     StateView(
                         state: viewModel.state,
@@ -47,7 +54,11 @@ struct FamilyHomeScreen: View {
                 SectionLayoutEditor(title: "Modifier l'accueil", sections: HomeSection.infos, raw: $rawLayout)
             }
             .offerDestination()
-            .refreshable { await viewModel?.load() }
+            .refreshable {
+                // Le contexte d'abord : un nouveau groupe recrée le modèle de l'Accueil (task(id: identity)).
+                await contextStore?.reload()
+                await viewModel?.load()
+            }
             // Retour depuis une fiche de lot ou depuis un autre onglet : une part réservée entre-temps
             // (et le nouveau prix) s'affiche tout de suite. `load()` garde le contenu affiché pendant le rechargement.
             .onAppear { reloadIfAlreadyLoaded() }
@@ -101,6 +112,10 @@ struct FamilyHomeScreen: View {
 
     /// Recharge seulement après un premier chargement : la `.task` s'occupe du tout premier.
     private func reloadIfAlreadyLoaded() {
+        if context.isResolved && !context.hasGroup {
+            Task { await contextStore?.reload() }
+            return
+        }
         guard let viewModel, viewModel.state.value != nil else { return }
         Task { await viewModel.load() }
     }

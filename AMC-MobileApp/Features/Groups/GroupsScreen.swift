@@ -11,6 +11,8 @@ struct GroupRoute: Hashable, Sendable {
 struct GroupsScreen: View {
     @Environment(\.appContext) private var context
     @Environment(InviteLinkRouter.self) private var inviteLinks: InviteLinkRouter?
+    /// Rejoindre, quitter ou créer un groupe change le groupe actif : l'Accueil suit (contexte rechargé).
+    @Environment(SessionContextStore.self) private var contextStore: SessionContextStore?
     @State private var viewModel: GroupsViewModel?
     @State private var path = NavigationPath()
     /// Feuille « Rejoindre avec un code » ouverte, avec le code d'un lien reçu s'il y en a un.
@@ -86,7 +88,10 @@ struct GroupsScreen: View {
                 GroupDetailScreen(groupId: route.groupId)
             }
             .offerDestination()
-            .refreshable { await viewModel?.load() }
+            .refreshable {
+                await viewModel?.load()
+                await contextStore?.reload()
+            }
             .alert(
                 viewModel?.actionError?.title ?? "",
                 isPresented: Binding(
@@ -102,14 +107,20 @@ struct GroupsScreen: View {
             .sheet(item: $joinCode) { request in
                 JoinWithCodeSheet(repositories: context.repositories, householdId: context.householdId,
                                   code: request.code) { group in
-                    Task { await viewModel?.didJoin(group) }
+                    Task {
+                        await viewModel?.didJoin(group)
+                        await contextStore?.reload()
+                    }
                     path.append(GroupRoute(groupId: group.id))
                 }
             }
             .sheet(isPresented: $isCreatingGroup) {
                 CreateGroupSheet(repositories: context.repositories, userId: context.userId,
                                  householdId: context.householdId) { group in
-                    Task { await viewModel?.didJoin(group) }
+                    Task {
+                        await viewModel?.didJoin(group)
+                        await contextStore?.reload()
+                    }
                     path.append(GroupRoute(groupId: group.id))
                 }
             }
@@ -137,6 +148,7 @@ private struct JoinCodeRequest: Identifiable {
 private struct GroupList: View {
     let items: [GroupsViewModel.Item]
     let viewModel: GroupsViewModel
+    @Environment(SessionContextStore.self) private var contextStore: SessionContextStore?
 
     var body: some View {
         let mine = items.filter(\.isMember)
@@ -187,7 +199,12 @@ private struct GroupList: View {
             GroupRow(
                 item: item,
                 isPending: viewModel.pendingGroupIds.contains(item.id),
-                onJoin: { Task { await viewModel.join(groupId: item.id) } }
+                onJoin: {
+                    Task {
+                        await viewModel.join(groupId: item.id)
+                        await contextStore?.reload()
+                    }
+                }
             )
             .grenierTransition(.cardAppear)
             .grenierAppear(index: index)

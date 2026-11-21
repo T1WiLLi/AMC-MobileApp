@@ -1,0 +1,44 @@
+name: Règles Firebase
+
+# Tests des règles Firestore et Storage sur les émulateurs (scripts/rules-tests).
+# Job séparé du build iOS : Node sur Linux, environ 2 min.
+on:
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: rules-tests-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  rules-tests:
+    name: Tests des règles Firebase
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: scripts/rules-tests/package-lock.json
+
+      # Les émulateurs Firestore et Storage tournent sur la JVM.
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+
+      - name: Cache des émulateurs
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/firebase/emulators
+          key: firebase-emulators-${{ runner.os }}
+
+      - name: Dépendances
+        run: npm ci --prefix scripts/rules-tests
+
+      - name: Tests des règles (émulateurs)
+        run: npm --prefix scripts/rules-tests run test:emulators

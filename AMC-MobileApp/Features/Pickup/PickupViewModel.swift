@@ -22,7 +22,8 @@ final class PickupViewModel {
     }
 
     nonisolated struct Content: Sendable, Hashable {
-        var pickupPoint: PickupPoint
+        /// Point choisi par le groupe ; nil tant que le coordonnateur n'en a pas choisi (part réservée quand même).
+        var pickupPoint: PickupPoint?
         /// Prochain créneau (à venir ou en cours), nil s'il n'y en a pas.
         var slot: PickupSlot?
         /// Prénom de l'hôte (« Montre ce code à Amina »), nil s'il est introuvable.
@@ -91,13 +92,18 @@ final class PickupViewModel {
             pickupPointId = pickupPointId ?? order.pickupPointId
             slots += order.pickupSlots
         }
-        guard !items.isEmpty, let pickupPointId else { return nil }
+        // Une part réservée s'affiche même avant que le groupe ait choisi son point de cueillette.
+        guard !items.isEmpty else { return nil }
 
-        let point = try await repositories.pickupPoints.pickupPoint(id: pickupPointId)
+        var point: PickupPoint?
+        if let pickupPointId, !pickupPointId.isEmpty {
+            point = try await repositories.pickupPoints.pickupPoint(id: pickupPointId)
+        }
         let now = Date.now
-        let slot = (slots + point.slots).filter { $0.end > now }.min { $0.start < $1.start }
+        let slot = (slots + (point?.slots ?? [])).filter { $0.end > now }.min { $0.start < $1.start }
         // L'hôte est un détail : son absence ne doit pas bloquer la cueillette.
-        let host = try? await repositories.users.user(id: point.hostUserId)
+        var host: AppUser?
+        if let point { host = try? await repositories.users.user(id: point.hostUserId) }
         let code = orderCode(householdId: householdId, groupId: groupId)
         return Content(
             pickupPoint: point,

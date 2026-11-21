@@ -246,13 +246,26 @@ struct FamilyViewModelTests {
         #expect(viewModel.state == .empty)
     }
 
+    /// Une part réservée apparaît même avant que le groupe ait choisi son point de cueillette.
+    @Test func pickupShowsShareBeforeThePointIsChosen() async throws {
+        let repos = repositories()
+        _ = try await repos.groupOrders.setPickupPoint(nil, slots: [], groupOrderId: ID.potatoOrder)
+        try await repos.groupOrders.setShare(quantity: 2, householdId: ID.aminaHousehold, groupOrderId: ID.potatoOrder)
+        let viewModel = PickupViewModel(repositories: repos, householdId: ID.aminaHousehold, groupId: ID.saintMichel)
+        await viewModel.load()
+        let content = try #require(viewModel.state.value)
+        #expect(content.pickupPoint == nil)
+        #expect(content.hostFirstName == nil)
+        #expect(content.items.map(\.quantity) == [2])
+    }
+
     @Test func pickupShowsAminaShare() async throws {
         let repos = repositories()
         try await repos.groupOrders.setShare(quantity: 1, householdId: ID.aminaHousehold, groupOrderId: ID.potatoOrder)
         let viewModel = PickupViewModel(repositories: repos, householdId: ID.aminaHousehold, groupId: ID.saintMichel)
         await viewModel.load()
         let content = try #require(viewModel.state.value)
-        #expect(content.pickupPoint.id == ID.jarryPickup)
+        #expect(content.pickupPoint?.id == ID.jarryPickup)
         #expect(content.hostFirstName == "Amina")
         #expect(content.items.map(\.product.id) == [ID.potatoes])
         #expect(content.totalCents == 990)

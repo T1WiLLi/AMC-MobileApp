@@ -10,6 +10,8 @@ import UIKit
 struct PickupScreen: View {
     @Environment(\.appContext) private var context
     @State private var viewModel: PickupViewModel?
+    /// Groupe du modèle courant : un autre groupe actif recrée le modèle.
+    @State private var loadedGroupId: String?
 
     var body: some View {
         NavigationStack {
@@ -51,7 +53,10 @@ struct PickupScreen: View {
             .onAppear { reloadIfAlreadyLoaded() }
         }
         .task(id: context.groupId) {
-            guard viewModel == nil, context.hasGroup, let groupId = context.groupId else { return }
+            // Nouveau groupe actif (rejoint, changé) : nouveau modèle, sinon on garderait les parts de l'ancien.
+            guard context.hasGroup, let groupId = context.groupId else { viewModel = nil; loadedGroupId = nil; return }
+            guard viewModel == nil || loadedGroupId != groupId else { return }
+            loadedGroupId = groupId
             let model = PickupViewModel(repositories: context.repositories, householdId: context.householdId, groupId: groupId)
             viewModel = model
             await model.load()
@@ -119,9 +124,14 @@ private struct PickupContentView: View {
                 PickupCodeCard(content: content)
                 PickupItemsCard(items: content.items)
                 PickupRateVendorsCard(items: content.items) // T-157 : noter le producteur après la cueillette
-                PickupPointSummaryCard(content: content)
-                PickupNeighbourHelpCard(pickupPoint: content.pickupPoint, slot: content.slot) // RQ-069, RQ-070
-                directionsButton
+                if let point = content.pickupPoint {
+                    PickupPointSummaryCard(content: content, point: point)
+                    PickupNeighbourHelpCard(pickupPoint: point, slot: content.slot) // RQ-069, RQ-070
+                    directionsButton(to: point)
+                } else {
+                    // Lot réservé, mais le groupe n'a pas encore choisi où cueillir.
+                    PickupPointPendingCard(totalCents: content.totalCents)
+                }
             }
             .padding(.horizontal, 16)
             .padding(.bottom, 24)
@@ -131,10 +141,10 @@ private struct PickupContentView: View {
         .onDisappear { brightness.restore() }
     }
 
-    private var directionsButton: some View {
+    private func directionsButton(to point: PickupPoint) -> some View {
         Button {
             directionsTaps += 1
-            if let url = PickupFormat.mapsURL(for: content.pickupPoint) { openURL(url) }
+            if let url = PickupFormat.mapsURL(for: point) { openURL(url) }
         } label: {
             Label {
                 Text("Itinéraire à pied")
@@ -148,7 +158,7 @@ private struct PickupContentView: View {
         }
         .buttonStyle(.glass)
         .tint(.grenier)
-        .accessibilityHint("Ouvre Plans avec l'itinéraire vers \(content.pickupPoint.name)")
+        .accessibilityHint("Ouvre Plans avec l'itinéraire vers \(point.name)")
     }
 }
 
@@ -210,10 +220,11 @@ private struct PickupHeroCard: View {
     }
 
     private var hostLine: String {
+        guard let point = content.pickupPoint else { return String(localized: "Lieu à confirmer par ton groupe") }
         if let host = content.hostFirstName {
-            return String(localized: "Chez \(host) · \(content.pickupPoint.address)")
+            return String(localized: "Chez \(host) · \(point.address)")
         }
-        return content.pickupPoint.address
+        return point.address
     }
 }
 
@@ -401,22 +412,23 @@ private struct PickupItemsCard: View {
 /// Point de cueillette : nom, adresse, accessibilité et montant à payer.
 private struct PickupPointSummaryCard: View {
     let content: PickupViewModel.Content
+    let point: PickupPoint
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
             PickupSectionHeader(title: "Point de cueillette", systemImage: "mappin.and.ellipse")
             Label {
                 VStack(alignment: .leading, spacing: 2) {
-                    Text(content.pickupPoint.name).font(.headline).foregroundStyle(.texte)
-                    Text(content.pickupPoint.address).font(.subheadline).foregroundStyle(.texteSecondaire)
+                    Text(point.name).font(.headline).foregroundStyle(.texte)
+                    Text(point.address).font(.subheadline).foregroundStyle(.texteSecondaire)
                 }
             } icon: {
                 Image(systemName: "house.fill")
                     .symbolRenderingMode(.hierarchical)
                     .foregroundStyle(Color.grenier)
             }
-            if !content.pickupPoint.accessibility.isEmpty {
-                PickupAccessibilityTags(items: content.pickupPoint.accessibility)
+            if !point.accessibility.isEmpty {
+                PickupAccessibilityTags(items: point.accessibility)
             }
             Divider().overlay(Color.piste)
             HStack {
@@ -429,6 +441,45 @@ private struct PickupPointSummaryCard: View {
                 }
                 Spacer(minLength: 8)
                 Text(Money.format(content.totalCents)).priceStyle(.priceCompact).foregroundStyle(.texte)
+            }
+            .accessibilityElement(children: .combine)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .grenierCard()
+    }
+}
+
+/// Part réservée sans point de cueillette encore choisi par le groupe : on le dit, avec le montant à payer.
+private struct PickupPointPendingCard: View {
+    let totalCents: Cents
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            PickupSectionHeader(title: "Point de cueillette", systemImage: "mappin.and.ellipse")
+            Label {
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("Lieu à confirmer").font(.headline).foregroundStyle(.texte)
+                    Text("Ton groupe choisira bientôt où et quand cueillir. Tu recevras une notification.")
+                        .font(.subheadline)
+                        .foregroundStyle(.texteSecondaire)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+            } icon: {
+                Image(systemName: "clock.badge.questionmark.fill")
+                    .symbolRenderingMode(.hierarchical)
+                    .foregroundStyle(Color.grenier)
+            }
+            Divider().overlay(Color.piste)
+            HStack {
+                Label {
+                    Text("À payer à la cueillette").font(.subheadline).foregroundStyle(.texteSecondaire)
+                } icon: {
+                    Image(systemName: "banknote.fill")
+                        .symbolRenderingMode(.hierarchical)
+                        .foregroundStyle(Color.grenier)
+                }
+                Spacer(minLength: 8)
+                Text(Money.format(totalCents)).priceStyle(.priceCompact).foregroundStyle(.texte)
             }
             .accessibilityElement(children: .combine)
         }

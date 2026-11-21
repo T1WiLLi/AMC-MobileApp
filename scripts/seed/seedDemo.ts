@@ -3,8 +3,9 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { parseArgs } from 'node:util'
 import { deleteApp, initializeApp } from 'firebase-admin/app'
+import { getAuth } from 'firebase-admin/auth'
 import { getFirestore } from 'firebase-admin/firestore'
-import { millisecondsPerDay, readCatalog } from './catalog.ts'
+import { demoAccounts, demoPassword, millisecondsPerDay, passwordNotice, personaUserIds, readDemoSeed } from './catalog.ts'
 
 function loopbackHost(variable: string, port: number): string {
   const value = process.env[variable] ?? `127.0.0.1:${port}`
@@ -45,8 +46,12 @@ async function seedDemo() {
 
   process.env.METADATA_SERVER_DETECTION = 'none'
 
+  // Mot de passe commun des comptes de démo : jamais dans le dépôt.
+  const { password, generated } = demoPassword()
+
   const seedDay = Math.floor(Date.now() / millisecondsPerDay) * millisecondsPerDay
-  const catalog = await readCatalog(new URL('./fixtures/', import.meta.url), seedDay)
+  const seed = await readDemoSeed(new URL('./fixtures/', import.meta.url), seedDay)
+  const accounts = demoAccounts(seed.users)
   const databasePath = `projects/${projectId}/databases/(default)/documents`
   const authProject = `http://${authHost}/emulator/v1/projects/${projectId}`
 
@@ -63,21 +68,32 @@ async function seedDemo() {
 
     const app = initializeApp({ projectId })
     const db = getFirestore(app)
+    const auth = getAuth(app)
     try {
       await db.collection('vendors').limit(1).get()
 
       const batch = db.batch()
-      for (const [collection, documents] of Object.entries(catalog)) {
-        for (const document of documents) {
-          batch.set(db.collection(collection).doc(document.id), document)
-        }
+      for (const { path, data } of seed.documents) {
+        batch.set(db.doc(path), data)
       }
 
       console.log(`Réinitialisation des émulateurs Firestore et Auth pour ${projectId}`)
       await emulatorRequest(`${authProject}/accounts`, 'DELETE')
       await emulatorRequest(`http://${firestoreHost}/emulator/v1/${databasePath}`, 'DELETE')
       await batch.commit()
-      console.log(`Catalogue chargé : ${catalog.vendors.length} vendeurs, ${catalog.products.length} produits, ${catalog.offers.length} lots.`)
+      console.log(`Catalogue chargé : ${seed.vendors.length} vendeurs, ${seed.products.length} produits, ${seed.offers.length} lots.`)
+      console.log(`Communauté chargée : ${seed.groups.length} groupes, ${seed.pickupPoints.length} points de cueillette, ` +
+        `${seed.users.length} utilisateurs, ${seed.households.length} ménages, ` +
+        `${seed.groupOrders.length} commandes groupées, ${seed.shares.length} parts.`)
+
+      for (const account of accounts) {
+        await auth.createUser({ ...account, password, emailVerified: true })
+      }
+      console.log(`${accounts.length} comptes Auth créés. Personas :`)
+      for (const account of accounts.filter(({ uid }) => (personaUserIds as readonly string[]).includes(uid))) {
+        console.log(`  ${account.displayName} : ${account.email}`)
+      }
+      console.log(passwordNotice(generated, password, '(émulateur local seulement) '))
     } finally {
       await db.terminate()
       await deleteApp(app)

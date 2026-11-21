@@ -15,6 +15,8 @@ struct GroupsScreen: View {
     @State private var path = NavigationPath()
     /// Feuille « Rejoindre avec un code » ouverte, avec le code d'un lien reçu s'il y en a un.
     @State private var joinCode: JoinCodeRequest?
+    /// B-059 : feuille « Créer un groupe ».
+    @State private var isCreatingGroup = false
 
     var body: some View {
         NavigationStack(path: $path) {
@@ -60,10 +62,16 @@ struct GroupsScreen: View {
             .profileToolbar()
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
-                    Button("Rejoindre avec un code", systemImage: "ticket") {
-                        joinCode = JoinCodeRequest(code: "")
+                    Menu("Ajouter un groupe", systemImage: "plus") {
+                        Button("Rejoindre avec un code", systemImage: "ticket") {
+                            joinCode = JoinCodeRequest(code: "")
+                        }
+                        .accessibilityHint("Entre dans un groupe avec une invitation reçue")
+                        Button("Créer un groupe", systemImage: "person.3.sequence.fill") {
+                            isCreatingGroup = true
+                        }
+                        .accessibilityHint("Ton ménage en devient le premier membre")
                     }
-                    .accessibilityHint("Entre dans un groupe avec une invitation reçue")
                 }
                 ToolbarItem(placement: .topBarTrailing) {
                     NavigationLink {
@@ -98,8 +106,14 @@ struct GroupsScreen: View {
                     path.append(GroupRoute(groupId: group.id))
                 }
             }
+            .sheet(isPresented: $isCreatingGroup) {
+                CreateGroupSheet(repositories: context.repositories, userId: context.userId,
+                                 householdId: context.householdId) { group in
+                    Task { await viewModel?.didJoin(group) }
+                    path.append(GroupRoute(groupId: group.id))
+                }
+            }
         }
-        // B-056 : un lien d'invitation ouvre la feuille avec son code.
         // Lien d'invitation reçu par l'app (B-058), même avant que cet onglet soit chargé.
         .onChange(of: inviteLinks?.pendingCode, initial: true) { _, code in
             guard code != nil, let code = inviteLinks?.consume() else { return }

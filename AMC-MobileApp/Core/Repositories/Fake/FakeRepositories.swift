@@ -153,6 +153,22 @@ actor FakeGroupRepository: GroupRepository {
         return addMember(householdId, to: group)
     }
 
+    // MARK: B-059 Création
+
+    func createGroup(_ draft: GroupRules.Draft, byUserId userId: String, householdId: String) async throws -> NeighborhoodGroup {
+        try await behavior.simulate()
+        let householdGroupIds = members.filter { _, list in list.contains { $0.householdId == householdId } }.map(\.key)
+        try GroupRules.requireRoomToCreate(householdGroupIds: householdGroupIds)
+        let taken = Set(invitations.keys).union(groups.values.map(\.inviteCode))
+        let creation = try GroupRules.makeGroup(
+            from: draft, creatorUserId: userId, creatorHouseholdId: householdId,
+            makeInviteCode: { var rng = SystemRandomNumberGenerator(); return GroupRules.generateInviteCode(avoiding: taken, using: &rng) }
+        )
+        members[creation.group.id] = [creation.creatorMember]
+        update(creation.group)
+        return creation.group
+    }
+
     private func isMember(_ householdId: String, of groupId: String) -> Bool {
         members[groupId, default: []].contains { $0.householdId == householdId }
     }

@@ -144,10 +144,10 @@ Lancer les émulateurs (`--project demo-grenier`), puis les tests comme d'habitu
 
 | Chemin | Lecture | Écriture |
 |---|---|---|
-| `groups`, `vendors`, `products`, `offers`, `groupOrders`, `pickupPoints` | tout utilisateur connecté | `products`/`offers` : le vendeur propriétaire ; `vendors` : sa vitrine ; `pickupPoints` : l'hôte (créneaux, capacité) ; `groups`, `groupOrders` : personne (seed) |
+| `groups`, `vendors`, `products`, `offers`, `groupOrders`, `pickupPoints` | tout utilisateur connecté | `products`/`offers` : le vendeur propriétaire ; `vendors` : sa vitrine ; `pickupPoints` : l'hôte (créneaux, capacité) ; `groups` : création par une personne connectée (B-059, voir plus bas), mises à jour ciblées ; `groupOrders` : personne (seed) |
 | `users/{uid}` | le propriétaire | le propriétaire, **sans jamais poser `vendorId`** (rattachement vendeur = seed ou admin) |
 | `households/{id}` et `households/{id}/private/profile` | les membres (`userIds`) | les membres |
-| `groups/{id}/members/{householdId}` | connectés | le ménage s'ajoute (`role: member`) ou se retire |
+| `groups/{id}/members/{householdId}` | connectés | le ménage s'ajoute (`role: member`) ou se retire ; à la création du groupe, le ménage créateur s'écrit `coordinator` |
 | `groupOrders/{id}/shares/{householdId}` | membres du groupe (ménage vérifié dans `households.userIds`), vendeur du lot | le ménage, commande `open`/`reached` avant la date limite, avec la commande recalculée dans la même transaction : quantité et panier suspendu (≤ 200 $) ; à la clôture, coordonnateur ou vendeur : prix = quantité × palier figé, subvention ≤ prix et seulement pour un ménage subventionné, QR de la commande ; `isPaid`, `isPickedUp` hors de portée du client |
 | Storage `vendors/{vendorId}/…`, `users/{uid}/…` | connectés | le vendeur rattaché / le propriétaire ; images de moins de 5 Mo |
 
@@ -200,5 +200,6 @@ GRENIER_DEMO_PASSWORD='…' npm --prefix scripts/seed run seed:firestore -- --ta
 - Restreindre la clé d'API iOS (Google Cloud Console › Identifiants) aux API Firebase utilisées et à l'app `ca.amc2026.mobileapp` : aujourd'hui elle répond sans restriction.
 - Activer App Check (App Attest) ; ne jamais committer de jeton de debug.
 - `groups.inviteCode` est lisible par tout utilisateur connecté. Depuis B-056 il n'ouvre que les groupes **publics** ; un groupe privé (`isPublic: false`, jamais listé : `allow list` exige `isPublic == true`) s'ouvre seulement avec une invitation à usage unique `groupInvitations/{code}` (créée, listée et révoquée par le créateur du groupe, `createdBy` ou à défaut le premier coordonnateur), consommée dans la même transaction que l'adhésion (`invitationCode` sur `groups/{id}/members/{householdId}`). Le document d'un groupe privé reste lisible par son id.
+- Créer un groupe (B-059, `FirestoreGroupRepository.createGroup`) : un seul batch écrit `groups/{id}` (`createdBy` = `coordinatorIds[0]` = l'auteur, `householdCount: 1`, `createdAt` = `request.time`, `lastMembershipChange` = son ménage, nom de 3 à 40 caractères, geohash, rayon de 1 000 à 2 000 m, `isPublic`, `inviteCode` de 6 caractères) et `groups/{id}/members/{householdId}` en `role: coordinator`. Les règles refusent l'un sans l'autre (`isGroupCreation`, `isCreatorMembership`). La limite de 3 groupes par ménage (RQ-030) est vérifiée par l'app : les règles ne peuvent pas compter les adhésions d'un ménage.
 - Les lots en brouillon (`status: draft`) sont lisibles par les connectés : filtrer côté app.
 - Activer la protection contre la suppression de la base `(default)`.

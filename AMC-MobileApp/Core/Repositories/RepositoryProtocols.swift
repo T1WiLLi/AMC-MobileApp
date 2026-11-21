@@ -50,6 +50,11 @@ nonisolated protocol GroupRepository: Sendable {
     /// l'adhésion) ou le code fixe d'un groupe public. Invitation utilisée ou révoquée : `.invalidInput` au message clair.
     /// Renvoie le groupe rejoint ; déjà membre : sans effet (l'invitation n'est pas consommée).
     func join(withCode code: String, householdId: String) async throws -> NeighborhoodGroup
+
+    /// B-059 : crée un groupe (`GroupRules.makeGroup`) ; le ménage créateur en est le premier membre, coordonnateur.
+    /// Groupe, adhésion et compteur dans une seule écriture. Refusé (`.invalidInput`) si le brouillon est invalide
+    /// ou si le ménage fait déjà partie de 3 groupes (RQ-030).
+    func createGroup(_ draft: GroupRules.Draft, byUserId userId: String, householdId: String) async throws -> NeighborhoodGroup
 }
 
 extension GroupRepository {

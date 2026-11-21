@@ -6,7 +6,7 @@
   "scripts": {
     "seedDemo": "node seedDemo.ts",
     "check": "tsc --noEmit",
-    "test": "node --test catalog.test.ts",
+    "test": "node --test catalog.test.ts richDemo.test.ts",
     "test:emulators": "node --test --test-concurrency=1 seedDemo.integration.ts seedFirestore.integration.ts",
     "seed:firestore": "node seedFirestore.ts"
   },

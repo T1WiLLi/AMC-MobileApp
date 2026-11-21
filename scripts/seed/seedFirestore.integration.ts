@@ -65,15 +65,13 @@ test('seeds documents and persona accounts without deleting anything, twice', as
     assert.equal(await signIn(email, 'seed-test-password'), uid)
   }
 
-  // Deuxième passage sans variable : mot de passe généré, comptes mis à jour, rien de supprimé.
+  // Deuxième passage sans variable : comptes mis à jour, mots de passe existants gardés, rien de supprimé.
   const second = run()
   assert.match(second, new RegExp(`0 créés, ${users.length} mis à jour`))
-  const generated = /Mot de passe généré[^:]*: (\S+)/.exec(second)?.[1]
-  assert.ok(generated, 'le mot de passe généré doit être affiché')
+  assert.equal(/Mot de passe généré/.test(second), false)
   for (const [uid, email] of personas) {
     assert.equal((await auth.getUser(uid)).email, email)
-    assert.equal(await signIn(email, generated), uid)
-    assert.equal(await signIn(email, 'seed-test-password'), null)
+    assert.equal(await signIn(email, 'seed-test-password'), uid)
   }
   assert.equal((await auth.listUsers()).users.length, users.length + 1)
   assert.equal(await signIn('kept@example.test', 'kept-password'), 'real-user-kept')

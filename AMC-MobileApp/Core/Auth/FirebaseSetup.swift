@@ -15,22 +15,28 @@ import FirebaseStorage
 
 /// Démarrage de Firebase (B-012), choix du backend (B-013) et des implémentations.
 /// - Sans SDK lié ou sans `GoogleService-Info.plist` (repo cloné, CI) : l'app tourne sur les fakes au lieu de planter.
-/// - Tout réglage d'émulateur est appliqué ICI, juste après `FirebaseApp.configure()` et avant tout autre appel à
+/// - En mode émulateur, l'app Firebase par défaut vise le projet local `demo-grenier`, et Auth, Firestore et Storage
+///   sont pointés sur l'émulateur ICI, juste après `FirebaseApp.configure(options:)` et avant tout autre appel à
 ///   `Auth.auth()`, `Firestore.firestore()` ou `Storage.storage()` (sinon Firebase plante).
 enum FirebaseSetup {
     private static let logger = Logger(subsystem: Bundle.main.bundleIdentifier ?? "AMC-MobileApp", category: "Backend")
 
     /// Mode retenu au lancement (`.fake` tant que `configure()` n'a pas été appelé).
     private(set) static var mode: BackendMode = .fake
+    /// Réglages d'émulateur utilisés au lancement (projet, hôte, ports).
+    private(set) static var emulatorConfig = FirebaseEmulatorConfig()
     private static var isConfigured = false
 
-    /// true si le SDK est lié et que `GoogleService-Info.plist` est dans le bundle.
-    static var hasFirebaseConfig: Bool {
-        #if canImport(FirebaseCore)
-        Bundle.main.path(forResource: "GoogleService-Info", ofType: "plist") != nil
+    static var sdkAvailable: Bool {
+        #if canImport(FirebaseCore) && canImport(FirebaseAuth) && canImport(FirebaseFirestore)
+        true
         #else
         false
         #endif
+    }
+
+    static var configFilePath: String? {
+        Bundle.main.path(forResource: "GoogleService-Info", ofType: "plist")
     }
 
     static var isDebugBuild: Bool {
@@ -39,6 +45,12 @@ enum FirebaseSetup {
         #else
         false
         #endif
+    }
+
+    /// Compatibilité (B-012) : configure Firebase selon le mode choisi ; true si Firebase est actif (émulateur ou démo).
+    @discardableResult
+    static func configureIfAvailable() -> Bool {
+        configure().usesFirebase
     }
 
     /// Choisit le mode, configure Firebase (et les émulateurs) si besoin, et l'écrit dans le log.
@@ -52,46 +64,40 @@ enum FirebaseSetup {
         isConfigured = true
 
         let options = BackendLaunchOptions(arguments: arguments, environment: environment)
-        let resolved = BackendMode.resolve(hasFirebaseConfig: hasFirebaseConfig, options: options, isDebugBuild: isDebugBuild)
+        let resolved = BackendMode.resolve(
+            sdkAvailable: sdkAvailable,
+            hasConfigFile: configFilePath != nil,
+            options: options,
+            isDebugBuild: isDebugBuild
+        )
         mode = resolved
+        emulatorConfig = options.emulator
 
-        #if canImport(FirebaseCore)
-        if resolved.usesFirebase {
+        #if canImport(FirebaseCore) && canImport(FirebaseAuth) && canImport(FirebaseFirestore)
+        switch resolved {
+        case .fake:
+            break
+        case .demoProject:
             if FirebaseApp.app() == nil { FirebaseApp.configure() }
-            if resolved == .emulator { connectToEmulators(options.emulator) }
+        case .emulator:
+            if FirebaseApp.app() == nil {
+                FirebaseApp.configure(options: emulatorOptions(options.emulator))
+            }
+            if let app = FirebaseApp.app() { connect(app, to: options.emulator) }
         }
         #endif
 
         switch resolved {
-        case .fake where !hasFirebaseConfig:
+        case .fake where configFilePath == nil:
             logger.notice("Backend : \(resolved.description, privacy: .public) — GoogleService-Info.plist absent (voir docs/firebase.md).")
         case .emulator:
             let emulator = options.emulator
-            logger.notice("Backend : \(resolved.description, privacy: .public) — \(emulator.host, privacy: .public) (Auth \(emulator.authPort), Firestore \(emulator.firestorePort), Storage \(emulator.storagePort)).")
+            logger.notice("Backend : \(resolved.description, privacy: .public) — projet \(emulator.projectID, privacy: .public) sur \(emulator.host, privacy: .public) (Auth \(emulator.authPort), Firestore \(emulator.firestorePort), Storage \(emulator.storagePort)).")
         default:
             logger.notice("Backend : \(resolved.description, privacy: .public).")
         }
         return resolved
     }
-
-    #if canImport(FirebaseCore)
-    private static func connectToEmulators(_ config: FirebaseEmulatorConfig) {
-        #if canImport(FirebaseAuth)
-        Auth.auth().useEmulator(withHost: config.host, port: config.authPort)
-        #endif
-        #if canImport(FirebaseFirestore)
-        // Cache en mémoire : les données de l'émulateur ne se mélangent pas au cache disque du projet de démo.
-        let settings = Firestore.firestore().settings
-        settings.host = "\(config.host):\(config.firestorePort)"
-        settings.isSSLEnabled = false
-        settings.cacheSettings = MemoryCacheSettings()
-        Firestore.firestore().settings = settings
-        #endif
-        #if canImport(FirebaseStorage)
-        Storage.storage().useEmulator(withHost: config.host, port: config.storagePort)
-        #endif
-    }
-    #endif
 
     /// Service d'authentification : Firebase + Google en mode émulateur ou démo, sinon fake.
     static func makeAuthService(mode: BackendMode) -> AuthService {
@@ -101,3 +107,47 @@ enum FirebaseSetup {
         return FakeAuthService()
     }
 }
+
+#if canImport(FirebaseCore) && canImport(FirebaseAuth) && canImport(FirebaseFirestore)
+extension FirebaseSetup {
+    /// Options d'une app Firebase pour l'émulateur : celles du plist s'il est là (le client Google reste utilisable),
+    /// sinon des valeurs factices ; dans les deux cas le projet est forcé à `config.projectID` (`demo-grenier`).
+    static func emulatorOptions(_ config: FirebaseEmulatorConfig) -> FirebaseOptions {
+        let options: FirebaseOptions
+        if let path = configFilePath, let fromFile = FirebaseOptions(contentsOfFile: path) {
+            options = fromFile
+        } else {
+            options = FirebaseOptions(googleAppID: "1:000000000000:ios:0000000000000000", gcmSenderID: "000000000000")
+            options.apiKey = "AIzaDemoGrenierEmulatorOnly000000000000"
+            options.bundleID = Bundle.main.bundleIdentifier ?? "ca.amc2026.mobileapp"
+        }
+        options.projectID = config.projectID
+        options.storageBucket = "\(config.projectID).appspot.com"
+        return options
+    }
+
+    /// Pointe Auth, Firestore et Storage de `app` sur l'émulateur. À appeler une seule fois par app,
+    /// avant tout autre usage de ses clients.
+    static func connect(_ app: FirebaseApp, to config: FirebaseEmulatorConfig) {
+        Auth.auth(app: app).useEmulator(withHost: config.host, port: config.authPort)
+        // Cache en mémoire : les données de l'émulateur ne se mélangent pas au cache disque du projet de démo.
+        let firestore = Firestore.firestore(app: app)
+        let settings = firestore.settings
+        settings.host = "\(config.host):\(config.firestorePort)"
+        settings.isSSLEnabled = false
+        settings.cacheSettings = MemoryCacheSettings()
+        firestore.settings = settings
+        #if canImport(FirebaseStorage)
+        Storage.storage(app: app).useEmulator(withHost: config.host, port: config.storagePort)
+        #endif
+    }
+
+    /// true si ce Firestore vise un émulateur local d'un projet `demo-` (garde pour les tests).
+    static func isEmulatorTarget(_ firestore: Firestore) -> Bool {
+        let settings = firestore.settings
+        let host = settings.host.split(separator: ":").dropLast().joined(separator: ":")
+        let target = FirebaseEmulatorConfig(projectID: firestore.app.options.projectID ?? "", host: host)
+        return !settings.isSSLEnabled && target.isSafeEmulatorTarget
+    }
+}
+#endif

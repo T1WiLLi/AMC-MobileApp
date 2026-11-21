@@ -5,32 +5,44 @@ import Testing
 struct BackendModeTests {
     // MARK: - Résolution du mode
 
-    @Test func withoutFirebaseConfigAlwaysFake() {
+    private func resolve(
+        sdk: Bool = true, plist: Bool = true, _ options: BackendLaunchOptions = .init(), debug: Bool = true
+    ) -> BackendMode {
+        BackendMode.resolve(sdkAvailable: sdk, hasConfigFile: plist, options: options, isDebugBuild: debug)
+    }
+
+    @Test func withoutSDKAlwaysFake() {
         let all = BackendLaunchOptions(useFakeBackend: true, useFirebaseEmulator: true)
         for options in [BackendLaunchOptions(), BackendLaunchOptions(useFirebaseEmulator: true), all] {
             for debug in [true, false] {
-                #expect(BackendMode.resolve(hasFirebaseConfig: false, options: options, isDebugBuild: debug) == .fake)
+                #expect(resolve(sdk: false, options, debug: debug) == .fake)
             }
         }
     }
 
+    @Test func withoutPlistFakeUnlessEmulator() {
+        #expect(resolve(plist: false) == .fake)
+        #expect(resolve(plist: false, debug: false) == .fake)
+        // Le projet demo-grenier de l'émulateur n'a pas besoin du plist.
+        #expect(resolve(plist: false, BackendLaunchOptions(useFirebaseEmulator: true)) == .emulator)
+    }
+
     @Test func defaultsToDemoProject() {
-        #expect(BackendMode.resolve(hasFirebaseConfig: true, options: .init(), isDebugBuild: true) == .demoProject)
+        #expect(resolve() == .demoProject)
     }
 
     @Test func emulatorFlagSelectsEmulator() {
-        let options = BackendLaunchOptions(useFirebaseEmulator: true)
-        #expect(BackendMode.resolve(hasFirebaseConfig: true, options: options, isDebugBuild: true) == .emulator)
+        #expect(resolve(BackendLaunchOptions(useFirebaseEmulator: true)) == .emulator)
     }
 
     @Test func fakeFlagWinsOverEmulator() {
-        let options = BackendLaunchOptions(useFakeBackend: true, useFirebaseEmulator: true)
-        #expect(BackendMode.resolve(hasFirebaseConfig: true, options: options, isDebugBuild: true) == .fake)
+        #expect(resolve(BackendLaunchOptions(useFakeBackend: true, useFirebaseEmulator: true)) == .fake)
     }
 
     @Test func releaseIgnoresFlags() {
         for options in [BackendLaunchOptions(useFakeBackend: true), BackendLaunchOptions(useFirebaseEmulator: true)] {
-            #expect(BackendMode.resolve(hasFirebaseConfig: true, options: options, isDebugBuild: false) == .demoProject)
+            #expect(resolve(options, debug: false) == .demoProject)
+            #expect(resolve(plist: false, options, debug: false) == .fake)
         }
     }
 
@@ -85,7 +97,9 @@ struct BackendModeTests {
 
     @Test func emulatorDefaultsMatchFirebaseJSON() {
         let config = BackendLaunchOptions(arguments: [], environment: [:]).emulator
-        #expect(config == FirebaseEmulatorConfig(host: "127.0.0.1", authPort: 9099, firestorePort: 8080, storagePort: 9199))
+        #expect(config == FirebaseEmulatorConfig(
+            projectID: "demo-grenier", host: "127.0.0.1", authPort: 9099, firestorePort: 8080, storagePort: 9199
+        ))
     }
 
     // MARK: - Fabriques de dépôts

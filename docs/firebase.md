@@ -72,7 +72,8 @@ Tout le code Firebase est protégé par `#if canImport(...)` : le build reste ve
 
 - `Core/Auth/BackendMode.swift` : choix du backend (`fake`, `emulator`, `demoProject`) à partir des arguments de lancement (B-013, voir §4).
 - `Core/Auth/FirebaseSetup.swift` : `configure()` au lancement — choisit le mode, appelle `FirebaseApp.configure()` et branche les émulateurs ; `makeAuthService(mode:)`.
-- `Core/Repositories/AppRepositories+Live.swift` : `AppRepositories.live(mode:)` et `AppRepositories.firebase()` (les dépôts Firestore B-017 à B-019 s'y branchent, une ligne chacun).
+- `Core/Repositories/Firebase/AppRepositories+Firebase.swift` : `AppRepositories.live(mode:)` et `AppRepositories.firebase()` (les dépôts Firestore B-017 à B-019 s'y branchent, une ligne chacun ; ils reçoivent leur `Firestore`/`Auth` par `init`).
+- `Core/Auth/FirebaseEmulatorSession.swift` (Debug) : app Firebase nommée sur l'émulateur, pour avoir plusieurs comptes connectés en même temps dans les tests.
 - `Core/Auth/AuthService.swift` : protocole `AuthService`, `AuthError` (messages en français), `FakeAuthService` (latence simulée, erreur activable).
 - `Core/Auth/FirebaseAuthService.swift` : Google Sign-In → `GoogleAuthProvider.credential` → `Auth.auth().signIn(with:)`, écoute de session, déconnexion.
 - `Features/Onboarding/` : `SessionViewModel`, `SignInScreen` (bouton « Continuer avec Google »), `SessionGate` (connexion puis `RootView`), compte et déconnexion dans `ProfileScreen`.
@@ -84,8 +85,10 @@ Tout le code Firebase est protégé par `#if canImport(...)` : le build reste ve
 Pour développer sans toucher aux vraies données. Il faut Node et Java (`java -version`).
 
 ```bash
-npx -y firebase-tools@latest emulators:start --only auth,firestore,storage
+npx -y firebase-tools@latest emulators:start --only auth,firestore,storage --project demo-grenier
 ```
+
+Projet local **`demo-grenier`** (accepté par zachary) : le préfixe `demo-` garantit qu'aucune ressource réelle n'est touchée, et aucun login n'est nécessaire. `--project demo-grenier` est obligatoire (sinon `.firebaserc` impose `amc-2026-8ab03`, qui ne correspondrait pas à l'app).
 
 Ports (`firebase.json`) : Auth 9099, Firestore 8080, Storage 9199, interface http://localhost:4000. Les règles `firestore.rules` et `storage.rules` sont chargées par l'émulateur.
 
@@ -95,36 +98,40 @@ Le backend est choisi au lancement (`BackendMode`) et écrit dans le log (`Backe
 
 | Mode | Quand |
 |---|---|
-| `fake` | `GoogleService-Info.plist` absent (CI, previews, repo fraîchement cloné), ou argument `-useFakeBackend YES` |
-| `emulator` | argument `-useFirebaseEmulator YES` (Debug seulement) |
+| `fake` | SDK non lié, ou `GoogleService-Info.plist` absent sans argument émulateur (CI, previews, repo fraîchement cloné), ou argument `-useFakeBackend YES` |
+| `emulator` | argument `-useFirebaseEmulator YES` (Debug seulement ; le plist n'est pas nécessaire) |
 | `demoProject` | sinon ; **toujours en Release** (les arguments sont ignorés) |
 
 - **Xcode** : le schéma partagé `AMC-MobileApp` contient déjà les deux arguments, décochés. Product › Scheme › Edit Scheme… › Run › Arguments, cocher `-useFirebaseEmulator YES` (ou `-useFakeBackend YES`). Les tests n'utilisent pas ces arguments.
 - **Ligne de commande** : `xcrun simctl launch booted ca.amc2026.mobileapp -useFirebaseEmulator YES`.
 - Variables d'environnement équivalentes (pratique dans un schéma perso) : `USE_FIREBASE_EMULATOR=1`, `USE_FAKE_BACKEND=1`. Un argument présent l'emporte sur la variable.
 - Hôte : `127.0.0.1` (marche sur le simulateur). Sur un iPhone réel : `-firebaseEmulatorHost <IP du Mac>` (ou `FIREBASE_EMULATOR_HOST`), et `"host": "0.0.0.0"` pour chaque émulateur dans un `firebase.json` local.
-- Le plist doit être présent (sinon c'est `fake`) ; l'émulateur utilise son `PROJECT_ID` (`amc-2026-8ab03`).
+- Projet : toujours `demo-grenier` en mode émulateur. Si le plist est là, ses autres valeurs sont gardées (Google Sign-In reste utilisable, l'émulateur Auth accepte le jeton Google) ; sinon des valeurs factices sont utilisées.
+- `FirebaseSetup.configureIfAvailable()` existe toujours (renvoie true si Firebase est actif) ; il appelle `configure()`.
 - `FirebaseSetup.configure()` applique les réglages d'émulateur juste après `FirebaseApp.configure()` et avant tout `Auth.auth()`, `Firestore.firestore()` ou `Storage.storage()` : ne créez jamais ces objets avant (crash). En mode émulateur, le cache Firestore est en mémoire (pas de mélange avec le cache du projet de démo).
 
 ### Tests d'intégration sur l'émulateur
 
-`AMC-MobileAppTests/Support/FirebaseEmulator.swift` :
+`AMC-MobileAppTests/Support/FirebaseEmulatorTestSupport.swift` (`@MainActor enum FirebaseEmulatorTestSupport`) :
 
 - trait `.firestoreEmulator` : le test ou la suite ne tourne que si l'émulateur Firestore répond sur `127.0.0.1:8080` ; sinon il est sauté (CI, Mac sans émulateur) ;
-- `FirebaseEmulator.clearFirestore()` vide la base entre deux tests (`DELETE …/emulator/v1/projects/amc-2026-8ab03/databases/(default)/documents`), `clearAuth()` supprime les comptes ;
-- `FirebaseEmulator.send(method:to:json:)` fait une requête REST en `Bearer owner` (contourne les règles, pour préparer des données).
+- `clearFirestore()` vide la base entre deux tests (`DELETE http://127.0.0.1:8080/emulator/v1/projects/demo-grenier/databases/(default)/documents`), `clearAuth()` supprime les comptes ;
+- `session("vendor")`, `session("family")` : deux `FirebaseEmulatorSession` indépendantes (apps Firebase nommées du projet `demo-grenier`), chacune avec son `auth`, son `firestore`, `projectID` et `host` ; à injecter dans les dépôts Firestore ;
+- gardes : `session` refuse tout projet sans préfixe `demo-` ou hôte non local (`FirebaseSetup.isEmulatorTarget`), `send(method:to:json:)` refuse toute URL hors émulateur ; `send` utilise `Bearer owner` (contourne les règles, pour préparer des données).
 
 ```swift
-@Suite(.serialized, .firestoreEmulator)
+@MainActor @Suite(.serialized, .firestoreEmulator)
 struct FirestoreOfferRepositoryTests {
     @Test func saveThenRead() async throws {
-        try await FirebaseEmulator.clearFirestore()
+        try await FirebaseEmulatorTestSupport.clearFirestore()
+        let vendor = try FirebaseEmulatorTestSupport.session("vendor")
+        let repo = FirestoreOfferRepository(firestore: vendor.firestore, auth: vendor.auth)
         // …
     }
 }
 ```
 
-Lancer les émulateurs, puis les tests comme d'habitude (`xcodebuild test … -parallel-testing-enabled NO`) : les suites `.firestoreEmulator` passent de « skipped » à exécutées.
+Lancer les émulateurs (`--project demo-grenier`), puis les tests comme d'habitude (`xcodebuild test … -parallel-testing-enabled NO`) : les suites `.firestoreEmulator` passent de « skipped » à exécutées.
 
 ## 5. Règles de sécurité
 

@@ -25,28 +25,49 @@ nonisolated enum BackendMode: String, Sendable, CaseIterable, CustomStringConver
     }
 
     /// Règle de choix :
-    /// 1. pas de config Firebase (plist absent ou SDK non lié) → `.fake` ;
-    /// 2. build Release → toujours `.demoProject` (les arguments de lancement sont ignorés) ;
+    /// 1. SDK Firebase non lié → `.fake` ;
+    /// 2. build Release → `.demoProject` si `GoogleService-Info.plist` est là, sinon `.fake` (arguments ignorés) ;
     /// 3. `-useFakeBackend YES` → `.fake` (prioritaire sur l'émulateur) ;
-    /// 4. `-useFirebaseEmulator YES` → `.emulator` ;
-    /// 5. sinon → `.demoProject`.
-    static func resolve(hasFirebaseConfig: Bool, options: BackendLaunchOptions, isDebugBuild: Bool) -> BackendMode {
-        guard hasFirebaseConfig else { return .fake }
-        guard isDebugBuild else { return .demoProject }
-        if options.useFakeBackend { return .fake }
-        if options.useFirebaseEmulator { return .emulator }
-        return .demoProject
+    /// 4. `-useFirebaseEmulator YES` → `.emulator` (projet local `demo-grenier` : le plist n'est pas obligatoire) ;
+    /// 5. plist présent → `.demoProject`, sinon `.fake`.
+    static func resolve(
+        sdkAvailable: Bool,
+        hasConfigFile: Bool,
+        options: BackendLaunchOptions,
+        isDebugBuild: Bool
+    ) -> BackendMode {
+        guard sdkAvailable else { return .fake }
+        if isDebugBuild {
+            if options.useFakeBackend { return .fake }
+            if options.useFirebaseEmulator { return .emulator }
+        }
+        return hasConfigFile ? .demoProject : .fake
     }
 }
 
-/// Hôte et ports des émulateurs (identiques à `firebase.json`).
+/// Projet, hôte et ports des émulateurs (ports identiques à `firebase.json`).
 nonisolated struct FirebaseEmulatorConfig: Sendable, Equatable {
+    /// Projet local de l'émulateur. Le préfixe `demo-` garantit qu'aucune ressource réelle ne peut être touchée.
+    static let demoProjectID = "demo-grenier"
+
+    var projectID: String = Self.demoProjectID
     /// `127.0.0.1` marche sur le simulateur. Sur un iPhone réel, mettre l'IP du Mac (`-firebaseEmulatorHost 192.168.x.y`)
     /// et lancer les émulateurs avec `"host": "0.0.0.0"`.
     var host: String = "127.0.0.1"
     var authPort: Int = 9099
     var firestorePort: Int = 8080
     var storagePort: Int = 9199
+
+    /// true si la cible est bien locale (hôte de boucle locale ou IP privée) et un projet `demo-`.
+    var isSafeEmulatorTarget: Bool {
+        projectID.hasPrefix("demo-") && Self.isLocalHost(host)
+    }
+
+    static func isLocalHost(_ host: String) -> Bool {
+        if ["127.0.0.1", "localhost", "::1", "[::1]"].contains(host.lowercased()) { return true }
+        return host.hasPrefix("10.") || host.hasPrefix("192.168.")
+            || (16...31).contains(where: { host.hasPrefix("172.\($0).") })
+    }
 }
 
 /// Options lues au lancement : arguments (`-clé valeur`, comme `UserDefaults`) puis variables d'environnement.

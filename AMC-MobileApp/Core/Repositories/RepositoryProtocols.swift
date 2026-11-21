@@ -174,6 +174,12 @@ nonisolated protocol VendorSupplyRepository: Sendable {
     func observeSupplies(ofVendor vendorId: String) async -> AsyncThrowingStream<[VendorSupply], any Error>
 }
 
+/// Agrégats des arrondissements (`boroughStats`) — RQ-093, lecture seule.
+nonisolated protocol BoroughStatsRepository: Sendable {
+    /// Tous les arrondissements qui ont des agrégats, dans un ordre quelconque (le classement trie).
+    func boroughStats() async throws -> [BoroughStats]
+}
+
 /// Tous les dépôts de l'app, à injecter dans les ViewModels.
 nonisolated struct AppRepositories: Sendable {
     var users: any UserRepository
@@ -187,6 +193,8 @@ nonisolated struct AppRepositories: Sendable {
     var supplies: any VendorSupplyRepository = FakeVendorSupplyRepository()
     /// T-122 : photos de profil, de groupe et bannières (base64 dans Firestore en live, mémoire sinon).
     var images: any ImageStore = FakeImageStore()
+    /// RQ-093 (T-114). Fake vide par défaut.
+    var boroughStats: any BoroughStatsRepository = FakeBoroughStatsRepository()
     /// RQ-069 (T-117) : livraison à domicile par un voisin bénévole.
     var deliveries: any VolunteerDeliveryRepository = FakeVolunteerDeliveryRepository()
     /// T-116 : portail Organismes (fonds de solidarité, financements, parrainages).
@@ -223,6 +231,7 @@ nonisolated struct AppRepositories: Sendable {
             wishes: FakeGroupWishRepository(behavior: behavior, wishes: FakeData.demoWishes),
             supplies: FakeVendorSupplyRepository(behavior: behavior, supplies: FakeData.demoSupplies),
             images: FakeImageStore(behavior: behavior),
+            boroughStats: FakeBoroughStatsRepository(behavior: behavior, stats: FakeData.montrealBoroughs),
             deliveries: FakeVolunteerDeliveryRepository.demo(behavior: behavior),
             organizations: FakeOrganizationRepository(behavior: behavior)
         )

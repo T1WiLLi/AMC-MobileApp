@@ -130,6 +130,9 @@ private struct ImpactContentView: View {
                 .padding(.horizontal, 4)
                 SphereImpactGrid(snapshot: snapshot)
 
+                // RQ-093 (T-114) : classement solidaire des arrondissements (section autonome).
+                SolidarityLeaderboardSection()
+
                 ImpactThanksFooter(households: snapshot.households)
                     .padding(.top, 12)
             }

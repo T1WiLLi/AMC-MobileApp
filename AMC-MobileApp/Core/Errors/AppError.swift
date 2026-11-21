@@ -74,10 +74,19 @@ enum AppError: Error, Equatable, Sendable {
         }
     }
 
+    /// Détail de `.unknown` pour un chargement annulé : la `.task` de l'écran s'est arrêtée parce que
+    /// l'écran a disparu (onglet quitté avant la fin). Ce n'est pas une panne à montrer à l'utilisateur.
+    static let cancelledDetail = "Chargement annulé"
+
+    /// true si l'erreur vient d'une tâche annulée (voir `cancelledDetail`).
+    var isCancellation: Bool { self == .unknown(Self.cancelledDetail) }
+
     /// Convertit n'importe quelle erreur en `AppError` (utile dans les `catch` des ViewModels).
     init(_ error: any Error) {
         if let appError = error as? AppError {
             self = appError
+        } else if error is CancellationError {
+            self = .unknown(Self.cancelledDetail)
         } else if let urlError = error as? URLError,
                   [.notConnectedToInternet, .networkConnectionLost, .timedOut, .cannotConnectToHost].contains(urlError.code) {
             self = .offline

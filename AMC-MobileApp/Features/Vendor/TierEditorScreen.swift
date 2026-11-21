@@ -468,10 +468,18 @@ private struct TierRow: View {
                 HStack(spacing: 12) {
                     rankBadge
                     VStack(alignment: .leading, spacing: 4) {
-                        Text(rangeText)
-                            .font(.body)
-                            .foregroundStyle(.texte)
-                            .contentTransition(.numericText())
+                        // L'économie suit la plage : à côté du prix, la ligne débordait de la carte
+                        // (rang « 1 » et « $ » coupés aux bords sur iPhone 17).
+                        ViewThatFits(in: .horizontal) {
+                            HStack(spacing: 8) {
+                                rangeLabel
+                                savingsLabel
+                            }
+                            VStack(alignment: .leading, spacing: 2) {
+                                rangeLabel
+                                savingsLabel
+                            }
+                        }
                         HStack(spacing: 6) {
                             Text("dès")
                                 .font(.subheadline)
@@ -487,27 +495,10 @@ private struct TierRow: View {
                     }
                 }
                 if !dynamicTypeSize.isAccessibilitySize { Spacer(minLength: 4) }
-                HStack(spacing: 10) {
-                    if let preview, preview.savingsPercent > 0 {
-                        Label("−\(preview.savingsPercent) %", systemImage: "arrow.down.circle.fill")
-                            .labelStyle(TightLabelStyle())
-                            .font(.subheadline.bold())
-                            .fontDesign(.rounded)
-                            .monospacedDigit()
-                            .foregroundStyle(.economie)
-                            .contentTransition(.numericText())
-                            .accessibilityLabel("\(preview.savingsPercent) pour cent moins cher qu'en épicerie")
-                    } else if hasReference, tier.priceCents > 0 {
-                        Label("aucune économie", systemImage: "equal.circle")
-                            .labelStyle(TightLabelStyle())
-                            .font(.caption)
-                            .foregroundStyle(.texteSecondaire)
-                    }
-                    PriceField(label: "Prix du palier \(rank)", value: $tier.price)
-                        .frame(minWidth: priceWidth)
-                        .focused(focus, equals: .price(tier.id))
-                        .fieldBox(isInvalid: isInvalid)
-                }
+                PriceField(label: "Prix du palier \(rank)", value: $tier.price)
+                    .frame(minWidth: priceWidth)
+                    .focused(focus, equals: .price(tier.id))
+                    .fieldBox(isInvalid: isInvalid)
             }
             if let error {
                 InlineError(message: error)
@@ -519,6 +510,33 @@ private struct TierRow: View {
     }
 
     private var rank: Int { preview?.rank ?? 1 }
+
+    private var rangeLabel: some View {
+        Text(rangeText)
+            .font(.body)
+            .foregroundStyle(.texte)
+            .contentTransition(.numericText())
+    }
+
+    /// Économie vs épicerie ; rien tant que le prix est vide (sinon « −100 % » pour 0 $).
+    @ViewBuilder
+    private var savingsLabel: some View {
+        if let preview, tier.priceCents > 0, preview.savingsPercent > 0 {
+            Label("−\(preview.savingsPercent) %", systemImage: "arrow.down.circle.fill")
+                .labelStyle(TightLabelStyle())
+                .font(.subheadline.bold())
+                .fontDesign(.rounded)
+                .monospacedDigit()
+                .foregroundStyle(.economie)
+                .contentTransition(.numericText())
+                .accessibilityLabel("\(preview.savingsPercent) pour cent moins cher qu'en épicerie")
+        } else if hasReference, tier.priceCents > 0 {
+            Label("aucune économie", systemImage: "equal.circle")
+                .labelStyle(TightLabelStyle())
+                .font(.caption)
+                .foregroundStyle(.texteSecondaire)
+        }
+    }
 
     private var rankBadge: some View {
         Text("\(rank)")
@@ -665,9 +683,15 @@ private struct PublishBar: View {
         .padding(.top, 8)
         .padding(.bottom, 8)
         .background {
-            // Fondu vers le fond crème pour que le texte reste lisible au-dessus du formulaire.
-            LinearGradient(colors: [Color.fond.opacity(0), Color.fond], startPoint: .top, endPoint: .center)
-                .ignoresSafeArea()
+            // Fond crème plein sous le message et le bouton, avec un court fondu au-dessus :
+            // avant, le dégradé laissait voir le formulaire à travers le message (textes superposés).
+            VStack(spacing: 0) {
+                LinearGradient(colors: [Color.fond.opacity(0), Color.fond], startPoint: .top, endPoint: .bottom)
+                    .frame(height: 16)
+                Color.fond
+            }
+            .padding(.top, -16)
+            .ignoresSafeArea()
         }
     }
 }

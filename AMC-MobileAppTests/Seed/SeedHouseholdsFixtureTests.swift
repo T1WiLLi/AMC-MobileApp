@@ -115,6 +115,26 @@ struct SeedHouseholdsFixtureTests {
         #expect((6...12).contains(subsidized))
     }
 
+    /// T-093 : un statut subventionné sans code valide n'est jamais admissible (`ReferralCode.eligibleHouseholdIds`),
+    /// et firestore.rules refuse une subvention sans code `ORG-XX-NNNNC`.
+    @Test func subsidizedHouseholdsHaveAValidReferralCode() throws {
+        let profiles = Dictionary(uniqueKeysWithValues: try households().map { ($0.household.id, $0.private) })
+        let subsidized = Set(profiles.filter { $0.value.isSubsidized }.keys)
+        #expect(!subsidized.isEmpty)
+        #expect(ReferralCode.eligibleHouseholdIds(profiles) == subsidized)
+    }
+
+    /// T-093 : les règles lisent `tiers[i]` comme `sortedTiers[i]` ; les paliers du seed sont donc triés.
+    @Test func offerTiersAreSortedWithDecreasingPrices() throws {
+        for offer in try offers().values {
+            #expect(offer.tiers == offer.sortedTiers, "\(offer.id)")
+            for (previous, next) in zip(offer.tiers, offer.tiers.dropFirst()) {
+                #expect(previous.minShares < next.minShares && previous.priceCents > next.priceCents, "\(offer.id)")
+            }
+            #expect(offer.tiers.allSatisfy { $0.minShares >= 1 && $0.minShares <= offer.totalShares && $0.priceCents > 0 })
+        }
+    }
+
     @Test func everyOrderUsesAnActiveOfferServingTheGroup() throws {
         let offers = try offers()
         let orders = try orders()

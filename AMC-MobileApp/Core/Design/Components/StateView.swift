@@ -34,8 +34,16 @@ struct StateView<Value: Sendable, Content: View>: View {
     var body: some View {
         switch state {
         case .idle, .loading:
-            LoadingStateView()
-                .modifier(StateBackground())
+            loadingView
+        case .failed(let error) where error.isCancellation && retry != nil:
+            // Chargement annulé parce qu'on a quitté l'onglet pendant qu'il chargeait : au retour, on relance
+            // au lieu de laisser « Oups, un problème est survenu » pour de bon (la `.task` de l'écran ne repasse pas).
+            // Tâche détachée de la vue : passer à `.loading` change de branche et annulerait une `.task`.
+            loadingView
+                .onAppear {
+                    guard let retry else { return }
+                    Task { await retry() }
+                }
         case .empty:
             EmptyStateView(title: empty.title, systemImage: empty.systemImage, message: empty.message)
                 .modifier(StateBackground())
@@ -46,6 +54,13 @@ struct StateView<Value: Sendable, Content: View>: View {
             // Le contenu gère son fond (`.scrollContentBackground(.hidden).grenierBackground()` pour une List).
             content(value)
         }
+    }
+}
+
+extension StateView {
+    private var loadingView: some View {
+        LoadingStateView()
+            .modifier(StateBackground())
     }
 }
 

@@ -142,7 +142,8 @@ struct InviteCardTests {
 
     @Test func inviteURLCarriesCode() throws {
         let url = InviteCard.inviteURL(for: CardPreviewData.group)
-        #expect(url.absoluteString == "grenier://rejoindre?code=PARCEX")
+        #expect(url.absoluteString == "grenier://join/PARCEX")
+        #expect(GroupRules.inviteCode(from: url) == "PARCEX")
         let matrix = try #require(QRMatrix(url.absoluteString))
         #expect(matrix.size >= 21)
     }

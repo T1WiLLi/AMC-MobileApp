@@ -106,6 +106,8 @@ nonisolated enum GroupRules {
     /// Lien universel partageable (Messages, courriel) : `https://grenier.app/join/<code>`.
     static let universalLinkHost = "grenier.app"
     static let joinPath = "join"
+    /// Hôte des premiers QR d'invitation, encore accepté à la lecture.
+    static let legacyJoinHost = "rejoindre"
 
     /// Génère un code de `inviteCodeLength` caractères pris dans `inviteAlphabet`.
     static func generateInviteCode<G: RandomNumberGenerator>(using rng: inout G) -> String {
@@ -158,8 +160,9 @@ nonisolated enum GroupRules {
         return URL(string: "https://\(universalLinkHost)/\(joinPath)/\(normalizedInviteCode(code))")
     }
 
-    /// Extrait le code d'un lien d'invitation. Accepte seulement `grenier://join/<code>`
-    /// et `https://grenier.app/join/<code>` ; tout autre schéma, hôte ou chemin renvoie nil.
+    /// Extrait le code d'un lien d'invitation. Accepte seulement `grenier://join/<code>`,
+    /// `https://grenier.app/join/<code>` et l'ancien `grenier://rejoindre?code=<code>` ;
+    /// tout autre schéma, hôte ou chemin renvoie nil.
     static func inviteCode(from url: URL) -> String? {
         guard let components = URLComponents(url: url, resolvingAgainstBaseURL: false),
               let scheme = components.scheme?.lowercased() else { return nil }
@@ -167,6 +170,9 @@ nonisolated enum GroupRules {
         let host = components.host?.lowercased()
         let candidate: String?
         switch scheme {
+        case appScheme where host == legacyJoinHost:
+            // Ancien QR de la carte d'invitation (avant B-058) : `grenier://rejoindre?code=<code>`.
+            candidate = segments.isEmpty ? components.queryItems?.first(where: { $0.name == "code" })?.value : nil
         case appScheme:
             candidate = (host == joinPath && segments.count == 1) ? segments[0] : nil
         case "https":

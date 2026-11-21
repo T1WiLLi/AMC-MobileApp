@@ -10,6 +10,7 @@ struct GroupRoute: Hashable, Sendable {
 /// d'un groupe public), aussi ouvert par un lien `grenier://join/<code>` ou `https://grenier.app/join/<code>`.
 struct GroupsScreen: View {
     @Environment(\.appContext) private var context
+    @Environment(InviteLinkRouter.self) private var inviteLinks: InviteLinkRouter?
     @State private var viewModel: GroupsViewModel?
     @State private var path = NavigationPath()
     /// Feuille « Rejoindre avec un code » ouverte, avec le code d'un lien reçu s'il y en a un.
@@ -99,8 +100,9 @@ struct GroupsScreen: View {
             }
         }
         // B-056 : un lien d'invitation ouvre la feuille avec son code.
-        .onOpenURL { url in
-            guard let code = GroupRules.inviteCode(from: url) else { return }
+        // Lien d'invitation reçu par l'app (B-058), même avant que cet onglet soit chargé.
+        .onChange(of: inviteLinks?.pendingCode, initial: true) { _, code in
+            guard code != nil, let code = inviteLinks?.consume() else { return }
             joinCode = JoinCodeRequest(code: code)
         }
         .task {

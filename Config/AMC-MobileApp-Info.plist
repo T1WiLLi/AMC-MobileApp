@@ -28,6 +28,17 @@
 				<string>com.googleusercontent.apps.959550736484-74nu238bfp7b7lfsj19tqccnmptpek7v</string>
 			</array>
 		</dict>
+		<!-- Liens d'invitation à un groupe (B-058) : grenier://join/<code>, routés par InviteLinkRouter. -->
+		<dict>
+			<key>CFBundleTypeRole</key>
+			<string>Viewer</string>
+			<key>CFBundleURLName</key>
+			<string>ca.amc2026.mobileapp.invite</string>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>grenier</string>
+			</array>
+		</dict>
 	</array>
 	<!-- Bouton « Se connecter avec Apple » (RQ-012). false si l'App ID n'a pas la capability Sign in with Apple. -->
 	<key>GRNSignInWithAppleEnabled</key>

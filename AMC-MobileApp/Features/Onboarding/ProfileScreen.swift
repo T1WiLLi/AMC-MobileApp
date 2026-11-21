@@ -18,27 +18,44 @@ struct ProfileScreen: View {
         NavigationStack {
             Form {
                 Section {
+                    ProfileHeader(user: session?.currentUser, portal: pendingPortal ?? portal)
+                        .listRowInsets(EdgeInsets(top: 8, leading: 0, bottom: 8, trailing: 0))
+                        .listRowBackground(Color.clear)
+                }
+
+                Section {
                     portalCards
                         .listRowInsets(EdgeInsets(top: 4, leading: 0, bottom: 4, trailing: 0))
                         .listRowBackground(Color.clear)
                 } header: {
-                    Text("Portail")
+                    ProfileSectionHeader("Portail", systemImage: "arrow.left.arrow.right.circle.fill")
                 } footer: {
-                    Text("Un même compte peut acheter en famille et vendre comme producteur.")
+                    Label("Un même compte peut acheter en famille et vendre comme producteur.", systemImage: "person.2.badge.key.fill")
+                        .symbolRenderingMode(.hierarchical)
                 }
 
                 // T-075 : profil famille (RQ-015, RQ-017 à RQ-020), écrans dans Features/Profile/.
-                Section("Ma famille") {
+                Section {
                     NavigationLink {
                         HouseholdProfileLink()
                     } label: {
-                        Label("Mon ménage", systemImage: "house.fill")
+                        Label {
+                            Text("Mon ménage")
+                        } icon: {
+                            RowIcon(systemImage: "house.fill", tint: .solidarite)
+                        }
                     }
                     NavigationLink {
                         PreferencesLink()
                     } label: {
-                        Label("Préférences", systemImage: "slider.horizontal.3")
+                        Label {
+                            Text("Préférences")
+                        } icon: {
+                            RowIcon(systemImage: "slider.horizontal.3", tint: .economie)
+                        }
                     }
+                } header: {
+                    ProfileSectionHeader("Ma famille", systemImage: "figure.2.and.child.holdinghands")
                 }
 
                 if portal == .family {
@@ -47,8 +64,11 @@ struct ProfileScreen: View {
                         NavigationLink {
                             NeedsPlannerScreen()
                         } label: {
-                            Label("Planifier mon mois", systemImage: "list.bullet.clipboard.fill")
-                                .symbolRenderingMode(.hierarchical)
+                            Label {
+                                Text("Planifier mon mois")
+                            } icon: {
+                                RowIcon(systemImage: "list.bullet.clipboard.fill", tint: .economie)
+                            }
                         }
                     } footer: {
                         Text("Tes besoins et ton budget, et les lots qui y répondent.")
@@ -59,38 +79,66 @@ struct ProfileScreen: View {
                     SecuritySection(lock: appLock)
                 }
 
-                Section("Compte") {
+                Section {
                     if let user = session?.currentUser {
-                        LabeledContent {
-                            Text(user.email)
-                                .foregroundStyle(.secondary)
-                        } label: {
-                            Label(user.displayName, systemImage: "person.crop.circle.fill")
+                        Label {
+                            Text(user.displayName)
+                                .foregroundStyle(Color.texte)
+                        } icon: {
+                            RowIcon(systemImage: "person.crop.circle.fill", tint: .grenier)
                         }
+                        Label {
+                            Text(user.email)
+                                .foregroundStyle(Color.texteSecondaire)
+                                .textSelection(.enabled)
+                        } icon: {
+                            RowIcon(systemImage: "envelope.fill", tint: .grenier)
+                        }
+                        .accessibilityLabel("Courriel : \(user.email)")
                         if let session {
                             NavigationLink {
                                 AccountScreen(model: AccountViewModel(
                                     repositories: appContext.repositories, userId: appContext.userId, auth: session.auth
                                 ))
                             } label: {
-                                Label("Modifier ou supprimer mon compte", systemImage: "person.crop.circle.badge.gearshape")
+                                Label {
+                                    Text("Modifier ou supprimer mon compte")
+                                } icon: {
+                                    RowIcon(systemImage: "person.crop.circle.badge.gearshape", tint: .grenier)
+                                }
                             }
                         }
-                        Button("Se déconnecter", systemImage: "rectangle.portrait.and.arrow.right", role: .destructive) {
+                        Button(role: .destructive) {
                             session?.signOut()
+                        } label: {
+                            Label {
+                                Text("Se déconnecter")
+                            } icon: {
+                                RowIcon(systemImage: "rectangle.portrait.and.arrow.right", tint: .red)
+                            }
                         }
                     } else {
-                        Label("Non connecté", systemImage: "person.crop.circle.badge.questionmark")
-                            .foregroundStyle(.secondary)
+                        Label {
+                            Text("Non connecté")
+                                .foregroundStyle(Color.texteSecondaire)
+                        } icon: {
+                            RowIcon(systemImage: "person.crop.circle.badge.questionmark", tint: .texteSecondaire)
+                        }
                     }
+                } header: {
+                    ProfileSectionHeader("Compte", systemImage: "person.text.rectangle.fill")
                 }
 
                 Section {
                     // Geste caché (RQ-114) : 5 taps ou appui long ouvrent les outils de démo.
                     AppVersionLabel()
                         .demoToolsTrigger()
+                } header: {
+                    ProfileSectionHeader("À propos", systemImage: "basket.fill")
                 }
             }
+            .scrollContentBackground(.hidden)
+            .grenierBackground()
             .navigationTitle("Profil")
             .sensoryFeedback(.selection, trigger: pendingPortal) { _, new in new != nil }
         }
@@ -129,6 +177,120 @@ struct ProfileScreen: View {
     }
 }
 
+// MARK: - En-tête
+
+/// Carte d'identité en tête du profil : avatar à l'initiale, nom, courriel et portail actif.
+private struct ProfileHeader: View {
+    let user: AuthUser?
+    let portal: Portal
+
+    @ScaledMetric(relativeTo: .largeTitle) private var scaledAvatar: CGFloat = 84
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @State private var hasAppeared = false
+
+    private var avatarSide: CGFloat { min(scaledAvatar, 128) }
+
+    var body: some View {
+        VStack(spacing: 12) {
+            if let user {
+                avatar(for: user)
+                VStack(spacing: 4) {
+                    Text(user.displayName)
+                        .font(.title2.bold())
+                        .fontDesign(.rounded)
+                        .foregroundStyle(Color.texte)
+                        .multilineTextAlignment(.center)
+                    Label(user.email, systemImage: "envelope.fill")
+                        .font(.subheadline)
+                        .foregroundStyle(Color.texteSecondaire)
+                        .symbolRenderingMode(.hierarchical)
+                        .multilineTextAlignment(.center)
+                }
+            } else {
+                GrenierSymbolScene(
+                    symbol: "person.crop.circle.fill",
+                    satellites: [.init(Portal.family.systemImage, tint: .solidarite), .init(Portal.vendor.systemImage, tint: .economie)]
+                )
+                Text("Ton profil Grenier")
+                    .font(.title2.bold())
+                    .fontDesign(.rounded)
+                    .foregroundStyle(Color.texte)
+            }
+
+            Label("Portail \(portal.title)", systemImage: portal.systemImage)
+                .font(.subheadline.weight(.semibold))
+                .foregroundStyle(Color.onAccent)
+                .contentTransition(.symbolEffect(.replace))
+                .padding(.horizontal, 14)
+                .padding(.vertical, 8)
+                .background(Color.grenier, in: .capsule)
+                .animation(reduceMotion ? nil : .smooth, value: portal)
+                .accessibilityLabel("Portail actif : \(portal.title)")
+        }
+        .frame(maxWidth: .infinity)
+        .padding(.vertical, 20)
+        .padding(.horizontal, 16)
+        .background(Color.surface, in: .rect(cornerRadius: 24))
+        .accessibilityElement(children: .combine)
+        .onAppear { hasAppeared = true }
+    }
+
+    private func avatar(for user: AuthUser) -> some View {
+        Text(String(user.displayName.prefix(1)).uppercased())
+            .font(.system(size: avatarSide * 0.42, weight: .bold, design: .rounded))
+            .foregroundStyle(Color.grenier)
+            .frame(width: avatarSide, height: avatarSide)
+            .background(Color.grenier.opacity(0.14), in: .circle)
+            .overlay(alignment: .bottomTrailing) {
+                Image(systemName: "checkmark.seal.fill")
+                    .font(.system(size: avatarSide * 0.26))
+                    .symbolRenderingMode(.palette)
+                    .foregroundStyle(Color.onAccent, Color.economie)
+                    .symbolEffect(.bounce, options: .nonRepeating, value: reduceMotion ? false : hasAppeared)
+                    .opacity(user.isEmailVerified ? 1 : 0)
+            }
+            .accessibilityHidden(true)
+    }
+}
+
+// MARK: - Petits composants
+
+/// En-tête de section de formulaire avec icône teintée.
+private struct ProfileSectionHeader: View {
+    let title: String
+    let systemImage: String
+
+    init(_ title: String, systemImage: String) {
+        self.title = title
+        self.systemImage = systemImage
+    }
+
+    var body: some View {
+        Label(title, systemImage: systemImage)
+            .symbolRenderingMode(.hierarchical)
+            .foregroundStyle(Color.grenier)
+            .accessibilityAddTraits(.isHeader)
+    }
+}
+
+/// Icône de ligne dans une pastille teintée, comme dans Réglages.
+private struct RowIcon: View {
+    let systemImage: String
+    let tint: Color
+
+    @ScaledMetric(relativeTo: .body) private var side: CGFloat = 30
+
+    var body: some View {
+        Image(systemName: systemImage)
+            .font(.body.weight(.semibold))
+            .symbolRenderingMode(.hierarchical)
+            .foregroundStyle(tint)
+            .frame(width: min(side, 48), height: min(side, 48))
+            .background(tint.opacity(0.14), in: .rect(cornerRadius: 8))
+            .accessibilityHidden(true)
+    }
+}
+
 /// Section « Sécurité » : activer ou couper le verrou Face ID.
 private struct SecuritySection: View {
     let lock: AppLock
@@ -146,20 +308,35 @@ private struct SecuritySection: View {
                     }
                 }
             )) {
-                Label("Verrouiller avec \(lock.biometry.title)", systemImage: lock.biometry.systemImage)
+                Label {
+                    Text("Verrouiller avec \(lock.biometry.title)")
+                } icon: {
+                    Image(systemName: lock.biometry.systemImage)
+                        .symbolRenderingMode(.hierarchical)
+                        .foregroundStyle(lock.isEnabled ? Color.economie : Color.grenier)
+                        .symbolEffect(.bounce, value: lock.isEnabled)
+                }
             }
+            .tint(.grenier)
             .disabled(isWorking || !lock.biometry.canAuthenticate)
+            .sensoryFeedback(.success, trigger: lock.isEnabled) { _, new in new }
             if let error = lock.lastError {
-                Text(error.message)
+                Label(error.message, systemImage: "exclamationmark.triangle.fill")
                     .font(.footnote)
-                    .foregroundStyle(.secondary)
+                    .symbolRenderingMode(.hierarchical)
+                    .foregroundStyle(Color.texteSecondaire)
             }
         } header: {
-            Text("Sécurité")
+            ProfileSectionHeader("Sécurité", systemImage: "lock.shield.fill")
         } footer: {
-            Text(lock.biometry.canAuthenticate
-                 ? "Grenier se verrouille quand tu quittes l'app. Ton code de cueillette et tes paiements restent protégés."
-                 : "Configure Face ID ou un code dans les Réglages de l'iPhone pour activer le verrou.")
+            Label(
+                lock.biometry.canAuthenticate
+                    ? "Grenier se verrouille quand tu quittes l'app. Ton code de cueillette et tes paiements restent protégés."
+                    : "Configure Face ID ou un code dans les Réglages de l'iPhone pour activer le verrou.",
+                systemImage: lock.isEnabled ? "lock.fill" : "lock.open.fill"
+            )
+            .symbolRenderingMode(.hierarchical)
+            .contentTransition(.symbolEffect(.replace))
         }
     }
 }
@@ -181,4 +358,11 @@ private struct SecuritySection: View {
 #Preview("Connecté") {
     ProfileScreen()
         .environment(SessionViewModel(auth: FakeAuthService(signedInUser: .sample)))
+}
+
+#Preview("Connecté sombre AX5") {
+    ProfileScreen()
+        .environment(SessionViewModel(auth: FakeAuthService(signedInUser: .sample)))
+        .environment(\.dynamicTypeSize, .accessibility5)
+        .preferredColorScheme(.dark)
 }

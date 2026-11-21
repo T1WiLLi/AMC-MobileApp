@@ -3,3 +3,13 @@ xcuserdata/
 DerivedData/
 build/
 *.xcuserstate
+
+# Firebase : la vraie config reste hors du repo public (voir docs/firebase.md)
+AMC-MobileApp/GoogleService-Info.plist
+firebase-debug.log
+firestore-debug.log
+ui-debug.log
+.firebase/
+
+# Worktrees locaux des agents Claude Code
+.claude/worktrees/

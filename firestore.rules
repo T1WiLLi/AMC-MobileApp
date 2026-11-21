@@ -1,0 +1,52 @@
+rules_version = '2';
+
+// ===============================================================
+// Règles Firestore initiales (B-014) — prototype, à revoir avant diffusion large.
+// ===============================================================
+//
+// Assumed Data Model : schéma de l'onglet « Requis » du board (users, households, groups,
+// vendors, products, offers, groupOrders, shares, pickupPoints…). Aucune collection n'est
+// encore ouverte : tout est refusé par défaut.
+//
+// Pour ouvrir une collection (items B-017 à B-019) :
+//   1. documenter ses champs ici (type, obligatoire, tailles, immuables) ;
+//   2. écrire un validateur isValidX(data) (hasOnly + hasAll + types + tailles) ;
+//   3. l'appeler en create ET en update, avec isOwner()/rôle ; jamais de lecture
+//      d'un document contenant de la PII (e-mail, adresse) par quelqu'un d'autre que son propriétaire ;
+//   4. passer par le skill Firebase firestore-rules-creation (attaques « devil's advocate »).
+//
+// ===============================================================
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ---------------------------------------------------------------
+    // Helper Functions (à réutiliser par les règles des collections)
+    // ---------------------------------------------------------------
+
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+
+    function hasOnlyAllowedFields(fields) {
+      return request.resource.data.keys().hasOnly(fields);
+    }
+
+    function hasRequiredFields(fields) {
+      return request.resource.data.keys().hasAll(fields);
+    }
+
+    function areImmutableFieldsUnchanged(fields) {
+      return !request.resource.data.diff(resource.data).affectedKeys().hasAny(fields);
+    }
+
+    // Tout le reste : refusé par défaut.
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

@@ -1,0 +1,11 @@
+rules_version = '2';
+
+// Prototype initial (B-014) : tout est refusé. Chaque usage (photos de produits, de points de
+// cueillette…) ajoute son propre chemin, réservé aux utilisateurs connectés, avec taille et type validés.
+service firebase.storage {
+  match /b/{bucket}/o {
+    match /{allPaths=**} {
+      allow read, write: if false;
+    }
+  }
+}

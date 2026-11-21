@@ -34,6 +34,10 @@ Règles :
 - Le projet utilise des dossiers synchronisés (Xcode 16+) : un nouveau fichier dans `AMC-MobileApp/` est inclus automatiquement, sans toucher au `project.pbxproj`.
 - Les fichiers `*Folder.swift` (un commentaire seulement) gardent les dossiers vides dans git ; supprimez-le quand vous ajoutez le premier vrai fichier. Pas de `.gitkeep` : Xcode les copierait dans l'app et le build échouerait.
 
+## Firebase
+
+Projet `amc-2026-8ab03` : Auth (Google Sign-In) et Firestore (Montréal). La vraie config `GoogleService-Info.plist` n'est pas dans le repo : récupération, liaison du SDK, émulateurs et règles dans [docs/firebase.md](docs/firebase.md). Sans le fichier, l'app tourne sur des services fake.
+
 ## Build et tests
 
 ```bash

@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<!-- Fusionné avec l'Info.plist généré par Xcode (GENERATE_INFOPLIST_FILE = YES). -->
+	<!-- Schéma d'URL de retour Google Sign-In = REVERSED_CLIENT_ID de GoogleService-Info.plist. -->
+	<key>CFBundleURLTypes</key>
+	<array>
+		<dict>
+			<key>CFBundleTypeRole</key>
+			<string>Editor</string>
+			<key>CFBundleURLName</key>
+			<string>google-sign-in</string>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>com.googleusercontent.apps.959550736484-74nu238bfp7b7lfsj19tqccnmptpek7v</string>
+			</array>
+		</dict>
+	</array>
+</dict>
+</plist>

@@ -40,7 +40,7 @@ struct VendorRevenueScreen: View {
 // MARK: - Contenu
 
 struct VendorRevenueContent: View {
-    let revenue: VendorRevenue
+    let revenue: VendorRevenueSummary
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
@@ -80,7 +80,7 @@ private struct SectionTitle: View {
 
 /// Grand montant : revenus prévus totaux.
 private struct TotalCard: View {
-    let revenue: VendorRevenue
+    let revenue: VendorRevenueSummary
 
     var body: some View {
         VStack(alignment: .leading, spacing: 6) {
@@ -112,7 +112,7 @@ private struct TotalCard: View {
 
 /// Familles servies et parts engagées, côte à côte (empilées aux grandes tailles de texte).
 private struct KeyFigures: View {
-    let revenue: VendorRevenue
+    let revenue: VendorRevenueSummary
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
 
     var body: some View {
@@ -174,7 +174,7 @@ private struct FigureTile: View {
 // MARK: - Revenus par lot (Swift Charts)
 
 private struct OfferRevenueChart: View {
-    let offers: [VendorRevenue.OfferRevenue]
+    let offers: [VendorRevenueSummary.OfferRevenue]
 
     /// Hauteur d'une barre et de son libellé ; grandit avec Dynamic Type.
     @ScaledMetric(relativeTo: .body) private var rowHeight: CGFloat = 64
@@ -218,7 +218,7 @@ private struct OfferRevenueChart: View {
 }
 
 private struct OfferBarLabel: View {
-    let offer: VendorRevenue.OfferRevenue
+    let offer: VendorRevenueSummary.OfferRevenue
 
     var body: some View {
         HStack(alignment: .firstTextBaseline, spacing: 8) {
@@ -238,7 +238,7 @@ private struct OfferBarLabel: View {
 
 /// Graphique audio et description VoiceOver des revenus par lot.
 private struct OfferRevenueChartDescriptor: AXChartDescriptorRepresentable {
-    let offers: [VendorRevenue.OfferRevenue]
+    let offers: [VendorRevenueSummary.OfferRevenue]
 
     func makeChartDescriptor() -> AXChartDescriptor {
         let maxDollars = max(Double(offers.map(\.revenueCents).max() ?? 0) / 100, 1)
@@ -271,7 +271,7 @@ private struct OfferRevenueChartDescriptor: AXChartDescriptorRepresentable {
 // MARK: - Revenus par quartier
 
 private struct NeighborhoodList: View {
-    let neighborhoods: [VendorRevenue.NeighborhoodRevenue]
+    let neighborhoods: [VendorRevenueSummary.NeighborhoodRevenue]
 
     var body: some View {
         VStack(spacing: 0) {
@@ -288,7 +288,7 @@ private struct NeighborhoodList: View {
 }
 
 private struct NeighborhoodRow: View {
-    let entry: VendorRevenue.NeighborhoodRevenue
+    let entry: VendorRevenueSummary.NeighborhoodRevenue
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     @ScaledMetric(relativeTo: .headline) private var iconSize: CGFloat = 44
 
@@ -333,7 +333,7 @@ private struct NeighborhoodRow: View {
 // MARK: - Prochaines livraisons
 
 private struct DeliveryList: View {
-    let deliveries: [VendorRevenue.Delivery]
+    let deliveries: [VendorRevenueSummary.Delivery]
 
     var body: some View {
         if deliveries.isEmpty {
@@ -354,7 +354,7 @@ private struct DeliveryList: View {
 }
 
 private struct DeliveryCard: View {
-    let delivery: VendorRevenue.Delivery
+    let delivery: VendorRevenueSummary.Delivery
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     @ScaledMetric(relativeTo: .headline) private var iconSize: CGFloat = 52
 

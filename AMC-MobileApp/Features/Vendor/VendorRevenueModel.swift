@@ -11,7 +11,7 @@ import Foundation
 import Observation
 
 /// Revenus d'un vendeur, prêts à afficher : total, par lot, par quartier, familles et livraisons à venir.
-nonisolated struct VendorRevenue: Sendable, Hashable {
+nonisolated struct VendorRevenueSummary: Sendable, Hashable {
     /// Revenu prévu d'un lot.
     struct OfferRevenue: Identifiable, Sendable, Hashable {
         var id: String
@@ -152,13 +152,13 @@ final class VendorRevenueModel {
     }
 
     /// `.empty` si le vendeur n'a aucun lot actif.
-    var state: LoadState<VendorRevenue> {
+    var state: LoadState<VendorRevenueSummary> {
         switch dashboard.state {
         case .idle: .idle
         case .loading: .loading
         case .empty: .empty
         case .failed(let error): .failed(error)
-        case .loaded(let value): .loaded(VendorRevenue(dashboard: value, pickupPoints: pickupPoints))
+        case .loaded(let value): .loaded(VendorRevenueSummary(dashboard: value, pickupPoints: pickupPoints))
         }
     }
 

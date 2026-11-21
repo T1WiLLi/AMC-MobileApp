@@ -7,7 +7,7 @@ import Testing
 struct VendorRevenueModelTests {
     private typealias ID = FakeData.ID
 
-    private func loadedRevenue(_ data: FakeData = .montreal, vendorId: String = ID.fermeRive) async throws -> VendorRevenue {
+    private func loadedRevenue(_ data: FakeData = .montreal, vendorId: String = ID.fermeRive) async throws -> VendorRevenueSummary {
         let model = VendorRevenueModel(repositories: .fake(behavior: .instant, data: data), vendorId: vendorId)
         await model.load()
         return try #require(model.state.value)

@@ -1,0 +1,233 @@
+[
+  {
+    "id": "pickup-parc-extension-1",
+    "groupId": "group-parc-extension",
+    "neighborhood": "parc-extension",
+    "hostUserId": "user-jean",
+    "name": "Sous-sol de l'église de la rue Saint-Roch",
+    "address": "7495, rue Saint-Roch, Montréal, QC H3N 1L2",
+    "latitude": 45.5302,
+    "longitude": -73.6305,
+    "geohash": "f25eh2",
+    "capacity": 40,
+    "accessibility": [
+      "stepFree",
+      "nearMetro"
+    ],
+    "slotTemplates": [
+      {
+        "inDays": 2,
+        "start": "17:00",
+        "end": "19:30"
+      },
+      {
+        "inDays": 5,
+        "start": "10:00",
+        "end": "12:00"
+      }
+    ]
+  },
+  {
+    "id": "pickup-parc-extension-2",
+    "groupId": "group-parc-extension",
+    "neighborhood": "parc-extension",
+    "hostUserId": "user-hote-parc-extension",
+    "name": "Café du parc Jarry",
+    "address": "8125, avenue Querbes, Montréal, QC H3N 2B9",
+    "latitude": 45.5348,
+    "longitude": -73.6276,
+    "geohash": "f25eh9",
+    "capacity": 20,
+    "accessibility": [
+      "wheelchair",
+      "stepFree"
+    ],
+    "slotTemplates": [
+      {
+        "inDays": 3,
+        "start": "16:00",
+        "end": "18:00"
+      }
+    ]
+  },
+  {
+    "id": "pickup-rosemont-1",
+    "groupId": "group-rosemont",
+    "neighborhood": "rosemont",
+    "hostUserId": "user-hote-rosemont",
+    "name": "Centre communautaire Masson",
+    "address": "2850, rue Masson, Montréal, QC H1Y 1X4",
+    "latitude": 45.5446,
+    "longitude": -73.5838,
+    "geohash": "f25eje",
+    "capacity": 35,
+    "accessibility": [
+      "wheelchair",
+      "elevator",
+      "nearMetro"
+    ],
+    "slotTemplates": [
+      {
+        "inDays": 2,
+        "start": "17:30",
+        "end": "19:30"
+      },
+      {
+        "inDays": 6,
+        "start": "10:00",
+        "end": "12:00"
+      }
+    ]
+  },
+  {
+    "id": "pickup-hochelaga-1",
+    "groupId": "group-hochelaga",
+    "neighborhood": "hochelaga",
+    "hostUserId": "user-hote-hochelaga",
+    "name": "Bibliothèque de quartier Ontario",
+    "address": "4120, rue Ontario Est, Montréal, QC H1V 1J9",
+    "latitude": 45.5462,
+    "longitude": -73.5446,
+    "geohash": "f25en7",
+    "capacity": 30,
+    "accessibility": [
+      "wheelchair",
+      "stepFree",
+      "nearMetro"
+    ],
+    "slotTemplates": [
+      {
+        "inDays": 3,
+        "start": "16:30",
+        "end": "19:00"
+      }
+    ]
+  },
+  {
+    "id": "pickup-saint-michel-1",
+    "groupId": "group-saint-michel",
+    "neighborhood": "saint-michel",
+    "hostUserId": "user-hote-saint-michel",
+    "name": "Salle paroissiale Saint-Michel",
+    "address": "7300, boulevard Saint-Michel, Montréal, QC H2A 2Z8",
+    "latitude": 45.5651,
+    "longitude": -73.6182,
+    "geohash": "f25ehy",
+    "capacity": 35,
+    "accessibility": [
+      "stepFree",
+      "parking"
+    ],
+    "slotTemplates": [
+      {
+        "inDays": 2,
+        "start": "17:00",
+        "end": "19:00"
+      },
+      {
+        "inDays": 5,
+        "start": "09:30",
+        "end": "11:30"
+      }
+    ]
+  },
+  {
+    "id": "pickup-verdun-1",
+    "groupId": "group-verdun",
+    "neighborhood": "verdun",
+    "hostUserId": "user-hote-verdun",
+    "name": "Café communautaire Wellington",
+    "address": "4250, rue Wellington, Montréal, QC H4G 1W2",
+    "latitude": 45.4594,
+    "longitude": -73.5685,
+    "geohash": "f25dtg",
+    "capacity": 25,
+    "accessibility": [
+      "wheelchair",
+      "nearMetro"
+    ],
+    "slotTemplates": [
+      {
+        "inDays": 4,
+        "start": "16:00",
+        "end": "18:30"
+      }
+    ]
+  },
+  {
+    "id": "pickup-cote-des-neiges-1",
+    "groupId": "group-cote-des-neiges",
+    "neighborhood": "cote-des-neiges",
+    "hostUserId": "user-hote-cote-des-neiges",
+    "name": "Centre communautaire Côte-des-Neiges",
+    "address": "5350, chemin de la Côte-des-Neiges, Montréal, QC H3T 1Y3",
+    "latitude": 45.4968,
+    "longitude": -73.6236,
+    "geohash": "f25dud",
+    "capacity": 40,
+    "accessibility": [
+      "wheelchair",
+      "elevator",
+      "nearMetro"
+    ],
+    "slotTemplates": [
+      {
+        "inDays": 3,
+        "start": "17:00",
+        "end": "19:30"
+      },
+      {
+        "inDays": 6,
+        "start": "10:00",
+        "end": "12:00"
+      }
+    ]
+  },
+  {
+    "id": "pickup-montreal-nord-1",
+    "groupId": "group-montreal-nord",
+    "neighborhood": "montreal-nord",
+    "hostUserId": "user-hote-montreal-nord",
+    "name": "Bibliothèque Henri-Bourassa",
+    "address": "5400, boulevard Henri-Bourassa Est, Montréal, QC H1G 2S9",
+    "latitude": 45.5932,
+    "longitude": -73.6327,
+    "geohash": "f25ek7",
+    "capacity": 30,
+    "accessibility": [
+      "wheelchair",
+      "stepFree",
+      "parking"
+    ],
+    "slotTemplates": [
+      {
+        "inDays": 2,
+        "start": "16:30",
+        "end": "18:30"
+      }
+    ]
+  },
+  {
+    "id": "pickup-villeray-1",
+    "groupId": "group-villeray",
+    "neighborhood": "villeray",
+    "hostUserId": "user-hote-villeray",
+    "name": "Sous-sol de l'église Sainte-Cécile",
+    "address": "7650, rue De Gaspé, Montréal, QC H2R 1Z6",
+    "latitude": 45.5437,
+    "longitude": -73.6223,
+    "geohash": "f25ehd",
+    "capacity": 30,
+    "accessibility": [
+      "stepFree",
+      "nearMetro"
+    ],
+    "slotTemplates": [
+      {
+        "inDays": 4,
+        "start": "17:00",
+        "end": "19:00"
+      }
+    ]
+  }
+]

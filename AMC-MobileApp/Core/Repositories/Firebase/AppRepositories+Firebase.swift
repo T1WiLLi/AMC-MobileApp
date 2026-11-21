@@ -7,8 +7,8 @@
 //      (et son Auth s'il en a besoin) : `init(firestore: Firestore, auth: Auth)`. L'app passe
 //      `Firestore.firestore()` / `Auth.auth()` (déjà pointés au bon endroit par `FirebaseSetup.configure()`),
 //      les tests passent ceux d'une `FirebaseEmulatorSession` (deux comptes indépendants possibles) ;
-//   2. remplacer UNE ligne de `firebase()` ci-dessous (`fallback.offers` → `FirestoreOfferRepository()`) ;
-//      tout le code Firebase étant sous `#if canImport(...)`, garder le fake dans la branche `#else`.
+//   2. l'ajouter dans `firebase()` ci-dessous (tous les dépôts y sont en Firestore depuis T-127 ; la branche
+//      `#else` et l'app non configurée renvoient `.empty()`, jamais `FakeData`) ;
 //   3. ouvrir la collection dans `firestore.rules` et ajouter des tests d'intégration marqués
 //      `.firestoreEmulator` (voir `AMC-MobileAppTests/Support/FirebaseEmulatorTestSupport.swift`).
 // Le même dépôt sert pour l'émulateur et le projet de démo : `FirebaseSetup` a déjà pointé Firestore au bon endroit.
@@ -19,42 +19,27 @@ import FirebaseCore
 #endif
 
 extension AppRepositories {
-    /// Dépôts Firebase. Les dépôts pas encore écrits en Firestore retombent sur les fakes.
+    /// Dépôts Firebase : tous en Firestore (S-03, T-127, plus aucune donnée fake quand Firebase est configuré).
+    /// Sans FirebaseApp par défaut (tests, configuration ratée), `Firestore.firestore()` planterait : on renvoie
+    /// des dépôts VIDES (`.empty()`), jamais les personas de `FakeData`.
     nonisolated static func firebase() -> AppRepositories {
-        let fallback = AppRepositories.fake()
         #if canImport(FirebaseFirestore) && canImport(FirebaseCore)
-        // Sans FirebaseApp par défaut (tests, configuration ratée), `Firestore.firestore()` plante : fakes.
-        let isConfigured = FirebaseApp.app() != nil
-        let firestoreUsers: (any UserRepository)? = isConfigured ? FirestoreUserRepository() : nil
-        let firestoreGroups: (any GroupRepository)? = isConfigured ? FirestoreGroupRepository() : nil
-        let firestoreVendors: (any VendorRepository)? = isConfigured ? FirestoreVendorRepository() : nil
-        let firestoreOffers: (any OfferRepository)? = isConfigured ? FirestoreOfferRepository() : nil
-        let firestorePickupPoints: (any PickupPointRepository)? = isConfigured ? FirestorePickupPointRepository() : nil
-        let firestoreImages: (any ImageStore)? = isConfigured ? FirestoreImageStore() : nil
-        let firestoreWishes: (any GroupWishRepository)? = isConfigured ? FirestoreGroupWishRepository() : nil
-        let firestoreSupplies: (any VendorSupplyRepository)? = isConfigured ? FirestoreVendorSupplyRepository() : nil
-        #else
-        let firestoreUsers: (any UserRepository)? = nil
-        let firestoreGroups: (any GroupRepository)? = nil
-        let firestoreVendors: (any VendorRepository)? = nil
-        let firestoreOffers: (any OfferRepository)? = nil
-        let firestorePickupPoints: (any PickupPointRepository)? = nil
-        let firestoreImages: (any ImageStore)? = nil
-        let firestoreWishes: (any GroupWishRepository)? = nil
-        let firestoreSupplies: (any VendorSupplyRepository)? = nil
-        #endif
+        guard FirebaseApp.app() != nil else { return .empty() }
         var repositories = AppRepositories(
-            users: firestoreUsers ?? fallback.users,              // B-017 — users, households
-            groups: firestoreGroups ?? fallback.groups,           // B-017 — groups, members
-            vendors: firestoreVendors ?? fallback.vendors,        // B-018 — vendors, products
-            offers: firestoreOffers ?? fallback.offers,           // B-018 — offers
-            groupOrders: fallback.groupOrders,   // B-019 : FirestoreGroupOrderRepository() — groupOrders, shares
-            pickupPoints: firestorePickupPoints ?? fallback.pickupPoints,  // B-018 — pickupPoints
-            images: firestoreImages ?? fallback.images            // T-122 — users|groups/{id}/media/{nom} (base64)
+            users: FirestoreUserRepository(),                 // B-017 — users, households
+            groups: FirestoreGroupRepository(),               // B-017 — groups, members
+            vendors: FirestoreVendorRepository(),             // B-018 — vendors, products
+            offers: FirestoreOfferRepository(),               // B-018 — offers
+            groupOrders: FirestoreGroupOrderRepository(),     // B-019 — groupOrders, shares
+            pickupPoints: FirestorePickupPointRepository(),   // B-018 — pickupPoints
+            images: FirestoreImageStore()                     // T-122 — users|groups/{id}/media/{nom} (octets JPEG)
         )
-        repositories.wishes = firestoreWishes ?? fallback.wishes          // S-07 — groups/{id}/wishes
-        repositories.supplies = firestoreSupplies ?? fallback.supplies    // S-08 — vendors/{id}/supplies
+        repositories.wishes = FirestoreGroupWishRepository()        // S-07 — groups/{id}/wishes
+        repositories.supplies = FirestoreVendorSupplyRepository()   // S-08 — vendors/{id}/supplies
         return repositories
+        #else
+        return .empty()
+        #endif
     }
 
     /// Dépôts pour le mode choisi au lancement (`FirebaseSetup.configure()`), derrière le cache mémoire (T-112) :

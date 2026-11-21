@@ -188,7 +188,22 @@ nonisolated struct AppRepositories: Sendable {
     /// T-122 : photos de profil, de groupe et bannières (base64 dans Firestore en live, mémoire sinon).
     var images: any ImageStore = FakeImageStore()
 
-    /// Dépôts en mémoire remplis avec `FakeData`.
+    /// Dépôts en mémoire VIDES (aucune persona de `FakeData`) : repli quand Firebase n'est pas configuré
+    /// et contexte non résolu (`AppContext.unresolved`). Un écran qui les lit n'affiche rien plutôt que du faux.
+    static func empty() -> AppRepositories {
+        AppRepositories(
+            users: FakeUserRepository(),
+            groups: FakeGroupRepository(),
+            vendors: FakeVendorRepository(),
+            offers: FakeOfferRepository(),
+            groupOrders: FakeGroupOrderRepository(),
+            pickupPoints: FakePickupPointRepository(),
+            wishes: FakeGroupWishRepository(),
+            supplies: FakeVendorSupplyRepository()
+        )
+    }
+
+    /// Dépôts en mémoire remplis avec `FakeData` : previews, tests et mode `.fake` (`-useFakeData`) seulement.
     static func fake(behavior: FakeBehavior = .realistic, data: FakeData = .montreal) -> AppRepositories {
         AppRepositories(
             users: FakeUserRepository(behavior: behavior, users: data.users, households: data.households),

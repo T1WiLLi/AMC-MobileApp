@@ -67,7 +67,7 @@ test('converts Montréal wall-clock times across daylight saving time', () => {
 
 test('loads groups, pickup points, users, households and group orders in the app format', async () => {
   const start = Date.UTC(2026, 10, 21)
-  const seed = await readDemoSeed(new URL('./fixtures/', import.meta.url), start)
+  const seed = await readDemoSeed(new URL('./fixtures/', import.meta.url), start, { rich: false })
   const raw = async (name: string) => JSON.parse(await readFile(new URL(`./fixtures/${name}.json`, import.meta.url), 'utf8'))
   const [rawPickups, rawUsers, rawOrders] = await Promise.all([raw('pickupPoints'), raw('users'), raw('groupOrders')])
 
@@ -144,26 +144,26 @@ test('rejects inconsistent memberships and shares before returning a seed plan',
       records.find(({ id }) => id === 'household-amina').groupId = 'group-rosemont'
     }
   })
-  await assert.rejects(readDemoSeed(fixtures, 0), /householdCount/)
+  await assert.rejects(readDemoSeed(fixtures, 0, { rich: false }), /householdCount/)
 
   await copyFixtures(directory, (name, records) => {
     if (name === 'groupOrders') {
       records[0].shares.push({ ...records[0].shares[0] })
     }
   })
-  await assert.rejects(readDemoSeed(fixtures, 0), /part invalide/)
+  await assert.rejects(readDemoSeed(fixtures, 0, { rich: false }), /part invalide/)
 
   await copyFixtures(directory, (name, records) => {
     if (name === 'users') {
       records.splice(records.findIndex(({ id }) => id === 'user-ferme-lafleur'), 1)
     }
   })
-  await assert.rejects(readDemoSeed(fixtures, 0), /persona user-ferme-lafleur/)
+  await assert.rejects(readDemoSeed(fixtures, 0, { rich: false }), /persona user-ferme-lafleur/)
 
   await copyFixtures(directory, (name, records) => {
     if (name === 'pickupPoints') {
       records[0].slotTemplates[0].start = '25:00'
     }
   })
-  await assert.rejects(readDemoSeed(fixtures, 0), /heure invalide/)
+  await assert.rejects(readDemoSeed(fixtures, 0, { rich: false }), /heure invalide/)
 })

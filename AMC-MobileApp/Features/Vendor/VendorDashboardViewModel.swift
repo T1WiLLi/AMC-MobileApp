@@ -124,8 +124,7 @@ final class VendorDashboardViewModel {
         let products = try await repositories.vendors.products(ofVendor: vendorId)
         let productsById = Dictionary(products.map { ($0.id, $0) }, uniquingKeysWith: { first, _ in first })
         let offerIds = Set(offers.map(\.id))
-        let linked = try await VendorRepositoryQueries.linkedGroupOrders(in: repositories)
-            .filter { offerIds.contains($0.order.offerId) }
+        let linked = try await VendorRepositoryQueries.linkedGroupOrders(ofOffers: offerIds, in: repositories)
         let ordersByOffer = Dictionary(grouping: linked, by: \.order.offerId)
         let currentDate = now()
 

@@ -19,6 +19,8 @@ nonisolated protocol GroupRepository: Sendable {
     /// Groupes publics d'un quartier ; `nil` = tous.
     func groups(inNeighborhood neighborhood: String?) async throws -> [NeighborhoodGroup]
     func group(id: String) async throws -> NeighborhoodGroup
+    /// Groupes dont le ménage est membre, publics ou privés, triés par nom.
+    func groups(ofHousehold householdId: String) async throws -> [NeighborhoodGroup]
     func members(ofGroup groupId: String) async throws -> [GroupMember]
     /// Ajoute le ménage au groupe ; sans effet s'il en fait déjà partie.
     func join(groupId: String, householdId: String) async throws
@@ -48,6 +50,13 @@ nonisolated protocol OfferRepository: Sendable {
 /// Commandes groupées (`groupOrders`) et parts (`shares`).
 nonisolated protocol GroupOrderRepository: Sendable {
     func groupOrders(ofGroup groupId: String) async throws -> [GroupOrder]
+    /// Commandes groupées d'un lot, tous groupes confondus (publics et privés).
+    func groupOrders(ofOffer offerId: String) async throws -> [GroupOrder]
+    /// Commande ouverte du groupe sur ce lot : la renvoie si elle existe (ouverte ou palier atteint),
+    /// sinon la crée vide. Lève `.notFound` si le lot n'existe pas, `.orderClosed` si le lot
+    /// n'est plus actif ou que sa date limite est passée.
+    @discardableResult
+    func openGroupOrder(groupId: String, offerId: String) async throws -> GroupOrder
     func groupOrder(id: String) async throws -> GroupOrder
     func shares(ofGroupOrder groupOrderId: String) async throws -> [Share]
     /// Ajoute ou change la part d'un ménage et recalcule quantité, ménages et palier en une fois.

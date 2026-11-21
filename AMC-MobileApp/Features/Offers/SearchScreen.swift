@@ -15,6 +15,9 @@ struct SearchScreen: View {
     @State private var query = ""
     /// Lots actifs chargés depuis les dépôts (nil tant que rien n'est chargé).
     @State private var offerSuggestions: [Suggestion]?
+    /// Lot ouvert en feuille. Une feuille plutôt qu'un push : la fiche masque la barre d'onglets, et au retour
+    /// l'onglet Recherche réapparaissait sans son champ (barre d'onglets classique, saisie perdue).
+    @State private var openedOffer: OfferRoute?
 
     private var results: [Suggestion] { Self.filter(offerSuggestions ?? suggestions, query: query) }
 
@@ -25,10 +28,22 @@ struct SearchScreen: View {
                     Section {
                         ForEach(results) { suggestion in
                             if let offerId = suggestion.offerId {
-                                NavigationLink(value: OfferRoute(offerId: offerId)) {
-                                    SuggestionRow(suggestion: suggestion)
+                                Button {
+                                    openedOffer = OfferRoute(offerId: offerId)
+                                } label: {
+                                    HStack {
+                                        SuggestionRow(suggestion: suggestion)
+                                        Spacer(minLength: 8)
+                                        Image(systemName: "chevron.forward")
+                                            .font(.footnote.weight(.semibold))
+                                            .foregroundStyle(.tertiary)
+                                            .accessibilityHidden(true)
+                                    }
+                                    .contentShape(.rect)
                                 }
+                                .buttonStyle(.plain)
                                 .listRowBackground(Color.surface)
+                                .accessibilityHint("Ouvre le lot")
                             } else {
                                 SuggestionRow(suggestion: suggestion)
                             }
@@ -47,14 +62,16 @@ struct SearchScreen: View {
                     ContentUnavailableView(
                         "Aucun produit trouvé",
                         systemImage: "magnifyingglass",
-                        description: Text("Essaie « riz », « farine » ou « lentilles ».")
+                        description: Text("Essaie un autre produit ou le nom d'un producteur.")
                     )
                 }
             }
             .animation(.smooth, value: results)
             .navigationTitle("Recherche")
             .profileToolbar()
-            .offerDestination()
+            .sheet(item: $openedOffer) { route in
+                OfferSheet(offerId: route.offerId)
+            }
         }
         .searchable(text: $query, prompt: prompt)
         .task {
@@ -112,6 +129,25 @@ extension SearchScreen {
         ]
     }
 
+    /// Fiche du lot en feuille grande, avec son propre NavigationStack et un bouton Fermer.
+    private struct OfferSheet: View {
+        let offerId: String
+        @Environment(\.dismiss) private var dismiss
+
+        var body: some View {
+            NavigationStack {
+                OfferDetailScreen(offerId: offerId)
+                    .toolbar {
+                        ToolbarItem(placement: .cancellationAction) {
+                            Button("Fermer", systemImage: "xmark") { dismiss() }
+                        }
+                    }
+            }
+            .presentationDetents([.large])
+            .presentationBackground(Color.fond)
+        }
+    }
+
     private struct SuggestionRow: View {
         let suggestion: Suggestion
 
@@ -146,4 +182,8 @@ extension SearchScreen {
 #Preview("Vendeur sombre") {
     SearchScreen(prompt: "Produit ou quartier", emptyTitle: "Chercher la demande", emptyMessage: "Un produit ou un quartier : vois qui le veut.")
         .preferredColorScheme(.dark)
+}
+
+extension OfferRoute: Identifiable {
+    var id: String { offerId }
 }

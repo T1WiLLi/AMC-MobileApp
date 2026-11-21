@@ -306,7 +306,8 @@ struct TierUnlockedCelebration: View {
             }
 
             Button(action: onDismiss) {
-                Text("Super !")
+                Label("Super !", systemImage: "hand.thumbsup.fill")
+                    .symbolRenderingMode(.hierarchical)
                     .font(.headline)
                     .frame(maxWidth: .infinity, minHeight: 44)
             }

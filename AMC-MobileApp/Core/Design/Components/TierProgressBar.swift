@@ -36,21 +36,40 @@ struct TierProgressBar: View {
             if !compact {
                 legendLayout {
                     ForEach(Array(sorted.enumerated()), id: \.offset) { index, tier in
-                        Text(legend(for: index, tier: tier))
-                            .font(.caption)
-                            .fontWeight(index == currentIndex ? .bold : .regular)
-                            .foregroundStyle(index == currentIndex ? Color.texte : Color.texteSecondaire)
-                            .frame(maxWidth: .infinity, alignment: legendAlignment(for: index))
-                            .monospacedDigit()
-                            .fixedSize(horizontal: false, vertical: true)
+                        let reached = committedShares >= tier.minShares
+                        Label {
+                            Text(legend(for: index, tier: tier))
+                        } icon: {
+                            // Cadenas ouvert : palier débloqué ; fermé : encore à atteindre.
+                            Image(systemName: reached ? "lock.open.fill" : "lock.fill")
+                                .symbolRenderingMode(.hierarchical)
+                                .foregroundStyle(reached ? Color.grenier : Color.texteSecondaire)
+                                .contentTransition(reduceMotion ? .opacity : .symbolEffect(.replace))
+                                .symbolEffect(.bounce, value: reached && !reduceMotion)
+                        }
+                        .labelStyle(TightLabelStyle())
+                        .font(.caption)
+                        .fontWeight(index == currentIndex ? .bold : .regular)
+                        .foregroundStyle(index == currentIndex ? Color.texte : Color.texteSecondaire)
+                        .frame(maxWidth: .infinity, alignment: legendAlignment(for: index))
+                        .monospacedDigit()
+                        .fixedSize(horizontal: false, vertical: true)
                     }
                 }
                 if let nudge {
-                    Text(nudge)
+                    Label(nudge, systemImage: committedShares < launchThreshold ? "flag.fill" : "arrow.up.forward.circle.fill")
                         .font(.subheadline.weight(.semibold))
                         .foregroundStyle(Color.grenier)
+                        .symbolRenderingMode(.hierarchical)
                         .contentTransition(reduceMotion ? .opacity : .numericText())
                         .fixedSize(horizontal: false, vertical: true)
+                } else if !sorted.isEmpty {
+                    Label("Meilleur prix atteint", systemImage: "checkmark.seal.fill")
+                        .font(.subheadline.weight(.semibold))
+                        .foregroundStyle(Color.economie)
+                        .symbolRenderingMode(.hierarchical)
+                        .fixedSize(horizontal: false, vertical: true)
+                        .grenierTransition(.celebration)
                 }
             }
         }
@@ -147,6 +166,16 @@ struct TierProgressBar: View {
         if dynamicTypeSize.isAccessibilitySize || index == 0 { return .leading }
         if index == sorted.count - 1 { return .trailing }
         return .center
+    }
+}
+
+/// Label compact : icône collée au texte (légendes, petites lignes d'info).
+struct TightLabelStyle: LabelStyle {
+    func makeBody(configuration: Configuration) -> some View {
+        HStack(alignment: .firstTextBaseline, spacing: 4) {
+            configuration.icon
+            configuration.title
+        }
     }
 }
 

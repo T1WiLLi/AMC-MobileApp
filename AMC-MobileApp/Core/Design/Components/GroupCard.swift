@@ -13,6 +13,7 @@ struct GroupCard: View {
     var onJoin: (() -> Void)?
 
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     /// Membres en plus des initiales affichées, pour que la pile annonce exactement `householdCount`.
     var extraMembers: Int { max(group.householdCount - memberInitials.prefix(3).count, 0) }
@@ -27,9 +28,10 @@ struct GroupCard: View {
                 Text(group.name)
                     .font(.headline)
                     .foregroundStyle(.texte)
-                Text(detailText)
+                Label(detailText, systemImage: pickupLabel == nil ? "house.fill" : "mappin.and.ellipse")
                     .font(.subheadline)
                     .foregroundStyle(.texteSecondaire)
+                    .symbolRenderingMode(.hierarchical)
             }
             .fixedSize(horizontal: false, vertical: true)
             .accessibilityElement(children: .ignore)
@@ -40,18 +42,26 @@ struct GroupCard: View {
                 Label("Membre", systemImage: "checkmark.circle.fill")
                     .labelStyle(.iconOnly)
                     .font(.title2)
+                    .symbolRenderingMode(.hierarchical)
                     .foregroundStyle(Color.economie)
+                    .symbolEffect(.bounce, value: isMember && !reduceMotion)
+                    .transition(.scale.combined(with: .opacity))
                     .accessibilityLabel("Tu es membre de \(group.name)")
             } else if let onJoin {
-                Button("Rejoindre", action: onJoin)
-                    .buttonStyle(.glass)
-                    .tint(.grenier)
-                    .fontWeight(.semibold)
-                    .accessibilityLabel("Rejoindre \(group.name)")
-                    .accessibilityHint("Ajoute ta famille à ce groupe d'achat")
+                Button(action: onJoin) {
+                    Label("Rejoindre", systemImage: "person.badge.plus")
+                        .symbolRenderingMode(.hierarchical)
+                }
+                .buttonStyle(.glass)
+                .tint(.grenier)
+                .fontWeight(.semibold)
+                .accessibilityLabel("Rejoindre \(group.name)")
+                .accessibilityHint("Ajoute ta famille à ce groupe d'achat")
             }
         }
         .grenierCard(padding: 14)
+        .grenierAnimation(.smooth, value: isMember)
+        .grenierHaptic(.success, trigger: isMember) { _, new in new }
         .accessibilityElement(children: .contain)
     }
 

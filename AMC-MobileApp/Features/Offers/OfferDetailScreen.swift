@@ -402,17 +402,32 @@ private struct OfferDetailContent: View {
         VStack(alignment: .leading, spacing: 10) {
             sectionHeader("Le lot", systemImage: OfferDetailSymbol.aboutSection)
             VStack(spacing: 0) {
-                infoRow("Producteur", systemImage: OfferDetailSymbol.vendor(content.vendor.kind)) {
-                    HStack(spacing: 6) {
-                        Text(content.vendor.legalName)
-                        if content.vendor.isVerified {
-                            Image(systemName: OfferDetailSymbol.verified)
-                                .symbolRenderingMode(.hierarchical)
-                                .foregroundStyle(Color.grenier)
-                                .accessibilityLabel("vérifié")
+                // Page publique du producteur (T-097, R-009).
+                NavigationLink {
+                    PublicVendorScreen(vendorId: content.vendor.id)
+                } label: {
+                    infoRow("Producteur", systemImage: OfferDetailSymbol.vendor(content.vendor.kind)) {
+                        HStack(spacing: 6) {
+                            Text(content.vendor.legalName)
+                            if content.vendor.isVerified {
+                                Image(systemName: OfferDetailSymbol.verified)
+                                    .symbolRenderingMode(.hierarchical)
+                                    .foregroundStyle(Color.grenier)
+                                    .accessibilityLabel("vérifié")
+                            }
                         }
                     }
+                    .overlay(alignment: .trailing) {
+                        Image(systemName: "chevron.right")
+                            .font(.footnote.weight(.semibold))
+                            .foregroundStyle(.texteSecondaire)
+                            .padding(.trailing, 16)
+                            .accessibilityHidden(true)
+                    }
+                    .contentShape(.rect)
                 }
+                .buttonStyle(.plain)
+                .accessibilityHint("Voir la page du producteur")
                 rowDivider
                 infoRow("Origine", systemImage: OfferDetailSymbol.origin) {
                     Text(content.product.origin)

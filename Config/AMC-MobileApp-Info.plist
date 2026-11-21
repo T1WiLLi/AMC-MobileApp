@@ -3,6 +3,9 @@
 <plist version="1.0">
 <dict>
 	<!-- Fusionné avec l'Info.plist généré par Xcode (GENERATE_INFOPLIST_FILE = YES). -->
+	<!-- Nom affiché sous l'icône. -->
+	<key>CFBundleDisplayName</key>
+	<string>Grenier</string>
 	<!-- Schéma d'URL de retour Google Sign-In = REVERSED_CLIENT_ID de GoogleService-Info.plist. -->
 	<!-- Face ID : verrou de l'app et confirmation des paiements (Core/Security). -->
 	<key>NSFaceIDUsageDescription</key>

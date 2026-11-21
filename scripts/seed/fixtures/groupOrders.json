@@ -1,0 +1,1430 @@
+[
+  {
+    "id": "order-parc-extension-1",
+    "groupId": "group-parc-extension",
+    "offerId": "offer-carottes",
+    "status": "reached",
+    "currentTierIndex": 0,
+    "committedShares": 15,
+    "committedHouseholds": 8,
+    "pickupPointId": "pickup-parc-extension-1",
+    "pickupSlotsInDays": [
+      {
+        "inDays": 4,
+        "startHour": 16,
+        "endHour": 19
+      },
+      {
+        "inDays": 5,
+        "startHour": 10,
+        "endHour": 12
+      }
+    ],
+    "shares": [
+      {
+        "householdId": "household-jean",
+        "quantity": 2,
+        "finalPriceCents": null,
+        "isPaid": false,
+        "suspendedAmountCents": 500,
+        "subsidyCents": 0,
+        "qrCode": null,
+        "isPickedUp": false
+      },
+      {
+        "householdId": "household-005",
+        "quantity": 2,
+        "finalPriceCents": null,
+        "isPaid": false,
+        "suspendedAmountCents": 0,
+        "subsidyCents": 0,
+        "qrCode": null,
+        "isPickedUp": false
+      },
+      {
+        "householdId": "household-003",
+        "quantity": 2,
+        "finalPriceCents": null,
+        "isPaid": false,
+        "suspendedAmountCents": 0,
+        "subsidyCents": 739,
+        "qrCode": null,
+        "isPickedUp": false
+      },
+      {
+        "householdId": "household-001",
+        "quantity": 2,
+        "finalPriceCents": null,
+        "isPaid": false,
+        "suspendedAmountCents": 1000,
+        "subsidyCents": 0,
+        "qrCode": null,
+        "isPickedUp": false
+      },
+      {
+        "householdId": "household-006",
+        "quantity": 2,
+        "finalPriceCents": null,
+        "isPaid": false,
+        "suspendedAmountCents": 0,
+        "subsidyCents": 0,
+        "qrCode": null,
+        "isPickedUp": false
+      },
+      {
+        "householdId": "household-002",
+        "quantity": 2,
+        "finalPriceCents": null,
+        "isPaid": false,
+        "suspendedAmountCents": 1000,
+        "subsidyCents": 0,
+        "qrCode": null,
+        "isPickedUp": false
+      },
+      {
+        "householdId": "household-007",
+        "quantity": 2,
+        "finalPriceCents": null,
+        "isPaid": false,
+        "suspendedAmountCents": 0,
+        "subsidyCents": 739,
+        "qrCode": null,
+        "isPickedUp": false
+      },
+      {
+        "householdId": "household-008",
+        "quantity": 1,
+        "finalPriceCents": null,
+        "isPaid": false,
+        "suspendedAmountCents": 0,
+        "subsidyCents": 0,
+        "qrCode": null,
+        "isPickedUp": false
+      }
+    ]
+  },
+  {
+    "id": "order-parc-extension-2",
+    "groupId": "group-parc-extension",
+    "offerId": "offer-riz-basmati",
+    "status": "reached",
+    "currentTierIndex": 0,
+    "committedShares": 10,
+    "committedHouseholds": 7,
+    "pickupPointId": "pickup-parc-extension-1",
+    "pickupSlotsInDays": [
+      {
+        "inDays": 5,
+        "startHour": 16,
+        "endHour": 19
+      },
+      {
+        "inDays": 6,
+        "startHour": 10,
+        "endHour": 12
+      }
+    ],
+    "shares": [
+      {
+        "householdId": "household-amina",
+        "quantity": 2,
+        "finalPriceCents": null,
+        "isPaid": false,
+        "suspendedAmountCents": 0,
+        "subsidyCents": 0,
+        "qrCode": null,
+        "isPickedUp": false
+      },
+      {
+        "householdId": "household-jean",
+        "quantity": 2,
+        "finalPriceCents": null,
+        "isPaid": false,
+        "suspendedAmountCents": 0,
+        "subsidyCents": 0,
+        "qrCode": null,
+        "isPickedUp": false
+      },
+      {
+        "householdId": "household-001",
+        "quantity": 2,
+        "finalPriceCents": null,
+        "isPaid": false,
+        "suspendedAmountCents": 0,
+        "subsidyCents": 0,
+        "qrCode": null,
+        "isPickedUp": false
+      },
+      {
+        "householdId": "household-002",
+        "quantity": 1,
+        "finalPriceCents": null,
+        "isPaid": false,
+        "suspendedAmountCents": 500,
+        "subsidyCents": 0,
+        "qrCode": null,
+        "isPickedUp": false
+      },
+      {
+        "householdId": "household-003",
+        "quantity": 1,
+        "finalPriceCents": null,
+        "isPaid": false,
+        "suspendedAmountCents": 0,
+        "subsidyCents": 1229,
+        "qrCode": null,
+        "isPickedUp": false
+      },
+      {
+        "householdId": "household-004",
+        "quantity": 1,
+        "finalPriceCents": null,
+        "isPaid": false,
+        "suspendedAmountCents": 0,
+        "subsidyCents": 0,
+        "qrCode": null,
+        "isPickedUp": false
+      },
+      {
+        "householdId": "household-005",
+        "quantity": 1,
+        "finalPriceCents": null,
+        "isPaid": false,
+        "suspendedAmountCents": 0,
+        "subsidyCents": 0,
+        "qrCode": null,
+        "isPickedUp": false
+      }
+    ]
+  },
+  {
+    "id": "order-parc-extension-3",
+    "groupId": "group-parc-extension",
+    "offerId": "offer-boeuf-hache",
+    "status": "open",
+    "currentTierIndex": null,
+    "committedShares": 5,
+    "committedHouseholds": 5,
+    "pickupPointId": "pickup-parc-extension-1",
+    "pickupSlotsInDays": [
+      {
+        "inDays": 6,
+        "startHour": 16,
+        "endHour": 19
+      },
+      {
+        "inDays": 7,
+        "startHour": 10,
+        "endHour": 12
+      }
+    ],
+    "shares": [
+      {
+        "householdId": "household-005",
+        "quantity": 1,
+        "finalPriceCents": null,
+        "isPaid": false,
+        "suspendedAmountCents": 0,
+        "subsidyCents": 0,
+        "qrCode": null,
+        "isPickedUp": false
+      },
+      {
+        "householdId": "household-jean",
+        "quantity": 1,
+        "finalPriceCents": null,
+        "isPaid": false,
+        "suspendedAmountCents": 0,
+        "subsidyCents": 0,
+        "qrCode": null,
+        "isPickedUp": false
+      },
+      {
+        "householdId": "household-001",
+        "quantity": 1,
+        "finalPriceCents": null,
+        "isPaid": false,
+        "suspendedAmountCents": 0,
+        "subsidyCents": 0,
+        "qrCode": null,
+        "isPickedUp": false
+      },
+      {
+        "householdId": "household-003",
+        "quantity": 1,
+        "finalPriceCents": null,
+        "isPaid": false,
+        "suspendedAmountCents": 0,
+        "subsidyCents": 1714,
+        "qrCode": null,
+        "isPickedUp": false
+      },
+      {
+        "householdId": "household-007",
+        "quantity": 1,
+        "finalPriceCents": null,
+        "isPaid": false,
+        "suspendedAmountCents": 0,
+        "subsidyCents": 1714,
+        "qrCode": null,
+        "isPickedUp": false
+      }
+    ]
+  },
+  {
+    "id": "order-rosemont-1",
+    "groupId": "group-rosemont",
+    "offerId": "offer-poulet-entier",
+    "status": "reached",
+    "currentTierIndex": 0,
+    "committedShares": 11,
+    "committedHouseholds": 6,
+    "pickupPointId": "pickup-rosemont-1",
+    "pickupSlotsInDays": [
+      {
+        "inDays": 4,
+        "startHour": 16,
+        "endHour": 19
+      },
+      {
+        "inDays": 5,
+        "startHour": 10,
+        "endHour": 12
+      }
+    ],
+    "shares": [
+      {
+        "householdId": "household-009",
+        "quantity": 2,
+        "finalPriceCents": null,
+        "isPaid": false,
+        "suspendedAmountCents": 0,
+        "subsidyCents": 0,
+        "qrCode": null,
+        "isPickedUp": false
+      },
+      {
+        "householdId": "household-012",
+        "quantity": 2,
+        "finalPriceCents": null,
+        "isPaid": false,
+        "suspendedAmountCents": 0,
+        "subsidyCents": 3959,
+        "qrCode": null,
+        "isPickedUp": false
+      },
+      {
+        "householdId": "household-010",
+        "quantity": 2,
+        "finalPriceCents": null,
+        "isPaid": false,
+        "suspendedAmountCents": 0,
+        "subsidyCents": 0,
+        "qrCode": null,
+        "isPickedUp": false
+      },
+      {
+        "householdId": "household-011",
+        "quantity": 2,
+        "finalPriceCents": null,
+        "isPaid": false,
+        "suspendedAmountCents": 0,
+        "subsidyCents": 0,
+        "qrCode": null,
+        "isPickedUp": false
+      },
+      {
+        "householdId": "household-016",
+        "quantity": 2,
+        "finalPriceCents": null,
+        "isPaid": false,
+        "suspendedAmountCents": 0,
+        "subsidyCents": 0,
+        "qrCode": null,
+        "isPickedUp": false
+      },
+      {
+        "householdId": "household-014",
+        "quantity": 1,
+        "finalPriceCents": null,
+        "isPaid": false,
+        "suspendedAmountCents": 0,
+        "subsidyCents": 0,
+        "qrCode": null,
+        "isPickedUp": false
+      }
+    ]
+  },
+  {
+    "id": "order-rosemont-2",
+    "groupId": "group-rosemont",
+    "offerId": "offer-pommes-cortland",
+    "status": "reached",
+    "currentTierIndex": 0,
+    "committedShares": 12,
+    "committedHouseholds": 7,
+    "pickupPointId": "pickup-rosemont-1",
+    "pickupSlotsInDays": [
+      {
+        "inDays": 5,
+        "startHour": 16,
+        "endHour": 19
+      },
+      {
+        "inDays": 6,
+        "startHour": 10,
+        "endHour": 12
+      }
+    ],
+    "shares": [
+      {
+        "householdId": "household-010",
+        "quantity": 2,
+        "finalPriceCents": null,
+        "isPaid": false,
+        "suspendedAmountCents": 1000,
+        "subsidyCents": 0,
+        "qrCode": null,
+        "isPickedUp": false
+      },
+      {
+        "householdId": "household-009",
+        "quantity": 2,
+        "finalPriceCents": null,
+        "isPaid": false,
+        "suspendedAmountCents": 0,
+        "subsidyCents": 0,
+        "qrCode": null,
+        "isPickedUp": false
+      },
+      {
+        "householdId": "household-012",
+        "quantity": 2,
+        "finalPriceCents": null,
+        "isPaid": false,
+        "suspendedAmountCents": 0,
+        "subsidyCents": 1269,
+        "qrCode": null,
+        "isPickedUp": false
+      },
+      {
+        "householdId": "household-013",
+        "quantity": 2,
+        "finalPriceCents": null,
+        "isPaid": false,
+        "suspendedAmountCents": 0,
+        "subsidyCents": 0,
+        "qrCode": null,
+        "isPickedUp": false
+      },
+      {
+        "householdId": "household-011",
+        "quantity": 2,
+        "finalPriceCents": null,
+        "isPaid": false,
+        "suspendedAmountCents": 0,
+        "subsidyCents": 0,
+        "qrCode": null,
+        "isPickedUp": false
+      },
+      {
+        "householdId": "household-014",
+        "quantity": 1,
+        "finalPriceCents": null,
+        "isPaid": false,
+        "suspendedAmountCents": 500,
+        "subsidyCents": 0,
+        "qrCode": null,
+        "isPickedUp": false
+      },
+      {
+        "householdId": "household-015",
+        "quantity": 1,
+        "finalPriceCents": null,
+        "isPaid": false,
+        "suspendedAmountCents": 0,
+        "subsidyCents": 0,
+        "qrCode": null,
+        "isPickedUp": false
+      }
+    ]
+  },
+  {
+    "id": "order-hochelaga-1",
+    "groupId": "group-hochelaga",
+    "offerId": "offer-porc-hache",
+    "status": "reached",
+    "currentTierIndex": 0,
+    "committedShares": 13,
+    "committedHouseholds": 7,
+    "pickupPointId": "pickup-hochelaga-1",
+    "pickupSlotsInDays": [
+      {
+        "inDays": 4,
+        "startHour": 16,
+        "endHour": 19
+      },
+      {
+        "inDays": 5,
+        "startHour": 10,
+        "endHour": 12
+      }
+    ],
+    "shares": [
+      {
+        "householdId": "household-023",
+        "quantity": 2,
+        "finalPriceCents": null,
+        "isPaid": false,
+        "suspendedAmountCents": 0,
+        "subsidyCents": 0,
+        "qrCode": null,
+        "isPickedUp": false
+      },
+      {
+        "householdId": "household-019",
+        "quantity": 2,
+        "finalPriceCents": null,
+        "isPaid": false,
+        "suspendedAmountCents": 0,
+        "subsidyCents": 2369,
+        "qrCode": null,
+        "isPickedUp": false
+      },
+      {
+        "householdId": "household-018",
+        "quantity": 2,
+        "finalPriceCents": null,
+        "isPaid": false,
+        "suspendedAmountCents": 0,
+        "subsidyCents": 0,
+        "qrCode": null,
+        "isPickedUp": false
+      },
+      {
+        "householdId": "household-022",
+        "quantity": 2,
+        "finalPriceCents": null,
+        "isPaid": false,
+        "suspendedAmountCents": 0,
+        "subsidyCents": 0,
+        "qrCode": null,
+        "isPickedUp": false
+      },
+      {
+        "householdId": "household-020",
+        "quantity": 2,
+        "finalPriceCents": null,
+        "isPaid": false,
+        "suspendedAmountCents": 0,
+        "subsidyCents": 0,
+        "qrCode": null,
+        "isPickedUp": false
+      },
+      {
+        "householdId": "household-021",
+        "quantity": 2,
+        "finalPriceCents": null,
+        "isPaid": false,
+        "suspendedAmountCents": 0,
+        "subsidyCents": 0,
+        "qrCode": null,
+        "isPickedUp": false
+      },
+      {
+        "householdId": "household-017",
+        "quantity": 1,
+        "finalPriceCents": null,
+        "isPaid": false,
+        "suspendedAmountCents": 0,
+        "subsidyCents": 0,
+        "qrCode": null,
+        "isPickedUp": false
+      }
+    ]
+  },
+  {
+    "id": "order-hochelaga-2",
+    "groupId": "group-hochelaga",
+    "offerId": "offer-pates-penne",
+    "status": "reached",
+    "currentTierIndex": 0,
+    "committedShares": 6,
+    "committedHouseholds": 3,
+    "pickupPointId": "pickup-hochelaga-1",
+    "pickupSlotsInDays": [
+      {
+        "inDays": 5,
+        "startHour": 16,
+        "endHour": 19
+      },
+      {
+        "inDays": 6,
+        "startHour": 10,
+        "endHour": 12
+      }
+    ],
+    "shares": [
+      {
+        "householdId": "household-022",
+        "quantity": 2,
+        "finalPriceCents": null,
+        "isPaid": false,
+        "suspendedAmountCents": 1000,
+        "subsidyCents": 0,
+        "qrCode": null,
+        "isPickedUp": false
+      },
+      {
+        "householdId": "household-017",
+        "quantity": 2,
+        "finalPriceCents": null,
+        "isPaid": false,
+        "suspendedAmountCents": 0,
+        "subsidyCents": 0,
+        "qrCode": null,
+        "isPickedUp": false
+      },
+      {
+        "householdId": "household-020",
+        "quantity": 2,
+        "finalPriceCents": null,
+        "isPaid": false,
+        "suspendedAmountCents": 1000,
+        "subsidyCents": 0,
+        "qrCode": null,
+        "isPickedUp": false
+      }
+    ]
+  },
+  {
+    "id": "order-saint-michel-1",
+    "groupId": "group-saint-michel",
+    "offerId": "offer-patates-douces",
+    "status": "reached",
+    "currentTierIndex": 0,
+    "committedShares": 9,
+    "committedHouseholds": 6,
+    "pickupPointId": "pickup-saint-michel-1",
+    "pickupSlotsInDays": [
+      {
+        "inDays": 4,
+        "startHour": 16,
+        "endHour": 19
+      },
+      {
+        "inDays": 5,
+        "startHour": 10,
+        "endHour": 12
+      }
+    ],
+    "shares": [
+      {
+        "householdId": "household-030",
+        "quantity": 2,
+        "finalPriceCents": null,
+        "isPaid": false,
+        "suspendedAmountCents": 0,
+        "subsidyCents": 0,
+        "qrCode": null,
+        "isPickedUp": false
+      },
+      {
+        "householdId": "household-027",
+        "quantity": 2,
+        "finalPriceCents": null,
+        "isPaid": false,
+        "suspendedAmountCents": 0,
+        "subsidyCents": 0,
+        "qrCode": null,
+        "isPickedUp": false
+      },
+      {
+        "householdId": "household-024",
+        "quantity": 2,
+        "finalPriceCents": null,
+        "isPaid": false,
+        "suspendedAmountCents": 1000,
+        "subsidyCents": 0,
+        "qrCode": null,
+        "isPickedUp": false
+      },
+      {
+        "householdId": "household-029",
+        "quantity": 1,
+        "finalPriceCents": null,
+        "isPaid": false,
+        "suspendedAmountCents": 1000,
+        "subsidyCents": 0,
+        "qrCode": null,
+        "isPickedUp": false
+      },
+      {
+        "householdId": "household-025",
+        "quantity": 1,
+        "finalPriceCents": null,
+        "isPaid": false,
+        "suspendedAmountCents": 0,
+        "subsidyCents": 789,
+        "qrCode": null,
+        "isPickedUp": false
+      },
+      {
+        "householdId": "household-028",
+        "quantity": 1,
+        "finalPriceCents": null,
+        "isPaid": false,
+        "suspendedAmountCents": 500,
+        "subsidyCents": 0,
+        "qrCode": null,
+        "isPickedUp": false
+      }
+    ]
+  },
+  {
+    "id": "order-saint-michel-2",
+    "groupId": "group-saint-michel",
+    "offerId": "offer-oeufs-gros",
+    "status": "open",
+    "currentTierIndex": null,
+    "committedShares": 14,
+    "committedHouseholds": 7,
+    "pickupPointId": "pickup-saint-michel-1",
+    "pickupSlotsInDays": [
+      {
+        "inDays": 5,
+        "startHour": 16,
+        "endHour": 19
+      },
+      {
+        "inDays": 6,
+        "startHour": 10,
+        "endHour": 12
+      }
+    ],
+    "shares": [
+      {
+        "householdId": "household-030",
+        "quantity": 2,
+        "finalPriceCents": null,
+        "isPaid": false,
+        "suspendedAmountCents": 0,
+        "subsidyCents": 0,
+        "qrCode": null,
+        "isPickedUp": false
+      },
+      {
+        "householdId": "household-027",
+        "quantity": 2,
+        "finalPriceCents": null,
+        "isPaid": false,
+        "suspendedAmountCents": 0,
+        "subsidyCents": 0,
+        "qrCode": null,
+        "isPickedUp": false
+      },
+      {
+        "householdId": "household-029",
+        "quantity": 2,
+        "finalPriceCents": null,
+        "isPaid": false,
+        "suspendedAmountCents": 0,
+        "subsidyCents": 0,
+        "qrCode": null,
+        "isPickedUp": false
+      },
+      {
+        "householdId": "household-026",
+        "quantity": 2,
+        "finalPriceCents": null,
+        "isPaid": false,
+        "suspendedAmountCents": 0,
+        "subsidyCents": 0,
+        "qrCode": null,
+        "isPickedUp": false
+      },
+      {
+        "householdId": "household-024",
+        "quantity": 2,
+        "finalPriceCents": null,
+        "isPaid": false,
+        "suspendedAmountCents": 0,
+        "subsidyCents": 0,
+        "qrCode": null,
+        "isPickedUp": false
+      },
+      {
+        "householdId": "household-025",
+        "quantity": 2,
+        "finalPriceCents": null,
+        "isPaid": false,
+        "suspendedAmountCents": 0,
+        "subsidyCents": 1059,
+        "qrCode": null,
+        "isPickedUp": false
+      },
+      {
+        "householdId": "household-028",
+        "quantity": 2,
+        "finalPriceCents": null,
+        "isPaid": false,
+        "suspendedAmountCents": 1000,
+        "subsidyCents": 0,
+        "qrCode": null,
+        "isPickedUp": false
+      }
+    ]
+  },
+  {
+    "id": "order-verdun-1",
+    "groupId": "group-verdun",
+    "offerId": "offer-pommes-de-terre-jaunes",
+    "status": "open",
+    "currentTierIndex": null,
+    "committedShares": 7,
+    "committedHouseholds": 4,
+    "pickupPointId": "pickup-verdun-1",
+    "pickupSlotsInDays": [
+      {
+        "inDays": 4,
+        "startHour": 16,
+        "endHour": 19
+      },
+      {
+        "inDays": 5,
+        "startHour": 10,
+        "endHour": 12
+      }
+    ],
+    "shares": [
+      {
+        "householdId": "household-034",
+        "quantity": 2,
+        "finalPriceCents": null,
+        "isPaid": false,
+        "suspendedAmountCents": 0,
+        "subsidyCents": 0,
+        "qrCode": null,
+        "isPickedUp": false
+      },
+      {
+        "householdId": "household-036",
+        "quantity": 2,
+        "finalPriceCents": null,
+        "isPaid": false,
+        "suspendedAmountCents": 0,
+        "subsidyCents": 0,
+        "qrCode": null,
+        "isPickedUp": false
+      },
+      {
+        "householdId": "household-035",
+        "quantity": 2,
+        "finalPriceCents": null,
+        "isPaid": false,
+        "suspendedAmountCents": 0,
+        "subsidyCents": 0,
+        "qrCode": null,
+        "isPickedUp": false
+      },
+      {
+        "householdId": "household-033",
+        "quantity": 1,
+        "finalPriceCents": null,
+        "isPaid": false,
+        "suspendedAmountCents": 0,
+        "subsidyCents": 0,
+        "qrCode": null,
+        "isPickedUp": false
+      }
+    ]
+  },
+  {
+    "id": "order-verdun-2",
+    "groupId": "group-verdun",
+    "offerId": "offer-thon-pale",
+    "status": "reached",
+    "currentTierIndex": 1,
+    "committedShares": 12,
+    "committedHouseholds": 7,
+    "pickupPointId": "pickup-verdun-1",
+    "pickupSlotsInDays": [
+      {
+        "inDays": 5,
+        "startHour": 16,
+        "endHour": 19
+      },
+      {
+        "inDays": 6,
+        "startHour": 10,
+        "endHour": 12
+      }
+    ],
+    "shares": [
+      {
+        "householdId": "household-037",
+        "quantity": 2,
+        "finalPriceCents": null,
+        "isPaid": false,
+        "suspendedAmountCents": 0,
+        "subsidyCents": 0,
+        "qrCode": null,
+        "isPickedUp": false
+      },
+      {
+        "householdId": "household-035",
+        "quantity": 2,
+        "finalPriceCents": null,
+        "isPaid": false,
+        "suspendedAmountCents": 0,
+        "subsidyCents": 0,
+        "qrCode": null,
+        "isPickedUp": false
+      },
+      {
+        "householdId": "household-031",
+        "quantity": 2,
+        "finalPriceCents": null,
+        "isPaid": false,
+        "suspendedAmountCents": 0,
+        "subsidyCents": 3819,
+        "qrCode": null,
+        "isPickedUp": false
+      },
+      {
+        "householdId": "household-036",
+        "quantity": 2,
+        "finalPriceCents": null,
+        "isPaid": false,
+        "suspendedAmountCents": 0,
+        "subsidyCents": 0,
+        "qrCode": null,
+        "isPickedUp": false
+      },
+      {
+        "householdId": "household-034",
+        "quantity": 2,
+        "finalPriceCents": null,
+        "isPaid": false,
+        "suspendedAmountCents": 500,
+        "subsidyCents": 0,
+        "qrCode": null,
+        "isPickedUp": false
+      },
+      {
+        "householdId": "household-033",
+        "quantity": 1,
+        "finalPriceCents": null,
+        "isPaid": false,
+        "suspendedAmountCents": 1000,
+        "subsidyCents": 0,
+        "qrCode": null,
+        "isPickedUp": false
+      },
+      {
+        "householdId": "household-032",
+        "quantity": 1,
+        "finalPriceCents": null,
+        "isPaid": false,
+        "suspendedAmountCents": 0,
+        "subsidyCents": 0,
+        "qrCode": null,
+        "isPickedUp": false
+      }
+    ]
+  },
+  {
+    "id": "order-cote-des-neiges-1",
+    "groupId": "group-cote-des-neiges",
+    "offerId": "offer-lentilles-rouges",
+    "status": "reached",
+    "currentTierIndex": 0,
+    "committedShares": 11,
+    "committedHouseholds": 7,
+    "pickupPointId": "pickup-cote-des-neiges-1",
+    "pickupSlotsInDays": [
+      {
+        "inDays": 4,
+        "startHour": 16,
+        "endHour": 19
+      },
+      {
+        "inDays": 5,
+        "startHour": 10,
+        "endHour": 12
+      }
+    ],
+    "shares": [
+      {
+        "householdId": "household-043",
+        "quantity": 2,
+        "finalPriceCents": null,
+        "isPaid": false,
+        "suspendedAmountCents": 500,
+        "subsidyCents": 0,
+        "qrCode": null,
+        "isPickedUp": false
+      },
+      {
+        "householdId": "household-039",
+        "quantity": 2,
+        "finalPriceCents": null,
+        "isPaid": false,
+        "suspendedAmountCents": 1000,
+        "subsidyCents": 0,
+        "qrCode": null,
+        "isPickedUp": false
+      },
+      {
+        "householdId": "household-042",
+        "quantity": 2,
+        "finalPriceCents": null,
+        "isPaid": false,
+        "suspendedAmountCents": 500,
+        "subsidyCents": 0,
+        "qrCode": null,
+        "isPickedUp": false
+      },
+      {
+        "householdId": "household-038",
+        "quantity": 2,
+        "finalPriceCents": null,
+        "isPaid": false,
+        "suspendedAmountCents": 0,
+        "subsidyCents": 1479,
+        "qrCode": null,
+        "isPickedUp": false
+      },
+      {
+        "householdId": "household-041",
+        "quantity": 1,
+        "finalPriceCents": null,
+        "isPaid": false,
+        "suspendedAmountCents": 0,
+        "subsidyCents": 0,
+        "qrCode": null,
+        "isPickedUp": false
+      },
+      {
+        "householdId": "household-040",
+        "quantity": 1,
+        "finalPriceCents": null,
+        "isPaid": false,
+        "suspendedAmountCents": 1000,
+        "subsidyCents": 0,
+        "qrCode": null,
+        "isPickedUp": false
+      },
+      {
+        "householdId": "household-044",
+        "quantity": 1,
+        "finalPriceCents": null,
+        "isPaid": false,
+        "suspendedAmountCents": 0,
+        "subsidyCents": 739,
+        "qrCode": null,
+        "isPickedUp": false
+      }
+    ]
+  },
+  {
+    "id": "order-cote-des-neiges-2",
+    "groupId": "group-cote-des-neiges",
+    "offerId": "offer-huile-canola",
+    "status": "open",
+    "currentTierIndex": null,
+    "committedShares": 4,
+    "committedHouseholds": 4,
+    "pickupPointId": "pickup-cote-des-neiges-1",
+    "pickupSlotsInDays": [
+      {
+        "inDays": 5,
+        "startHour": 16,
+        "endHour": 19
+      },
+      {
+        "inDays": 6,
+        "startHour": 10,
+        "endHour": 12
+      }
+    ],
+    "shares": [
+      {
+        "householdId": "household-038",
+        "quantity": 1,
+        "finalPriceCents": null,
+        "isPaid": false,
+        "suspendedAmountCents": 0,
+        "subsidyCents": 764,
+        "qrCode": null,
+        "isPickedUp": false
+      },
+      {
+        "householdId": "household-040",
+        "quantity": 1,
+        "finalPriceCents": null,
+        "isPaid": false,
+        "suspendedAmountCents": 0,
+        "subsidyCents": 0,
+        "qrCode": null,
+        "isPickedUp": false
+      },
+      {
+        "householdId": "household-039",
+        "quantity": 1,
+        "finalPriceCents": null,
+        "isPaid": false,
+        "suspendedAmountCents": 0,
+        "subsidyCents": 0,
+        "qrCode": null,
+        "isPickedUp": false
+      },
+      {
+        "householdId": "household-044",
+        "quantity": 1,
+        "finalPriceCents": null,
+        "isPaid": false,
+        "suspendedAmountCents": 0,
+        "subsidyCents": 764,
+        "qrCode": null,
+        "isPickedUp": false
+      }
+    ]
+  },
+  {
+    "id": "order-montreal-nord-1",
+    "groupId": "group-montreal-nord",
+    "offerId": "offer-pommes-cortland",
+    "status": "open",
+    "currentTierIndex": null,
+    "committedShares": 8,
+    "committedHouseholds": 4,
+    "pickupPointId": "pickup-montreal-nord-1",
+    "pickupSlotsInDays": [
+      {
+        "inDays": 4,
+        "startHour": 16,
+        "endHour": 19
+      },
+      {
+        "inDays": 5,
+        "startHour": 10,
+        "endHour": 12
+      }
+    ],
+    "shares": [
+      {
+        "householdId": "household-048",
+        "quantity": 2,
+        "finalPriceCents": null,
+        "isPaid": false,
+        "suspendedAmountCents": 1000,
+        "subsidyCents": 0,
+        "qrCode": null,
+        "isPickedUp": false
+      },
+      {
+        "householdId": "household-049",
+        "quantity": 2,
+        "finalPriceCents": null,
+        "isPaid": false,
+        "suspendedAmountCents": 0,
+        "subsidyCents": 0,
+        "qrCode": null,
+        "isPickedUp": false
+      },
+      {
+        "householdId": "household-046",
+        "quantity": 2,
+        "finalPriceCents": null,
+        "isPaid": false,
+        "suspendedAmountCents": 0,
+        "subsidyCents": 0,
+        "qrCode": null,
+        "isPickedUp": false
+      },
+      {
+        "householdId": "household-051",
+        "quantity": 2,
+        "finalPriceCents": null,
+        "isPaid": false,
+        "suspendedAmountCents": 1000,
+        "subsidyCents": 0,
+        "qrCode": null,
+        "isPickedUp": false
+      }
+    ]
+  },
+  {
+    "id": "order-montreal-nord-2",
+    "groupId": "group-montreal-nord",
+    "offerId": "offer-tomates-en-des",
+    "status": "reached",
+    "currentTierIndex": 0,
+    "committedShares": 9,
+    "committedHouseholds": 6,
+    "pickupPointId": "pickup-montreal-nord-1",
+    "pickupSlotsInDays": [
+      {
+        "inDays": 5,
+        "startHour": 16,
+        "endHour": 19
+      },
+      {
+        "inDays": 6,
+        "startHour": 10,
+        "endHour": 12
+      }
+    ],
+    "shares": [
+      {
+        "householdId": "household-047",
+        "quantity": 2,
+        "finalPriceCents": null,
+        "isPaid": false,
+        "suspendedAmountCents": 0,
+        "subsidyCents": 0,
+        "qrCode": null,
+        "isPickedUp": false
+      },
+      {
+        "householdId": "household-049",
+        "quantity": 2,
+        "finalPriceCents": null,
+        "isPaid": false,
+        "suspendedAmountCents": 0,
+        "subsidyCents": 0,
+        "qrCode": null,
+        "isPickedUp": false
+      },
+      {
+        "householdId": "household-045",
+        "quantity": 2,
+        "finalPriceCents": null,
+        "isPaid": false,
+        "suspendedAmountCents": 0,
+        "subsidyCents": 0,
+        "qrCode": null,
+        "isPickedUp": false
+      },
+      {
+        "householdId": "household-050",
+        "quantity": 1,
+        "finalPriceCents": null,
+        "isPaid": false,
+        "suspendedAmountCents": 500,
+        "subsidyCents": 0,
+        "qrCode": null,
+        "isPickedUp": false
+      },
+      {
+        "householdId": "household-048",
+        "quantity": 1,
+        "finalPriceCents": null,
+        "isPaid": false,
+        "suspendedAmountCents": 0,
+        "subsidyCents": 0,
+        "qrCode": null,
+        "isPickedUp": false
+      },
+      {
+        "householdId": "household-046",
+        "quantity": 1,
+        "finalPriceCents": null,
+        "isPaid": false,
+        "suspendedAmountCents": 0,
+        "subsidyCents": 0,
+        "qrCode": null,
+        "isPickedUp": false
+      }
+    ]
+  },
+  {
+    "id": "order-villeray-1",
+    "groupId": "group-villeray",
+    "offerId": "offer-oeufs-lafleur",
+    "status": "reached",
+    "currentTierIndex": 0,
+    "committedShares": 16,
+    "committedHouseholds": 7,
+    "pickupPointId": "pickup-villeray-1",
+    "pickupSlotsInDays": [
+      {
+        "inDays": 4,
+        "startHour": 16,
+        "endHour": 19
+      },
+      {
+        "inDays": 5,
+        "startHour": 10,
+        "endHour": 12
+      }
+    ],
+    "shares": [
+      {
+        "householdId": "household-052",
+        "quantity": 3,
+        "finalPriceCents": null,
+        "isPaid": false,
+        "suspendedAmountCents": 0,
+        "subsidyCents": 1708,
+        "qrCode": null,
+        "isPickedUp": false
+      },
+      {
+        "householdId": "household-053",
+        "quantity": 3,
+        "finalPriceCents": null,
+        "isPaid": false,
+        "suspendedAmountCents": 0,
+        "subsidyCents": 0,
+        "qrCode": null,
+        "isPickedUp": false
+      },
+      {
+        "householdId": "household-057",
+        "quantity": 2,
+        "finalPriceCents": null,
+        "isPaid": false,
+        "suspendedAmountCents": 0,
+        "subsidyCents": 0,
+        "qrCode": null,
+        "isPickedUp": false
+      },
+      {
+        "householdId": "household-058",
+        "quantity": 2,
+        "finalPriceCents": null,
+        "isPaid": false,
+        "suspendedAmountCents": 500,
+        "subsidyCents": 0,
+        "qrCode": null,
+        "isPickedUp": false
+      },
+      {
+        "householdId": "household-056",
+        "quantity": 2,
+        "finalPriceCents": null,
+        "isPaid": false,
+        "suspendedAmountCents": 0,
+        "subsidyCents": 0,
+        "qrCode": null,
+        "isPickedUp": false
+      },
+      {
+        "householdId": "household-055",
+        "quantity": 2,
+        "finalPriceCents": null,
+        "isPaid": false,
+        "suspendedAmountCents": 500,
+        "subsidyCents": 0,
+        "qrCode": null,
+        "isPickedUp": false
+      },
+      {
+        "householdId": "household-054",
+        "quantity": 2,
+        "finalPriceCents": null,
+        "isPaid": false,
+        "suspendedAmountCents": 0,
+        "subsidyCents": 0,
+        "qrCode": null,
+        "isPickedUp": false
+      }
+    ]
+  },
+  {
+    "id": "order-villeray-2",
+    "groupId": "group-villeray",
+    "offerId": "offer-courges-butternut",
+    "status": "reached",
+    "currentTierIndex": 0,
+    "committedShares": 10,
+    "committedHouseholds": 7,
+    "pickupPointId": "pickup-villeray-1",
+    "pickupSlotsInDays": [
+      {
+        "inDays": 5,
+        "startHour": 16,
+        "endHour": 19
+      },
+      {
+        "inDays": 6,
+        "startHour": 10,
+        "endHour": 12
+      }
+    ],
+    "shares": [
+      {
+        "householdId": "household-053",
+        "quantity": 2,
+        "finalPriceCents": null,
+        "isPaid": false,
+        "suspendedAmountCents": 500,
+        "subsidyCents": 0,
+        "qrCode": null,
+        "isPickedUp": false
+      },
+      {
+        "householdId": "household-054",
+        "quantity": 2,
+        "finalPriceCents": null,
+        "isPaid": false,
+        "suspendedAmountCents": 1000,
+        "subsidyCents": 0,
+        "qrCode": null,
+        "isPickedUp": false
+      },
+      {
+        "householdId": "household-055",
+        "quantity": 2,
+        "finalPriceCents": null,
+        "isPaid": false,
+        "suspendedAmountCents": 1000,
+        "subsidyCents": 0,
+        "qrCode": null,
+        "isPickedUp": false
+      },
+      {
+        "householdId": "household-052",
+        "quantity": 1,
+        "finalPriceCents": null,
+        "isPaid": false,
+        "suspendedAmountCents": 0,
+        "subsidyCents": 934,
+        "qrCode": null,
+        "isPickedUp": false
+      },
+      {
+        "householdId": "household-056",
+        "quantity": 1,
+        "finalPriceCents": null,
+        "isPaid": false,
+        "suspendedAmountCents": 1000,
+        "subsidyCents": 0,
+        "qrCode": null,
+        "isPickedUp": false
+      },
+      {
+        "householdId": "household-057",
+        "quantity": 1,
+        "finalPriceCents": null,
+        "isPaid": false,
+        "suspendedAmountCents": 500,
+        "subsidyCents": 0,
+        "qrCode": null,
+        "isPickedUp": false
+      },
+      {
+        "householdId": "household-058",
+        "quantity": 1,
+        "finalPriceCents": null,
+        "isPaid": false,
+        "suspendedAmountCents": 0,
+        "subsidyCents": 0,
+        "qrCode": null,
+        "isPickedUp": false
+      }
+    ]
+  }
+]

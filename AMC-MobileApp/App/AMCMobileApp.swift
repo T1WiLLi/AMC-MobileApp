@@ -45,6 +45,8 @@ struct AMCMobileApp: App {
             SessionGate(session: session)
                 .onAppear { PerfSignposts.markFirstScreen() }
                 // Réinitialisation de la démo : dépôts neufs, et `.id` recrée tous les écrans et leurs ViewModels.
+                // Thème choisi dans le Profil (B-035) : relié au trait UIKit, re-teint l'app sans recréer les écrans.
+                .appThemed()
                 .environment(\.appContext, demo.context)
                 .environment(sessionContext)
                 .environment(demo)

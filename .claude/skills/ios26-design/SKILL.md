@@ -41,6 +41,20 @@ Le système applique Liquid Glass automatiquement aux barres et contrôles natif
 - **Previews** : chaque vue a un `#Preview` avec données fake (et une variante sombre si l'écran est important).
 - Vérifie visuellement dans le simulateur (capture d'écran) avant d'ouvrir la PR, et joins la capture à la PR.
 
+## On vise le PRIX DU MEILLEUR UX (règle de willi, non négociable)
+
+Chaque écran doit avoir l'air fini et vivant, pas juste « fonctionnel ». Avant chaque PR UI, vérifie TOUT ceci :
+
+- **Des icônes partout où elles aident** : SF Symbols sur chaque ligne de liste, chaque bouton, chaque titre de section, chaque statut, chaque état vide, chaque tuile de chiffre. Rendu `.hierarchical` ou `.palette` aux couleurs du thème, tailles cohérentes (`.imageScale`, `@ScaledMetric`). Un `Label` plutôt qu'un `Text` seul dès que c'est une action ou une info.
+- **Des icônes qui réagissent** : `symbolEffect` (`.bounce` sur une action réussie, `.pulse` pour un état en attente, `.replace` quand un statut change, `.wiggle` pour attirer l'œil sur l'action suivante), toujours coupés sous Reduce Motion.
+- **Du mouvement qui explique** : transitions entre états (`.smooth`, `.spring`), `.contentTransition(.numericText())` sur tous les montants et compteurs, `matchedGeometryEffect` / `.navigationTransition(.zoom)` de la carte vers son détail, apparition des cartes en cascade. Utilise `Core/Design/Motion.swift` quand il est sur main.
+- **Du retour haptique** sur chaque action importante (`.sensoryFeedback`), toujours accompagné d'un changement visuel.
+- **Zéro écran nu** : chargement en squelette (`.redacted(reason: .placeholder)`) plutôt qu'un spinner seul, états vides illustrés (icônes composées et une action utile), erreurs avec une explication et « Réessayer ».
+- **Des chiffres qui parlent** : économies, paliers et impact mis en scène (badges, barres, mini-graphiques Swift Charts), jamais un nombre brut seul.
+- **Une hiérarchie claire** : une seule action principale `.glassProminent`, titres forts, espacement généreux, cartes opaques sur fond crème, verre seulement sur les contrôles.
+- **Des micro-détails Apple** : `.refreshable`, `.searchable` avec suggestions, `contextMenu` sur les cartes, `ShareLink` là où c'est utile, `swipeActions`, `.toolbar` bien rangée, `.presentationDetents` sur les feuilles, Dynamic Type jusqu'à AX5 sans rien couper.
+- **Le test du jury** : quelqu'un qui n'a jamais vu l'app doit comprendre en 3 secondes ce qu'il peut faire sur l'écran, et avoir envie de toucher. Sinon, ajoute une icône, un sous-titre ou une animation qui le guide.
+
 ## Données fake
 
 - Chaque source de données = un **protocole** de service + une implémentation fake (modèle existant : `ItemService` / `InMemoryItemService` dans `AMC-MobileApp/Services/ItemService.swift`).

@@ -19,7 +19,23 @@ struct OfferCardTests {
 
     @Test func progressText() {
         #expect(card(shares: 24, households: 24).progressText == "24 familles · 24 parts sur 40")
-        #expect(card(shares: 1, households: 1).progressText == "1 famille · 1 parts sur 40")
+        #expect(card(shares: 1, households: 1).progressText == "1 famille · 1 part sur 40")
+        #expect(card(shares: 0, households: 0).progressText == "0 famille · 0 part sur 40")
+    }
+
+    @Test func footerNudgeUsesMinimumToLaunch() {
+        // CardPreviewData.offer : lancement à 5 parts, paliers 1 / 11 / 26.
+        #expect(card(shares: 3, households: 3).progressBar.shortNudge == "Encore 2 parts pour lancer la commande")
+        #expect(card(shares: 25, households: 25).progressBar.shortNudge == "Encore 1 part pour −19 %")
+        #expect(card(shares: 30, households: 28).progressBar.shortNudge == nil)
+    }
+
+    @Test func accessibilityIsShortAndComplete() {
+        let text = card(shares: 25, households: 25).accessibilityText
+        #expect(text.hasPrefix("Riz basmati"))
+        #expect(text.contains("Ferme Lafleur"))
+        #expect(text.contains("le kg"))
+        #expect(text.contains("Encore 1 part pour −19 %"))
     }
 
     @Test func everyCategoryHasASymbol() {

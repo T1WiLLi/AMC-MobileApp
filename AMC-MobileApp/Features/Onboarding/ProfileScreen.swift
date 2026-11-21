@@ -120,6 +120,41 @@ private struct SecuritySection: View {
     }
 }
 
+/// Section « Sécurité » : activer ou couper le verrou Face ID.
+private struct SecuritySection: View {
+    let lock: AppLock
+    @State private var isWorking = false
+
+    var body: some View {
+        Section {
+            Toggle(isOn: Binding(
+                get: { lock.isEnabled },
+                set: { newValue in
+                    Task {
+                        isWorking = true
+                        if newValue { _ = await lock.enable() } else { lock.disable() }
+                        isWorking = false
+                    }
+                }
+            )) {
+                Label("Verrouiller avec \(lock.biometry.title)", systemImage: lock.biometry.systemImage)
+            }
+            .disabled(isWorking || !lock.biometry.canAuthenticate)
+            if let error = lock.lastError {
+                Text(error.message)
+                    .font(.footnote)
+                    .foregroundStyle(.secondary)
+            }
+        } header: {
+            Text("Sécurité")
+        } footer: {
+            Text(lock.biometry.canAuthenticate
+                 ? "Grenier se verrouille quand tu quittes l'app. Ton code de cueillette et tes paiements restent protégés."
+                 : "Configure Face ID ou un code dans les Réglages de l'iPhone pour activer le verrou.")
+        }
+    }
+}
+
 #Preview("Clair") {
     ProfileScreen()
 }

@@ -140,6 +140,12 @@ Détail par écran (portail Familles, parcours de démo d'Amina) :
 - **F6 Impact** : tes économies par mois (Swift Charts, novembre en Economie) ; grille du quartier 3 900 $, 12 paniers suspendus, 1,2 t, −41 km ; carte Solidarite « Offrir un panier suspendu ». Onglet Impact.
 
 
+- **V1 Tableau de bord vendeur** (Ferme Lafleur) : « Espace vendeur » + nom + bouton verre notifications ; 2 tuiles (ventes de la semaine 1 842 $ « +18 % en 7 jours », 61 familles servies) ; bandeau Grenier « Palier 3 atteint à Parc-Ex Ouest » ; lots ouverts (OfferCard côté vendeur, badge « Palier 3 ») ; bouton flottant `.glassProminent` « Créer un lot ». Onglet Tableau.
+- **V2 Éditeur de paliers** (« Nouveau lot », poussé) : formulaire groupé produit / quantité / prix épicerie ; liste des paliers (rang, plage de familles, % vs épicerie en Economie, prix éditable) + « Ajouter un palier » ; graphique en escalier prix selon les familles (Swift Charts, `.interpolationMethod(.stepEnd)`) + revenu estimé ; barre du bas « Publier le lot ».
+- **V3 Carte de la demande** : carte MapKit des quartiers avec bulles proportionnelles au nombre de familles (Parc-Ex Ouest en Grenier plein) ; recherche produit + filtres en verre ; feuille du bas (`.presentationDetents`) avec le quartier choisi, produits voulus en kg, badge « Forte demande » et « Proposer un lot ici ». Onglet Demande.
+
+Navigation Vendeur : `TabView` Tableau (`house.fill`) / Lots (`shippingbox.fill`) / Demande (`map.fill`) / Revenus (`dollarsign.circle.fill`) + `Tab(role: .search)`.
+
 | Écran | Fichier image | État |
 | --- | --- | --- |
 | Design system | `00-design-system.png` | prêt |
@@ -149,6 +155,6 @@ Détail par écran (portail Familles, parcours de démo d'Amina) :
 | F4 Palier franchi | `F4-palier.png` | prêt |
 | F5 Cueillette et QR | `F5-cueillette.png` | prêt |
 | F6 Impact sur Montréal | `F6-impact.png` | prêt |
-| V1 Tableau de bord vendeur | — | à faire |
-| V2 Éditeur de paliers | — | à faire |
-| V3 Carte de la demande | — | à faire |
+| V1 Tableau de bord vendeur | `V1-tableau.png` | prêt |
+| V2 Éditeur de paliers | `V2-paliers.png` | prêt |
+| V3 Carte de la demande | `V3-demande.png` | prêt |

@@ -26,7 +26,7 @@ nonisolated struct GroupTheme: Sendable, Equatable {
 
     /// Thème de l'app, hors d'un groupe.
     static let grenier = GroupTheme(
-        accent: Color("AccentColor"), emblem: GroupBranding.defaultEmblem,
+        accent: AppTheme.accent, emblem: GroupBranding.defaultEmblem,
         displayName: nil, welcomeMessage: nil, usesGroupAccent: false
     )
 

@@ -15,8 +15,8 @@ import SwiftUI
 
 extension Color {
     /// Grenier (accent) : actions, paliers, onglet actif (#A84D18 / #F08A4B, AA à 4,5:1 même sur sa teinte à 12 %).
-    /// Explicite pour ne pas dépendre du `.tint` de l'environnement.
-    static let grenier = Color("AccentColor")
+    /// Explicite pour ne pas dépendre du `.tint` de l'environnement. Suit le thème choisi (B-035, `AppTheme`).
+    static let grenier = AppTheme.accent
 
     /// Texte posé sur une couleur pleine (Grenier, Economie, Solidarite) : blanc en clair, #1C1712 en sombre.
     static let onAccent = Color(UIColor { traits in
@@ -43,13 +43,7 @@ extension View {
 
     /// Fond d'écran Grenier sous une liste ou un scroll.
     func grenierBackground() -> some View {
-        background(Color.fond.ignoresSafeArea())
-    }
-
-    /// Carte opaque Grenier : fond Surface, coins 24 concentriques.
-    func grenierCard(padding: CGFloat = 16) -> some View {
-        self.padding(padding)
-            .background(Color.surface, in: .rect(cornerRadius: 24))
+        background(AppTheme.fond.ignoresSafeArea())
     }
 }
 

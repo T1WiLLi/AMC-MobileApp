@@ -245,7 +245,10 @@ private struct OfferDetailContent: View {
         }
         .ignoresSafeArea(edges: .top)
         .scrollEdgeEffectStyle(.soft, for: .top)
-        .safeAreaInset(edge: .bottom, spacing: 0) {
+        // B-042 : barre de contrôle iOS 26. Le contenu s'arrête au-dessus d'elle (« Ton groupe » reste visible
+        // en fin de défilement) et un bord net la sépare du texte qui passe dessous : rien de superposé.
+        .scrollEdgeEffectStyle(.hard, for: .bottom)
+        .safeAreaBar(edge: .bottom, spacing: 0) {
             reserveBar(content)
         }
     }

@@ -174,6 +174,8 @@ nonisolated struct AppRepositories: Sendable {
     /// S-07, S-08. Valeur par défaut (fakes vides) pour que les appels existants de l'init compilent tels quels.
     var wishes: any GroupWishRepository = FakeGroupWishRepository()
     var supplies: any VendorSupplyRepository = FakeVendorSupplyRepository()
+    /// T-116 : portail Organismes (fonds de solidarité, financements, parrainages).
+    var organizations: any OrganizationRepository = FakeOrganizationRepository()
 
     /// Dépôts en mémoire remplis avec `FakeData`.
     static func fake(behavior: FakeBehavior = .realistic, data: FakeData = .montreal) -> AppRepositories {
@@ -187,7 +189,8 @@ nonisolated struct AppRepositories: Sendable {
             ),
             pickupPoints: FakePickupPointRepository(behavior: behavior, pickupPoints: data.pickupPoints),
             wishes: FakeGroupWishRepository(behavior: behavior, wishes: FakeData.demoWishes),
-            supplies: FakeVendorSupplyRepository(behavior: behavior, supplies: FakeData.demoSupplies)
+            supplies: FakeVendorSupplyRepository(behavior: behavior, supplies: FakeData.demoSupplies),
+            organizations: FakeOrganizationRepository(behavior: behavior)
         )
     }
 }

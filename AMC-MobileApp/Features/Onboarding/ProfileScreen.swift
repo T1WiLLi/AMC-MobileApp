@@ -223,7 +223,7 @@ private struct ProfileHeader: View {
             } else {
                 GrenierSymbolScene(
                     symbol: "person.crop.circle.fill",
-                    satellites: [.init(Portal.family.systemImage, tint: .solidarite), .init(Portal.vendor.systemImage, tint: .economie)]
+                    satellites: Portal.allCases.map { .init($0.systemImage, tint: $0.tint) }
                 )
                 Text("Ton profil Grenier")
                     .font(.title2.bold())

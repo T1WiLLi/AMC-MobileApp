@@ -18,6 +18,7 @@ struct RootView: View {
             switch portal {
             case .family: FamilyTabView()
             case .vendor: VendorTabView()
+            case .organization: OrganizationTabView()
             }
         }
         .animation(.smooth, value: portal)

@@ -11,6 +11,8 @@ struct AppContext: Sendable {
     var groupId: String?
     /// Vendeur du portail Vendeurs.
     var vendorId: String
+    /// Organisme du portail Organismes (T-116). Valeur par défaut : l'organisme de démo, en attendant la connexion.
+    var organizationId: String = FakeData.ID.laRuche
 
     /// Données fake réalistes (latence 300–800 ms) : previews, CI, démo sans réseau.
     /// Derrière le cache mémoire (T-112), comme en Firebase : un écran déjà vu se rouvre sans attendre.

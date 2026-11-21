@@ -19,7 +19,12 @@ struct AccountScreen: View {
         _model = State(initialValue: model)
     }
 
+    // Corps découpé en trois étapes : le vérificateur de types de la CI expirait sur une seule chaîne.
     var body: some View {
+        dialogs(haptics(content))
+    }
+
+    private var content: some View {
         StateView(state: model.loadState, retry: { await model.load() }) { _ in
             form
         }
@@ -46,12 +51,20 @@ struct AccountScreen: View {
             guard let item else { return }
             Task { await addPhoto(from: item) }
         }
+    }
+
+    private func haptics(_ view: some View) -> some View {
+        view
         .grenierHaptic(.success, trigger: model.saveCount) { old, new in new > old }
         .grenierHaptic(.warning, trigger: isConfirmingFirstStep) { _, new in new }
         .grenierHaptic(.error, trigger: model.deletionState) { _, new in
             if case .failed = new { true } else { new == .needsReauthentication }
         }
         .grenierHaptic(.success, trigger: model.deletionState) { _, new in new == .deleted }
+    }
+
+    private func dialogs(_ view: some View) -> some View {
+        view
         // Premier temps : on explique ce qui disparaît.
         .confirmationDialog(
             "Supprimer ton compte ?",

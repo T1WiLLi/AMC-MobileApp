@@ -50,6 +50,21 @@ nonisolated struct CachedGroupOrderRepository: GroupOrderRepository {
         return order
     }
 
+    @discardableResult
+    func setPickupPoint(_ pickupPointId: String?, slots: [PickupSlot], groupOrderId: String) async throws -> GroupOrder {
+        let order = try await base.setPickupPoint(pickupPointId, slots: slots, groupOrderId: groupOrderId)
+        await Self.apply(order, to: cache)
+        return order
+    }
+
+    @discardableResult
+    func reservePickupSlot(start: Date?, householdId: String, groupOrderId: String) async throws -> Share {
+        let share = try await base.reservePickupSlot(start: start, householdId: householdId, groupOrderId: groupOrderId)
+        // La part a changé : les parts de la commande sont relues.
+        await cache.invalidate(.shares(ofGroupOrder: groupOrderId))
+        return share
+    }
+
     func observeGroupOrder(id: String) async -> AsyncThrowingStream<GroupOrder, any Error> {
         let cache = cache
         return relayingSnapshots(

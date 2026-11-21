@@ -300,6 +300,12 @@ private final class SpyGroupOrderRepository: GroupOrderRepository {
     func setShare(quantity: Int, householdId: String, groupOrderId: String) async throws -> GroupOrder {
         try await base.setShare(quantity: quantity, householdId: householdId, groupOrderId: groupOrderId)
     }
+    func setPickupPoint(_ pickupPointId: String?, slots: [PickupSlot], groupOrderId: String) async throws -> GroupOrder {
+        try await base.setPickupPoint(pickupPointId, slots: slots, groupOrderId: groupOrderId)
+    }
+    func reservePickupSlot(start: Date?, householdId: String, groupOrderId: String) async throws -> Share {
+        try await base.reservePickupSlot(start: start, householdId: householdId, groupOrderId: groupOrderId)
+    }
     func observeGroupOrder(id: String) async -> AsyncThrowingStream<GroupOrder, any Error> {
         await base.observeGroupOrder(id: id)
     }

@@ -34,6 +34,13 @@ struct AppErrorTests {
         #expect(AppError(AppError.notFound) == .notFound)
     }
 
+    @Test func cancellationIsRecognized() {
+        let error = AppError(CancellationError())
+        #expect(error.isCancellation)
+        #expect(!AppError.offline.isCancellation)
+        #expect(!AppError.unknown("Boom").isCancellation)
+    }
+
     @Test func otherErrorsBecomeUnknown() {
         struct Boom: Error {}
         if case .unknown = AppError(Boom()) {} else {

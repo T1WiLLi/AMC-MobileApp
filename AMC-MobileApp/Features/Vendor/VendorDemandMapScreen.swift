@@ -30,8 +30,8 @@ struct VendorDemandMapScreen: View {
     @ScaledMetric(relativeTo: .body) private var controlSize: CGFloat = 48
 
     init(
-        repositories: AppRepositories = .fake(),
-        vendorId: String = FakeData.ID.fermeRive,
+        repositories: AppRepositories,
+        vendorId: String,
         onProposeOffer: ((DemandMapViewModel.DemandPoint) -> Void)? = nil
     ) {
         _viewModel = State(initialValue: DemandMapViewModel(repositories: repositories, vendorId: vendorId))
@@ -60,6 +60,8 @@ struct VendorDemandMapScreen: View {
         .task {
             if voiceOverEnabled { displayMode = .list }
             await viewModel.load()
+            // Centre la carte sur la demande réelle, même si les ids n'ont pas changé (rechargement).
+            fitCamera(to: viewModel.points)
         }
         .onChange(of: viewModel.points.map(\.id)) { _, _ in
             fitCamera(to: viewModel.points)
@@ -88,7 +90,7 @@ struct VendorDemandMapScreen: View {
                 empty: .init(
                     title: "Aucune demande ici",
                     systemImage: "binoculars.fill",
-                    message: "Aucun groupe ne s'est encore engagé avec ces filtres. Essaie un autre produit ou toute la demande."
+                    message: "Aucune famille n'a encore commandé ni exprimé d'envie avec ces filtres. Essaie un autre produit ou toute la demande."
                 ),
                 retry: { await viewModel.load() }
             ) { points in
@@ -149,7 +151,7 @@ struct VendorDemandMapScreen: View {
         }
         .ignoresSafeArea(edges: [.top, .bottom])
         .accessibilityElement(children: .contain)
-        .accessibilityLabel("Carte de la demande à Montréal")
+        .accessibilityLabel("Carte de la demande")
     }
 
     // MARK: Liste accessible
@@ -185,7 +187,7 @@ struct VendorDemandMapScreen: View {
         }
         .listStyle(.insetGrouped)
         .scrollContentBackground(.hidden)
-        .scrollEdgeEffectStyle(.soft, for: .top)
+        .grenierScrollEdge()
         .contentMargins(.top, 8, for: .scrollContent)
     }
 
@@ -433,7 +435,7 @@ private struct DemandBubble: View {
                     .font(.caption.bold())
                     .symbolEffect(.bounce, options: .nonRepeating, value: reduceMotion ? false : isSelected)
             }
-            Text(point.committedHouseholds, format: .number)
+            Text(point.interestedHouseholds, format: .number)
                 .font(point.isHighDemand ? .title2.bold() : .headline)
                 .fontDesign(.rounded)
                 .monospacedDigit()
@@ -490,7 +492,7 @@ private struct DemandRow: View {
             ? AnyLayout(VStackLayout(alignment: .leading, spacing: 8))
             : AnyLayout(HStackLayout(spacing: 12))
         layout {
-            Text(point.committedHouseholds, format: .number)
+            Text(point.interestedHouseholds, format: .number)
                 .font(.headline)
                 .fontDesign(.rounded)
                 .monospacedDigit()
@@ -529,9 +531,10 @@ private struct DemandRow: View {
 
 // MARK: - Feuille du point choisi
 
-private struct DemandPointSheet: View {
-    let point: DemandPoint
-    let onProposeOffer: ((DemandPoint) -> Void)?
+/// Aussi ouverte depuis la recherche du portail Vendeur (T-129).
+struct DemandPointSheet: View {
+    let point: DemandMapViewModel.DemandPoint
+    var onProposeOffer: ((DemandMapViewModel.DemandPoint) -> Void)?
 
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
@@ -543,7 +546,8 @@ private struct DemandPointSheet: View {
             VStack(alignment: .leading, spacing: 16) {
                 header
                 statsRow
-                productsCard
+                if !point.products.isEmpty { productsCard }
+                if !point.wishes.isEmpty { wishesCard }
                 if let onProposeOffer {
                     Button {
                         onProposeOffer(point)
@@ -609,13 +613,42 @@ private struct DemandPointSheet: View {
                 systemImage: "shippingbox.fill",
                 tint: .economie
             )
-            DemandStatTile(
-                value: point.householdCount,
-                label: FrenchPlural.word(point.householdCount, "membre"),
-                systemImage: "house.fill",
-                tint: .solidarite
-            )
+            if point.wishingHouseholds > 0 {
+                DemandStatTile(
+                    value: point.wishingHouseholds,
+                    label: FrenchPlural.word(point.wishingHouseholds, "famille intéressée", plural: "familles intéressées"),
+                    systemImage: "heart.fill",
+                    tint: .solidarite
+                )
+            } else {
+                DemandStatTile(
+                    value: point.householdCount,
+                    label: FrenchPlural.word(point.householdCount, "membre"),
+                    systemImage: "house.fill",
+                    tint: .solidarite
+                )
+            }
         }
+    }
+
+    /// Envies des familles (S-07) : anonymes, par catégorie et unité.
+    private var wishesCard: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            Label("Envies des familles", systemImage: "heart.text.square.fill")
+                .font(.footnote.weight(.semibold))
+                .foregroundStyle(Color.texteSecondaire)
+                .symbolRenderingMode(.hierarchical)
+                .textCase(.uppercase)
+                .padding(.bottom, 8)
+                .accessibilityAddTraits(.isHeader)
+            ForEach(point.wishes) { demand in
+                if demand.id != point.wishes.first?.id {
+                    Rectangle().fill(Color.piste).frame(height: 1).accessibilityHidden(true)
+                }
+                WishDemandRow(demand: demand)
+            }
+        }
+        .grenierCard()
     }
 
     private var productsCard: some View {
@@ -635,6 +668,42 @@ private struct DemandPointSheet: View {
             }
         }
         .grenierCard()
+    }
+}
+
+/// « Céréales · 3 familles · 30 kg ».
+private struct WishDemandRow: View {
+    let demand: GroupDemand
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
+
+    var body: some View {
+        let layout = dynamicTypeSize.isAccessibilitySize
+            ? AnyLayout(VStackLayout(alignment: .leading, spacing: 4))
+            : AnyLayout(HStackLayout(alignment: .firstTextBaseline, spacing: 12))
+        layout {
+            Label {
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(demand.category.title)
+                        .foregroundStyle(Color.texte)
+                    Text(DemandFormatting.families(demand.householdCount))
+                        .font(.subheadline)
+                        .foregroundStyle(Color.texteSecondaire)
+                }
+            } icon: {
+                Image(systemName: ProductIcon.symbol(for: demand.category))
+                    .symbolRenderingMode(.hierarchical)
+                    .foregroundStyle(Color.solidarite)
+            }
+            .font(.body)
+            if !dynamicTypeSize.isAccessibilitySize { Spacer(minLength: 8) }
+            Text(DemandFormatting.wishQuantity(of: demand))
+                .font(.body.weight(.semibold))
+                .fontDesign(.rounded)
+                .monospacedDigit()
+                .foregroundStyle(Color.texte)
+        }
+        .padding(.vertical, 12)
+        .accessibilityElement(children: .combine)
     }
 }
 
@@ -723,7 +792,7 @@ private struct DemandTotals {
     let highDemandCount: Int
 
     init(_ points: [DemandPoint]) {
-        households = points.reduce(0) { $0 + $1.committedHouseholds }
+        households = points.reduce(0) { $0 + $1.interestedHouseholds }
         shares = points.reduce(0) { $0 + $1.committedShares }
         highDemandCount = points.filter(\.isHighDemand).count
     }
@@ -879,6 +948,17 @@ nonisolated enum DemandFormatting {
         return "\(shares(product.committedShares)) \(product.committedShares > 1 ? "voulues" : "voulue")"
     }
 
+    /// « 30 kg », « 4 douzaines », « 2,5 L » : total voulu d'une envie agrégée.
+    static func wishQuantity(of demand: GroupDemand) -> String {
+        let number = demand.totalQuantity.formatted(.number.precision(.fractionLength(0...1)))
+        let unit = switch demand.unit {
+        case .dozen: demand.totalQuantity > 1 ? "douzaines" : "douzaine"
+        case .unit: demand.totalQuantity > 1 ? "unités" : "unité"
+        case .kilogram, .liter: demand.unit.title
+        }
+        return "\(number) \(unit)"
+    }
+
     /// Kilos par part lus dans l'unité (« sac de 10 kg » → 10, « caisse de 2,5 kg » → 2,5).
     static func kilogramsPerShare(in unit: String) -> Double? {
         guard let match = unit.firstMatch(of: /(\d+(?:[.,]\d+)?)\s*kg\b/) else { return nil }
@@ -894,12 +974,12 @@ extension DemandMapViewModel.DemandPoint {
 
     /// « 24 familles · 26 parts ».
     var summary: String {
-        "\(DemandFormatting.families(committedHouseholds)) · \(DemandFormatting.shares(committedShares))"
+        "\(DemandFormatting.families(interestedHouseholds)) · \(DemandFormatting.shares(committedShares))"
     }
 
     /// « Parc-Ex Ouest, 24 familles, forte demande ».
     var accessibilityDescription: String {
-        var parts = [displayName, DemandFormatting.families(committedHouseholds)]
+        var parts = [displayName, DemandFormatting.families(interestedHouseholds)]
         if isHighDemand { parts.append("forte demande") }
         return parts.joined(separator: ", ")
     }
@@ -939,23 +1019,23 @@ extension MKCoordinateRegion {
 // MARK: - Previews
 
 #Preview("Clair") {
-    VendorDemandMapScreen(repositories: .fake(data: .demandMapDemo)) { _ in }
+    VendorDemandMapScreen(repositories: .fake(data: .demandMapDemo), vendorId: FakeData.ID.fermeRive) { _ in }
 }
 
 #Preview("Sombre") {
-    VendorDemandMapScreen(repositories: .fake(data: .demandMapDemo)) { _ in }
+    VendorDemandMapScreen(repositories: .fake(data: .demandMapDemo), vendorId: FakeData.ID.fermeRive) { _ in }
         .preferredColorScheme(.dark)
 }
 
 #Preview("AX5") {
-    VendorDemandMapScreen(repositories: .fake(data: .demandMapDemo)) { _ in }
+    VendorDemandMapScreen(repositories: .fake(data: .demandMapDemo), vendorId: FakeData.ID.fermeRive) { _ in }
         .environment(\.dynamicTypeSize, .accessibility5)
 }
 
 #Preview("Jeu fake de base") {
-    VendorDemandMapScreen()
+    VendorDemandMapScreen(repositories: .fake(), vendorId: FakeData.ID.fermeRive)
 }
 
 #Preview("Erreur") {
-    VendorDemandMapScreen(repositories: .fake(behavior: .failing(.offline)))
+    VendorDemandMapScreen(repositories: .fake(behavior: .failing(.offline)), vendorId: FakeData.ID.fermeRive)
 }

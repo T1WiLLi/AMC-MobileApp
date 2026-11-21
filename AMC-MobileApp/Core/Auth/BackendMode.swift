@@ -24,23 +24,22 @@ nonisolated enum BackendMode: String, Sendable, CaseIterable, CustomStringConver
         }
     }
 
-    /// Règle de choix :
+    /// Règle de choix (S-03, T-127 : « tout vient de Firebase », en Debug comme en Release) :
     /// 1. SDK Firebase non lié → `.fake` ;
-    /// 2. build Release → `.demoProject` si `GoogleService-Info.plist` est là, sinon `.fake` (arguments ignorés) ;
-    /// 3. `-useFakeBackend YES` → `.fake` (prioritaire sur l'émulateur) ;
-    /// 4. `-useFirebaseEmulator YES` → `.emulator` (projet local `demo-grenier` : le plist n'est pas obligatoire) ;
-    /// 5. plist présent → `.demoProject`, sinon `.fake`.
+    /// 2. tests unitaires (app hôte lancée par XCTest) → `.fake` : la CI et les tests ne touchent jamais Firebase ;
+    /// 3. `-useFakeData` / `-useFakeBackend YES` → `.fake` (prioritaire sur l'émulateur) ;
+    /// 4. `-useEmulator` / `-useFirebaseEmulator YES` → `.emulator` (projet local `demo-grenier` : plist facultatif) ;
+    /// 5. plist présent → `.demoProject` (le vrai projet de démo), sinon `.fake`.
+    /// Les arguments explicites valent aussi en Release : sans argument, Release et Debug vont au projet de démo.
     static func resolve(
         sdkAvailable: Bool,
         hasConfigFile: Bool,
         options: BackendLaunchOptions,
         isDebugBuild: Bool
     ) -> BackendMode {
-        guard sdkAvailable else { return .fake }
-        if isDebugBuild {
-            if options.useFakeBackend { return .fake }
-            if options.useFirebaseEmulator { return .emulator }
-        }
+        guard sdkAvailable, !options.isRunningTests else { return .fake }
+        if options.useFakeBackend { return .fake }
+        if options.useFirebaseEmulator { return .emulator }
         return hasConfigFile ? .demoProject : .fake
     }
 }
@@ -99,28 +98,45 @@ nonisolated struct FirebaseEmulatorConfig: Sendable, Equatable {
 /// Options lues au lancement : arguments (`-clé valeur`, comme `UserDefaults`) puis variables d'environnement.
 nonisolated struct BackendLaunchOptions: Sendable, Equatable {
     static let fakeBackendArgument = "-useFakeBackend"
+    /// Alias court de `-useFakeBackend` (T-127).
+    static let fakeDataArgument = "-useFakeData"
     static let firebaseEmulatorArgument = "-useFirebaseEmulator"
+    /// Alias court de `-useFirebaseEmulator` (T-127).
+    static let emulatorArgument = "-useEmulator"
     static let emulatorHostArgument = "-firebaseEmulatorHost"
     static let fakeBackendVariable = "USE_FAKE_BACKEND"
     static let firebaseEmulatorVariable = "USE_FIREBASE_EMULATOR"
     static let emulatorHostVariable = "FIREBASE_EMULATOR_HOST"
+    /// Posée par XCTest dans l'app hôte des tests unitaires.
+    static let xcTestVariable = "XCTestConfigurationFilePath"
 
     var useFakeBackend = false
     var useFirebaseEmulator = false
     var emulator = FirebaseEmulatorConfig()
+    /// true quand l'app tourne comme hôte des tests unitaires : toujours `.fake`.
+    var isRunningTests = false
 
-    init(useFakeBackend: Bool = false, useFirebaseEmulator: Bool = false, emulator: FirebaseEmulatorConfig = .init()) {
+    init(
+        useFakeBackend: Bool = false,
+        useFirebaseEmulator: Bool = false,
+        emulator: FirebaseEmulatorConfig = .init(),
+        isRunningTests: Bool = false
+    ) {
         self.useFakeBackend = useFakeBackend
         self.useFirebaseEmulator = useFirebaseEmulator
         self.emulator = emulator
+        self.isRunningTests = isRunningTests
     }
 
     /// Un argument présent l'emporte sur la variable d'environnement du même réglage.
     init(arguments: [String], environment: [String: String]) {
         useFakeBackend = Self.flag(Self.fakeBackendArgument, in: arguments)
+            ?? Self.flag(Self.fakeDataArgument, in: arguments)
             ?? Self.isTruthy(environment[Self.fakeBackendVariable])
         useFirebaseEmulator = Self.flag(Self.firebaseEmulatorArgument, in: arguments)
+            ?? Self.flag(Self.emulatorArgument, in: arguments)
             ?? Self.isTruthy(environment[Self.firebaseEmulatorVariable])
+        isRunningTests = environment[Self.xcTestVariable] != nil
         let host = Self.value(Self.emulatorHostArgument, in: arguments) ?? environment[Self.emulatorHostVariable]
         if let host, !host.trimmingCharacters(in: .whitespaces).isEmpty {
             emulator.host = host.trimmingCharacters(in: .whitespaces)

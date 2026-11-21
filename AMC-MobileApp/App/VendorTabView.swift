@@ -2,46 +2,80 @@ import SwiftUI
 
 /// Navigation du portail Vendeurs, selon les maquettes V1–V3 de claude-samuel (docs/maquettes/DESIGN-SYSTEM.md).
 /// L'éditeur de paliers (V2) est poussé depuis Tableau ou Lots, pas dans un onglet.
+///
+/// T-129 : dépôts et vendeur viennent de `appContext` (session), jamais de `FakeData`.
+/// Sans profil producteur (`vendorId` vide), chaque onglet affiche `VendorProfileMissingView`.
+/// `.id(vendorId)` recrée les écrans et leurs ViewModels quand la session relie un autre vendeur.
 struct VendorTabView: View {
     enum TabID: Hashable { case dashboard, offers, demand, revenue, search }
 
+    @Environment(\.appContext) private var context
     @State private var selection: TabID = .dashboard
+
+    private var vendorId: String { context.vendorId.trimmingCharacters(in: .whitespacesAndNewlines) }
+    private var hasVendorProfile: Bool { !vendorId.isEmpty }
 
     var body: some View {
         TabView(selection: $selection) {
             Tab("Tableau", systemImage: "house.fill", value: .dashboard) {
-                VendorDashboardScreen()
-                    .grenierTabContent(isSelected: selection == .dashboard)
+                vendorContent(title: "Tableau") {
+                    VendorDashboardScreen(repositories: context.repositories, vendorId: vendorId)
+                }
+                .grenierTabContent(isSelected: selection == .dashboard)
             }
             Tab("Lots", systemImage: "shippingbox.fill", value: .offers) {
-                VendorOffersScreen()
-                    .grenierTabContent(isSelected: selection == .offers)
+                vendorContent(title: "Lots") {
+                    VendorOffersScreen(repositories: context.repositories, vendorId: vendorId)
+                }
+                .grenierTabContent(isSelected: selection == .offers)
             }
             Tab("Demande", systemImage: "map.fill", value: .demand) {
-                VendorDemandMapScreen()
-                    .grenierTabContent(isSelected: selection == .demand)
+                vendorContent(title: "Demande") {
+                    VendorDemandMapScreen(repositories: context.repositories, vendorId: vendorId)
+                }
+                .grenierTabContent(isSelected: selection == .demand)
             }
             Tab("Revenus", systemImage: "dollarsign.circle.fill", value: .revenue) {
-                VendorRevenueScreen()
-                    .grenierTabContent(isSelected: selection == .revenue)
+                vendorContent(title: "Revenus") {
+                    VendorRevenueScreen(repositories: context.repositories, vendorId: vendorId)
+                }
+                .grenierTabContent(isSelected: selection == .revenue)
             }
             Tab(value: .search, role: .search) {
-                SearchScreen(
-                    prompt: "Produit ou quartier",
-                    emptyTitle: "Chercher la demande",
-                    emptyMessage: "Un produit ou un quartier : vois quels groupes le veulent."
-                )
+                vendorContent(title: "Recherche") {
+                    VendorSearchScreen(repositories: context.repositories, vendorId: vendorId)
+                }
             }
         }
         .tabBarMinimizeBehavior(.onScrollDown)
+        // Bord net sous la barre de navigation pour tous les onglets et leurs fiches (T-140).
+        .grenierScrollEdge()
+    }
+
+    @ViewBuilder
+    private func vendorContent(title: LocalizedStringKey, @ViewBuilder screen: () -> some View) -> some View {
+        if hasVendorProfile {
+            screen().id(vendorId)
+        } else {
+            VendorProfileMissingView(title: title)
+        }
     }
 }
 
 #Preview("Clair") {
     VendorTabView()
+        .environment(\.appContext, .demo)
 }
 
 #Preview("Sombre") {
     VendorTabView()
+        .environment(\.appContext, .demo)
         .preferredColorScheme(.dark)
+}
+
+#Preview("Sans profil producteur") {
+    var context = AppContext.demo
+    context.vendorId = ""
+    return VendorTabView()
+        .environment(\.appContext, context)
 }

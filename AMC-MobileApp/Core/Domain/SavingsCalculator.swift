@@ -43,7 +43,9 @@ nonisolated enum ShareMeasure: Sendable, Equatable, Hashable {
     /// Les parts en unités ne comptent pas (une douzaine d'œufs reste une boîte).
     var retailPackagesAvoided: Int {
         let kilograms = kilograms
-        guard kilograms > 0 else { return 0 }
+        // Borné : une unité saisie à la main (« 99999999999999999999 kg ») ferait planter la conversion en Int.
+        guard kilograms > 0, kilograms.isFinite else { return 0 }
+        guard kilograms <= Self.maxParsedAmount else { return Int(Self.maxParsedAmount) - 1 }
         let packages = Int((kilograms / Self.retailPackageKilograms - 1e-9).rounded(.up))
         return max(0, packages - 1)
     }
@@ -69,20 +71,24 @@ nonisolated enum ShareMeasure: Sendable, Equatable, Hashable {
                 multiplier = factor // « 2 sacs de 5 kg »
             }
             let total = amount * multiplier * unit.factor
-            guard total > 0 else { continue }
+            guard total > 0, total.isFinite, total <= Self.maxParsedAmount else { continue }
             return unit.isVolume ? .volume(liters: total) : .mass(kilograms: total)
         }
 
         // 2. Douzaines : « 1 douzaine », « 2 douzaines », « demi-douzaine ».
         if let index = tokens.firstIndex(where: { $0 == "douzaine" || $0 == "douzaines" }) {
             let factor = index > 0 ? (tokens[index - 1] == "demi" ? 0.5 : number(at: index - 1) ?? 1) : 1
-            let units = Int((12 * factor).rounded())
+            let dozen = (12 * factor).rounded()
+            guard dozen.isFinite, dozen <= Self.maxParsedAmount else { return .unknown }
+            let units = Int(dozen)
             return units > 0 ? .count(units: units) : .unknown
         }
 
         // 3. Un nombre seul ou suivi d'un autre mot : des unités (« 12 unités », « 1 caisse »).
         if let first = tokens.compactMap(Double.init).first {
-            let units = Int(first.rounded(.down))
+            let count = first.rounded(.down)
+            guard count.isFinite, count <= Self.maxParsedAmount else { return .unknown }
+            let units = Int(count)
             return units > 0 ? .count(units: units) : .unknown
         }
 
@@ -92,6 +98,10 @@ nonisolated enum ShareMeasure: Sendable, Equatable, Hashable {
         }
         return .unknown
     }
+
+    /// Plus grande quantité lue dans une unité de part (kg, L ou unités). Au-delà, le texte est jugé
+    /// inexploitable : sans cette borne, `Int(…)` plante sur un nombre saisi trop grand (T-093).
+    static let maxParsedAmount: Double = 1_000_000
 
     /// Unités reconnues, ramenées en kg (masse) ou en L (volume). Les accents sont retirés avant la recherche.
     private static let measureUnits: [String: (factor: Double, isVolume: Bool)] = [

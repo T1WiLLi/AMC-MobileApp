@@ -70,14 +70,29 @@ final class ImpactViewModel {
         var households: Set<String> = []
         var byProduct: [String: ProductImpact] = [:]
 
-        for order in try await repositories.groupOrders.groupOrders(ofGroup: groupId) where order.status != .cancelled {
-            let offer = try await repositories.offers.offer(id: order.offerId)
-            let product = try await repositories.vendors.product(id: offer.productId)
+        let orders = try await repositories.groupOrders.groupOrders(ofGroup: groupId).filter { $0.status != .cancelled }
+        // Lot, produit et parts de chaque commande en parallèle ; l'agrégat reste dans l'ordre des commandes.
+        let loaded = try await withThrowingTaskGroup(of: (Int, Offer, Product, [Share]).self) { group in
+            for (index, order) in orders.enumerated() {
+                group.addTask {
+                    async let sharesLoad = repositories.groupOrders.shares(ofGroupOrder: order.id)
+                    let offer = try await repositories.offers.offer(id: order.offerId)
+                    let product = try await repositories.vendors.product(id: offer.productId)
+                    return (index, offer, product, try await sharesLoad)
+                }
+            }
+            var results: [(Int, Offer, Product, [Share])] = []
+            for try await result in group { results.append(result) }
+            return results.sorted { $0.0 < $1.0 }
+        }
+
+        for (index, offer, product, shares) in loaded {
+            let order = orders[index]
             let pricing = OfferPricing(offer: offer, product: product, committedShares: order.committedShares)
             let kilogramsPerShare = kilograms(in: offer.shareUnit)
             var impact = byProduct[product.id] ?? ProductImpact(product: product, shares: 0, kilograms: 0, savingsCents: 0)
 
-            for share in try await repositories.groupOrders.shares(ofGroupOrder: order.id) where share.quantity > 0 {
+            for share in shares where share.quantity > 0 {
                 let savings = Self.savings(of: share, referenceUnitPriceCents: product.referenceGroceryPriceCents,
                                            currentUnitPriceCents: pricing.currentPriceCents)
                 households.insert(share.householdId)

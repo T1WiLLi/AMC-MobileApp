@@ -313,8 +313,7 @@ private struct GroupRow: View {
         layout {
             NavigationLink(value: GroupRoute(groupId: group.id)) {
                 HStack(spacing: 12) {
-                    AvatarStack(initials: [Self.initials(of: group.neighborhood)],
-                                extraCount: max(group.householdCount - 1, 0))
+                    GroupRowIcon(isMember: item.isMember)
                     VStack(alignment: .leading, spacing: 4) {
                         Text(group.name)
                             .font(.headline)
@@ -388,18 +387,29 @@ private struct GroupRow: View {
     }
 
     private var familiesText: String {
-        "\(group.householdCount) \(group.householdCount > 1 ? "familles" : "famille")"
+        FrenchPlural.count(group.householdCount, "famille")
     }
 
     /// « 27 familles · Hochelaga · rayon 900 m »
     private var detailText: String {
         "\(familiesText) · \(group.neighborhood) · rayon \(GroupCard.distanceText(group.radiusMeters))"
     }
+}
 
-    /// « SM » pour Saint-Michel.
-    static func initials(of name: String) -> String {
-        let words = name.split(whereSeparator: { $0 == " " || $0 == "-" })
-        return String(words.prefix(2).compactMap(\.first)).uppercased()
+/// Tuile du groupe dans la liste : une icône de quartier (les initiales du quartier ressemblaient à des membres).
+private struct GroupRowIcon: View {
+    let isMember: Bool
+    @ScaledMetric(relativeTo: .title3) private var side: CGFloat = 44
+
+    var body: some View {
+        let tint: Color = isMember ? .economie : .grenier
+        Image(systemName: isMember ? "checkmark.seal.fill" : GrenierSymbol.groups)
+            .font(.title3)
+            .symbolRenderingMode(.hierarchical)
+            .foregroundStyle(tint)
+            .frame(width: min(side, 72), height: min(side, 72))
+            .background(tint.opacity(0.12), in: .circle)
+            .accessibilityHidden(true)
     }
 }
 

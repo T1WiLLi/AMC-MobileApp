@@ -771,6 +771,18 @@ service cloud.firestore {
       allow read: if isAuthenticated();
     }
 
+    // ---------------------------------------------------------------
+    // boroughStats/{boroughId} — agrégats par arrondissement (RQ-093, T-114)
+    // ---------------------------------------------------------------
+    // Totaux seulement (ménages, paniers offerts, familles aidées, économies), aucune donnée personnelle.
+    // Lecture : tout utilisateur connecté (le classement est calculé côté client). Écriture : jamais
+    // depuis l'app ; le seed ou un script d'administration (Admin SDK) remplit la collection.
+    // ---------------------------------------------------------------
+    match /boroughStats/{boroughId} {
+      allow read: if isAuthenticated();
+      allow write: if false;
+    }
+
     // Tout le reste : refusé par défaut.
     match /{document=**} {
       allow read, write: if false;

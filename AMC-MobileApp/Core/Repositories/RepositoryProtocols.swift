@@ -163,6 +163,12 @@ nonisolated protocol VendorSupplyRepository: Sendable {
     func observeSupplies(ofVendor vendorId: String) async -> AsyncThrowingStream<[VendorSupply], any Error>
 }
 
+/// Agrégats des arrondissements (`boroughStats`) — RQ-093, lecture seule.
+nonisolated protocol BoroughStatsRepository: Sendable {
+    /// Tous les arrondissements qui ont des agrégats, dans un ordre quelconque (le classement trie).
+    func boroughStats() async throws -> [BoroughStats]
+}
+
 /// Tous les dépôts de l'app, à injecter dans les ViewModels.
 nonisolated struct AppRepositories: Sendable {
     var users: any UserRepository
@@ -174,6 +180,8 @@ nonisolated struct AppRepositories: Sendable {
     /// S-07, S-08. Valeur par défaut (fakes vides) pour que les appels existants de l'init compilent tels quels.
     var wishes: any GroupWishRepository = FakeGroupWishRepository()
     var supplies: any VendorSupplyRepository = FakeVendorSupplyRepository()
+    /// RQ-093 (T-114). Fake vide par défaut.
+    var boroughStats: any BoroughStatsRepository = FakeBoroughStatsRepository()
 
     /// Dépôts en mémoire remplis avec `FakeData`.
     static func fake(behavior: FakeBehavior = .realistic, data: FakeData = .montreal) -> AppRepositories {
@@ -187,7 +195,8 @@ nonisolated struct AppRepositories: Sendable {
             ),
             pickupPoints: FakePickupPointRepository(behavior: behavior, pickupPoints: data.pickupPoints),
             wishes: FakeGroupWishRepository(behavior: behavior, wishes: FakeData.demoWishes),
-            supplies: FakeVendorSupplyRepository(behavior: behavior, supplies: FakeData.demoSupplies)
+            supplies: FakeVendorSupplyRepository(behavior: behavior, supplies: FakeData.demoSupplies),
+            boroughStats: FakeBoroughStatsRepository(behavior: behavior, stats: FakeData.montrealBoroughs)
         )
     }
 }

@@ -35,17 +35,27 @@ struct ProfileScreen: View {
                 }
 
                 // T-075 : profil famille (RQ-015, RQ-017 à RQ-020), écrans dans Features/Profile/.
-                Section("Ma famille") {
+                Section {
                     NavigationLink {
                         HouseholdProfileLink()
                     } label: {
-                        Label("Mon ménage", systemImage: "house.fill")
+                        Label {
+                            Text("Mon ménage")
+                        } icon: {
+                            RowIcon(systemImage: "house.fill", tint: .solidarite)
+                        }
                     }
                     NavigationLink {
                         PreferencesLink()
                     } label: {
-                        Label("Préférences", systemImage: "slider.horizontal.3")
+                        Label {
+                            Text("Préférences")
+                        } icon: {
+                            RowIcon(systemImage: "slider.horizontal.3", tint: .economie)
+                        }
                     }
+                } header: {
+                    ProfileSectionHeader("Ma famille", systemImage: "figure.2.and.child.holdinghands")
                 }
 
                 if portal == .family {

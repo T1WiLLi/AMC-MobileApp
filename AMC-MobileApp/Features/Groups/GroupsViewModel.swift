@@ -41,10 +41,18 @@ final class GroupsViewModel {
         if state.value == nil { state = .loading }
         let repositories = repositories, householdId = householdId, neighborhood = neighborhood
         let result = await LoadState<[Item]>.run {
-            var items: [Item] = []
-            for group in try await repositories.groups.groups(inNeighborhood: neighborhood) {
-                let members = try await repositories.groups.members(ofGroup: group.id)
-                items.append(Item(group: group, isMember: members.contains { $0.householdId == householdId }))
+            let groups = try await repositories.groups.groups(inNeighborhood: neighborhood)
+            // Membres de chaque groupe en parallèle ; la liste garde l'ordre des groupes.
+            let items = try await withThrowingTaskGroup(of: (Int, Item).self) { taskGroup in
+                for (index, group) in groups.enumerated() {
+                    taskGroup.addTask {
+                        let members = try await repositories.groups.members(ofGroup: group.id)
+                        return (index, Item(group: group, isMember: members.contains { $0.householdId == householdId }))
+                    }
+                }
+                var byIndex: [Int: Item] = [:]
+                for try await (index, item) in taskGroup { byIndex[index] = item }
+                return groups.indices.compactMap { byIndex[$0] }
             }
             return items.filter(\.isMember) + items.filter { !$0.isMember }
         }

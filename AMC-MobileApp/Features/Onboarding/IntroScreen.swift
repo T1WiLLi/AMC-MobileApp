@@ -35,6 +35,32 @@ enum IntroPage: Int, CaseIterable, Identifiable, Sendable {
         }
     }
 
+    /// Photo plein cadre (Unsplash License, crédits dans docs/credits.md).
+    var photo: String {
+        switch self {
+        case .problem: "IntroProbleme"
+        case .solution: "IntroSolution"
+        case .solidarity: "IntroSolidarite"
+        }
+    }
+
+    /// Description de la photo pour VoiceOver.
+    var photoDescription: String {
+        switch self {
+        case .problem: "Une balance au rayon des fruits et légumes d'une épicerie"
+        case .solution: "Du maïs, des pommes de terre et des légumes frais dans un marché"
+        case .solidarity: "Des bénévoles souriants remettent des denrées à une distribution alimentaire"
+        }
+    }
+
+    /// Couleur d'accent de la page.
+    var accent: Color {
+        switch self {
+        case .problem, .solution: .grenier
+        case .solidarity: .solidarite
+        }
+    }
+
     var isLast: Bool { self == IntroPage.allCases.last }
 
     /// Page suivante, nil sur la dernière.
@@ -57,50 +83,62 @@ struct IntroScreen: View {
             }
         }
         .tabViewStyle(.page(indexDisplayMode: .never))
-        .safeAreaInset(edge: .top, spacing: 0) { topBar }
+        .overlay(alignment: .top) { topBar }
         .safeAreaInset(edge: .bottom, spacing: 0) { bottomBar }
-        .grenierBackground()
+        .background {
+            // Photos plein écran derrière les pages (jusque sous la barre d'état), en fondu enchaîné.
+            ZStack {
+                Color.black
+                ForEach(IntroPage.allCases) { item in
+                    IntroPhoto(page: item, isActive: page == item)
+                        .opacity(page == item ? 1 : 0)
+                }
+            }
+            .ignoresSafeArea()
+            .animation(reduceMotion ? nil : .easeInOut(duration: 0.45), value: page)
+        }
+        // Écran immersif : texte blanc sur photo, verre sombre, barre d'état claire.
+        .environment(\.colorScheme, .dark)
+        .preferredColorScheme(.dark)
         .sensoryFeedback(.selection, trigger: page)
     }
 
+    /// « Passer » en verre, en haut à droite, au-dessus des photos.
     private var topBar: some View {
-        HStack {
-            Label("Grenier", systemImage: "basket.fill")
-                .font(.headline)
-                .fontDesign(.rounded)
-                .foregroundStyle(Color.grenier)
-                .symbolRenderingMode(.hierarchical)
-                .accessibilityAddTraits(.isHeader)
-            Spacer()
-            // Toujours dans la mise en page (opacité 0 sur la dernière page) pour que rien ne saute.
-            Button("Passer", action: onFinish)
-                .font(.subheadline.weight(.medium))
-                .foregroundStyle(Color.texteSecondaire)
-                .frame(minHeight: 44)
-                .opacity(page.isLast ? 0 : 1)
-                .disabled(page.isLast)
-                .accessibilityHidden(page.isLast)
-                .accessibilityHint("Passe la présentation et va à la connexion")
+        GlassEffectContainer(spacing: 12) {
+            HStack {
+                Spacer()
+                if !page.isLast {
+                    Button("Passer", action: onFinish)
+                        .font(.subheadline.weight(.semibold))
+                        .frame(minHeight: 32)
+                        .buttonStyle(.glass)
+                        .accessibilityHint("Passe la présentation et va à la connexion")
+                        .transition(.blurReplace)
+                }
+            }
         }
         .padding(.horizontal, 20)
         .padding(.top, 4)
         // Barre de contrôle : plafonnée comme une barre système, le contenu dessous suit AX5.
         .dynamicTypeSize(...DynamicTypeSize.xxxLarge)
-        .animation(.smooth, value: page)
+        .animation(reduceMotion ? nil : .smooth, value: page)
     }
 
     private var bottomBar: some View {
         VStack(spacing: 20) {
             PageIndicator(page: $page)
             Button(action: advance) {
-                Text(page.isLast ? "Commencer" : "Continuer")
+                Label(page.isLast ? "Commencer" : "Continuer",
+                      systemImage: page.isLast ? "arrow.right.circle.fill" : "arrow.right")
                     .font(.headline)
                     .foregroundStyle(Color.onAccent)
-                    .contentTransition(.interpolate)
+                    .contentTransition(.symbolEffect(.replace))
                     .frame(maxWidth: .infinity, minHeight: 44)
             }
             .buttonStyle(.glassProminent)
-            .tint(.grenier)
+            .tint(page.accent)
+            .animation(reduceMotion ? nil : .smooth, value: page)
             .accessibilityHint(page.isLast ? "Va à la connexion" : "Page suivante")
         }
         .padding(.horizontal, 24)
@@ -126,7 +164,7 @@ private struct PageIndicator: View {
         HStack(spacing: 8) {
             ForEach(IntroPage.allCases) { item in
                 Capsule()
-                    .fill(item == page ? Color.grenier : Color.texteSecondaire.opacity(0.3))
+                    .fill(item == page ? Color.white : Color.white.opacity(0.35))
                     .frame(width: item == page ? 24 : 8, height: 8)
             }
         }
@@ -143,45 +181,70 @@ private struct PageIndicator: View {
     }
 }
 
-/// Une page : illustration en haut, texte en dessous, défilable pour les grandes tailles de texte.
+/// Une page immersive : la photo remplit l'écran, un voile sombre monte du bas,
+/// et la carte en verre, le titre et le message se posent dessus en bas, au-dessus du bouton.
+/// Le contenu défile si le texte est très grand (AX5).
 private struct IntroPageView: View {
     let page: IntroPage
     let isActive: Bool
+    @State private var appeared = false
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     var body: some View {
-        ScrollView {
-            VStack(alignment: .leading, spacing: 28) {
-                hero
-                    .frame(maxWidth: .infinity)
+        GeometryReader { proxy in
+            ScrollView {
+                VStack(alignment: .leading, spacing: 20) {
+                    Spacer(minLength: proxy.size.height * 0.16)
 
-                VStack(alignment: .leading, spacing: 12) {
-                    Text(page.eyebrow.uppercased())
-                        .font(.footnote.weight(.semibold))
-                        .tracking(0.8)
-                        .foregroundStyle(accent)
-                    Text(page.title)
-                        .font(.largeTitle.bold())
-                        .foregroundStyle(Color.texte)
-                        .fixedSize(horizontal: false, vertical: true)
-                        .accessibilityAddTraits(.isHeader)
-                    Text(page.message)
-                        .font(.body)
-                        .foregroundStyle(Color.texteSecondaire)
-                        .fixedSize(horizontal: false, vertical: true)
+                    hero
+                        .frame(maxWidth: .infinity)
+                        .offset(y: shown ? 0 : 28)
+                        .opacity(shown ? 1 : 0)
+
+                    VStack(alignment: .leading, spacing: 10) {
+                        Label(page.eyebrow.uppercased(), systemImage: eyebrowSymbol)
+                            .font(.footnote.weight(.bold))
+                            .tracking(1)
+                            .foregroundStyle(.white.opacity(0.85))
+                        Text(page.title)
+                            .font(.largeTitle.bold())
+                            .fontDesign(.rounded)
+                            .foregroundStyle(.white)
+                            .fixedSize(horizontal: false, vertical: true)
+                            .accessibilityAddTraits(.isHeader)
+                        Text(page.message)
+                            .font(.body)
+                            .foregroundStyle(.white.opacity(0.85))
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
+                    .shadow(color: .black.opacity(0.35), radius: 12, y: 2)
+                    .accessibilityElement(children: .combine)
+                    .offset(y: shown ? 0 : 18)
+                    .opacity(shown ? 1 : 0)
                 }
-                .accessibilityElement(children: .combine)
+                .padding(.horizontal, 24)
+                .padding(.top, 56)
+                .padding(.bottom, 8)
+                .frame(minHeight: proxy.size.height, alignment: .bottom)
             }
-            .padding(.horizontal, 24)
-            .padding(.top, 16)
-            .padding(.bottom, 24)
+            .scrollBounceBehavior(.basedOnSize)
+            .scrollIndicators(.hidden)
         }
-        .scrollBounceBehavior(.basedOnSize)
+        .onChange(of: isActive, initial: true) { _, active in
+            guard active else { return }
+            if reduceMotion { appeared = true; return }
+            appeared = false
+            withAnimation(.spring(duration: 0.7, bounce: 0.2).delay(0.15)) { appeared = true }
+        }
     }
 
-    private var accent: Color {
+    private var shown: Bool { appeared || reduceMotion }
+
+    private var eyebrowSymbol: String {
         switch page {
-        case .problem, .solution: .grenier
-        case .solidarity: .solidarite
+        case .problem: "exclamationmark.triangle.fill"
+        case .solution: "person.3.fill"
+        case .solidarity: GrenierSymbol.solidarity
         }
     }
 
@@ -195,6 +258,43 @@ private struct IntroPageView: View {
     }
 }
 
+/// Photo plein écran : léger zoom lent (Ken Burns) tant que la page est visible,
+/// voile en haut pour la barre d'état et voile profond en bas pour le texte blanc.
+private struct IntroPhoto: View {
+    let page: IntroPage
+    let isActive: Bool
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
+    var body: some View {
+        Color.black
+            .overlay {
+                Image(page.photo)
+                    .resizable()
+                    .scaledToFill()
+                    .scaleEffect(isActive && !reduceMotion ? 1.1 : 1)
+                    .animation(reduceMotion ? nil : .easeOut(duration: 9), value: isActive)
+            }
+            .clipped()
+            .overlay {
+                LinearGradient(
+                    stops: [
+                        .init(color: .black.opacity(0.45), location: 0),
+                        .init(color: .black.opacity(0), location: 0.18),
+                        .init(color: .black.opacity(0.1), location: 0.35),
+                        .init(color: .black.opacity(0.82), location: 0.6),
+                        .init(color: .black.opacity(0.95), location: 0.85)
+                    ],
+                    startPoint: .top,
+                    endPoint: .bottom
+                )
+            }
+            .ignoresSafeArea()
+            .accessibilityElement()
+            .accessibilityLabel(page.photoDescription)
+            .accessibilityAddTraits(.isImage)
+    }
+}
+
 // MARK: - Illustrations
 
 /// Grand symbole dans un carré teinté, taille qui suit Dynamic Type.
@@ -202,11 +302,11 @@ private struct HeroSymbol: View {
     let systemImage: String
     let tint: Color
     let isActive: Bool
-    @ScaledMetric(relativeTo: .largeTitle) private var scaledSide: CGFloat = 84
+    @ScaledMetric(relativeTo: .largeTitle) private var scaledSide: CGFloat = 56
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     /// Grandit avec le texte, sans manger l'écran en AX5.
-    private var side: CGFloat { min(scaledSide, 120) }
+    private var side: CGFloat { min(scaledSide, 96) }
 
     var body: some View {
         Image(systemName: systemImage)
@@ -216,7 +316,7 @@ private struct HeroSymbol: View {
             .foregroundStyle(tint)
             .padding(side * 0.22)
             .frame(width: side, height: side)
-            .background(tint.opacity(0.12), in: .rect(cornerRadius: side * 0.28))
+            .background(tint.opacity(0.22), in: .rect(cornerRadius: side * 0.28))
             .symbolEffect(.bounce, options: .nonRepeating, value: reduceMotion ? false : isActive)
             .accessibilityHidden(true)
     }
@@ -227,11 +327,11 @@ private struct ProblemHero: View {
     let isActive: Bool
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 16) {
+        HStack(alignment: .center, spacing: 16) {
             HeroSymbol(systemImage: "cart.badge.questionmark", tint: .grenier, isActive: isActive)
             VStack(alignment: .leading, spacing: 4) {
                 Text("1,25 million")
-                    .priceStyle(.largeTitle.bold())
+                    .priceStyle(.title.bold())
                     .foregroundStyle(Color.texte)
                 Text("de demandes d'aide alimentaire par mois à Montréal")
                     .font(.subheadline)
@@ -240,7 +340,8 @@ private struct ProblemHero: View {
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
-        .grenierCard(padding: 20)
+        .padding(20)
+        .glassEffect(.regular, in: .rect(cornerRadius: 28))
         .accessibilityElement(children: .combine)
     }
 }
@@ -274,7 +375,7 @@ private struct SolutionHero: View {
                     .background(Color.grenier.opacity(0.12), in: .rect(cornerRadius: 12))
                     .accessibilityHidden(true)
                 VStack(alignment: .leading, spacing: 2) {
-                    Text("Riz basmati")
+                    Text("Légumes de saison")
                         .font(.headline)
                         .foregroundStyle(Color.texte)
                     Text("\(families) familles · Parc-Ex Ouest")
@@ -301,7 +402,8 @@ private struct SolutionHero: View {
                 unitPlural: "familles"
             )
         }
-        .grenierCard(padding: 20)
+        .padding(20)
+        .glassEffect(.regular, in: .rect(cornerRadius: 28))
         .task(id: isActive) { await play() }
     }
 
@@ -327,28 +429,32 @@ private struct SolidarityHero: View {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 16) {
-            HStack(alignment: .center, spacing: 16) {
+        HStack(alignment: .center, spacing: 16) {
                 HeroSymbol(systemImage: "basket.fill", tint: .solidarite, isActive: isActive)
-                Image(systemName: GrenierSymbol.solidarity)
-                    .font(.largeTitle)
-                    .foregroundStyle(Color.solidarite)
-                    .symbolEffect(.breathe, isActive: isActive && !reduceMotion)
-                    .accessibilityHidden(true)
+                    .overlay(alignment: .topTrailing) {
+                        Image(systemName: GrenierSymbol.solidarity)
+                            .font(.title3)
+                            .foregroundStyle(.white, Color.solidarite)
+                            .padding(6)
+                            .background(Color.solidarite, in: .circle)
+                            .overlay(Circle().stroke(.white.opacity(0.9), lineWidth: 2))
+                            .offset(x: 8, y: -8)
+                            .symbolEffect(.breathe, isActive: isActive && !reduceMotion)
+                            .accessibilityHidden(true)
+                    }
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("12 paniers")
+                        .priceStyle(.title.bold())
+                        .foregroundStyle(Color.texte)
+                    Text("suspendus offerts ce mois-ci à Parc-Extension")
+                        .font(.subheadline)
+                        .foregroundStyle(Color.texteSecondaire)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
             }
-            VStack(alignment: .leading, spacing: 4) {
-                Text("Panier suspendu")
-                    .font(.headline)
-                    .foregroundStyle(Color.solidarite)
-                Text("12 paniers offerts ce mois-ci à Parc-Extension")
-                    .font(.subheadline)
-                    .foregroundStyle(Color.texteSecondaire)
-                    .fixedSize(horizontal: false, vertical: true)
-            }
-        }
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(20)
-        .background(Color.solidarite.opacity(0.12), in: .rect(cornerRadius: 24))
+        .glassEffect(.regular.tint(Color.solidarite.opacity(0.25)), in: .rect(cornerRadius: 28))
         .accessibilityElement(children: .combine)
     }
 }

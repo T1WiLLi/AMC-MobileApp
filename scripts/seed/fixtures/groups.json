@@ -17,7 +17,14 @@
     "pickupPointIds": [
       "pickup-parc-extension-1",
       "pickup-parc-extension-2"
-    ]
+    ],
+    "branding": {
+      "displayName": "Parc-Ex ensemble",
+      "emblem": "tram.fill",
+      "accentLight": "#1F5FA8",
+      "accentDark": "#7FB2F0",
+      "welcomeMessage": "Bienvenue chez les voisins de Parc-Ex !"
+    }
   },
   {
     "id": "group-rosemont",
@@ -34,7 +41,13 @@
     "inviteCode": "ROSEM1",
     "pickupPointIds": [
       "pickup-rosemont-1"
-    ]
+    ],
+    "branding": {
+      "emblem": "sun.max.fill",
+      "accentLight": "#9A5B00",
+      "accentDark": "#F2B75B",
+      "welcomeMessage": "Rosemont en commun : on achète mieux, ensemble."
+    }
   },
   {
     "id": "group-hochelaga",

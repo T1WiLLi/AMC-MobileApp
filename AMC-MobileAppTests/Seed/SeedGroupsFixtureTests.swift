@@ -28,6 +28,12 @@ struct SeedGroupsFixtureTests {
         try JSONDecoder().decode([NeighborhoodGroup].self, from: data("groups"))
     }
 
+    /// B-033 : au moins deux groupes du seed ont une marque complète.
+    @Test func atLeastTwoSeedGroupsHaveABranding() throws {
+        let branded = try groups().filter { $0.branding?.accentLight != nil && $0.branding?.welcomeMessage != nil }
+        #expect(branded.count >= 2)
+    }
+
     private func users() throws -> [AppUser] { try JSONDecoder().decode([AppUser].self, from: data("users")) }
     private func vendors() throws -> [Vendor] { try JSONDecoder().decode([Vendor].self, from: data("vendors")) }
 

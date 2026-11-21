@@ -968,6 +968,9 @@ describe('vendorReviews (T-157)', () => {
   test('le ménage retire son avis', async () => {
     await assertSucceeds(setDoc(doc(amina(), `vendorReviews/${reviewId}`), review()))
     await assertSucceeds(deleteDoc(doc(amina(), `vendorReviews/${reviewId}`)))
+  })
+})
+
 describe('onboarding producteur : créer son vendeur (T-158)', () => {
   const newVendor = (uid: string, overrides: Record<string, unknown> = {}) => ({
     id: `vendor-${uid}`, legalName: 'Ferme des Voisins', kind: 'farm',

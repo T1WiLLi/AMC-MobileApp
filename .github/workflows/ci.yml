@@ -3,10 +3,8 @@ name: CI
 on:
   pull_request:
     branches: [main]
-  push:
-    branches: [main]
-    # Sur main, on ne rebâtit que pour régénérer le cache des paquets : ça libère les runners macOS (5 max en parallèle).
-    paths: ['AMC-MobileApp.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved', '.github/workflows/ci.yml']
+  # Pas de run au merge sur main : la CI tourne seulement sur les PR.
+  # Pour régénérer le cache partagé (après un changement de paquets) : Actions › CI › Run workflow sur main.
   workflow_dispatch:
 
 concurrency:

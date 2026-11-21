@@ -14,6 +14,8 @@ enum OnboardingKeys {
     static let resetArgument = "-resetOnboarding"
     /// Argument de lancement : rouvre l'app côté Familles, quel que soit le dernier portail utilisé (démo du jury).
     static let familyArgument = "-demoFamilyPortal"
+    /// Argument de lancement (mode `.fake` seulement) : montre l'onboarding d'après l'inscription (T-156) sur la démo.
+    static let demoOnboardingArgument = "-demoOnboarding"
 
     /// Applique les arguments de démo (Scheme > Arguments). Sans argument, rien ne change.
     static func applyLaunchArguments(_ arguments: [String], to defaults: UserDefaults = .standard) {

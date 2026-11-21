@@ -59,7 +59,8 @@ nonisolated struct AppContextResolver: Sendable {
             householdId: householdId,
             groupId: groupId,
             vendorId: profile.vendorId ?? "",
-            status: .resolved
+            status: .resolved,
+            needsOnboarding: profile.needsOnboarding
         )
     }
 
@@ -77,7 +78,9 @@ nonisolated struct AppContextResolver: Sendable {
             dietaryPreferences: [],
             seniorMode: false,
             householdId: household.id,
-            vendorId: nil
+            vendorId: nil,
+            // Compte tout neuf : l'onboarding (préférences, ménage) s'affiche avant l'app (T-156).
+            onboardingCompleted: false
         )
         try await repositories.users.saveUser(profile)
         return profile

@@ -27,4 +27,12 @@ nonisolated struct AppUser: Identifiable, Codable, Sendable, Hashable {
     var seniorMode: Bool
     var householdId: String?
     var vendorId: String?
+    /// Catégories de produits aimées, choisies à l'onboarding (T-156). Absent sur les anciens profils.
+    var favoriteCategories: [Product.Category]? = nil
+    /// Onboarding après l'inscription (T-156) : `false` pour un compte tout neuf, `true` une fois fini.
+    /// Absent (`nil`) sur les profils d'avant T-156 : on ne leur remontre pas l'onboarding.
+    var onboardingCompleted: Bool? = nil
+
+    /// Le compte vient de s'inscrire et n'a pas encore fini l'onboarding.
+    var needsOnboarding: Bool { onboardingCompleted == false }
 }

@@ -26,6 +26,9 @@ struct AppContext: Sendable {
     var status: Status = .resolved
     /// Organisme du portail Organismes (T-116) ; vide tant que le compte n'est rattaché à aucun organisme.
     var organizationId: String = ""
+    /// Compte qui vient de s'inscrire et n'a pas fini l'onboarding (T-156) : `SessionContextGate` montre
+    /// `OnboardingFlowScreen` avant l'app. Faux pour les comptes d'avant T-156 et en démo.
+    var needsOnboarding: Bool = false
 
     /// true une fois le contexte chargé depuis la session (ou fixé pour un test / une preview).
     var isResolved: Bool { status == .resolved && !userId.isEmpty }

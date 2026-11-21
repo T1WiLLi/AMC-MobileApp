@@ -51,11 +51,15 @@ struct StateView<Value: Sendable, Content: View>: View {
 }
 
 /// Plein écran sur le fond crème `Fond`, en clair comme en sombre.
+/// Centré quand ça tient ; aux tailles AX, le message défile au lieu d'être coupé.
 private struct StateBackground: ViewModifier {
     func body(content: Content) -> some View {
-        content
-            .frame(maxWidth: .infinity, maxHeight: .infinity)
-            .grenierBackground()
+        ViewThatFits(in: .vertical) {
+            content
+            ScrollView { content.padding(.vertical) }
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .grenierBackground()
     }
 }
 
@@ -83,12 +87,14 @@ struct ErrorStateView: View {
                 } label: {
                     if isRetrying {
                         ProgressView()
+                            .accessibilityLabel("Nouvel essai en cours")
                     } else {
                         Label("Réessayer", systemImage: "arrow.clockwise")
                     }
                 }
                 .buttonStyle(.glass)
                 .disabled(isRetrying)
+                .accessibilityHint("Relance le chargement")
             }
         }
     }
@@ -111,6 +117,20 @@ struct ErrorStateView: View {
 
 #Preview("Erreur sombre") {
     StateView(state: LoadState<[String]>.failed(.orderClosed)) { Text("\($0.count)") }
+        .preferredColorScheme(.dark)
+}
+
+#Preview("Erreur AX5") {
+    StateView(state: LoadState<[String]>.failed(.offline), retry: {}) { Text("\($0.count)") }
+        .dynamicTypeSize(.accessibility5)
+}
+
+#Preview("Vide AX5 sombre") {
+    StateView(
+        state: LoadState<[String]>.empty,
+        empty: .init(title: "Aucun lot", systemImage: "shippingbox", message: "Aucun producteur ne livre encore ton quartier.")
+    ) { Text("\($0.count)") }
+        .dynamicTypeSize(.accessibility5)
         .preferredColorScheme(.dark)
 }
 

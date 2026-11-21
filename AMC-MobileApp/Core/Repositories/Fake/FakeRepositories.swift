@@ -35,6 +35,16 @@ actor FakeUserRepository: UserRepository {
         try await behavior.simulate()
         households[household.id] = household
     }
+
+    /// Suppression du compte (`FakeAuthService.deleteAccount()`) : retire l'uid du ménage, puis efface l'utilisateur.
+    /// Le ménage reste (les règles interdisent de le supprimer).
+    func removeUserAndLeaveHousehold(id: String) {
+        if let householdId = users[id]?.householdId, var household = households[householdId] {
+            household.userIds.removeAll { $0 == id }
+            households[householdId] = household
+        }
+        users[id] = nil
+    }
 }
 
 actor FakeGroupRepository: GroupRepository {
@@ -181,7 +191,11 @@ actor FakeOfferRepository: OfferRepository {
     func activeOffers(inZone zone: String?) async throws -> [Offer] {
         try await behavior.simulate()
         return offers.values
-            .filter { offer in offer.status == .active && (zone.map { offer.zones.contains($0) } ?? true) }
+            .filter { offer in
+                // Préfixes geohash : la zone du lot contient la zone demandée, ou l'inverse.
+                offer.status == .active
+                    && (zone.map { zone in offer.zones.contains { zone.hasPrefix($0) || $0.hasPrefix(zone) } } ?? true)
+            }
             .sorted { $0.deadline < $1.deadline }
     }
 

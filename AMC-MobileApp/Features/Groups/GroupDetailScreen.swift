@@ -13,12 +13,28 @@ struct GroupDetailScreen: View {
     var body: some View {
         Group {
             if let viewModel {
-                StateView(state: viewModel.state, retry: { await viewModel.load() }) { content in
+                switch viewModel.state {
+                case .idle, .loading:
+                    GroupsLoadingScene(title: "Chargement du groupe…", systemImage: GrenierSymbol.map)
+                case .empty:
+                    GroupsIllustratedState(
+                        scene: GroupsSymbolScene(
+                            systemImage: "questionmark.folder.fill",
+                            satellites: [
+                                .init(systemImage: GrenierSymbol.groups, tint: .texteSecondaire, degrees: -150),
+                                .init(systemImage: "mappin.slash", tint: .grenier, degrees: -30)
+                            ]
+                        ),
+                        title: "Groupe introuvable",
+                        message: "Ce groupe n'existe plus. Il a peut-être été fermé par son coordinateur."
+                    )
+                case .failed(let error):
+                    GroupsErrorState(error: error, retry: { await viewModel.load() })
+                case .loaded(let content):
                     GroupDetailContent(content: content, viewModel: viewModel)
                 }
             } else {
-                ProgressView("Chargement…")
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                GroupsLoadingScene(title: "Chargement du groupe…", systemImage: GrenierSymbol.map)
             }
         }
         .grenierBackground()
@@ -77,7 +93,17 @@ private struct GroupDetailContent: View {
 
                 header
 
-                PickupCard(pickupPoint: content.pickupPoint, slot: content.nextSlot)
+                if content.isMember {
+                    MemberBanner(isMember: content.isMember)
+                        .grenierTransition(.banner)
+                }
+
+                keyFigures
+
+                VStack(alignment: .leading, spacing: 12) {
+                    GroupsSectionHeader(title: "Cueillette", systemImage: "figure.walk", tint: .economie)
+                    PickupCard(pickupPoint: content.pickupPoint, slot: content.nextSlot)
+                }
 
                 openOrdersSection
 
@@ -116,7 +142,8 @@ private struct GroupDetailContent: View {
                         if viewModel.isUpdatingMembership {
                             ProgressView()
                         } else {
-                            Label("Rejoindre le groupe", systemImage: "plus")
+                            Label("Rejoindre le groupe", systemImage: "person.badge.plus")
+                                .symbolEffect(.wiggle, options: .repeat(.periodic(delay: 3)), isActive: !reduceMotion)
                         }
                     }
                     .font(.headline)
@@ -137,8 +164,9 @@ private struct GroupDetailContent: View {
 
     private var header: some View {
         VStack(alignment: .leading, spacing: 8) {
-            Text("Groupe de quartier · \(group.neighborhood)".uppercased())
+            Label("Groupe de quartier · \(group.neighborhood)".uppercased(), systemImage: "mappin.circle.fill")
                 .font(.caption.weight(.semibold))
+                .symbolRenderingMode(.hierarchical)
                 .foregroundStyle(Color.grenier)
             Text(group.name)
                 .font(.largeTitle.bold())
@@ -156,33 +184,70 @@ private struct GroupDetailContent: View {
         let initials = content.members.prefix(3).map { MemberInitials.of($0.householdId) }
         AvatarStack(initials: initials, extraCount: max(group.householdCount - initials.count, 0))
         VStack(alignment: .leading, spacing: 2) {
-            Text("\(group.householdCount) \(group.householdCount > 1 ? "familles" : "famille")")
-                .font(.body)
-                .foregroundStyle(.texteSecondaire)
-            if content.isMember {
-                Label("Tu en fais partie", systemImage: "checkmark.circle.fill")
-                    .font(.subheadline.weight(.semibold))
-                    .foregroundStyle(Color.economie)
-                    .symbolEffect(.bounce, value: content.isMember)
+            Label {
+                Text("\(group.householdCount) \(group.householdCount > 1 ? "familles" : "famille")")
+                    .contentTransition(.numericText(value: Double(group.householdCount)))
+            } icon: {
+                Image(systemName: "person.2.fill")
+                    .symbolRenderingMode(.hierarchical)
+                    .foregroundStyle(Color.solidarite)
             }
+            .font(.body)
+            .foregroundStyle(.texteSecondaire)
         }
+    }
+
+    /// Chiffres clés du groupe : familles, lots ouverts, rayon du quartier.
+    private var keyFigures: some View {
+        ViewThatFits(in: .horizontal) {
+            HStack(spacing: 8) { keyFigureTiles }
+            VStack(spacing: 8) { keyFigureTiles }
+        }
+    }
+
+    @ViewBuilder
+    private var keyFigureTiles: some View {
+        let orders = content.openOrders.count
+        GroupsStatTile(value: "\(group.householdCount)", caption: group.householdCount > 1 ? "familles" : "famille",
+                       systemImage: "person.2.fill", tint: .solidarite)
+        GroupsStatTile(value: "\(orders)", caption: orders > 1 ? "lots ouverts" : "lot ouvert",
+                       systemImage: GrenierSymbol.offers, tint: .grenier)
+        GroupsStatTile(value: GroupCard.distanceText(group.radiusMeters), caption: "de rayon",
+                       systemImage: "circle.dashed", tint: .economie)
     }
 
     @ViewBuilder
     private var openOrdersSection: some View {
         let orders = content.openOrders
         VStack(alignment: .leading, spacing: 12) {
-            Text(orders.isEmpty ? "Aucun lot ouvert"
-                 : "\(orders.count) \(orders.count > 1 ? "lots ouverts" : "lot ouvert")")
-                .font(.title3.bold())
-                .foregroundStyle(.texte)
-                .accessibilityAddTraits(.isHeader)
+            GroupsSectionHeader(
+                title: orders.count > 1 ? "Lots ouverts" : "Lot ouvert",
+                systemImage: GrenierSymbol.offers,
+                tint: .grenier,
+                count: orders.count
+            )
             if orders.isEmpty {
-                Text("Le groupe n'a pas de commande en cours. Les nouveaux lots du quartier apparaîtront ici.")
-                    .font(.body)
-                    .foregroundStyle(.texteSecondaire)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .grenierCard()
+                VStack(spacing: 8) {
+                    GroupsSymbolScene(
+                        systemImage: "shippingbox",
+                        satellites: [
+                            .init(systemImage: "clock.fill", tint: .grenier, degrees: -35),
+                            .init(systemImage: GrenierSymbol.impact, tint: .economie, degrees: 145)
+                        ],
+                        diameter: 64,
+                        badgeBackground: .fond
+                    )
+                    Text("Aucun lot ouvert")
+                        .font(.headline)
+                        .foregroundStyle(.texte)
+                    Text("Le groupe n'a pas de commande en cours. Les nouveaux lots du quartier apparaîtront ici.")
+                        .font(.subheadline)
+                        .foregroundStyle(.texteSecondaire)
+                        .multilineTextAlignment(.center)
+                }
+                .frame(maxWidth: .infinity)
+                .grenierCard()
+                .accessibilityElement(children: .combine)
             } else {
                 ForEach(orders) { summary in
                     NavigationLink(value: OfferRoute(offerId: summary.offer.id)) {
@@ -199,6 +264,37 @@ private struct GroupDetailContent: View {
                 }
             }
         }
+    }
+}
+
+// MARK: - Bandeau membre
+
+/// Succès : le ménage fait partie du groupe (le sceau rebondit à l'arrivée, sauf sous Reduce Motion).
+private struct MemberBanner: View {
+    let isMember: Bool
+
+    var body: some View {
+        HStack(spacing: 14) {
+            Image(systemName: "checkmark.seal.fill")
+                .font(.largeTitle)
+                .symbolRenderingMode(.hierarchical)
+                .foregroundStyle(Color.economie)
+                .groupsBounce(value: isMember)
+                .accessibilityHidden(true)
+            VStack(alignment: .leading, spacing: 2) {
+                Text("Tu en fais partie")
+                    .font(.headline)
+                    .foregroundStyle(.texte)
+                Label("Tu vois ses lots et l'horaire de cueillette en premier.", systemImage: "bell.badge.fill")
+                    .font(.subheadline)
+                    .symbolRenderingMode(.hierarchical)
+                    .foregroundStyle(.texteSecondaire)
+            }
+            Spacer(minLength: 0)
+        }
+        .padding(16)
+        .background(Color.economie.opacity(0.12), in: .rect(cornerRadius: 24))
+        .accessibilityElement(children: .combine)
     }
 }
 
@@ -232,9 +328,28 @@ private struct GroupMapHeader: View {
         }
         .mapStyle(.standard(pointsOfInterest: .excludingAll))
         .frame(height: min(height, 360))
+        .overlay(alignment: .bottomLeading) {
+            GlassEffectContainer(spacing: 8) {
+                HStack(spacing: 8) {
+                    mapBadge(group.neighborhood, systemImage: "mappin.circle.fill")
+                    mapBadge("Rayon \(GroupCard.distanceText(group.radiusMeters))", systemImage: "circle.dashed")
+                }
+            }
+            .padding(12)
+        }
         .clipShape(.rect(cornerRadius: 24))
         .accessibilityElement(children: .ignore)
         .accessibilityLabel("Carte du quartier \(group.neighborhood), rayon de \(GroupCard.distanceText(group.radiusMeters))")
+    }
+
+    private func mapBadge(_ text: String, systemImage: String) -> some View {
+        Label(text, systemImage: systemImage)
+            .font(.caption.weight(.semibold))
+            .symbolRenderingMode(.hierarchical)
+            .foregroundStyle(Color.grenier)
+            .padding(.horizontal, 10)
+            .padding(.vertical, 6)
+            .glassEffect(.regular, in: .capsule)
     }
 }
 
@@ -246,12 +361,12 @@ private struct PickupCard: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 14) {
-            row(symbol: "mappin.and.ellipse", tint: .economie,
+            row(symbol: pickupPoint == nil ? "mappin.slash" : "mappin.and.ellipse", tint: .economie,
                 title: pickupPoint?.name ?? "Point de cueillette à venir",
                 subtitle: pickupPoint.map { "Point de cueillette · \($0.address)" }
                     ?? "L'hôte sera choisi à la prochaine commande")
             Divider().overlay(Color.piste)
-            row(symbol: "clock", tint: .grenier,
+            row(symbol: slot == nil ? "clock.badge.questionmark" : "clock.fill", tint: .grenier,
                 title: slot.map(PickupTime.text(for:)) ?? "Horaire à venir",
                 subtitle: slot == nil ? "Annoncé dès qu'une commande est lancée" : "Prochaine cueillette")
         }
@@ -264,6 +379,7 @@ private struct PickupCard: View {
                 .font(.title3)
                 .symbolRenderingMode(.hierarchical)
                 .foregroundStyle(tint)
+                .contentTransition(.symbolEffect(.replace))
                 .accessibilityHidden(true)
             VStack(alignment: .leading, spacing: 2) {
                 Text(title)
@@ -302,9 +418,10 @@ private struct InvitationCard: View {
     }
 
     private var code: some View {
-        Text(group.inviteCode)
+        Label(group.inviteCode, systemImage: "ticket.fill")
             .font(.title3.bold())
             .fontDesign(.monospaced)
+            .symbolRenderingMode(.hierarchical)
             .foregroundStyle(Color.grenier)
             .padding(.horizontal, 12)
             .padding(.vertical, 6)

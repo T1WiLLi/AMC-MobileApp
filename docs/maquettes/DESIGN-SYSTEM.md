@@ -14,7 +14,7 @@ Toutes dans l'asset catalog (`Assets.xcassets`), avec une variante claire et une
 | `Surface` | `#FFFFFF` | `#211D19` | Cartes, listes, champs |
 | `Texte` | `#1C1712` | `#F5EFE6` | Texte principal (ou `.primary`) |
 | `TexteSecondaire` | `#6B5F53` | `#B8AC9F` | Sous-titres, légendes (ou `.secondary`) |
-| `AccentColor` (Grenier) | `#B4521A` | `#F08A4B` | Actions, paliers, onglet actif, `.tint` |
+| `AccentColor` (Grenier) | `#A84D18` | `#F08A4B` | Actions, paliers, onglet actif, `.tint` |
 | `Economie` | `#1F7A4A` | `#4CC488` | Argent économisé seulement, jamais une action |
 | `Solidarite` | `#6B4FB3` | `#A992F0` | Panier suspendu, aide anonyme |
 | `Separateur` | `#E8DFD3` | `#3A332D` | Séparateurs, bordures fines |
@@ -23,6 +23,32 @@ Toutes dans l'asset catalog (`Assets.xcassets`), avec une variante claire et une
 Contraste : texte blanc sur Grenier, Economie et Solidarite en clair (5:1 ou plus). En sombre, texte `#1C1712` sur ces couleurs.
 
 Teintes légères : couleur à 12 % d'opacité pour les fonds de badge et les carrés d'icône (`Color.economie.opacity(0.12)`).
+
+Grenier clair est passé de `#B4521A` à `#A84D18` (T-101) : à 12 % sur Surface, l'ancien ton tombait à 4,28:1, sous le AA de 4,5:1. Le logo et l'icône d'app gardent `#B4521A`. Pas de teinte au-delà de 12 % sous du texte coloré : à 15 %, Grenier et Economie passent sous 4,5:1.
+
+### Contraste (WCAG 2.x, vérifié par `ContrastTests`)
+
+| Texte sur fond | Clair | Sombre |
+| --- | --- | --- |
+| Texte sur Fond / Surface | 16,66 / 17,79 | 16,46 / 14,65 |
+| TexteSecondaire sur Fond / Surface | 5,81 / 6,20 | 8,46 / 7,52 |
+| Grenier sur Fond / Surface | 5,26 / 5,62 | 7,56 / 6,73 |
+| Economie sur Fond / Surface | 4,99 / 5,33 | 8,56 / 7,62 |
+| Solidarite sur Fond / Surface | 5,79 / 6,19 | 7,22 / 6,42 |
+| onAccent sur Grenier / Economie / Solidarite | 5,62 / 5,33 / 6,19 | 7,15 / 8,10 / 6,82 |
+| Grenier sur teinte Grenier 12 % | 4,75 | 5,51 |
+| Economie sur teinte Economie 12 % | 4,52 | 6,17 |
+| Solidarite sur teinte Solidarite 12 % | 5,21 | 5,29 |
+| TexteSecondaire sur Piste | 5,02 | 5,58 |
+
+Éléments non textuels (3:1) : remplissage Grenier sur Piste 4,55 en clair, 4,99 en sombre. La Piste vide sur Surface n'atteint que 1,2 à 1,4:1 ; elle reste décorative, car le texte et VoiceOver portent la valeur.
+
+## Accessibilité des composants
+
+- VoiceOver lit les montants en mots : `Money.spoken(260)` donne « 2 dollars 60 », et `Money.spoken(210, per: "kg")` donne « 2 dollars 10 le kilo ». Ne passe jamais `Money.format` à un `accessibilityLabel`.
+- Animations : `.grenierAnimation` ou `withGrenierAnimation`, et `symbolEffect` ou `contentTransition` coupés sous `accessibilityReduceMotion`.
+- Reduce Transparency : tout voile ou fond translucide custom devient opaque (`Color.fond` plein). Les `.glass` et `.glassProminent` natifs s'adaptent seuls.
+- Chaque composant a une `#Preview` AX5 et une sombre. Aux tailles AX, les lignes s'empilent (`AnyLayout`, `ViewThatFits`) plutôt que de couper le texte.
 
 ## Typographie
 

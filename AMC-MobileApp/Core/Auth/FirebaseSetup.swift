@@ -83,7 +83,7 @@ enum FirebaseSetup {
             if FirebaseApp.app() == nil {
                 FirebaseApp.configure(options: emulatorOptions(options.emulator))
             }
-            if let app = FirebaseApp.app() { connect(app, to: options.emulator) }
+            if let app = FirebaseApp.app() { PerfSignposts.measure("firebase.connect") { connect(app, to: options.emulator) } }
         }
         #endif
 

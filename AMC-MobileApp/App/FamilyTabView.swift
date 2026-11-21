@@ -29,7 +29,6 @@ struct FamilyTabView: View {
                 SearchScreen(prompt: "Riz, pommes, producteur…", linksToOffers: true)
             }
         }
-        .tabBarMinimizeBehavior(.onScrollDown)
         // Bord net sous la barre de navigation pour tous les onglets et leurs fiches (T-140).
         .grenierScrollEdge()
     }

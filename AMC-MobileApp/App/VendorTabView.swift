@@ -47,7 +47,6 @@ struct VendorTabView: View {
                 }
             }
         }
-        .tabBarMinimizeBehavior(.onScrollDown)
         // Bord net sous la barre de navigation pour tous les onglets et leurs fiches (T-140).
         .grenierScrollEdge()
     }

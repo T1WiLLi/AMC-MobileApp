@@ -31,7 +31,6 @@ struct OrganizationTabView: View {
                 OrganizationSearchScreen(model: model)
             }
         }
-        .tabBarMinimizeBehavior(.onScrollDown)
         .grenierHaptic(.selection, trigger: selection)
         .task {
             let model = self.model ?? OrganizationPortalModel(

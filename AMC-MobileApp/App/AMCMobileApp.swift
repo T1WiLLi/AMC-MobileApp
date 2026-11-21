@@ -13,7 +13,7 @@ struct AMCMobileApp: App {
 
     init() {
         // Fake, émulateur ou projet de démo (B-013) : voir `BackendMode` et docs/firebase.md §4.
-        let mode = FirebaseSetup.configure()
+        let mode = PerfSignposts.measure("launch.backendSetup") { FirebaseSetup.configure() }
         _session = State(initialValue: SessionViewModel(auth: FirebaseSetup.makeAuthService(mode: mode)))
         let demo = DemoEnvironment(mode: mode)
         _demo = State(initialValue: demo)
@@ -35,6 +35,7 @@ struct AMCMobileApp: App {
     var body: some Scene {
         WindowGroup {
             SessionGate(session: session)
+                .onAppear { PerfSignposts.markFirstScreen() }
                 // Réinitialisation de la démo : dépôts neufs, et `.id` recrée tous les écrans et leurs ViewModels.
                 .environment(\.appContext, demo.context)
                 .environment(demo)

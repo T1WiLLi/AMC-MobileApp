@@ -40,6 +40,20 @@ struct ProfileScreen: View {
                     }
                 }
 
+                if portal == .family {
+                    // T-105 (RQ-099, RQ-100) : planificateur de besoins du mois.
+                    Section {
+                        NavigationLink {
+                            NeedsPlannerScreen()
+                        } label: {
+                            Label("Planifier mon mois", systemImage: "list.bullet.clipboard.fill")
+                                .symbolRenderingMode(.hierarchical)
+                        }
+                    } footer: {
+                        Text("Tes besoins et ton budget, et les lots qui y répondent.")
+                    }
+                }
+
                 if let appLock {
                     SecuritySection(lock: appLock)
                 }

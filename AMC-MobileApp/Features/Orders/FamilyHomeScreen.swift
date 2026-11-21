@@ -8,6 +8,8 @@ struct FamilyHomeScreen: View {
     @State private var viewModel: FamilyHomeViewModel?
     /// Identité pour laquelle `viewModel` a été créé : un autre compte (ou un autre groupe) recrée le modèle.
     @State private var loadedIdentity: String?
+    @AppStorage(HomeSection.storageKey) private var rawLayout = ""
+    @State private var isEditingLayout = false
 
     var body: some View {
         NavigationStack {
@@ -31,6 +33,19 @@ struct FamilyHomeScreen: View {
             .navigationTitle(usesInlineTitle ? "Accueil" : title)
             .navigationBarTitleDisplayMode(usesInlineTitle ? .inline : .automatic)
             .profileToolbar()
+            .toolbar {
+                // B-037 : sections réorganisables (ordre, masquage, Réinitialiser).
+                if viewModel?.state.value != nil {
+                    ToolbarItem(placement: .topBarLeading) {
+                        Button("Modifier l'accueil", systemImage: "square.3.layers.3d.down.right") {
+                            isEditingLayout = true
+                        }
+                    }
+                }
+            }
+            .sheet(isPresented: $isEditingLayout) {
+                SectionLayoutEditor(title: "Modifier l'accueil", sections: HomeSection.infos, raw: $rawLayout)
+            }
             .offerDestination()
             .refreshable { await viewModel?.load() }
             // Retour depuis une fiche de lot ou depuis un autre onglet : une part réservée entre-temps
@@ -84,10 +99,36 @@ struct FamilyHomeScreen: View {
 
 // MARK: - Contenu
 
+/// Sections de l'Accueil, dans l'ordre par défaut (B-037).
+enum HomeSection: String, CaseIterable {
+    case group, savings, orders, offers
+
+    static let storageKey = "home.sectionLayout"
+
+    static var infos: [SectionInfo] {
+        allCases.map { section in
+            switch section {
+            case .group: SectionInfo(id: section.rawValue, title: "Mon groupe", systemImage: GrenierSymbol.groups, tint: .grenier)
+            case .savings: SectionInfo(id: section.rawValue, title: "Économies", systemImage: GrenierSymbol.savings, tint: .economie)
+            case .orders: SectionInfo(id: section.rawValue, title: "Commandes en cours", systemImage: "cart.fill", tint: .grenier)
+            case .offers: SectionInfo(id: section.rawValue, title: "Nouveaux lots près de toi", systemImage: "sparkles", tint: .solidarite)
+            }
+        }
+    }
+}
+
 private struct FamilyHomeContent: View {
     let content: FamilyHomeViewModel.Content
     /// Salutation affichée dans le contenu (tailles d'accessibilité) : elle passe à la ligne au lieu d'être coupée.
     var largeGreeting: String?
+
+    @AppStorage(HomeSection.storageKey) private var rawLayout = ""
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
+    private var sections: [HomeSection] {
+        SectionLayout(raw: rawLayout, defaults: HomeSection.allCases.map(\.rawValue))
+            .visible.compactMap(HomeSection.init(rawValue:))
+    }
 
     var body: some View {
         ScrollView {
@@ -100,28 +141,37 @@ private struct FamilyHomeContent: View {
                         .accessibilityAddTraits(.isHeader)
                 }
 
-                GroupBanner(
-                    group: content.group,
-                    orderCount: content.currentOrders.count,
-                    newOfferCount: content.newOffers.count
-                )
-                .cascadeAppear(0)
-
-                SavingsCard(savedCents: content.savedCents, orderCount: content.myOrders.count)
-                    .cascadeAppear(1)
-
-                currentOrdersSection
-                    .cascadeAppear(2)
-
-                newOffersSection
-                    .cascadeAppear(3)
+                ForEach(Array(sections.enumerated()), id: \.element) { index, section in
+                    view(for: section)
+                        .cascadeAppear(index)
+                        .transition(.opacity.combined(with: .scale(scale: 0.96)))
+                }
             }
+            .animation(reduceMotion ? nil : .smooth, value: sections)
             .padding(.horizontal, 16)
             .padding(.bottom, 24)
         }
         .grenierScrollEdge()
         // Rechargement qui change les économies : retour haptique, le montant défile à l'écran.
         .grenierHaptic(.success, trigger: content.savedCents)
+    }
+
+    @ViewBuilder
+    private func view(for section: HomeSection) -> some View {
+        switch section {
+        case .group:
+            GroupBanner(
+                group: content.group,
+                orderCount: content.currentOrders.count,
+                newOfferCount: content.newOffers.count
+            )
+        case .savings:
+            SavingsCard(savedCents: content.savedCents, orderCount: content.myOrders.count)
+        case .orders:
+            currentOrdersSection
+        case .offers:
+            newOffersSection
+        }
     }
 
     // MARK: Commandes en cours

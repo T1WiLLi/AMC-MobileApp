@@ -32,6 +32,8 @@ extension AppRepositories {
         let firestorePickupPoints: (any PickupPointRepository)? = isConfigured ? FirestorePickupPointRepository() : nil
         let firestoreWishes: (any GroupWishRepository)? = isConfigured ? FirestoreGroupWishRepository() : nil
         let firestoreSupplies: (any VendorSupplyRepository)? = isConfigured ? FirestoreVendorSupplyRepository() : nil
+        let firestoreDeliveries: (any VolunteerDeliveryRepository)? =
+            isConfigured ? FirestoreVolunteerDeliveryRepository() : nil
         #else
         let firestoreUsers: (any UserRepository)? = nil
         let firestoreGroups: (any GroupRepository)? = nil
@@ -40,6 +42,7 @@ extension AppRepositories {
         let firestorePickupPoints: (any PickupPointRepository)? = nil
         let firestoreWishes: (any GroupWishRepository)? = nil
         let firestoreSupplies: (any VendorSupplyRepository)? = nil
+        let firestoreDeliveries: (any VolunteerDeliveryRepository)? = nil
         #endif
         var repositories = AppRepositories(
             users: firestoreUsers ?? fallback.users,              // B-017 — users, households
@@ -51,6 +54,7 @@ extension AppRepositories {
         )
         repositories.wishes = firestoreWishes ?? fallback.wishes          // S-07 — groups/{id}/wishes
         repositories.supplies = firestoreSupplies ?? fallback.supplies    // S-08 — vendors/{id}/supplies
+        repositories.deliveries = firestoreDeliveries ?? fallback.deliveries  // RQ-069 — groupOrders/{id}/deliveries
         return repositories
     }
 

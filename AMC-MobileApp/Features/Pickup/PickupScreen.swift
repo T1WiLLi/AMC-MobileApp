@@ -103,6 +103,7 @@ private struct PickupContentView: View {
                 PickupCodeCard(content: content)
                 PickupItemsCard(items: content.items)
                 PickupPointSummaryCard(content: content)
+                PickupNeighbourHelpCard(pickupPoint: content.pickupPoint, slot: content.slot) // RQ-069, RQ-070
                 directionsButton
             }
             .padding(.horizontal, 16)

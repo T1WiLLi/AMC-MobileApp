@@ -9,7 +9,7 @@ import SwiftUI
 struct VendorRevenueScreen: View {
     @State private var model: VendorRevenueModel
 
-    init(repositories: AppRepositories = .fake(), vendorId: String = FakeData.ID.fermeRive) {
+    init(repositories: AppRepositories, vendorId: String) {
         _model = State(initialValue: VendorRevenueModel(repositories: repositories, vendorId: vendorId))
     }
 
@@ -721,29 +721,29 @@ extension FakeData {
 #endif
 
 #Preview("Clair") {
-    VendorRevenueScreen(repositories: .fake(data: .vendorRevenueDemo))
+    VendorRevenueScreen(repositories: .fake(data: .vendorRevenueDemo), vendorId: FakeData.ID.fermeRive)
 }
 
 #Preview("Sombre") {
-    VendorRevenueScreen(repositories: .fake(data: .vendorRevenueDemo))
+    VendorRevenueScreen(repositories: .fake(data: .vendorRevenueDemo), vendorId: FakeData.ID.fermeRive)
         .preferredColorScheme(.dark)
 }
 
 #Preview("AX5") {
-    VendorRevenueScreen(repositories: .fake(data: .vendorRevenueDemo))
+    VendorRevenueScreen(repositories: .fake(data: .vendorRevenueDemo), vendorId: FakeData.ID.fermeRive)
         .dynamicTypeSize(.accessibility5)
 }
 
 #Preview("Données de base") {
-    VendorRevenueScreen()
+    VendorRevenueScreen(repositories: .fake(), vendorId: FakeData.ID.fermeRive)
 }
 
 #Preview("Vide") {
-    VendorRevenueScreen(vendorId: "vendor-inconnu")
+    VendorRevenueScreen(repositories: .fake(), vendorId: "vendor-inconnu")
 }
 
 #Preview("Hors ligne") {
-    VendorRevenueScreen(repositories: .fake(behavior: .failing(.offline)))
+    VendorRevenueScreen(repositories: .fake(behavior: .failing(.offline)), vendorId: FakeData.ID.fermeRive)
 }
 
 #Preview("Chargement") {

@@ -71,7 +71,7 @@ nonisolated struct FakeData: Sendable {
 
         return FakeData(
             users: [
-                AppUser(id: ID.amina, displayName: "Amina Benali", photoURL: nil, language: .french,
+                AppUser(id: ID.amina, displayName: "Amina Benali", photoURL: DemoMedia.aminaAvatar, language: .french,
                         roles: [.family, .host], neighborhood: "Saint-Michel", dietaryPreferences: [.halal],
                         seniorMode: false, householdId: ID.aminaHousehold, vendorId: nil),
             ],
@@ -81,10 +81,12 @@ nonisolated struct FakeData: Sendable {
             groups: [
                 NeighborhoodGroup(id: ID.saintMichel, name: "Voisins de Saint-Michel", neighborhood: "Saint-Michel",
                                   centerGeohash: "f25dv", radiusMeters: 1_200, coordinatorIds: [ID.amina],
-                                  householdCount: saintMichelMembers.count, isPublic: true, inviteCode: "SM-2026"),
+                                  householdCount: saintMichelMembers.count, isPublic: true, inviteCode: "SM-2026",
+                                  photoURL: DemoMedia.saintMichelPhoto, bannerURL: DemoMedia.saintMichelBanner),
                 NeighborhoodGroup(id: ID.hochelaga, name: "Hochelaga solidaire", neighborhood: "Hochelaga",
                                   centerGeohash: "f25ej", radiusMeters: 900, coordinatorIds: [],
-                                  householdCount: 27, isPublic: true, inviteCode: "HO-2026"),
+                                  householdCount: 27, isPublic: true, inviteCode: "HO-2026",
+                                  photoURL: DemoMedia.hochelagaPhoto, bannerURL: DemoMedia.hochelagaBanner),
             ],
             members: [ID.saintMichel: saintMichelMembers],
             vendors: [
@@ -155,4 +157,17 @@ nonisolated struct FakeData: Sendable {
             ]
         )
     }()
+}
+
+/// Photos de démo (T-122) : images Unsplash du catalogue d'assets (crédits dans docs/credits.md).
+nonisolated enum DemoMedia {
+    static let aminaAvatar = MediaURL.asset("AvatarAmina")
+    static let saintMichelPhoto = MediaURL.asset("GroupPhotoSaintMichel")
+    static let saintMichelBanner = MediaURL.asset("BannerSaintMichel")
+    static let hochelagaPhoto = MediaURL.asset("GroupPhotoHochelaga")
+    static let hochelagaBanner = MediaURL.asset("BannerHochelaga")
+    static let marchePhoto = MediaURL.asset("GroupPhotoMarche")
+    static let marcheBanner = MediaURL.asset("BannerMarche")
+    /// Voisins pour les piles d'avatars des previews.
+    static let neighbors = ["AvatarVoisin1", "AvatarVoisin2", "AvatarVoisin3"].map(MediaURL.asset)
 }

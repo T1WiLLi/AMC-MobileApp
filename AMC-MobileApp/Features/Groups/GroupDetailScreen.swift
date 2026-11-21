@@ -9,6 +9,8 @@ struct GroupDetailScreen: View {
 
     @Environment(\.appContext) private var context
     @State private var viewModel: GroupDetailViewModel?
+    /// T-122 : photo et bannière du groupe (proposées au coordinateur seulement).
+    @State private var imageEditor: GroupImageEditorViewModel?
 
     var body: some View {
         Group {
@@ -31,7 +33,8 @@ struct GroupDetailScreen: View {
                 case .failed(let error):
                     GroupsErrorState(error: error, retry: { await viewModel.load() })
                 case .loaded(let content):
-                    GroupDetailContent(content: content, viewModel: viewModel)
+                    GroupDetailContent(content: content, viewModel: viewModel,
+                                       imageEditor: viewModel.isCoordinator ? imageEditor : nil)
                 }
             } else {
                 GroupsLoadingScene(title: "Chargement du groupe…", systemImage: GrenierSymbol.map)
@@ -62,14 +65,29 @@ struct GroupDetailScreen: View {
         } message: { error in
             Text(error.message)
         }
+        // Retrait d'une image refusé (hors de la feuille d'aperçu).
+        .alert(
+            "Image non modifiée",
+            isPresented: Binding(
+                get: { imageEditor?.error != nil && imageEditor?.isPresentingPreview == false },
+                set: { if !$0 { imageEditor?.clearError() } }
+            ),
+            presenting: imageEditor?.error
+        ) { _ in
+            Button("OK", role: .cancel) {}
+        } message: { error in
+            Text(error.message)
+        }
         .task(id: groupId) {
             guard viewModel == nil else { return }
             let model = GroupDetailViewModel(
                 repositories: context.repositories,
                 householdId: context.householdId,
-                groupId: groupId
+                groupId: groupId,
+                userId: context.userId
             )
             viewModel = model
+            imageEditor = GroupImageEditorViewModel(repositories: context.repositories, groupId: groupId, userId: context.userId)
             await model.load()
         }
     }
@@ -80,59 +98,88 @@ struct GroupDetailScreen: View {
 private struct GroupDetailContent: View {
     let content: GroupDetailViewModel.Content
     let viewModel: GroupDetailViewModel
+    /// T-122 : présent seulement pour un coordinateur.
+    let imageEditor: GroupImageEditorViewModel?
 
     @State private var isConfirmingLeave = false
+    /// Le nom passe dans la barre de navigation une fois la bannière remontée.
+    @State private var showsNavigationTitle = false
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     private var group: NeighborhoodGroup { content.group }
 
     var body: some View {
         ScrollView {
-            VStack(alignment: .leading, spacing: 24) {
-                GroupMapHeader(group: group, hasPickupPoint: content.pickupPoint != nil)
-
-                header
-
-                if content.isMember {
-                    MemberBanner(isMember: content.isMember)
-                        .grenierTransition(.banner)
+            VStack(alignment: .leading, spacing: 12) {
+                GroupHeroHeader(group: group, editor: imageEditor) { updated in
+                    viewModel.replaceGroup(updated)
                 }
 
-                keyFigures
+                VStack(alignment: .leading, spacing: 24) {
+                    header
 
-                VStack(alignment: .leading, spacing: 12) {
-                    GroupsSectionHeader(title: "Cueillette", systemImage: "figure.walk", tint: .economie)
-                    PickupCard(pickupPoint: content.pickupPoint, slot: content.nextSlot)
-                }
-
-                openOrdersSection
-
-                InvitationCard(group: group)
-
-                if content.isMember {
-                    Button(role: .destructive) {
-                        isConfirmingLeave = true
-                    } label: {
-                        Label("Quitter le groupe", systemImage: "rectangle.portrait.and.arrow.right")
-                            .frame(maxWidth: .infinity)
+                    if content.isMember {
+                        MemberBanner(isMember: content.isMember)
+                            .grenierTransition(.banner)
                     }
-                    .buttonStyle(.glass)
-                    .controlSize(.large)
-                    .disabled(viewModel.isUpdatingMembership)
-                    .confirmationDialog("Quitter \(group.name) ?", isPresented: $isConfirmingLeave, titleVisibility: .visible) {
-                        Button("Quitter le groupe", role: .destructive) {
-                            Task { await viewModel.leave() }
+
+                    keyFigures
+
+                    VStack(alignment: .leading, spacing: 12) {
+                        GroupsSectionHeader(title: "Le quartier", systemImage: GrenierSymbol.map, tint: .grenier)
+                        GroupMapHeader(group: group, hasPickupPoint: content.pickupPoint != nil)
+                    }
+
+                    VStack(alignment: .leading, spacing: 12) {
+                        GroupsSectionHeader(title: "Cueillette", systemImage: "figure.walk", tint: .economie)
+                        PickupCard(pickupPoint: content.pickupPoint, slot: content.nextSlot)
+                    }
+
+                    openOrdersSection
+
+                    InvitationCard(group: group)
+
+                    if content.isMember {
+                        Button(role: .destructive) {
+                            isConfirmingLeave = true
+                        } label: {
+                            Label("Quitter le groupe", systemImage: "rectangle.portrait.and.arrow.right")
+                                .frame(maxWidth: .infinity)
                         }
-                        Button("Annuler", role: .cancel) {}
-                    } message: {
-                        Text("Tes parts déjà réservées restent valides. Tu pourras revenir quand tu veux.")
+                        .buttonStyle(.glass)
+                        .controlSize(.large)
+                        .disabled(viewModel.isUpdatingMembership)
+                        .confirmationDialog("Quitter \(group.name) ?", isPresented: $isConfirmingLeave, titleVisibility: .visible) {
+                            Button("Quitter le groupe", role: .destructive) {
+                                Task { await viewModel.leave() }
+                            }
+                            Button("Annuler", role: .cancel) {}
+                        } message: {
+                            Text("Tes parts déjà réservées restent valides. Tu pourras revenir quand tu veux.")
+                        }
                     }
                 }
+                .padding(.horizontal, 16)
+                .padding(.bottom, 24)
             }
-            .padding(.horizontal, 16)
-            .padding(.bottom, 24)
         }
+        // La bannière passe sous la barre de navigation (et s'étire en tirant vers le bas).
+        .ignoresSafeArea(.container, edges: .top)
         .scrollEdgeEffectStyle(.soft, for: .top)
+        .onScrollGeometryChange(for: Bool.self) { geometry in
+            geometry.contentOffset.y > GroupHeroHeader.bannerHeight - 80
+        } action: { _, isPastBanner in
+            withAnimation(reduceMotion ? nil : .grenierSmooth) { showsNavigationTitle = isPastBanner }
+        }
+        .toolbar {
+            ToolbarItem(placement: .principal) {
+                Text(group.name)
+                    .font(.headline)
+                    .lineLimit(1)
+                    .opacity(showsNavigationTitle ? 1 : 0)
+                    .accessibilityHidden(!showsNavigationTitle)
+            }
+        }
         .safeAreaInset(edge: .bottom) {
             if !content.isMember {
                 Button {

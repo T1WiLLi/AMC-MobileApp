@@ -114,6 +114,17 @@ nonisolated final class FirestoreGroupRepository: GroupRepository, @unchecked Se
         try await changeMembership(groupId: groupId, householdId: householdId, joining: false)
     }
 
+    /// T-122 : URL versionnée de la photo ou de la bannière (l'image est dans `groups/{id}/media/…`).
+    /// firestore.rules : un coordinateur seulement, et rien d'autre ne change dans la même écriture.
+    func updateImage(_ kind: GroupImageKind, url: URL?, ofGroup groupId: String, byUserId userId: String) async throws {
+        _ = try await group(id: groupId)
+        do {
+            try await groupRef(groupId).updateData([kind.field: url?.absoluteString ?? FieldValue.delete()])
+        } catch {
+            throw FirestoreGroupOrderRepository.appError(from: error)
+        }
+    }
+
     /// Adhésion + compteur dans un seul batch : les règles refusent l'un sans l'autre.
     private func changeMembership(groupId: String, householdId: String, joining: Bool) async throws {
         _ = try await group(id: groupId)

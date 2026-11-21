@@ -164,7 +164,8 @@ enum CardPreviewData {
     )
     static let group = NeighborhoodGroup(
         id: "parc-ex-ouest", name: "Parc-Ex Ouest", neighborhood: "Parc-Extension", centerGeohash: "f25dv",
-        radiusMeters: 1_500, coordinatorIds: ["amina"], householdCount: 24, isPublic: true, inviteCode: "PARCEX"
+        radiusMeters: 1_500, coordinatorIds: ["amina"], householdCount: 24, isPublic: true, inviteCode: "PARCEX",
+        photoURL: MediaURL.asset("GroupPhotoMarche"), bannerURL: MediaURL.asset("BannerMarche")
     )
 }
 

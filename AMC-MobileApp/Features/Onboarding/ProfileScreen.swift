@@ -13,12 +13,14 @@ struct ProfileScreen: View {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     /// Portail touché, pour l'haptique (part avant la fermeture de la feuille).
     @State private var pendingPortal: Portal?
+    /// T-122 : photo de profil, relue à chaque apparition (elle a pu changer dans « Mon compte »).
+    @State private var photoURL: URL?
 
     var body: some View {
         NavigationStack {
             Form {
                 Section {
-                    ProfileHeader(user: session?.currentUser, portal: pendingPortal ?? portal)
+                    ProfileHeader(user: session?.currentUser, portal: pendingPortal ?? portal, photoURL: photoURL)
                         .listRowInsets(EdgeInsets(top: 8, leading: 0, bottom: 8, trailing: 0))
                         .listRowBackground(Color.clear)
                 }
@@ -141,6 +143,9 @@ struct ProfileScreen: View {
             .grenierBackground()
             .navigationTitle("Profil")
             .sensoryFeedback(.selection, trigger: pendingPortal) { _, new in new != nil }
+            .onAppear {
+                Task { photoURL = try? await appContext.repositories.users.user(id: appContext.userId).photoURL }
+            }
         }
     }
 
@@ -183,6 +188,8 @@ struct ProfileScreen: View {
 private struct ProfileHeader: View {
     let user: AuthUser?
     let portal: Portal
+    /// T-122 : photo de `AppUser`, nil = initiales.
+    var photoURL: URL? = nil
 
     @ScaledMetric(relativeTo: .largeTitle) private var scaledAvatar: CGFloat = 84
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
@@ -236,11 +243,8 @@ private struct ProfileHeader: View {
     }
 
     private func avatar(for user: AuthUser) -> some View {
-        Text(String(user.displayName.prefix(1)).uppercased())
-            .font(.system(size: avatarSide * 0.42, weight: .bold, design: .rounded))
-            .foregroundStyle(Color.grenier)
-            .frame(width: avatarSide, height: avatarSide)
-            .background(Color.grenier.opacity(0.14), in: .circle)
+        // T-122 : photo de profil (users/{uid}/media/avatar), sinon initiales.
+        AvatarView(name: user.displayName, photoURL: photoURL, size: avatarSide)
             .overlay(alignment: .bottomTrailing) {
                 Image(systemName: "checkmark.seal.fill")
                     .font(.system(size: avatarSide * 0.26))

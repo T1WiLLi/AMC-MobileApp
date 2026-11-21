@@ -30,12 +30,14 @@ extension AppRepositories {
         let firestoreVendors: (any VendorRepository)? = isConfigured ? FirestoreVendorRepository() : nil
         let firestoreOffers: (any OfferRepository)? = isConfigured ? FirestoreOfferRepository() : nil
         let firestorePickupPoints: (any PickupPointRepository)? = isConfigured ? FirestorePickupPointRepository() : nil
+        let firestoreImages: (any ImageStore)? = isConfigured ? FirestoreImageStore() : nil
         #else
         let firestoreUsers: (any UserRepository)? = nil
         let firestoreGroups: (any GroupRepository)? = nil
         let firestoreVendors: (any VendorRepository)? = nil
         let firestoreOffers: (any OfferRepository)? = nil
         let firestorePickupPoints: (any PickupPointRepository)? = nil
+        let firestoreImages: (any ImageStore)? = nil
         #endif
         return AppRepositories(
             users: firestoreUsers ?? fallback.users,              // B-017 — users, households
@@ -43,7 +45,8 @@ extension AppRepositories {
             vendors: firestoreVendors ?? fallback.vendors,        // B-018 — vendors, products
             offers: firestoreOffers ?? fallback.offers,           // B-018 — offers
             groupOrders: fallback.groupOrders,   // B-019 : FirestoreGroupOrderRepository() — groupOrders, shares
-            pickupPoints: firestorePickupPoints ?? fallback.pickupPoints  // B-018 — pickupPoints
+            pickupPoints: firestorePickupPoints ?? fallback.pickupPoints,  // B-018 — pickupPoints
+            images: firestoreImages ?? fallback.images            // T-122 — users|groups/{id}/media/{nom} (base64)
         )
     }
 

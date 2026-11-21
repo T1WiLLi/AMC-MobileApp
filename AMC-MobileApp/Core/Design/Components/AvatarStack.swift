@@ -6,6 +6,8 @@ struct AvatarStack: View {
     let initials: [String]
     /// Nombre de membres en plus des initiales affichées (au plus 3).
     var extraCount = 0
+    /// T-122 : photo de chaque membre affiché, dans l'ordre de `initials` (nil ou absente = initiales).
+    var photoURLs: [URL?] = []
 
     /// 34 pt à la taille par défaut, suit Dynamic Type.
     @ScaledMetric(relativeTo: .caption) private var size: CGFloat = 34
@@ -23,7 +25,8 @@ struct AvatarStack: View {
     var body: some View {
         HStack(spacing: -6) {
             ForEach(Array(shownInitials.enumerated()), id: \.offset) { index, text in
-                bubble(text, tint: Self.tints[index % Self.tints.count])
+                bubble(text, tint: Self.tints[index % Self.tints.count],
+                       photoURL: photoURLs.indices.contains(index) ? photoURLs[index] : nil)
             }
             if extraCount > 0 {
                 bubble("+\(extraCount)", tint: .solidarite)
@@ -33,7 +36,19 @@ struct AvatarStack: View {
         .accessibilityLabel(accessibilityText)
     }
 
-    private func bubble(_ text: String, tint: Color) -> some View {
+    @ViewBuilder
+    private func bubble(_ text: String, tint: Color, photoURL: URL? = nil) -> some View {
+        if let photoURL {
+            MediaImage(url: photoURL) { initialsBubble(text, tint: tint) }
+                .frame(width: size, height: size)
+                .clipShape(.circle)
+                .overlay(Circle().stroke(Color.surface, lineWidth: 2))
+        } else {
+            initialsBubble(text, tint: tint)
+        }
+    }
+
+    private func initialsBubble(_ text: String, tint: Color) -> some View {
         Text(text)
             .font(.caption.bold())
             .minimumScaleFactor(0.6)
@@ -58,7 +73,8 @@ struct AvatarStack: View {
 }
 
 #Preview("Sombre") {
-    AvatarStack(initials: ["AM", "FB", "RK"], extraCount: 21)
+    AvatarStack(initials: ["AM", "FB", "RK"], extraCount: 21, photoURLs: [DemoMedia.aminaAvatar, DemoMedia.neighbors[0]])
+        .environment(\.appContext, .instant)
         .padding()
         .grenierCard()
         .frame(maxWidth: .infinity, maxHeight: .infinity)

@@ -12,6 +12,9 @@ rules_version = '2';
 //   groups/{id}                          groupe de quartier ; lecture par tout utilisateur connecté ;
 //                                        seul householdCount bouge, avec l'adhésion (T-099)
 //   groups/{id}/members/{householdId}    adhésion ; un ménage s'ajoute ou se retire lui-même
+//   users/{uid}/media/avatar, groups/{id}/media/{photo|banner}
+//                                        images en base64 (T-122) ; lecture connectée, écrites par le
+//                                        propriétaire ou un coordinateur du groupe
 //   vendors/{id}                         vendeur ; lecture connectée, le vendeur modifie sa vitrine
 //   products/{id}, offers/{id}           catalogue ; lecture connectée, écrit par le vendeur propriétaire
 //   groupOrders/{id}                     commande groupée ; lecture connectée, écriture serveur/seed seulement
@@ -90,6 +93,18 @@ service cloud.firestore {
       return isAuthenticated() && exists(path) && request.auth.uid in get(path).data.userIds;
     }
 
+    // T-122 : une image (photo de profil, photo ou bannière de groupe) = un JPEG en base64 dans son propre
+    // document, faute de Cloud Storage sur le forfait gratuit Spark. Bien sous la limite de 1 Mo par document.
+    function isValidMedia(data) {
+      return data.keys().hasOnly(['data', 'contentType', 'width', 'height', 'updatedAt'])
+        && data.keys().hasAll(['data', 'contentType', 'width', 'height', 'updatedAt'])
+        && data.data is string && data.data.size() > 0 && data.data.size() < 750000
+        && data.contentType is string && data.contentType.matches('image/.*')
+        && isIntIn(data.width, 1, 4096)
+        && isIntIn(data.height, 1, 4096)
+        && data.updatedAt == request.time;
+    }
+
     // ---------------------------------------------------------------
     // users/{userId}
     // ---------------------------------------------------------------
@@ -120,6 +135,16 @@ service cloud.firestore {
         && isValidUser(request.resource.data)
         && areImmutableFieldsUnchanged(['id', 'vendorId']);
       allow delete: if isOwner(userId);
+
+      // T-122 : photo de profil. Lue par tout utilisateur connecté (membres du groupe, point de cueillette),
+      // écrite seulement par son propriétaire, sous le seul nom « avatar ».
+      match /media/{mediaId} {
+        allow read: if isAuthenticated();
+        allow create, update: if isOwner(userId)
+          && mediaId == 'avatar'
+          && isValidMedia(request.resource.data);
+        allow delete: if isOwner(userId);
+      }
     }
 
     // ---------------------------------------------------------------
@@ -193,7 +218,28 @@ service cloud.firestore {
     match /groups/{groupId} {
       allow read: if isAuthenticated();
       allow create, delete: if false;
-      allow update: if isMembershipCountUpdate();
+      allow update: if isCoordinatorImageUpdate() || isMembershipCountUpdate();
+
+      // T-122 : un coordinateur (coordinatorIds) change la photo ou la bannière du groupe, et rien d'autre.
+      // Les valeurs sont les URL versionnées des documents media (grenier-media:///groups/{id}/media/…?v=…).
+      function isCoordinatorImageUpdate() {
+        return isAuthenticated()
+          && request.auth.uid in resource.data.get('coordinatorIds', [])
+          && onlyChanges(['photoURL', 'bannerURL'])
+          && isOptionalString(request.resource.data, 'photoURL', 2048)
+          && isOptionalString(request.resource.data, 'bannerURL', 2048);
+      }
+
+      // T-122 : images du groupe (photo, bannière) ; lues par tout connecté, écrites par un coordinateur.
+      match /media/{mediaId} {
+        allow read: if isAuthenticated();
+        allow create, update: if isAuthenticated()
+          && request.auth.uid in get(groupPath(groupId)).data.get('coordinatorIds', [])
+          && mediaId in ['photo', 'banner']
+          && isValidMedia(request.resource.data);
+        allow delete: if isAuthenticated()
+          && request.auth.uid in get(groupPath(groupId)).data.get('coordinatorIds', []);
+      }
 
       function isMembershipCountUpdate() {
         let before = resource.data;

@@ -70,7 +70,7 @@ private struct PickupContentView: View {
                 }
                 PickupCodeCard(content: content)
                 PickupItemsCard(items: content.items)
-                PickupPointCard(content: content)
+                PickupPointSummaryCard(content: content)
                 directionsButton
             }
             .padding(.horizontal, 16)
@@ -221,7 +221,7 @@ private struct PickupItemsCard: View {
 }
 
 /// Point de cueillette : nom, adresse, accessibilité.
-private struct PickupPointCard: View {
+private struct PickupPointSummaryCard: View {
     let content: PickupViewModel.Content
 
     var body: some View {

@@ -174,8 +174,14 @@ final class DemandMapViewModel {
         await refresh()
     }
 
-    /// Recharge sans repasser par `.loading`.
+    /// Rechargement en cours (tirer pour rafraîchir, bouton Actualiser) : un second appel est ignoré.
+    private(set) var isRefreshing = false
+
+    /// Recharge sans repasser par `.loading` (B-055). Un appel pendant un rechargement est ignoré.
     func refresh() async {
+        guard !isRefreshing else { return }
+        isRefreshing = true
+        defer { isRefreshing = false }
         do {
             async let orders = fetchRecords()
             async let wishes = fetchWishes()

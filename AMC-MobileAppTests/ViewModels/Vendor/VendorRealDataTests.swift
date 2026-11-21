@@ -33,6 +33,24 @@ struct VendorRealDataTests {
         #expect(model.totalWishingHouseholds == 2)
     }
 
+    /// B-055 : tirer pour rafraîchir garde la demande affichée (pas de retour au squelette) et libère le verrou.
+    @Test func refreshKeepsTheDemandShownAndCanRunAgain() async {
+        let model = DemandMapViewModel(repositories: VendorTestData.repositories(wishes: []), vendorId: ID.fermeRive)
+        await model.load()
+        let before = model.points.map(\.id)
+        #expect(!before.isEmpty)
+
+        async let first: Void = model.refresh()
+        async let second: Void = model.refresh() // ignoré pendant le premier
+        _ = await (first, second)
+
+        #expect(model.state.value != nil)
+        #expect(model.points.map(\.id) == before)
+        #expect(!model.isRefreshing)
+        await model.refresh()
+        #expect(model.points.map(\.id) == before)
+    }
+
     @Test func wishesWeighOnTheSamePointAsOrders() async throws {
         let wishes = [
             VendorTestData.wish("w1", group: ID.saintMichel, household: "h1", category: .grains, quantity: 10),

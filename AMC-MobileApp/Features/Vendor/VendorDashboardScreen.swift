@@ -104,7 +104,12 @@ struct VendorDashboardScreen: View {
                 VendorNotificationsSheet(dashboard: viewModel.state.value)
                     .presentationDetents([.medium, .large])
             }
+            // B-055 : premier affichage seulement ; un retour sur l'onglet rafraîchit sans repasser par le squelette.
             .task {
+                guard case .idle = viewModel.state else {
+                    await viewModel.refresh()
+                    return
+                }
                 async let loadedVendor = try? repositories.vendors.vendor(id: vendorId)
                 await viewModel.load()
                 vendor = await loadedVendor

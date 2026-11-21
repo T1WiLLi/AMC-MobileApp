@@ -137,6 +137,41 @@ function firebaseCliCredential(): Credential {
   }
 }
 
+// Valeur JS → Value de l'API REST Firestore.
+function toRestValue(value: unknown): Record<string, unknown> {
+  if (value === null || value === undefined) return { nullValue: null }
+  if (value instanceof Timestamp) return { timestampValue: value.toDate().toISOString() }
+  if (typeof value === 'boolean') return { booleanValue: value }
+  if (typeof value === 'number') {
+    return Number.isInteger(value) ? { integerValue: String(value) } : { doubleValue: value }
+  }
+  if (typeof value === 'string') return { stringValue: value }
+  if (Array.isArray(value)) return { arrayValue: { values: value.map(toRestValue) } }
+  if (typeof value === 'object') {
+    return { mapValue: { fields: Object.fromEntries(Object.entries(value).map(([k, v]) => [k, toRestValue(v)])) } }
+  }
+  throw new Error(`Type non pris en charge : ${typeof value}`)
+}
+
+async function commitWithRest(projectId: string, credential: Credential, writes: Write[]) {
+  const database = `projects/${projectId}/databases/(default)`
+  for (let start = 0; start < writes.length; start += 400) {
+    const { access_token: token } = await credential.getAccessToken()
+    const body = {
+      writes: writes.slice(start, start + 400).map(({ path, data }) => ({
+        update: { name: `${database}/documents/${path}`, fields: (toRestValue(data) as { mapValue: { fields: unknown } }).mapValue.fields }
+      }))
+    }
+    const response = await fetch(`https://firestore.googleapis.com/v1/${database}/documents:commit`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json', 'x-goog-user-project': projectId },
+      body: JSON.stringify(body),
+      signal: AbortSignal.timeout(60_000)
+    })
+    if (!response.ok) throw new Error(`commit REST échoué (HTTP ${response.status}) : ${(await response.text()).slice(0, 500)}`)
+  }
+}
+
 async function seedFirestore() {
   const { values } = parseArgs({
     options: {
@@ -175,7 +210,14 @@ async function seedFirestore() {
   }
   process.env.METADATA_SERVER_DETECTION = 'none'
 
-  const app = initializeApp({ projectId, ...(credential ? { credential } : {}) }, `seed-${Date.now()}`)
+  if (credential) {
+    // L'Admin SDK Firestore exige une clé de service ou l'ADC : en cloud, on passe par l'API REST.
+    await commitWithRest(projectId, credential, writes)
+    console.log(`Seed terminé : ${writes.length} documents (${summary}).`)
+    return
+  }
+
+  const app = initializeApp({ projectId }, `seed-${Date.now()}`)
   const db = getFirestore(app)
   try {
     for (let start = 0; start < writes.length; start += 400) {

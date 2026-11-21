@@ -162,25 +162,8 @@ extension AccountScreen {
 
     private var avatar: some View {
         ZStack {
-            if let url = model.photoURL {
-                AsyncImage(url: url) { phase in
-                    if let image = phase.image {
-                        image.resizable().scaledToFill()
-                    } else {
-                        Color.piste.overlay { ProgressView() }
-                    }
-                }
-            } else {
-                Circle()
-                    .fill(Color.accentColor.gradient)
-                    .overlay {
-                        Text(model.initials)
-                            .font(.title.bold())
-                            .fontDesign(.rounded)
-                            .foregroundStyle(Color.onAccent)
-                            .minimumScaleFactor(0.5)
-                    }
-            }
+            // T-122 : photo (Firestore, démo ou fichier) en fondu, sinon initiales.
+            AvatarView(name: model.trimmedDisplayName, photoURL: model.photoURL, size: avatarSize)
             if model.isAddingPhoto {
                 Circle().fill(.ultraThinMaterial).overlay { ProgressView() }
             }

@@ -10,6 +10,8 @@ struct GroupDetailScreen: View {
     @Environment(\.appContext) private var context
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var viewModel: GroupDetailViewModel?
+    /// T-122 : photo et bannière du groupe (proposées au coordinateur seulement).
+    @State private var imageEditor: GroupImageEditorViewModel?
 
     /// Thème du groupe chargé (Grenier tant qu'il charge).
     private var theme: GroupTheme {
@@ -21,7 +23,7 @@ struct GroupDetailScreen: View {
             if let viewModel {
                 switch viewModel.state {
                 case .idle, .loading:
-                    GroupsLoadingScene(title: String(localized: "Chargement du groupe…"), systemImage: GrenierSymbol.map)
+                    GroupsLoadingScene(title: "Chargement du groupe…", systemImage: GrenierSymbol.map)
                 case .empty:
                     GroupsIllustratedState(
                         scene: GroupsSymbolScene(
@@ -31,16 +33,17 @@ struct GroupDetailScreen: View {
                                 .init(systemImage: "mappin.slash", tint: .grenier, degrees: -30)
                             ]
                         ),
-                        title: String(localized: "Groupe introuvable"),
-                        message: String(localized: "Ce groupe n'existe plus. Il a peut-être été fermé par son coordinateur.")
+                        title: "Groupe introuvable",
+                        message: "Ce groupe n'existe plus. Il a peut-être été fermé par son coordinateur."
                     )
                 case .failed(let error):
                     GroupsErrorState(error: error, retry: { await viewModel.load() })
                 case .loaded(let content):
-                    GroupDetailContent(content: content, viewModel: viewModel)
+                    GroupDetailContent(content: content, viewModel: viewModel,
+                                       imageEditor: viewModel.isCoordinator ? imageEditor : nil)
                 }
             } else {
-                GroupsLoadingScene(title: String(localized: "Chargement du groupe…"), systemImage: GrenierSymbol.map)
+                GroupsLoadingScene(title: "Chargement du groupe…", systemImage: GrenierSymbol.map)
             }
         }
         .grenierBackground()
@@ -48,7 +51,7 @@ struct GroupDetailScreen: View {
         .environment(\.groupTheme, theme)
         .tint(theme.accent)
         .animation(reduceMotion ? nil : .smooth(duration: 0.45), value: theme)
-        .navigationTitle(theme.displayName ?? String(localized: "Groupe"))
+        .navigationTitle(theme.displayName ?? "Groupe")
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             if let group = viewModel?.state.value?.group {
@@ -72,14 +75,29 @@ struct GroupDetailScreen: View {
         } message: { error in
             Text(error.message)
         }
+        // Retrait d'une image refusé (hors de la feuille d'aperçu).
+        .alert(
+            "Image non modifiée",
+            isPresented: Binding(
+                get: { imageEditor?.error != nil && imageEditor?.isPresentingPreview == false },
+                set: { if !$0 { imageEditor?.clearError() } }
+            ),
+            presenting: imageEditor?.error
+        ) { _ in
+            Button("OK", role: .cancel) {}
+        } message: { error in
+            Text(error.message)
+        }
         .task(id: groupId) {
             guard viewModel == nil else { return }
             let model = GroupDetailViewModel(
                 repositories: context.repositories,
                 householdId: context.householdId,
-                groupId: groupId
+                groupId: groupId,
+                userId: context.userId
             )
             viewModel = model
+            imageEditor = GroupImageEditorViewModel(repositories: context.repositories, groupId: groupId, userId: context.userId)
             await model.load()
         }
     }
@@ -91,92 +109,121 @@ private struct GroupDetailContent: View {
     @Environment(\.groupTheme) private var theme
     let content: GroupDetailViewModel.Content
     let viewModel: GroupDetailViewModel
+    /// T-122 : présent seulement pour un coordinateur.
+    let imageEditor: GroupImageEditorViewModel?
 
     @State private var isConfirmingLeave = false
+    /// Le nom passe dans la barre de navigation une fois la bannière remontée.
+    @State private var showsNavigationTitle = false
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     private var group: NeighborhoodGroup { content.group }
 
     var body: some View {
         ScrollView {
-            VStack(alignment: .leading, spacing: 24) {
-                GroupMapHeader(group: group, hasPickupPoint: content.pickupPoint != nil)
-
-                header
-
-                if content.isMember {
-                    MemberBanner(isMember: content.isMember)
-                        .grenierTransition(.banner)
+            VStack(alignment: .leading, spacing: 12) {
+                GroupHeroHeader(group: group, editor: imageEditor) { updated in
+                    viewModel.replaceGroup(updated)
                 }
 
-                keyFigures
+                VStack(alignment: .leading, spacing: 24) {
+                    header
 
-                VStack(alignment: .leading, spacing: 12) {
-                    GroupsSectionHeader(title: String(localized: "Cueillette"), systemImage: "figure.walk", tint: .economie)
-                    PickupCard(pickupPoint: content.pickupPoint, slot: content.nextSlot)
-                }
+                    if content.isMember {
+                        MemberBanner(isMember: content.isMember)
+                            .grenierTransition(.banner)
+                    }
 
-                openOrdersSection
+                    keyFigures
 
-                // S-07 (T-108) : envies des familles, réservées aux membres.
-                if content.isMember {
-                    NavigationLink {
-                        GroupWishesScreen(groupId: group.id)
-                    } label: {
-                        Label {
-                            VStack(alignment: .leading, spacing: 2) {
-                                Text("Ce que le groupe veut")
-                                    .font(.headline)
-                                    .foregroundStyle(.texte)
-                                Text("Dis ce que ta famille veut acheter, vois la demande du quartier.")
-                                    .font(.subheadline)
-                                    .foregroundStyle(.texteSecondaire)
-                                    .multilineTextAlignment(.leading)
+                    VStack(alignment: .leading, spacing: 12) {
+                        GroupsSectionHeader(title: "Le quartier", systemImage: GrenierSymbol.map, tint: .grenier)
+                        GroupMapHeader(group: group, hasPickupPoint: content.pickupPoint != nil)
+                    }
+
+                    VStack(alignment: .leading, spacing: 12) {
+                        GroupsSectionHeader(title: "Cueillette", systemImage: "figure.walk", tint: .economie)
+                        PickupCard(pickupPoint: content.pickupPoint, slot: content.nextSlot)
+                    }
+
+                    openOrdersSection
+
+                    // S-07 (T-108) : envies des familles, réservées aux membres.
+                    if content.isMember {
+                        NavigationLink {
+                            GroupWishesScreen(groupId: group.id)
+                        } label: {
+                            Label {
+                                VStack(alignment: .leading, spacing: 2) {
+                                    Text("Ce que le groupe veut")
+                                        .font(.headline)
+                                        .foregroundStyle(.texte)
+                                    Text("Dis ce que ta famille veut acheter, vois la demande du quartier.")
+                                        .font(.subheadline)
+                                        .foregroundStyle(.texteSecondaire)
+                                        .multilineTextAlignment(.leading)
+                                }
+                            } icon: {
+                                Image(systemName: "basket.fill")
+                                    .font(.title2)
+                                    .symbolRenderingMode(.hierarchical)
+                                    .foregroundStyle(theme.accent)
                             }
-                        } icon: {
-                            Image(systemName: "basket.fill")
-                                .font(.title2)
-                                .symbolRenderingMode(.hierarchical)
-                                .foregroundStyle(theme.accent)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .overlay(alignment: .trailing) {
+                                Image(systemName: "chevron.right")
+                                    .font(.footnote.weight(.semibold))
+                                    .foregroundStyle(.texteSecondaire)
+                                    .accessibilityHidden(true)
+                            }
+                            .grenierCard()
                         }
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                        .overlay(alignment: .trailing) {
-                            Image(systemName: "chevron.right")
-                                .font(.footnote.weight(.semibold))
-                                .foregroundStyle(.texteSecondaire)
-                                .accessibilityHidden(true)
-                        }
-                        .grenierCard()
+                        .buttonStyle(.plain)
                     }
-                    .buttonStyle(.plain)
-                }
 
-                InvitationCard(group: group)
+                    InvitationCard(group: group)
 
-                if content.isMember {
-                    Button(role: .destructive) {
-                        isConfirmingLeave = true
-                    } label: {
-                        Label("Quitter le groupe", systemImage: "rectangle.portrait.and.arrow.right")
-                            .frame(maxWidth: .infinity)
-                    }
-                    .buttonStyle(.glass)
-                    .controlSize(.large)
-                    .disabled(viewModel.isUpdatingMembership)
-                    .confirmationDialog("Quitter \(group.name) ?", isPresented: $isConfirmingLeave, titleVisibility: .visible) {
-                        Button("Quitter le groupe", role: .destructive) {
-                            Task { await viewModel.leave() }
+                    if content.isMember {
+                        Button(role: .destructive) {
+                            isConfirmingLeave = true
+                        } label: {
+                            Label("Quitter le groupe", systemImage: "rectangle.portrait.and.arrow.right")
+                                .frame(maxWidth: .infinity)
                         }
-                        Button("Annuler", role: .cancel) {}
-                    } message: {
-                        Text("Tes parts déjà réservées restent valides. Tu pourras revenir quand tu veux.")
+                        .buttonStyle(.glass)
+                        .controlSize(.large)
+                        .disabled(viewModel.isUpdatingMembership)
+                        .confirmationDialog("Quitter \(group.name) ?", isPresented: $isConfirmingLeave, titleVisibility: .visible) {
+                            Button("Quitter le groupe", role: .destructive) {
+                                Task { await viewModel.leave() }
+                            }
+                            Button("Annuler", role: .cancel) {}
+                        } message: {
+                            Text("Tes parts déjà réservées restent valides. Tu pourras revenir quand tu veux.")
+                        }
                     }
                 }
+                .padding(.horizontal, 16)
+                .padding(.bottom, 24)
             }
-            .padding(.horizontal, 16)
-            .padding(.bottom, 24)
         }
-        .grenierScrollEdge()
+        // La bannière passe sous la barre de navigation (et s'étire en tirant vers le bas).
+        .ignoresSafeArea(.container, edges: .top)
+        .scrollEdgeEffectStyle(.soft, for: .top)
+        .onScrollGeometryChange(for: Bool.self) { geometry in
+            geometry.contentOffset.y > GroupHeroHeader.bannerHeight - 80
+        } action: { _, isPastBanner in
+            withAnimation(reduceMotion ? nil : .grenierSmooth) { showsNavigationTitle = isPastBanner }
+        }
+        .toolbar {
+            ToolbarItem(placement: .principal) {
+                Text(group.name)
+                    .font(.headline)
+                    .lineLimit(1)
+                    .opacity(showsNavigationTitle ? 1 : 0)
+                    .accessibilityHidden(!showsNavigationTitle)
+            }
+        }
         .safeAreaInset(edge: .bottom) {
             if !content.isMember {
                 Button {
@@ -269,9 +316,9 @@ private struct GroupDetailContent: View {
         let orders = content.openOrders.count
         GroupsStatTile(value: "\(group.householdCount)", caption: group.householdCount > 1 ? "familles" : "famille",
                        systemImage: "person.2.fill", tint: .solidarite)
-        GroupsStatTile(value: "\(orders)", caption: orders > 1 ? String(localized: "lots ouverts") : String(localized: "lot ouvert"),
+        GroupsStatTile(value: "\(orders)", caption: orders > 1 ? "lots ouverts" : "lot ouvert",
                        systemImage: GrenierSymbol.offers, tint: theme.accent)
-        GroupsStatTile(value: GroupCard.distanceText(group.radiusMeters), caption: String(localized: "de rayon"),
+        GroupsStatTile(value: GroupCard.distanceText(group.radiusMeters), caption: "de rayon",
                        systemImage: "circle.dashed", tint: .economie)
     }
 
@@ -280,7 +327,7 @@ private struct GroupDetailContent: View {
         let orders = content.openOrders
         VStack(alignment: .leading, spacing: 12) {
             GroupsSectionHeader(
-                title: orders.count > 1 ? String(localized: "Lots ouverts") : String(localized: "Lot ouvert"),
+                title: orders.count > 1 ? "Lots ouverts" : "Lot ouvert",
                 systemImage: GrenierSymbol.offers,
                 tint: theme.accent,
                 count: orders.count
@@ -376,7 +423,7 @@ private struct GroupMapHeader: View {
                 .foregroundStyle(theme.accent.opacity(0.12))
                 .stroke(theme.accent.opacity(0.6), style: StrokeStyle(lineWidth: 1.5, dash: [4, 4]))
             if hasPickupPoint {
-                Annotation(String(localized: "Point de cueillette"), coordinate: center) {
+                Annotation("Point de cueillette", coordinate: center) {
                     Image(systemName: GrenierSymbol.offers)
                         .font(.headline)
                         .foregroundStyle(Color.onAccent)
@@ -392,7 +439,7 @@ private struct GroupMapHeader: View {
             GlassEffectContainer(spacing: 8) {
                 HStack(spacing: 8) {
                     mapBadge(group.neighborhood, systemImage: "mappin.circle.fill")
-                    mapBadge(String(localized: "Rayon \(GroupCard.distanceText(group.radiusMeters))"), systemImage: "circle.dashed")
+                    mapBadge("Rayon \(GroupCard.distanceText(group.radiusMeters))", systemImage: "circle.dashed")
                 }
             }
             .padding(12)
@@ -423,13 +470,13 @@ private struct PickupCard: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 14) {
             row(symbol: pickupPoint == nil ? "mappin.slash" : "mappin.and.ellipse", tint: .economie,
-                title: pickupPoint?.name ?? String(localized: "Point de cueillette à venir"),
-                subtitle: pickupPoint.map { String(localized: "Point de cueillette · \($0.address)") }
-                    ?? String(localized: "L'hôte sera choisi à la prochaine commande"))
+                title: pickupPoint?.name ?? "Point de cueillette à venir",
+                subtitle: pickupPoint.map { "Point de cueillette · \($0.address)" }
+                    ?? "L'hôte sera choisi à la prochaine commande")
             Divider().overlay(Color.piste)
             row(symbol: slot == nil ? "clock.badge.questionmark" : "clock.fill", tint: theme.accent,
-                title: slot.map(PickupTime.text(for:)) ?? String(localized: "Horaire à venir"),
-                subtitle: slot == nil ? String(localized: "Annoncé dès qu'une commande est lancée") : String(localized: "Prochaine cueillette"))
+                title: slot.map(PickupTime.text(for:)) ?? "Horaire à venir",
+                subtitle: slot == nil ? "Annoncé dès qu'une commande est lancée" : "Prochaine cueillette")
         }
         .grenierCard()
     }
@@ -506,7 +553,7 @@ private struct InvitationCard: View {
 
 private enum GroupInvite {
     static func message(for group: NeighborhoodGroup) -> String {
-        String(localized: "Rejoins « \(group.name) » sur Grenier pour acheter en gros avec tes voisins de \(group.neighborhood). Code : \(group.inviteCode)")
+        "Rejoins « \(group.name) » sur Grenier pour acheter en gros avec tes voisins de \(group.neighborhood). Code : \(group.inviteCode)"
     }
 }
 

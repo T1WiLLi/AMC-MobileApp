@@ -181,7 +181,11 @@ actor FakeOfferRepository: OfferRepository {
     func activeOffers(inZone zone: String?) async throws -> [Offer] {
         try await behavior.simulate()
         return offers.values
-            .filter { offer in offer.status == .active && (zone.map { offer.zones.contains($0) } ?? true) }
+            .filter { offer in
+                // Préfixes geohash : la zone du lot contient la zone demandée, ou l'inverse.
+                offer.status == .active
+                    && (zone.map { zone in offer.zones.contains { zone.hasPrefix($0) || $0.hasPrefix(zone) } } ?? true)
+            }
             .sorted { $0.deadline < $1.deadline }
     }
 

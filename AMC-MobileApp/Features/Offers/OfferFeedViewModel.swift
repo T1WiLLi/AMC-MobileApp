@@ -80,7 +80,8 @@ final class OfferFeedViewModel {
             let activeOrders = try await repositories.groupOrders.groupOrders(ofGroup: groupId)
                 .filter(OfferSummaryLoader.isActive)
             // Les zones des lots sont des préfixes de geohash plus courts que celui du groupe :
-            // on prend tout le fil et on garde les lots qui desservent le groupe.
+            // on prend tout le fil et on garde les lots qui desservent le groupe. Le faux dépôt sait filtrer
+            // par préfixe (T-087), mais pas encore Firestore (`arrayContains` = égalité exacte) : on garde ce filtre.
             let now = Date.now
             let offers = try await repositories.offers.activeOffers(inZone: nil)
                 .filter { OfferSummaryLoader.offer($0, serves: group) && $0.deadline > now }

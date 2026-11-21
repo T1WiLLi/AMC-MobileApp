@@ -748,8 +748,10 @@ private struct OfferDetailContent: View {
                         ProgressView()
                     } else {
                         Label {
-                            Text(reserveTitle(content, quantity: quantity))
-                                .multilineTextAlignment(.center)
+                            // La quantité est déjà dans le résumé à gauche : le bouton reste sur une ligne.
+                            Text(reserveTitle(content))
+                                .lineLimit(1)
+                                .fixedSize()
                         } icon: {
                             Image(systemName: OfferDetailSymbol.reserve(
                                 myShare: content.myShareQuantity,
@@ -769,6 +771,7 @@ private struct OfferDetailContent: View {
             .controlSize(.large)
             .tint(Color.grenier)
             .disabled(!viewModel.canReserve)
+            .accessibilityLabel(reserveAccessibilityTitle(content, quantity: quantity))
         }
         .padding(.horizontal, 16)
         .padding(.top, 12)
@@ -776,7 +779,15 @@ private struct OfferDetailContent: View {
         .grenierAnimation(.smooth, value: viewModel.selectedQuantity)
     }
 
-    private func reserveTitle(_ content: OfferDetailViewModel.Content, quantity: String) -> String {
+    /// Libellé court du bouton : la quantité choisie est affichée dans le résumé à côté.
+    private func reserveTitle(_ content: OfferDetailViewModel.Content) -> String {
+        if content.myShareQuantity == 0 { return String(localized: "Réserver") }
+        if content.myShareQuantity == viewModel.selectedQuantity { return String(localized: "Part réservée") }
+        return String(localized: "Modifier ma part")
+    }
+
+    /// VoiceOver garde la quantité dans le libellé du bouton.
+    private func reserveAccessibilityTitle(_ content: OfferDetailViewModel.Content, quantity: String) -> String {
         if content.myShareQuantity == 0 { return String(localized: "Réserver \(quantity)") }
         if content.myShareQuantity == viewModel.selectedQuantity { return String(localized: "Part réservée") }
         return String(localized: "Passer à \(quantity)")

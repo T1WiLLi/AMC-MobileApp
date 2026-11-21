@@ -159,9 +159,9 @@ struct CartViewModelTests {
                   committed: 12, tierIndex: 0),
         ]
         data.shares["order-delivered"] = [share(ID.aminaHousehold, 2)]
-        data.shares["order-closed"] = [share(ID.aminaHousehold, 3, finalPrice: 990)]
+        data.shares["order-closed"] = [share(ID.aminaHousehold, 3, finalPrice: 3 * 990)]  // total figé de la part
         data.shares["order-cancelled"] = [share(ID.aminaHousehold, 1)]
-        data.shares["order-other"] = [share("household-voisin-1", 2, finalPrice: 1_150)]
+        data.shares["order-other"] = [share("household-voisin-1", 2, finalPrice: 2 * 1_150)]
         return data
     }
 

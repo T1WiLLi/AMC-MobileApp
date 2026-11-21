@@ -15,13 +15,13 @@ struct StateView<Value: Sendable, Content: View>: View {
     }
 
     let state: LoadState<Value>
-    var empty: EmptyContent = .init(title: "Rien pour l'instant", systemImage: "tray", message: "Revenez un peu plus tard.")
+    var empty: EmptyContent = .init(title: "Rien pour l'instant", systemImage: "tray", message: "Reviens un peu plus tard.")
     var retry: (() async -> Void)?
     @ViewBuilder let content: (Value) -> Content
 
     init(
         state: LoadState<Value>,
-        empty: EmptyContent = .init(title: "Rien pour l'instant", systemImage: "tray", message: "Revenez un peu plus tard."),
+        empty: EmptyContent = .init(title: "Rien pour l'instant", systemImage: "tray", message: "Reviens un peu plus tard."),
         retry: (() async -> Void)? = nil,
         @ViewBuilder content: @escaping (Value) -> Content
     ) {
@@ -35,15 +35,27 @@ struct StateView<Value: Sendable, Content: View>: View {
         switch state {
         case .idle, .loading:
             ProgressView("Chargement…")
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
                 .accessibilityLabel("Chargement en cours")
+                .modifier(StateBackground())
         case .empty:
             ContentUnavailableView(empty.title, systemImage: empty.systemImage, description: Text(empty.message))
+                .modifier(StateBackground())
         case .failed(let error):
             ErrorStateView(error: error, retry: retry)
+                .modifier(StateBackground())
         case .loaded(let value):
+            // Le contenu gère son fond (`.scrollContentBackground(.hidden).grenierBackground()` pour une List).
             content(value)
         }
+    }
+}
+
+/// Plein écran sur le fond crème `Fond`, en clair comme en sombre.
+private struct StateBackground: ViewModifier {
+    func body(content: Content) -> some View {
+        content
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .grenierBackground()
     }
 }
 
@@ -105,5 +117,7 @@ struct ErrorStateView: View {
 #Preview("Contenu") {
     StateView(state: LoadState.loaded(["Riz", "Farine", "Lentilles"])) { items in
         List(items, id: \.self) { Text($0) }
+            .scrollContentBackground(.hidden)
+            .grenierBackground()
     }
 }

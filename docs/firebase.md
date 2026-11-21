@@ -12,16 +12,42 @@ Backend sans serveur : **Firebase Authentication (Google Sign-In)** + **Cloud Fi
 
 ## 1. Récupérer la vraie config (B-012)
 
-`AMC-MobileApp/GoogleService-Info.plist` est **ignoré par git** (repo public). Le modèle commité est `Config/GoogleService-Info.example.plist`. Sur chaque Mac qui build :
+`AMC-MobileApp/GoogleService-Info.plist` est **ignoré par git** (repo public). Le modèle commité est `Config/GoogleService-Info.example.plist`. Deux façons de l'obtenir sur un Mac qui build :
+
+### a) Avec le `.env` de l'équipe (le plus rapide, sans compte Firebase)
+
+Le `.env` (racine du repo, **ignoré par git**) contient les valeurs de la config iOS. Les clés attendues sont dans `.env.example` (commité, sans valeurs). Récupère le `.env` auprès d'un coéquipier en message direct (jamais dans une issue, une PR ou le board), pose-le à la racine du repo, puis :
+
+```bash
+scripts/firebase/generate-plist.sh
+```
+
+Le script lit le `.env` sans l'exécuter, vérifie qu'il ne manque rien, écrit `AMC-MobileApp/GoogleService-Info.plist`, le valide avec `plutil`, et prévient si `REVERSED_CLIENT_ID` ne correspond pas au schéma d'URL de `Config/AMC-MobileApp-Info.plist`. Dans un worktree : `scripts/firebase/generate-plist.sh /chemin/vers/le/.env`.
+
+### b) Avec la CLI Firebase (il faut l'accès au projet : demander à zachary)
 
 ```bash
 npx -y firebase-tools@latest login
 npx -y firebase-tools@latest apps:sdkconfig IOS 1:959550736484:ios:e6d682a7e2c2b4ebae3771 --project amc-2026-8ab03 -o AMC-MobileApp/GoogleService-Info.plist
 ```
 
-Il faut avoir accès au projet Firebase (demander à zachary). Le dossier `AMC-MobileApp/` est synchronisé par Xcode : le fichier est inclus dans la cible automatiquement.
+Pour remplir un `.env` à partir de ce plist : `FIREBASE_API_KEY` = `API_KEY`, `FIREBASE_GCM_SENDER_ID` = `GCM_SENDER_ID`, `FIREBASE_GOOGLE_APP_ID` = `GOOGLE_APP_ID`, `FIREBASE_BUNDLE_ID` = `BUNDLE_ID`, `FIREBASE_CLIENT_ID` = `CLIENT_ID`, `FIREBASE_REVERSED_CLIENT_ID` = `REVERSED_CLIENT_ID`, `FIREBASE_STORAGE_BUCKET` = `STORAGE_BUCKET`, `FIREBASE_PROJECT_ID` = `PROJECT_ID`, et `FIREBASE_IOS_APP_ID` = l'ID d'app ci-dessus.
+
+Le dossier `AMC-MobileApp/` est synchronisé par Xcode : le plist est inclus dans la cible automatiquement. Au lancement, la console Xcode n'affiche plus « GoogleService-Info.plist absent : services fake ».
 
 **Sans ce fichier, l'app ne plante pas** : `FirebaseSetup.configureIfAvailable()` détecte son absence et l'app tourne sur `FakeAuthService` (utile pour la CI et les previews).
+
+**Ne jamais committer `.env` ni le plist.** Vérifier : `git check-ignore -v .env AMC-MobileApp/GoogleService-Info.plist` doit lister les deux.
+
+### MCP Firebase (agents Claude Code)
+
+Le serveur MCP officiel vient de firebase-tools. Installation, une fois par Mac, à la racine du repo :
+
+```bash
+claude mcp add --scope local firebase -- npx -y firebase-tools@latest mcp --dir "$(pwd)"
+```
+
+Il réutilise la session de `firebase login`. `claude mcp get firebase` doit afficher « Connected ».
 
 ## 2. Lier le SDK (B-011, sur un Mac, une seule fois)
 

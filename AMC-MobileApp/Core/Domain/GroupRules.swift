@@ -303,6 +303,17 @@ nonisolated enum GroupRules {
         return householdGroupIds + [groupId]
     }
 
+    /// B-059 : créer un groupe y fait entrer le ménage ; refusé s'il fait déjà partie de 3 groupes.
+    static func canCreateGroup(householdGroupIds: [String]) -> Bool {
+        Set(householdGroupIds).count < maxGroupsPerHousehold
+    }
+
+    static func requireRoomToCreate(householdGroupIds: [String]) throws {
+        guard canCreateGroup(householdGroupIds: householdGroupIds) else {
+            throw AppError.invalidInput(String(localized: "Ton ménage fait déjà partie de \(maxGroupsPerHousehold) groupes. Quittes-en un pour en créer un nouveau."))
+        }
+    }
+
     // MARK: - RQ-028 Rôle de coordonnateur
 
     static func isCoordinator(_ id: String, in members: [GroupMember]) -> Bool {

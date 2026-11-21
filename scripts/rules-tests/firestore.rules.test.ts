@@ -752,3 +752,74 @@ describe('groupes privés et invitations (B-056)', () => {
     await assertSucceeds(joinWithInvitation(intruder(), null, 'groups/group-ancien'))
   })
 })
+
+describe('créer un groupe depuis l’app (B-059)', () => {
+  const groupPath = 'groups/group-jarry'
+  const group = (overrides: Record<string, unknown> = {}) => ({
+    name: 'Voisins de la rue Jarry', neighborhood: 'villeray', centerGeohash: 'f25dvk7', radiusMeters: 1500,
+    coordinatorIds: ['amina'], householdCount: 1, isPublic: true, inviteCode: 'JRY234', createdBy: 'amina',
+    createdAt: serverTimestamp(), lastMembershipChange: 'household-amina', ...overrides
+  })
+  const coordinator = (overrides: Record<string, unknown> = {}) => ({
+    householdId: 'household-amina', role: 'coordinator', joinedAt: serverTimestamp(), ...overrides
+  })
+
+  // Ce que fait FirestoreGroupRepository.createGroup : groupe et adhésion du ménage créateur dans un seul batch.
+  function createBatch(db: Firestore, groupData: object = group(), memberData: object | null = coordinator(),
+                       householdId = 'household-amina') {
+    const batch = writeBatch(db)
+    batch.set(doc(db, groupPath), groupData)
+    if (memberData) batch.set(doc(db, `${groupPath}/members/${householdId}`), memberData)
+    return batch.commit()
+  }
+
+  test('le groupe et son premier membre coordonnateur se créent ensemble', async () => {
+    await assertSucceeds(createBatch(amina()))
+    let data: Record<string, unknown> | undefined
+    await env.withSecurityRulesDisabled(async (c) => { data = (await getDoc(doc(c.firestore(), groupPath))).data() })
+    assert.equal(data?.householdCount, 1)
+    assert.equal(data?.createdBy, 'amina')
+  })
+
+  test('un groupe privé se crée aussi', async () => {
+    await assertSucceeds(createBatch(amina(), group({ isPublic: false })))
+  })
+
+  test('sans l’adhésion du créateur, le groupe est refusé', async () => {
+    await assertFails(createBatch(amina(), group(), null))
+    await assertFails(createBatch(amina(), group(), coordinator({ role: 'member' })))
+  })
+
+  test('on ne crée pas un groupe au nom de quelqu’un d’autre', async () => {
+    await assertFails(createBatch(amina(), group({ createdBy: 'intrus' })))
+    await assertFails(createBatch(amina(), group({ coordinatorIds: ['amina', 'intrus'] })))
+    // Ménage dont la personne ne fait pas partie.
+    const db = intruder()
+    await assertFails(createBatch(db, group({ createdBy: 'intrus', coordinatorIds: ['intrus'] }), coordinator()))
+  })
+
+  test('les champs sont validés', async () => {
+    const db = amina()
+    await assertFails(createBatch(db, group({ householdCount: 5 })))
+    await assertFails(createBatch(db, group({ radiusMeters: 500 })))
+    await assertFails(createBatch(db, group({ radiusMeters: 2500 })))
+    await assertFails(createBatch(db, group({ name: 'A' })))
+    await assertFails(createBatch(db, group({ centerGeohash: 'pas un geohash!' })))
+    await assertFails(createBatch(db, group({ inviteCode: 'abc' })))
+    await assertFails(createBatch(db, group({ isPublic: 'oui' })))
+    await assertFails(createBatch(db, group({ createdAt: Timestamp.fromMillis(0) })))
+    await assertFails(createBatch(db, group({ branding: { displayName: 'x' } })))
+  })
+
+  test('l’adhésion coordonnateur ne sert qu’à la création', async () => {
+    await assertSucceeds(createBatch(amina()))
+    // Le groupe existe : un nouveau membre ne peut pas s’écrire coordonnateur.
+    const db = intruder()
+    const batch = writeBatch(db)
+    batch.set(doc(db, `${groupPath}/members/household-intrus`), coordinator({ householdId: 'household-intrus' }))
+    batch.update(doc(db, groupPath), { householdCount: increment(1), lastMembershipChange: 'household-intrus' })
+    await assertFails(batch.commit())
+    // Ni écraser un groupe existant.
+    await assertFails(createBatch(amina()))
+  })
+})

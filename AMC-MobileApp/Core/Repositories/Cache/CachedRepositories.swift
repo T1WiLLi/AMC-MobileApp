@@ -229,6 +229,12 @@ nonisolated struct CachedGroupRepository: GroupRepository {
         return group
     }
 
+    func createGroup(_ draft: GroupRules.Draft, byUserId userId: String, householdId: String) async throws -> NeighborhoodGroup {
+        let group = try await base.createGroup(draft, byUserId: userId, householdId: householdId)
+        await Self.invalidateMembership(groupId: group.id, householdId: householdId, in: cache)
+        return group
+    }
+
     private static func invalidateMembership(groupId: String, householdId: String, in cache: RepositoryCache) async {
         await cache.invalidate(.group(groupId))
         await cache.invalidate(.members(ofGroup: groupId))

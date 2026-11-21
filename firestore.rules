@@ -234,8 +234,38 @@ service cloud.firestore {
       allow get: if isAuthenticated();
       // Les groupes privés ne sont jamais listés : une requête doit filtrer `isPublic == true`.
       allow list: if isAuthenticated() && resource.data.isPublic == true;
-      allow create, delete: if false;
+      allow create: if isGroupCreation();
+      allow delete: if false;
       allow update: if isMembershipCountUpdate() || isMediaStampUpdate() || isBrandingUpdate() || isVisibilityUpdate();
+
+      // B-059 : une personne crée un groupe depuis l'app. Elle en est la créatrice et la seule coordonnatrice,
+      // son ménage (`lastMembershipChange`) en est le premier membre, coordonnateur, écrit dans le même batch.
+      // La limite de 3 groupes par ménage (RQ-030) est vérifiée par l'app : les règles ne comptent pas les adhésions.
+      function isGroupCreation() {
+        let data = request.resource.data;
+        let householdId = data.get('lastMembershipChange', '');
+        return isAuthenticated()
+          && data.keys().hasOnly(['name', 'neighborhood', 'centerGeohash', 'radiusMeters', 'coordinatorIds',
+                                  'householdCount', 'isPublic', 'inviteCode', 'createdBy', 'createdAt',
+                                  'lastMembershipChange'])
+          && data.keys().hasAll(['name', 'neighborhood', 'centerGeohash', 'radiusMeters', 'coordinatorIds',
+                                 'householdCount', 'isPublic', 'inviteCode', 'createdBy', 'createdAt',
+                                 'lastMembershipChange'])
+          && data.createdBy == request.auth.uid
+          && data.coordinatorIds == [request.auth.uid]
+          && data.householdCount == 1
+          && isShortString(data.name, 3, 40)
+          && isShortString(data.neighborhood, 1, 80)
+          && data.centerGeohash is string && data.centerGeohash.matches('^[0-9b-hjkmnp-z]{4,12}$')
+          && isIntIn(data.radiusMeters, 1000, 2000)
+          && data.isPublic is bool
+          && data.inviteCode is string && data.inviteCode.matches('^[A-HJ-NP-Z2-9]{6}$')
+          && data.createdAt == request.time
+          && householdId is string && householdId.size() > 0
+          && isMemberOfHousehold(householdId)
+          && existsAfter(memberPath(groupId, householdId))
+          && getAfter(memberPath(groupId, householdId)).data.role == 'coordinator';
+      }
 
       // B-036 (T-152) : le coordonnateur change la marque du groupe (champ `branding` seulement).
       // Champs absents = valeur par défaut (GroupBranding) ; accents en « #RRGGBB ».
@@ -293,12 +323,28 @@ service cloud.firestore {
       match /members/{householdId} {
         allow read: if isAuthenticated();
         allow create: if isMemberOfHousehold(householdId)
-          && request.resource.data.keys().hasOnly(['householdId', 'role', 'joinedAt', 'invitationCode'])
           && request.resource.data.householdId == householdId
-          && request.resource.data.role == 'member'
           && request.resource.data.joinedAt == request.time
-          && isCountChangedBy(groupId, householdId, 1)
-          && (isPublicGroupData(get(groupPath(groupId)).data) || isConsumingInvitation(groupId, householdId));
+          && (isJoining() || isCreatorMembership());
+
+        function isJoining() {
+          return exists(groupPath(groupId))
+            && request.resource.data.keys().hasOnly(['householdId', 'role', 'joinedAt', 'invitationCode'])
+            && request.resource.data.role == 'member'
+            && isCountChangedBy(groupId, householdId, 1)
+            && (isPublicGroupData(get(groupPath(groupId)).data) || isConsumingInvitation(groupId, householdId));
+        }
+
+        // B-059 : premier membre, coordonnateur, écrit avec le groupe qu'il crée (`isGroupCreation`).
+        function isCreatorMembership() {
+          let group = getAfter(groupPath(groupId)).data;
+          return !exists(groupPath(groupId))
+            && request.resource.data.keys().hasOnly(['householdId', 'role', 'joinedAt'])
+            && request.resource.data.role == 'coordinator'
+            && group.get('createdBy', '') == request.auth.uid
+            && group.get('lastMembershipChange', '') == householdId
+            && group.get('householdCount', 0) == 1;
+        }
         allow update: if false;
         allow delete: if isMemberOfHousehold(householdId)
           && (!exists(groupPath(groupId)) || isCountChangedBy(groupId, householdId, -1));

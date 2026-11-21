@@ -271,6 +271,47 @@ nonisolated final class FirestoreGroupRepository: GroupRepository, @unchecked Se
         }
     }
 
+    // MARK: - B-059 Création
+
+    /// Groupe (compteur à 1) et adhésion coordonnateur du ménage créateur dans un seul batch : les règles
+    /// exigent les deux ensemble (`isGroupCreation`). La limite de 3 groupes (RQ-030) est vérifiée ici,
+    /// les règles ne pouvant pas compter les adhésions d'un ménage.
+    func createGroup(_ draft: GroupRules.Draft, byUserId userId: String, householdId: String) async throws -> NeighborhoodGroup {
+        let current = try await groups(ofHousehold: householdId)
+        try GroupRules.requireRoomToCreate(householdGroupIds: current.map(\.id))
+        let creation = try GroupRules.makeGroup(
+            from: draft, creatorUserId: userId, creatorHouseholdId: householdId,
+            makeId: { self.groupsRef.document().documentID }
+        )
+        let group = creation.group
+        let batch = db.batch()
+        batch.setData([
+            "name": group.name,
+            "neighborhood": group.neighborhood,
+            "centerGeohash": group.centerGeohash,
+            "radiusMeters": group.radiusMeters,
+            "coordinatorIds": group.coordinatorIds,
+            "householdCount": group.householdCount,
+            "isPublic": group.isPublic,
+            "inviteCode": group.inviteCode,
+            "createdBy": userId,
+            "createdAt": FieldValue.serverTimestamp(),
+            "lastMembershipChange": householdId,
+        ], forDocument: groupRef(group.id))
+        // `joinedAt` doit valoir `request.time` pour les règles : horodatage du serveur.
+        batch.setData([
+            "householdId": householdId,
+            "role": GroupMember.Role.coordinator.rawValue,
+            "joinedAt": FieldValue.serverTimestamp(),
+        ], forDocument: membersRef(group.id).document(householdId))
+        do {
+            try await batch.commit()
+        } catch {
+            throw FirestoreGroupOrderRepository.appError(from: error)
+        }
+        return group
+    }
+
     /// Adhésion + compteur dans un seul batch : les règles refusent l'un sans l'autre.
     private func changeMembership(groupId: String, householdId: String, joining: Bool) async throws {
         _ = try await group(id: groupId)

@@ -8,4 +8,4 @@ Images des maquettes iOS 26 (claim T-008, Q-007). Spécifications complètes (co
 
 | `F1-accueil.png` … `F6-impact.png` | Parcours de démo d'Amina (portail Familles) |
 
-À venir : V1–V3 (portail Vendeur).
+| `V1-tableau.png`, `V2-paliers.png`, `V3-demande.png` | Portail Vendeur (Ferme Lafleur) |

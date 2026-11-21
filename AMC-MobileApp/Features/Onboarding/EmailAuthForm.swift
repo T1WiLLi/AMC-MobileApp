@@ -1,7 +1,8 @@
 import SwiftUI
 
-/// Formulaire courriel et mot de passe sous « Continuer avec Google » : connexion ou création de compte,
-/// validation en direct, erreurs sous le champ concerné, lien « Mot de passe oublié ? ».
+/// Formulaire courriel et mot de passe de la feuille de connexion (T-124) : champs à étiquette intégrée,
+/// validation en direct, erreurs sous le champ concerné. À l'inscription : avatar qui prend l'initiale
+/// du prénom et règles du mot de passe en pastilles. Le mode est piloté par `SignInScreen`.
 struct EmailAuthForm: View {
     enum Mode: String, CaseIterable, Identifiable {
         case signIn, signUp
@@ -10,7 +11,7 @@ struct EmailAuthForm: View {
         var title: LocalizedStringKey {
             switch self {
             case .signIn: "Se connecter"
-            case .signUp: "Créer un compte"
+            case .signUp: "Créer mon compte"
             }
         }
     }
@@ -20,8 +21,8 @@ struct EmailAuthForm: View {
     }
 
     let session: SessionViewModel
+    @Binding var mode: Mode
 
-    @State private var mode: Mode = .signIn
     @State private var firstName = ""
     @State private var email = ""
     @State private var password = ""
@@ -37,8 +38,8 @@ struct EmailAuthForm: View {
     private var isBusy: Bool { session.isSigningIn }
     private var emailIsValid: Bool { EmailAuthValidation.isValidEmail(email) }
     private var passwordIsLongEnough: Bool { password.count >= EmailAuthValidation.minimumPasswordLength }
-    private var firstNameIsValid: Bool { !firstName.trimmingCharacters(in: .whitespaces).isEmpty }
-    private var strength: PasswordStrength { PasswordStrength(password) }
+    private var trimmedFirstName: String { firstName.trimmingCharacters(in: .whitespaces) }
+    private var firstNameIsValid: Bool { !trimmedFirstName.isEmpty }
 
     private var canSubmit: Bool {
         emailIsValid && passwordIsLongEnough && (mode == .signIn || firstNameIsValid) && !isBusy
@@ -47,35 +48,19 @@ struct EmailAuthForm: View {
     private var serverError: AuthError? { session.emailAuthError }
 
     var body: some View {
-        VStack(spacing: 14) {
-            Label {
-                Text(mode == .signIn ? "Avec ton courriel" : "Nouveau dans Grenier ?")
-                    .contentTransition(.opacity)
-            } icon: {
-                Image(systemName: mode == .signIn ? "envelope.circle.fill" : "person.crop.circle.badge.plus")
-                    .symbolRenderingMode(.hierarchical)
-                    .foregroundStyle(Color.grenier)
-                    .contentTransition(.symbolEffect(.replace))
-            }
-            .font(.headline)
-            .foregroundStyle(Color.texte)
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .accessibilityAddTraits(.isHeader)
-
-            Picker("Mode", selection: $mode.animation(reduceMotion ? nil : .smooth)) {
-                ForEach(Mode.allCases) { Text($0.title).tag($0) }
-            }
-            .pickerStyle(.segmented)
-            .accessibilityLabel("Se connecter ou créer un compte")
-
+        VStack(spacing: 12) {
             if mode == .signUp {
+                WelcomeAvatar(firstName: trimmedFirstName)
+                    .transition(.move(edge: .top).combined(with: .opacity))
+
                 field(
                     .firstName,
+                    label: "Prénom",
                     icon: "person.fill",
-                    issue: attemptedSubmit && !firstNameIsValid ? "Ton prénom, pour que ton groupe te reconnaisse." : nil,
+                    issue: attemptedSubmit && !firstNameIsValid ? String(localized: "Ton prénom, pour que ton groupe te reconnaisse.") : nil,
                     isValid: firstNameIsValid
                 ) {
-                    TextField("Prénom", text: $firstName)
+                    TextField("Prénom", text: $firstName, prompt: Text("Amina"))
                         .textContentType(.givenName)
                         .textInputAutocapitalization(.words)
                         .submitLabel(.next)
@@ -85,8 +70,8 @@ struct EmailAuthForm: View {
                 .transition(.move(edge: .top).combined(with: .opacity))
             }
 
-            field(.email, icon: "envelope.fill", issue: emailIssue, isValid: emailIsValid) {
-                TextField("Courriel", text: $email)
+            field(.email, label: "Courriel", icon: "envelope.fill", issue: emailIssue, isValid: emailIsValid) {
+                TextField("Courriel", text: $email, prompt: Text("nom@exemple.ca"))
                     .textContentType(.emailAddress)
                     .keyboardType(.emailAddress)
                     .textInputAutocapitalization(.never)
@@ -97,84 +82,89 @@ struct EmailAuthForm: View {
             }
 
             VStack(alignment: .leading, spacing: 8) {
-                field(.password, icon: showsPassword ? "lock.open.fill" : "lock.fill", issue: passwordIssue, isValid: mode == .signUp && passwordIsLongEnough) {
-                    HStack {
-                        Group {
-                            if showsPassword {
-                                TextField("Mot de passe", text: $password)
-                            } else {
-                                SecureField("Mot de passe", text: $password)
-                            }
+                field(
+                    .password,
+                    label: "Mot de passe",
+                    icon: showsPassword ? "lock.open.fill" : "lock.fill",
+                    issue: passwordIssue,
+                    isValid: mode == .signUp && passwordIsLongEnough
+                ) {
+                    Group {
+                        if showsPassword {
+                            TextField("Mot de passe", text: $password, prompt: Text("Ton mot de passe"))
+                        } else {
+                            SecureField("Mot de passe", text: $password, prompt: Text("Ton mot de passe"))
                         }
-                        .textContentType(mode == .signUp ? .newPassword : .password)
-                        .textInputAutocapitalization(.never)
-                        .autocorrectionDisabled()
-                        .submitLabel(.done)
-                        .focused($focus, equals: .password)
-                        .onSubmit(submit)
-
-                        Button {
-                            showsPassword.toggle()
-                        } label: {
-                            Image(systemName: showsPassword ? "eye.slash.fill" : "eye.fill")
-                                .contentTransition(.symbolEffect(.replace))
-                                .foregroundStyle(Color.texteSecondaire)
-                                .frame(width: 32, height: 32)
-                        }
-                        .buttonStyle(.plain)
-                        .accessibilityLabel(showsPassword ? "Masquer le mot de passe" : "Afficher le mot de passe")
-                        .sensoryFeedback(.selection, trigger: showsPassword)
                     }
+                    .textContentType(mode == .signUp ? .newPassword : .password)
+                    .textInputAutocapitalization(.never)
+                    .autocorrectionDisabled()
+                    .submitLabel(.done)
+                    .focused($focus, equals: .password)
+                    .onSubmit(submit)
+                } trailing: {
+                    Button {
+                        showsPassword.toggle()
+                    } label: {
+                        Image(systemName: showsPassword ? "eye.slash.fill" : "eye.fill")
+                            .contentTransition(.symbolEffect(.replace))
+                            .foregroundStyle(Color.texteSecondaire)
+                            .frame(width: 44, height: 44)
+                            .contentShape(.rect)
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityLabel(showsPassword ? "Masquer le mot de passe" : "Afficher le mot de passe")
+                    .sensoryFeedback(.selection, trigger: showsPassword)
                 }
 
-                if mode == .signUp, !password.isEmpty {
-                    StrengthMeter(strength: strength)
+                if mode == .signUp {
+                    PasswordRules(password: password)
+                        .transition(.opacity)
+                } else {
+                    Button("Mot de passe oublié ?") { showsReset = true }
+                        .font(.subheadline.weight(.semibold))
+                        .foregroundStyle(Color.grenier)
+                        .buttonStyle(.plain)
+                        .frame(minHeight: 32)
+                        .frame(maxWidth: .infinity, alignment: .trailing)
                         .transition(.opacity)
                 }
             }
 
             if let serverError, serverError.field == .general {
                 Label(serverError.localizedDescription, systemImage: "exclamationmark.triangle.fill")
-                    .font(.footnote)
+                    .font(.subheadline)
                     .foregroundStyle(.red)
+                    .padding(12)
                     .frame(maxWidth: .infinity, alignment: .leading)
+                    .background(Color.red.opacity(0.09), in: .rect(cornerRadius: 14))
                     .transition(.opacity)
             }
 
             Button(action: submit) {
                 HStack(spacing: 8) {
+                    Text(mode.title)
+                        .font(.headline)
+                        .contentTransition(.opacity)
                     if isBusy {
                         ProgressView()
                     } else {
-                        Image(systemName: mode == .signUp ? "person.crop.circle.badge.plus" : "arrow.right.circle.fill")
-                            .contentTransition(.symbolEffect(.replace))
+                        Image(systemName: "arrow.right")
+                            .font(.headline)
                     }
-                    Text(mode.title)
-                        .font(.headline)
                 }
-                .frame(maxWidth: .infinity, minHeight: 44)
+                .frame(maxWidth: .infinity, minHeight: 46)
                 .foregroundStyle(canSubmit ? Color.onAccent : Color.texteSecondaire)
             }
             .buttonStyle(.glassProminent)
             .disabled(!canSubmit)
+            .padding(.top, 4)
             .accessibilityHint(canSubmit ? "" : "Remplis les champs pour continuer")
-
-            if mode == .signIn {
-                Button {
-                    showsReset = true
-                } label: {
-                    Label("Mot de passe oublié ?", systemImage: "key.fill")
-                        .font(.subheadline)
-                }
-                .buttonStyle(.borderless)
-                .transition(.opacity)
-            }
         }
         .animation(reduceMotion ? nil : .smooth, value: serverError)
         .animation(reduceMotion ? nil : .smooth, value: mode)
         .animation(reduceMotion ? nil : .smooth, value: emailIssue)
         .animation(reduceMotion ? nil : .smooth, value: passwordIssue)
-        .sensoryFeedback(.selection, trigger: mode)
         .sensoryFeedback(.error, trigger: serverError) { _, new in new != nil }
         .onChange(of: focus) { old, _ in
             if let old { visited.insert(old) }
@@ -202,8 +192,8 @@ struct EmailAuthForm: View {
 
     private var passwordIssue: String? {
         if let serverError, serverError.field == .password { return serverError.localizedDescription }
-        // En création, on compte les caractères manquants en direct ; en connexion, seulement après un essai.
-        if (mode == .signUp || attemptedSubmit), let issue = EmailAuthValidation.passwordIssue(password) { return issue }
+        // En création, les pastilles montrent déjà la longueur : l'erreur n'apparaît qu'après un essai.
+        if attemptedSubmit, let issue = EmailAuthValidation.passwordIssue(password) { return issue }
         if attemptedSubmit && password.isEmpty { return String(localized: "Entre ton mot de passe.") }
         return nil
     }
@@ -211,28 +201,32 @@ struct EmailAuthForm: View {
     private func submit() {
         attemptedSubmit = true
         guard canSubmit else {
-            focus = !emailIsValid ? .email : (!passwordIsLongEnough ? .password : (mode == .signUp && !firstNameIsValid ? .firstName : nil))
+            focus = mode == .signUp && !firstNameIsValid ? .firstName : (!emailIsValid ? .email : (!passwordIsLongEnough ? .password : nil))
             return
         }
         focus = nil
         Task {
             switch mode {
             case .signIn: await session.signIn(email: email, password: password)
-            case .signUp: await session.signUp(email: email, password: password, displayName: firstName)
+            case .signUp: await session.signUp(email: email, password: password, displayName: trimmedFirstName)
             }
         }
     }
 
     // MARK: Champ
 
-    private func field<Content: View>(
+    /// Champ à étiquette intégrée : icône, petit libellé au-dessus de la saisie, bordure qui suit le focus et l'erreur.
+    private func field<Content: View, Trailing: View>(
         _ kind: Field,
+        label: LocalizedStringKey,
         icon: String,
         issue: String?,
         isValid: Bool,
-        @ViewBuilder content: () -> Content
+        @ViewBuilder content: () -> Content,
+        @ViewBuilder trailing: () -> Trailing = { EmptyView() }
     ) -> some View {
         let isFocused = focus == kind
+        let accent: Color = issue != nil ? .red : (isFocused ? Color.grenier : Color.texteSecondaire)
         return VStack(alignment: .leading, spacing: 6) {
             HStack(spacing: 12) {
                 Image(systemName: icon)
@@ -243,8 +237,16 @@ struct EmailAuthForm: View {
                     .symbolEffect(.bounce, options: .nonRepeating, value: reduceMotion ? false : isFocused)
                     .symbolEffect(.wiggle, options: .nonRepeating, value: reduceMotion ? false : issue != nil)
                     .accessibilityHidden(true)
-                content()
-                    .frame(minHeight: 44)
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(label)
+                        .font(.caption.weight(.semibold))
+                        .foregroundStyle(accent)
+                        .accessibilityHidden(true)
+                    content()
+                        .font(.body.weight(.medium))
+                        .foregroundStyle(Color.texte)
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
                 if isValid && issue == nil {
                     Image(systemName: "checkmark.circle.fill")
                         .foregroundStyle(Color.economie)
@@ -252,22 +254,36 @@ struct EmailAuthForm: View {
                         .transition(.scale.combined(with: .opacity))
                         .accessibilityHidden(true)
                 }
+                trailing()
             }
-            .padding(.horizontal, 14)
-            .background(Color.surface, in: .rect(cornerRadius: 16))
+            .padding(.leading, 14)
+            .padding(.trailing, 6)
+            .padding(.vertical, 8)
+            .frame(minHeight: 58)
+            .background(isFocused || issue != nil ? Color.surface : Color.fond, in: .rect(cornerRadius: 16))
             .overlay {
                 RoundedRectangle(cornerRadius: 16)
                     .strokeBorder(
-                        issue != nil ? Color.red.opacity(0.7) : (isFocused ? Color.grenier.opacity(0.6) : Color.clear),
-                        lineWidth: isFocused ? 1.5 : 1
+                        issue != nil ? Color.red.opacity(0.8) : (isFocused ? Color.grenier : Color.texteSecondaire.opacity(0.2)),
+                        lineWidth: 1.5
                     )
             }
+            .background {
+                if isFocused || issue != nil {
+                    RoundedRectangle(cornerRadius: 18)
+                        .fill((issue != nil ? Color.red : Color.grenier).opacity(0.12))
+                        .padding(-4)
+                }
+            }
+            .contentShape(.rect(cornerRadius: 16))
+            .onTapGesture { focus = kind }
             .animation(reduceMotion ? nil : .smooth(duration: 0.2), value: isFocused)
 
             if let issue {
                 Label(issue, systemImage: "exclamationmark.circle.fill")
-                    .font(.footnote)
+                    .font(.footnote.weight(.semibold))
                     .foregroundStyle(.red)
+                    .padding(.leading, 4)
                     .fixedSize(horizontal: false, vertical: true)
                     .transition(.opacity)
                     .accessibilityAddTraits(.isStaticText)
@@ -276,42 +292,100 @@ struct EmailAuthForm: View {
     }
 }
 
-/// Barre de force du mot de passe (création de compte).
-private struct StrengthMeter: View {
-    let strength: PasswordStrength
+/// En-tête de l'inscription : avatar rond qui prend l'initiale du prénom, et salutation.
+private struct WelcomeAvatar: View {
+    let firstName: String
 
-    private var color: Color {
-        switch strength {
-        case .tooShort: .red
-        case .weak: .orange
-        case .fair: .yellow
-        case .strong: Color.economie
+    private var initial: String { firstName.first.map { String($0).uppercased() } ?? "" }
+
+    var body: some View {
+        HStack(spacing: 14) {
+            ZStack {
+                Circle().fill(Color.grenier.opacity(0.14))
+                if initial.isEmpty {
+                    Image(systemName: "person.fill")
+                        .font(.title2)
+                        .foregroundStyle(Color.grenier)
+                } else {
+                    Text(initial)
+                        .font(.title.weight(.heavy))
+                        .fontDesign(.rounded)
+                        .foregroundStyle(Color.grenier)
+                        .contentTransition(.numericText())
+                }
+            }
+            .frame(width: 60, height: 60)
+            .overlay(Circle().strokeBorder(Color.surface, lineWidth: 3))
+            .shadow(color: .black.opacity(0.08), radius: 6, y: 2)
+
+            VStack(alignment: .leading, spacing: 2) {
+                Text(firstName.isEmpty ? "Bienvenue !" : "Salut \(firstName) !")
+                    .font(.title3.bold())
+                    .fontDesign(.rounded)
+                    .foregroundStyle(Color.texte)
+                    .lineLimit(2)
+                    .contentTransition(.opacity)
+                Text("Ton groupe te verra avec ce prénom.")
+                    .font(.subheadline)
+                    .foregroundStyle(Color.texteSecondaire)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
         }
+        .animation(.smooth, value: initial)
+        .accessibilityElement(children: .combine)
     }
+}
 
-    private var icon: String {
-        switch strength {
-        case .tooShort, .weak: "shield.slash.fill"
-        case .fair: "shield.lefthalf.filled"
-        case .strong: "checkmark.shield.fill"
-        }
+/// Règles du mot de passe en pastilles qui passent au vert (création de compte).
+/// Seule la longueur est obligatoire ; chiffre et majuscule ou symbole sont des conseils.
+private struct PasswordRules: View {
+    let password: String
+
+    private var rules: [(label: String, isMet: Bool)] {
+        [
+            (String(localized: "\(EmailAuthValidation.minimumPasswordLength) caractères"),
+             password.count >= EmailAuthValidation.minimumPasswordLength),
+            (String(localized: "Un chiffre"), password.contains(where: \.isNumber)),
+            (String(localized: "Majuscule ou symbole"),
+             password.contains(where: \.isUppercase) || password.contains(where: { !$0.isLetter && !$0.isNumber }))
+        ]
     }
 
     var body: some View {
-        HStack(spacing: 10) {
-            ProgressView(value: strength.progress)
-                .tint(color)
-                .animation(.smooth, value: strength)
-            Label(strength.label, systemImage: icon)
-                .font(.caption.weight(.semibold))
-                .foregroundStyle(color)
-                .contentTransition(.symbolEffect(.replace))
-                .fixedSize()
+        // Sur une ligne si elles tiennent, sinon empilées (Dynamic Type).
+        ViewThatFits(in: .horizontal) {
+            HStack(spacing: 6) { chips(rules) }
+            VStack(alignment: .leading, spacing: 6) {
+                HStack(spacing: 6) { chips(Array(rules.prefix(2))) }
+                chips(Array(rules.suffix(1)))
+            }
+            VStack(alignment: .leading, spacing: 6) { chips(rules) }
         }
-        .padding(.horizontal, 4)
-        .accessibilityElement(children: .ignore)
-        .accessibilityLabel("Force du mot de passe : \(strength.label)")
-        .sensoryFeedback(.impact(weight: .light), trigger: strength)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel(accessibilitySummary)
+    }
+
+    private func chips(_ rules: [(label: String, isMet: Bool)]) -> some View {
+        ForEach(rules, id: \.label) { rule in
+            Label(rule.label, systemImage: rule.isMet ? "checkmark" : "minus")
+                .font(.caption.weight(.semibold))
+                .foregroundStyle(rule.isMet ? Color.economie : Color.texteSecondaire)
+                .contentTransition(.symbolEffect(.replace))
+                .padding(.horizontal, 10)
+                .padding(.vertical, 6)
+                .background((rule.isMet ? Color.economie : Color.texteSecondaire).opacity(0.12), in: .capsule)
+                .fixedSize()
+                .animation(.smooth, value: rule.isMet)
+        }
+    }
+
+    private var accessibilitySummary: String {
+        let met = rules.filter(\.isMet).map(\.label)
+        return met.isEmpty
+            ? String(localized: "Mot de passe : aucune règle remplie")
+            : String(localized: "Mot de passe, règles remplies : \(met.formatted(.list(type: .and)))")
     }
 }
 
@@ -430,7 +504,7 @@ private struct PasswordResetSheet: View {
 
 #Preview("Formulaire") {
     ScrollView {
-        EmailAuthForm(session: SessionViewModel(auth: FakeAuthService()))
+        EmailAuthForm(session: SessionViewModel(auth: FakeAuthService()), mode: .constant(.signUp))
             .padding(24)
     }
     .grenierBackground()

@@ -148,10 +148,16 @@ Lancer les émulateurs (`--project demo-grenier`), puis les tests comme d'habitu
 | `users/{uid}` | le propriétaire | le propriétaire, **sans jamais poser `vendorId`** (rattachement vendeur = seed ou admin) |
 | `households/{id}` et `households/{id}/private/profile` | les membres (`userIds`) | les membres |
 | `groups/{id}/members/{householdId}` | connectés | le ménage s'ajoute (`role: member`) ou se retire |
-| `groupOrders/{id}/shares/{householdId}` | le ménage | le ménage, commande `open`/`reached` : quantité et montant suspendu seulement ; `isPaid`, `subsidyCents`, `finalPriceCents`, `qrCode`, `isPickedUp` restent hors de portée du client |
+| `groupOrders/{id}/shares/{householdId}` | membres du groupe (ménage vérifié dans `households.userIds`), vendeur du lot | le ménage, commande `open`/`reached` avant la date limite, avec la commande recalculée dans la même transaction : quantité et panier suspendu (≤ 200 $) ; à la clôture, coordonnateur ou vendeur : prix = quantité × palier figé, subvention ≤ prix et seulement pour un ménage subventionné, QR de la commande ; `isPaid`, `isPickedUp` hors de portée du client |
 | Storage `vendors/{vendorId}/…`, `users/{uid}/…` | connectés | le vendeur rattaché / le propriétaire ; images de moins de 5 Mo |
 
 Tout le reste est refusé. Chaque collection a un validateur de forme (champs permis, types, tailles).
+
+Attaques couvertes par `scripts/rules-tests/firestore.attacks.test.ts` (T-093) : palier, compteurs et statut d'une commande recalculés et vérifiés, paliers d'un lot triés et valides, date limite jamais reculée dans le passé, lot publié non supprimable, `users.householdId` vérifié dans le ménage. Limites connues :
+
+- la clôture lit le profil privé de chaque ménage subventionné : au plus ~16 ménages subventionnés par commande (limite de 20 documents lus par transaction) ; le nombre total de ménages n'est pas limité (testé jusqu'à 60) ;
+- le total des subventions n'est pas borné par le fonds (le fonds n'est pas stocké dans Firestore), et `subsidyCents` est lisible par tous les membres du groupe (TODO E10) ;
+- un code d'organisme bien formé suffit pour se déclarer subventionné (pas encore de liste de codes émis).
 
 Tests (émulateur sur des ports à part, pour ne pas gêner les émulateurs des autres agents) :
 

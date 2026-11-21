@@ -53,6 +53,10 @@ nonisolated enum TierEngine {
     /// comme la transaction Firestore le fera en une fois. Lève `.orderClosed` si la commande est fermée.
     static func recalculated(_ order: GroupOrder, offer: Offer, shares: [Share]) throws -> GroupOrder {
         guard isOpen(order) else { throw AppError.orderClosed }
+        // Une quantité négative ferait disparaître les parts des autres du total (T-093).
+        guard shares.allSatisfy({ $0.quantity >= 0 }) else {
+            throw AppError.invalidInput("La quantité ne peut pas être négative.")
+        }
         let committed = shares.reduce(0) { $0 + $1.quantity }
         guard committed <= offer.totalShares else {
             throw AppError.invalidInput("Ce lot ne compte que \(offer.totalShares) parts.")

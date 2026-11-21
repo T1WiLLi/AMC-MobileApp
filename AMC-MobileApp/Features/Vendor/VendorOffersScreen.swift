@@ -84,7 +84,7 @@ struct VendorOffersScreen: View {
                 .padding(.horizontal, 4)
                 .accessibilityAddTraits(.isHeader)
 
-                ForEach(dashboard.offers) { summary in
+                ForEach(Array(dashboard.offers.enumerated()), id: \.element.id) { index, summary in
                     NavigationLink(value: Route.edit(offerId: summary.id)) {
                         VendorOfferCard(summary: summary)
                             .matchedTransitionSource(id: summary.id, in: transition)
@@ -104,6 +104,7 @@ struct VendorOffersScreen: View {
                         }
                     }
                     .grenierTransition(.cardAppear)
+                    .grenierAppear(index: index)
                 }
             }
             .padding(.horizontal, 16)

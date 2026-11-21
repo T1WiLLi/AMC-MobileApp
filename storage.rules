@@ -4,7 +4,7 @@ rules_version = '2';
 // - vendors/{vendorId}/... : photos de produits et de vitrine, écrites par le vendeur rattaché
 //   (users/{uid}.vendorId, posé par le seed ou un admin), lues par les utilisateurs connectés.
 // - users/{uid}/... : photo de profil, écrite par son propriétaire.
-// Images seulement, 5 Mo maximum. Tout le reste est refusé.
+// Images (JPEG, PNG, HEIC, WebP, GIF ; pas de SVG) seulement, 5 Mo maximum. Tout le reste est refusé.
 service firebase.storage {
   match /b/{bucket}/o {
     function isAuthenticated() {
@@ -13,7 +13,9 @@ service firebase.storage {
 
     function isImageUnder5MB() {
       return request.resource.size < 5 * 1024 * 1024
-        && request.resource.contentType.matches('image/.*');
+        // Formats matriciels seulement : un SVG (image/svg+xml) peut contenir du script, servi tel quel
+        // depuis le domaine du bucket (XSS stockée) — T-093.
+        && request.resource.contentType.matches('image/(jpeg|png|heic|heif|webp|gif)');
     }
 
     function isVendorOf(vendorId) {

@@ -9,9 +9,10 @@ struct ProfileScreen: View {
     @Environment(AppLock.self) private var appLock: AppLock?
     @Environment(\.dismiss) private var dismiss
     @Environment(\.appContext) private var appContext
-    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
-    /// Portail touché, pour l'haptique (part avant la fermeture de la feuille).
+    /// Bascule animée (T-123) ; absente dans les previews sans `RootView`.
+    @Environment(PortalSwitchCoordinator.self) private var portalSwitch: PortalSwitchCoordinator?
+    /// Portail touché : la pastille y glisse avant la fermeture de la feuille.
     @State private var pendingPortal: Portal?
     /// T-122 : photo de profil, relue à chaque apparition (elle a pu changer dans « Mon compte »).
     @State private var photoURL: URL?
@@ -23,12 +24,14 @@ struct ProfileScreen: View {
                     ProfileHeader(user: session?.currentUser, portal: pendingPortal ?? portal, photoURL: photoURL)
                         .listRowInsets(EdgeInsets(top: 8, leading: 0, bottom: 8, trailing: 0))
                         .listRowBackground(Color.clear)
+                        .grenierAppear(index: 0, style: .sheet)
                 }
 
                 Section {
-                    portalCards
+                    portalSwitcher
                         .listRowInsets(EdgeInsets(top: 4, leading: 0, bottom: 4, trailing: 0))
                         .listRowBackground(Color.clear)
+                        .grenierAppear(index: 1, style: .sheet)
                 } header: {
                     ProfileSectionHeader("Portail", systemImage: "arrow.left.arrow.right.circle.fill")
                 } footer: {
@@ -142,42 +145,53 @@ struct ProfileScreen: View {
             .scrollContentBackground(.hidden)
             .grenierBackground()
             .navigationTitle("Profil")
-            .sensoryFeedback(.selection, trigger: pendingPortal) { _, new in new != nil }
             .onAppear {
                 Task { photoURL = try? await appContext.repositories.users.user(id: appContext.userId).photoURL }
             }
         }
     }
 
-    /// Cartes compactes côte à côte, empilées sous Dynamic Type accessibilité.
-    private var portalCards: some View {
-        let layout = dynamicTypeSize.isAccessibilitySize
-            ? AnyLayout(VStackLayout(spacing: 12))
-            : AnyLayout(HStackLayout(alignment: .top, spacing: 12))
-        return layout {
-            ForEach(Portal.allCases) { item in
-                PortalCard(portal: item, isSelected: (pendingPortal ?? portal) == item, size: .compact) {
-                    switchPortal(to: item)
-                }
+    /// Capsule de verre « Familles | Vendeurs » (T-123) et la promesse du portail choisi.
+    private var portalSwitcher: some View {
+        let shown = pendingPortal ?? portal
+        return VStack(alignment: .leading, spacing: 12) {
+            PortalSegmentedControl(selection: shown) { switchPortal(to: $0) }
+            Label {
+                Text(shown.detail)
+                    .fixedSize(horizontal: false, vertical: true)
+            } icon: {
+                Image(systemName: shown.systemImage)
+                    .contentTransition(reduceMotion ? .opacity : .symbolEffect(.replace))
             }
+            .font(.subheadline)
+            .foregroundStyle(Color.texteSecondaire)
+            .symbolRenderingMode(.hierarchical)
+            .padding(.horizontal, 4)
+            .grenierAnimation(.smooth, value: shown)
         }
-        // Deux cartes de même hauteur côte à côte.
-        .fixedSize(horizontal: false, vertical: true)
     }
 
-    /// Haptique et coche tout de suite, puis fermeture animée de la feuille, puis bascule.
+    /// La pastille glisse tout de suite, puis la feuille se ferme pendant que le voile de bascule
+    /// se répand derrière elle (`PortalSwitchCoordinator`, qui change le portail une fois l'écran couvert).
     /// Basculer d'abord détruirait la barre d'onglets qui présente la feuille : elle disparaîtrait d'un coup.
     private func switchPortal(to newPortal: Portal) {
         guard newPortal != portal, pendingPortal == nil else { return }
-        withAnimation(.smooth) { pendingPortal = newPortal }
+        withGrenierAnimation(.snappy, reduceMotion: reduceMotion) { pendingPortal = newPortal }
         Task { @MainActor in
-            try? await Task.sleep(for: .milliseconds(250))
-            dismiss()
-            try? await Task.sleep(for: .milliseconds(reduceMotion ? 150 : 400))
-            withAnimation(reduceMotion ? nil : .smooth) {
-                portal = newPortal
+            // Le temps de voir la pastille arriver sur le nouveau portail.
+            try? await Task.sleep(for: .milliseconds(reduceMotion ? 120 : 220))
+            if let portalSwitch {
+                dismiss()
+                if !portalSwitch.switchPortal(from: portal, to: newPortal, reduceMotion: reduceMotion) {
+                    pendingPortal = nil
+                }
+            } else {
+                // Sans coordinateur (previews) : ancienne bascule directe.
+                dismiss()
+                try? await Task.sleep(for: .milliseconds(reduceMotion ? 150 : 400))
+                withAnimation(reduceMotion ? nil : .smooth) { portal = newPortal }
+                pendingPortal = nil
             }
-            pendingPortal = nil
         }
     }
 }

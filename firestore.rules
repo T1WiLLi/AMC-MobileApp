@@ -179,7 +179,11 @@ service cloud.firestore {
           && docId == 'profile'
           && request.resource.data.keys().hasOnly(['isSubsidized', 'referralCode'])
           && request.resource.data.isSubsidized is bool
-          && isOptionalString(request.resource.data, 'referralCode', 64);
+          && isOptionalString(request.resource.data, 'referralCode', 64)
+          // Statut subventionné seulement avec un code d'organisme bien formé (ReferralCode, RQ-082).
+          && (request.resource.data.isSubsidized == false
+              || (request.resource.data.get('referralCode', null) is string
+                  && request.resource.data.referralCode.matches('ORG-[A-Z]{2}-[0-9]{4}[0-9X]')));
         allow delete: if false;
       }
     }
@@ -323,6 +327,29 @@ service cloud.firestore {
     // offers/{offerId}
     // ---------------------------------------------------------------
 
+    // Paliers (OfferLifecycle.validate) : 1 à 10, { minShares, priceCents } entiers, seuils strictement
+    // croissants (1..totalShares), prix strictement décroissants (> 0). Les règles des commandes
+    // lisent tiers[i] comme `Offer.sortedTiers[i]` : l'ordre trié est donc obligatoire.
+    function isValidTier(tiers, i, totalShares) {
+      return i >= tiers.size()
+        || (tiers[i] is map
+          && tiers[i].keys().hasOnly(['minShares', 'priceCents'])
+          && tiers[i].keys().hasAll(['minShares', 'priceCents'])
+          && isIntIn(tiers[i].minShares, 1, totalShares)
+          && isIntIn(tiers[i].priceCents, 1, 10000000)
+          && (i == 0 || (tiers[i - 1].minShares < tiers[i].minShares
+                         && tiers[i - 1].priceCents > tiers[i].priceCents)));
+    }
+
+    function areValidTiers(tiers, totalShares) {
+      return tiers is list && tiers.size() >= 1 && tiers.size() <= 10
+        && isValidTier(tiers, 0, totalShares) && isValidTier(tiers, 1, totalShares)
+        && isValidTier(tiers, 2, totalShares) && isValidTier(tiers, 3, totalShares)
+        && isValidTier(tiers, 4, totalShares) && isValidTier(tiers, 5, totalShares)
+        && isValidTier(tiers, 6, totalShares) && isValidTier(tiers, 7, totalShares)
+        && isValidTier(tiers, 8, totalShares) && isValidTier(tiers, 9, totalShares);
+    }
+
     function isValidOffer(data) {
       let productPath = /databases/$(database)/documents/products/$(data.productId);
       return data.keys().hasOnly(['id', 'vendorId', 'productId', 'totalShares', 'shareUnit', 'tiers',
@@ -332,7 +359,7 @@ service cloud.firestore {
         && isIntIn(data.totalShares, 1, 10000)
         && isIntIn(data.minimumSharesToLaunch, 1, data.totalShares)
         && isShortString(data.shareUnit, 1, 60)
-        && data.tiers is list && data.tiers.size() >= 1 && data.tiers.size() <= 10
+        && areValidTiers(data.tiers, data.totalShares)
         && data.deadline is timestamp
         && isStringList(data.zones, 20)
         && data.status in ['draft', 'active', 'closed', 'cancelled']
@@ -346,10 +373,16 @@ service cloud.firestore {
       allow create: if isVendorOf(request.resource.data.vendorId)
         && request.resource.data.id == offerId
         && isValidOffer(request.resource.data);
+      // Produit figé (RQ-036) ; une date limite modifiée reste dans le futur : sinon le vendeur
+      // pourrait la reculer dans le passé et clôturer les commandes des familles avant l'heure.
       allow update: if isVendorOf(resource.data.vendorId)
-        && areImmutableFieldsUnchanged(['id', 'vendorId'])
-        && isValidOffer(request.resource.data);
-      allow delete: if isVendorOf(resource.data.vendorId);
+        && areImmutableFieldsUnchanged(['id', 'vendorId', 'productId'])
+        && isValidOffer(request.resource.data)
+        // (1 ms de marge : saveOffer réécrit tout le lot, et l'aller-retour Date ↔ Timestamp peut décaler d'1 µs.)
+        && (request.resource.data.deadline > resource.data.deadline - duration.value(1, 'ms')
+            || request.resource.data.deadline > request.time);
+      // Seulement un brouillon : un lot publié a des commandes qui le relisent (sinon elles restent bloquées).
+      allow delete: if isVendorOf(resource.data.vendorId) && resource.data.status == 'draft';
     }
 
     // Ménage et vendeur de l'utilisateur connecté (users/{uid}.householdId, .vendorId).
@@ -357,8 +390,12 @@ service cloud.firestore {
       return get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
     }
 
+    // users/{uid}.householdId est écrit par l'utilisateur lui-même : on ne le croit que s'il figure
+    // vraiment dans households/{id}.userIds (sinon n'importe qui se déclare du ménage d'un autre
+    // et modifie ou lit sa part). '' si pas de ménage vérifié.
     function myHouseholdId() {
-      return myUser().get('householdId', '');
+      let householdId = myUser().get('householdId', '');
+      return householdId is string && householdId != '' && isMemberOfHousehold(householdId) ? householdId : '';
     }
 
     function isGroupMember(groupId) {
@@ -407,12 +444,26 @@ service cloud.firestore {
         && data.offerId is string && data.offerId.size() > 0 && data.offerId.size() <= 128
         && data.status in ['open', 'reached', 'closed', 'delivered', 'cancelled']
         && (!('currentTierIndex' in data) || data.currentTierIndex == null
-            || (data.currentTierIndex is int && data.currentTierIndex >= 0 && data.currentTierIndex < 20))
-        && data.committedShares is int && data.committedShares >= 0
+            || (data.currentTierIndex is int && data.currentTierIndex >= 0 && data.currentTierIndex < 10))
+        && data.committedShares is int && data.committedShares >= 0 && data.committedShares <= 10000
         && data.committedHouseholds is int && data.committedHouseholds >= 0
         && data.committedHouseholds <= data.committedShares
-        && (!('pickupPointId' in data) || data.pickupPointId == null || data.pickupPointId is string)
+        && (!('pickupPointId' in data) || data.pickupPointId == null || isShortString(data.pickupPointId, 1, 128))
         && data.pickupSlots is list && data.pickupSlots.size() <= 20;
+    }
+
+    // Un champ optionnel n'a pas bougé : le SDK Swift omet un nil (setData) là où le seed écrit null.
+    function isSameOptional(after, before, field) {
+      return after.get(field, null) == before.get(field, null);
+    }
+
+    // `index` est bien le palier atteint avec `committed` parts (`Offer.tierIndex(forCommittedShares:)`),
+    // les paliers étant triés (voir areValidTiers) : null sous le premier palier.
+    function isTierIndexFor(tiers, committed, index) {
+      return (committed < tiers[0].minShares && index == null)
+        || (index is int && index >= 0 && index < tiers.size()
+            && tiers[index].minShares <= committed
+            && (index == tiers.size() - 1 || tiers[index + 1].minShares > committed));
     }
 
     // Quantité de la part de mon ménage avant / après la requête (0 = pas de part).
@@ -434,6 +485,7 @@ service cloud.firestore {
       return existsAfter(/databases/$(database)/documents/groupOrders/$(orderId)/shares/$(myHouseholdId()));
     }
 
+    // Changement de part (TierEngine.recalculated) : compteurs, palier et statut recalculés, rien d'autre.
     function isShareCountUpdate(orderId) {
       let before = resource.data;
       let after = request.resource.data;
@@ -442,23 +494,33 @@ service cloud.firestore {
         && request.time < offer.deadline
         && isOpenStatus(before.status) && isOpenStatus(after.status)
         && after.diff(before).affectedKeys()
-             .hasOnly(['committedShares', 'committedHouseholds', 'currentTierIndex', 'status'])
+             .hasOnly(['committedShares', 'committedHouseholds', 'currentTierIndex', 'status', 'pickupPointId'])
+        && isSameOptional(after, before, 'pickupPointId')
         && after.committedShares <= offer.totalShares
         && after.status == (after.committedShares >= offer.minimumSharesToLaunch ? 'reached' : 'open')
+        && isTierIndexFor(offer.tiers, after.committedShares, after.get('currentTierIndex', null))
         && after.committedShares - before.committedShares == myShareAfter(orderId) - myShareBefore(orderId)
         && after.committedHouseholds - before.committedHouseholds
              == (hasMyShareAfter(orderId) ? 1 : 0) - (hasMyShareBefore(orderId) ? 1 : 0);
     }
 
+    // Clôture (TierEngine.closed) : confirmée au palier atteint si le minimum et le premier palier
+    // sont atteints, sinon annulée. Ni les compteurs ni le palier ne se choisissent à la main.
     function isClosingUpdate() {
       let before = resource.data;
       let after = request.resource.data;
       let offer = offerOf(before);
+      let isConfirmed = before.committedShares >= offer.minimumSharesToLaunch
+        && before.committedShares >= offer.tiers[0].minShares;
       return (isGroupCoordinator(before.groupId) || isOfferVendor(offer))
         && request.time >= offer.deadline
         && isOpenStatus(before.status)
-        && after.status in ['closed', 'cancelled']
-        && after.diff(before).affectedKeys().hasOnly(['status', 'currentTierIndex']);
+        && after.diff(before).affectedKeys().hasOnly(['status', 'currentTierIndex', 'pickupPointId'])
+        && isSameOptional(after, before, 'pickupPointId')
+        && (isConfirmed
+              ? (after.status == 'closed'
+                 && isTierIndexFor(offer.tiers, before.committedShares, after.get('currentTierIndex', null)))
+              : (after.status == 'cancelled' && isSameOptional(after, before, 'currentTierIndex')));
     }
 
     // RQ-063 (T-077) : le coordonnateur du groupe choisit le point de cueillette et ses créneaux,
@@ -469,7 +531,10 @@ service cloud.firestore {
       return isGroupCoordinator(before.groupId)
         && before.status in ['open', 'reached', 'closed']
         && after.status == before.status
-        && after.diff(before).affectedKeys().hasOnly(['pickupPointId', 'pickupSlots']);
+        && after.diff(before).affectedKeys().hasOnly(['pickupPointId', 'pickupSlots'])
+        // T-093 : un point qui existe (sinon les familles reçoivent une adresse fantôme).
+        && (after.get('pickupPointId', null) == null
+            || exists(/databases/$(database)/documents/pickupPoints/$(after.pickupPointId)));
     }
 
     match /groupOrders/{orderId} {
@@ -480,6 +545,9 @@ service cloud.firestore {
         && request.resource.data.status == 'open'
         && request.resource.data.committedShares == 0
         && request.resource.data.committedHouseholds == 0
+        && request.resource.data.get('currentTierIndex', null) == null
+        && request.resource.data.get('pickupPointId', null) == null
+        && request.resource.data.pickupSlots.size() == 0
         && offerOf(request.resource.data).status == 'active'
         && request.time < offerOf(request.resource.data).deadline;
 
@@ -493,12 +561,13 @@ service cloud.firestore {
       // groupOrders/{orderId}/shares/{householdId} — part d'un ménage
       // -------------------------------------------------------------
       // Champs : householdId (string, = id du doc), quantity (int 1..totalShares),
-      //   finalPriceCents (int, optionnel, figé à la clôture), isPaid (bool), suspendedAmountCents (int ≥ 0),
+      //   finalPriceCents (int, optionnel, figé à la clôture), isPaid (bool),
+      //   suspendedAmountCents (int 0..20 000, SolidarityLedger.maxSuspendedAmountCents),
       //   subsidyCents (int ≥ 0), qrCode (string, optionnel), isPickedUp (bool), updatedAt (timestamp, optionnel).
       // Lisible par les membres du groupe (la transaction relit toutes les parts) et le vendeur du lot.
       // Un ménage n'écrit que SA part, avant la date limite, commande ouverte, et en mettant à jour
-      // la commande dans la même transaction. Prix, subvention et QR : seulement à la clôture.
-      // TODO(E10) : subsidyCents devrait vivre dans un document privé du ménage.
+      // la commande dans la même transaction. Prix, subvention et QR : seulement à la clôture, et vérifiés.
+      // TODO(E10) : subsidyCents devrait vivre dans un document privé du ménage (aujourd'hui lisible du groupe).
       // -------------------------------------------------------------
       function isValidShare(data, householdId) {
         return data.keys().hasOnly(['householdId', 'quantity', 'finalPriceCents', 'isPaid',
@@ -512,7 +581,7 @@ service cloud.firestore {
               || (data.finalPriceCents is int && data.finalPriceCents >= 0))
           && data.isPaid is bool
           && data.suspendedAmountCents is int && data.suspendedAmountCents >= 0
-          && data.suspendedAmountCents <= 100000
+          && data.suspendedAmountCents <= 20000
           && data.subsidyCents is int && data.subsidyCents >= 0
           && (!('qrCode' in data) || data.qrCode == null || (data.qrCode is string && data.qrCode.size() <= 200))
           && data.isPickedUp is bool
@@ -562,6 +631,29 @@ service cloud.firestore {
           && data.isPickedUp == false;
       }
 
+      // Ménage subventionné (statut privé posé avec un code d'organisme, RQ-082).
+      function isSubsidizedHousehold(householdId) {
+        let profile = get(/databases/$(database)/documents/households/$(householdId)/private/profile).data;
+        return profile.get('isSubsidized', false) == true
+          && profile.get('referralCode', '').matches('ORG-[A-Z]{2}-[0-9]{4}[0-9X]');
+      }
+
+      // Clôture (ShareAllocator.allocate) : prix = quantité × prix du palier figé, subvention au plus le prix
+      // et seulement pour un ménage subventionné, QR de cette commande et de ce ménage.
+      function isClosingAllocation(data, householdId) {
+        let order = orderAfter();
+        let unitPriceCents = offerOf(order).tiers[order.currentTierIndex].priceCents;
+        return data.get('finalPriceCents', null) == data.quantity * unitPriceCents
+          && data.subsidyCents is int && data.subsidyCents >= 0
+          && data.subsidyCents <= data.finalPriceCents
+          && (data.get('updatedAt', null) == null || data.updatedAt is timestamp)
+          && (data.subsidyCents == 0 || isSubsidizedHousehold(householdId))
+          && data.get('qrCode', null) is string
+          && data.qrCode.matches('GRENIER:[^:]+:[^:]+:[0-9a-f]{8}')
+          && data.qrCode.split(':')[1] == orderId
+          && data.qrCode.split(':')[2] == householdId;
+      }
+
       match /shares/{householdId} {
         allow read: if isAuthenticated()
           && (isGroupMember(orderDoc().groupId) || isOfferVendor(offerOf(orderDoc())));
@@ -570,20 +662,28 @@ service cloud.firestore {
           && isFamilyShape(request.resource.data)
           && canChangeMyShare(householdId);
 
-        allow update: if isValidShare(request.resource.data, householdId)
-          && (
-            (isFamilyShape(request.resource.data)
-              && request.resource.data.diff(resource.data).affectedKeys()
-                   .hasOnly(['quantity', 'suspendedAmountCents', 'updatedAt'])
-              && canChangeMyShare(householdId))
-            // Clôture : prix final, subvention et QR, dans la transaction qui ferme la commande.
-            || (orderAfter().status == 'closed'
-              && isOpenStatus(orderDoc().status)
-              && (isGroupCoordinator(orderDoc().groupId) || isOfferVendor(offerOf(orderDoc())))
-              && request.resource.data.diff(resource.data).affectedKeys()
-                   .hasOnly(['finalPriceCents', 'subsidyCents', 'qrCode']))
-            || isSlotReservation(householdId)
-          );
+        // Le ménage : quantité et panier suspendu. Le reste ne bouge pas (une subvention déjà posée par
+        // le seed reste telle quelle, un null du seed peut devenir absent).
+        // Clôture en premier, et sans isValidShare : seuls prix, subvention, QR (et updatedAt) bougent, vérifiés
+        // un par un. Les règles ont un budget de 1000 expressions pour TOUTE la transaction de clôture :
+        // revalider chaque part en entier le dépassait vers 20 ménages (test « grosse commande »).
+        allow update: if (orderAfter().status == 'closed'
+            && isOpenStatus(orderDoc().status)
+            && request.resource.data.diff(resource.data).affectedKeys()
+                 .hasOnly(['finalPriceCents', 'subsidyCents', 'qrCode', 'updatedAt'])
+            && (isGroupCoordinator(orderDoc().groupId) || isOfferVendor(offerOf(orderDoc())))
+            && isClosingAllocation(request.resource.data, householdId))
+          || (isValidShare(request.resource.data, householdId)
+            && (
+              // Le ménage : quantité et panier suspendu. Le reste ne bouge pas (une subvention déjà posée par
+              // le seed reste telle quelle, un null du seed peut devenir absent).
+              (request.resource.data.diff(resource.data).affectedKeys()
+                   .hasOnly(['quantity', 'suspendedAmountCents', 'updatedAt', 'finalPriceCents', 'qrCode'])
+                && isSameOptional(request.resource.data, resource.data, 'finalPriceCents')
+                && isSameOptional(request.resource.data, resource.data, 'qrCode')
+                && canChangeMyShare(householdId))
+              || isSlotReservation(householdId)
+            ));
 
         allow delete: if canChangeMyShare(householdId);
       }

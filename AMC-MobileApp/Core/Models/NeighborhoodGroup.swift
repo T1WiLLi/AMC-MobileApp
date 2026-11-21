@@ -14,6 +14,8 @@ nonisolated struct NeighborhoodGroup: Identifiable, Codable, Sendable, Hashable 
     var householdCount: Int
     var isPublic: Bool
     var inviteCode: String
+    /// Marque du groupe (B-033) ; nil = marque par défaut (`resolvedBranding`).
+    var branding: GroupBranding? = nil
     /// T-122 : photo du groupe (`grenier-media:///groups/{id}/media/photo?v=…`), nil = initiales.
     var photoURL: URL? = nil
     /// T-122 : bannière du groupe (`…/media/banner?v=…`), nil = dégradé aux couleurs de Grenier.

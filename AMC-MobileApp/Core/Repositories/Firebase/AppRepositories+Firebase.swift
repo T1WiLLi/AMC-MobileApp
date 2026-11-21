@@ -31,6 +31,8 @@ extension AppRepositories {
         let firestoreOffers: (any OfferRepository)? = isConfigured ? FirestoreOfferRepository() : nil
         let firestorePickupPoints: (any PickupPointRepository)? = isConfigured ? FirestorePickupPointRepository() : nil
         let firestoreImages: (any ImageStore)? = isConfigured ? FirestoreImageStore() : nil
+        let firestoreWishes: (any GroupWishRepository)? = isConfigured ? FirestoreGroupWishRepository() : nil
+        let firestoreSupplies: (any VendorSupplyRepository)? = isConfigured ? FirestoreVendorSupplyRepository() : nil
         #else
         let firestoreUsers: (any UserRepository)? = nil
         let firestoreGroups: (any GroupRepository)? = nil
@@ -38,8 +40,10 @@ extension AppRepositories {
         let firestoreOffers: (any OfferRepository)? = nil
         let firestorePickupPoints: (any PickupPointRepository)? = nil
         let firestoreImages: (any ImageStore)? = nil
+        let firestoreWishes: (any GroupWishRepository)? = nil
+        let firestoreSupplies: (any VendorSupplyRepository)? = nil
         #endif
-        return AppRepositories(
+        var repositories = AppRepositories(
             users: firestoreUsers ?? fallback.users,              // B-017 — users, households
             groups: firestoreGroups ?? fallback.groups,           // B-017 — groups, members
             vendors: firestoreVendors ?? fallback.vendors,        // B-018 — vendors, products
@@ -48,6 +52,9 @@ extension AppRepositories {
             pickupPoints: firestorePickupPoints ?? fallback.pickupPoints,  // B-018 — pickupPoints
             images: firestoreImages ?? fallback.images            // T-122 — users|groups/{id}/media/{nom} (base64)
         )
+        repositories.wishes = firestoreWishes ?? fallback.wishes          // S-07 — groups/{id}/wishes
+        repositories.supplies = firestoreSupplies ?? fallback.supplies    // S-08 — vendors/{id}/supplies
+        return repositories
     }
 
     /// Dépôts pour le mode choisi au lancement (`FirebaseSetup.configure()`), derrière le cache mémoire (T-112) :

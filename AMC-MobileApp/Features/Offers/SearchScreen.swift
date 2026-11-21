@@ -15,10 +15,16 @@ struct SearchScreen: View {
     @State private var query = ""
     /// Lots actifs chargés depuis les dépôts (nil tant que rien n'est chargé).
     @State private var offerSuggestions: [Suggestion]?
+    /// true une fois le chargement des lots terminé (réussi ou non). Avant, le catalogue s'affiche en squelette :
+    /// on ne montre plus des produits qui n'existent pas (« Œufs », « Farine ») le temps que les lots arrivent.
+    @State private var hasLoadedOffers = false
+
+    private var isPlaceholder: Bool { linksToOffers && !hasLoadedOffers }
     /// Lot ouvert en feuille. Une feuille plutôt qu'un push : la fiche masque la barre d'onglets, et au retour
     /// l'onglet Recherche réapparaissait sans son champ (barre d'onglets classique, saisie perdue).
     @State private var openedOffer: OfferRoute?
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
 
     private var results: [Suggestion] { Self.filter(offerSuggestions ?? suggestions, query: query) }
 
@@ -34,11 +40,14 @@ struct SearchScreen: View {
                                 } label: {
                                     HStack {
                                         SuggestionRow(suggestion: suggestion)
-                                        Spacer(minLength: 8)
-                                        Image(systemName: "chevron.forward")
-                                            .font(.footnote.weight(.semibold))
-                                            .foregroundStyle(.tertiary)
-                                            .accessibilityHidden(true)
+                                        // Aux tailles AX, le chevron mange la largeur du nom : on le retire.
+                                        if !dynamicTypeSize.isAccessibilitySize {
+                                            Spacer(minLength: 8)
+                                            Image(systemName: "chevron.forward")
+                                                .font(.footnote.weight(.semibold))
+                                                .foregroundStyle(.tertiary)
+                                                .accessibilityHidden(true)
+                                        }
                                     }
                                     .contentShape(.rect)
                                 }
@@ -54,6 +63,10 @@ struct SearchScreen: View {
                             query.isEmpty ? emptyTitle : FrenchPlural.count(results.count, "produit"),
                             systemImage: query.isEmpty ? "sparkles" : "line.3.horizontal.decrease.circle.fill"
                         )
+                        // L'icône reste à la taille du texte de base : à AX5 elle coupait « Sug-gestions ».
+                        .imageScale(dynamicTypeSize.isAccessibilitySize ? .small : .medium)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.7)
                         .foregroundStyle(Color.grenier)
                         .symbolRenderingMode(.hierarchical)
                         .contentTransition(.symbolEffect(.replace))
@@ -70,6 +83,8 @@ struct SearchScreen: View {
                     }
                 }
             }
+            .redacted(reason: isPlaceholder ? .placeholder : [])
+            .allowsHitTesting(!isPlaceholder)
             .scrollContentBackground(.hidden)
             .grenierBackground()
             .overlay {
@@ -107,22 +122,37 @@ struct SearchScreen: View {
         }
         .searchable(text: $query, prompt: prompt)
         .task {
-            guard linksToOffers, offerSuggestions == nil else { return }
-            offerSuggestions = await Self.loadOfferSuggestions(from: context.repositories)
+            guard linksToOffers, !hasLoadedOffers else { return }
+            let loaded = await Self.loadOfferSuggestions(from: context.repositories)
+            // Onglet quitté pendant le chargement : on recommencera au retour.
+            guard !Task.isCancelled else { return }
+            offerSuggestions = loaded
+            hasLoadedOffers = true
         }
     }
 
     /// Un résultat par lot actif (produit, vendeur, format). nil si rien n'a pu être chargé : on garde le catalogue.
     static func loadOfferSuggestions(from repositories: AppRepositories) async -> [Suggestion]? {
         guard let offers = try? await repositories.offers.activeOffers(inZone: nil), !offers.isEmpty else { return nil }
-        var found: [Suggestion] = []
-        for offer in offers {
-            guard let product = try? await repositories.vendors.product(id: offer.productId),
-                  let vendor = try? await repositories.vendors.vendor(id: offer.vendorId) else { continue }
-            found.append(Suggestion(
-                name: product.name, vendor: vendor.legalName, region: offer.shareUnit,
-                category: product.category, offerId: offer.id
-            ))
+        // Produit et vendeur de chaque lot chargés en parallèle (en série, ~4 s de squelette avec la latence fake).
+        let found = await withTaskGroup(of: (Int, Suggestion?).self) { group in
+            for (index, offer) in offers.enumerated() {
+                group.addTask {
+                    async let product = try? repositories.vendors.product(id: offer.productId)
+                    async let vendor = try? repositories.vendors.vendor(id: offer.vendorId)
+                    guard let product = await product, let vendor = await vendor else { return (index, nil) }
+                    return (index, Suggestion(
+                        name: product.name, vendor: vendor.legalName, region: offer.shareUnit,
+                        category: product.category, offerId: offer.id
+                    ))
+                }
+            }
+            var results: [(Int, Suggestion)] = []
+            for await (index, suggestion) in group {
+                if let suggestion { results.append((index, suggestion)) }
+            }
+            // Même ordre que les lots, quel que soit l'ordre d'arrivée.
+            return results.sorted { $0.0 < $1.0 }.map(\.1)
         }
         return found.isEmpty ? nil : found
     }
@@ -183,8 +213,14 @@ extension SearchScreen {
     private struct SuggestionRow: View {
         let suggestion: Suggestion
 
+        @Environment(\.dynamicTypeSize) private var dynamicTypeSize
+
         var body: some View {
-            HStack(spacing: 12) {
+            // Icône au-dessus du texte aux tailles AX : côte à côte, les noms se coupaient en plein mot (« Pomm-es »).
+            let layout = dynamicTypeSize.isAccessibilitySize
+                ? AnyLayout(VStackLayout(alignment: .leading, spacing: 8))
+                : AnyLayout(HStackLayout(spacing: 12))
+            layout {
                 ProductIcon(category: suggestion.category)
                 VStack(alignment: .leading, spacing: 2) {
                     Text(suggestion.name)

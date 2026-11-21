@@ -61,7 +61,7 @@
     "memberRole": "member",
     "private": {
       "isSubsidized": true,
-      "referralCode": "ORG-PE-003"
+      "referralCode": "ORG-PE-00035"
     }
   },
   {
@@ -110,7 +110,7 @@
     "memberRole": "member",
     "private": {
       "isSubsidized": true,
-      "referralCode": "ORG-PE-007"
+      "referralCode": "ORG-PE-00077"
     }
   },
   {
@@ -171,7 +171,7 @@
     "memberRole": "member",
     "private": {
       "isSubsidized": true,
-      "referralCode": "ORG-R-012"
+      "referralCode": "ORG-RO-00124"
     }
   },
   {
@@ -256,7 +256,7 @@
     "memberRole": "member",
     "private": {
       "isSubsidized": true,
-      "referralCode": "ORG-H-019"
+      "referralCode": "ORG-HO-00193"
     }
   },
   {
@@ -329,7 +329,7 @@
     "memberRole": "member",
     "private": {
       "isSubsidized": true,
-      "referralCode": "ORG-SM-025"
+      "referralCode": "ORG-SM-00252"
     }
   },
   {
@@ -402,7 +402,7 @@
     "memberRole": "coordinator",
     "private": {
       "isSubsidized": true,
-      "referralCode": "ORG-V-031"
+      "referralCode": "ORG-VE-00313"
     }
   },
   {
@@ -487,7 +487,7 @@
     "memberRole": "coordinator",
     "private": {
       "isSubsidized": true,
-      "referralCode": "ORG-CDN-038"
+      "referralCode": "ORG-CN-00380"
     }
   },
   {
@@ -560,7 +560,7 @@
     "memberRole": "member",
     "private": {
       "isSubsidized": true,
-      "referralCode": "ORG-CDN-044"
+      "referralCode": "ORG-CN-00443"
     }
   },
   {
@@ -657,7 +657,7 @@
     "memberRole": "coordinator",
     "private": {
       "isSubsidized": true,
-      "referralCode": "ORG-V-052"
+      "referralCode": "ORG-VI-00525"
     }
   },
   {

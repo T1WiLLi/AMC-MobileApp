@@ -1,0 +1,9 @@
+{
+  "name": "Grenier",
+  "logo": { "symbol": "basket.fill" },
+  "colors": { "accentLight": "#A84D18", "accentDark": "#F08A4B" },
+  "texts": {
+    "tagline": "Achète en gros avec les familles de ton quartier, directement aux producteurs.",
+    "welcome": "Bienvenue dans ton Grenier"
+  }
+}

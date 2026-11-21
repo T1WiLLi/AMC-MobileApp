@@ -11,8 +11,9 @@ struct OfferRoute: Hashable, Sendable {
 
 extension View {
     /// Enregistre la destination `OfferRoute` → `OfferDetailScreen` dans le NavigationStack englobant.
+    /// La fiche sort en zoom de la carte marquée `.grenierZoomSource(OfferRoute(…))` (T-123).
     func offerDestination() -> some View {
-        navigationDestination(for: OfferRoute.self) { route in
+        grenierZoomDestination(for: OfferRoute.self) { route in
             OfferDetailScreen(offerId: route.offerId)
         }
     }

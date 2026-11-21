@@ -89,6 +89,51 @@ Ports : Auth 9099, Firestore 8080, Storage 9199, interface http://localhost:4000
 
 ## 5. Règles de sécurité
 
-- `firestore.rules` : tout est refusé, sauf ce qu'une règle ouvre explicitement. Les dépôts Firebase (B-017 à B-019) ouvrent chacun leurs collections avec un validateur `isValidX()` appelé en create **et** en update, en suivant le skill Firebase `firestore-rules-creation`. Jamais de lecture d'un document avec de la PII par quelqu'un d'autre que son propriétaire.
-- Déployer : `npx -y firebase-tools@latest deploy --only firestore --project amc-2026-8ab03`.
-- Avant la démo : restreindre la clé d'API à l'app iOS dans Google Cloud Console, et envisager App Check. Ne jamais committer de jeton de debug App Check.
+`firestore.rules` et `storage.rules` ouvrent le minimum pour que l'app lise et écrive en vrai :
+
+| Chemin | Lecture | Écriture |
+|---|---|---|
+| `groups`, `vendors`, `products`, `offers`, `groupOrders`, `pickupPoints` | tout utilisateur connecté | `products`/`offers` : le vendeur propriétaire ; `vendors` : sa vitrine ; `pickupPoints` : l'hôte (créneaux, capacité) ; `groups`, `groupOrders` : personne (seed) |
+| `users/{uid}` | le propriétaire | le propriétaire, **sans jamais poser `vendorId`** (rattachement vendeur = seed ou admin) |
+| `households/{id}` et `households/{id}/private/profile` | les membres (`userIds`) | les membres |
+| `groups/{id}/members/{householdId}` | connectés | le ménage s'ajoute (`role: member`) ou se retire |
+| `groupOrders/{id}/shares/{householdId}` | le ménage | le ménage, commande `open`/`reached` : quantité et montant suspendu seulement ; `isPaid`, `subsidyCents`, `finalPriceCents`, `qrCode`, `isPickedUp` restent hors de portée du client |
+| Storage `vendors/{vendorId}/…`, `users/{uid}/…` | connectés | le vendeur rattaché / le propriétaire ; images de moins de 5 Mo |
+
+Tout le reste est refusé. Chaque collection a un validateur de forme (champs permis, types, tailles).
+
+Tests (émulateur sur des ports à part, pour ne pas gêner les émulateurs des autres agents) :
+
+```bash
+npm --prefix scripts/rules-tests ci
+npm --prefix scripts/rules-tests run test:emulators
+```
+
+Déployer **seulement si les tests passent** :
+
+```bash
+npx -y firebase-tools@latest deploy --only firestore:rules --project amc-2026-8ab03
+```
+
+Storage n'est pas encore initialisé sur le projet (aucune règle déployée) : l'activer dans la console (Storage › Commencer) puis `deploy --only storage`.
+
+## 6. Données de démo dans Firestore
+
+`scripts/seed/seedFirestore.ts` écrit les fixtures de `scripts/seed/fixtures/` (vendeurs, produits, lots, personas, groupes et membres, points de cueillette, ménages et leur profil privé, commandes groupées et parts) à des ids stables. **Il ne supprime rien** (contrairement à `seedDemo.ts`, qui vide l'émulateur et ses comptes Auth) : on peut le relancer, la démo revient à son état initial. Les échéances et créneaux partent du jour du seed (heure de Montréal).
+
+```bash
+npm --prefix scripts/seed ci
+npm --prefix scripts/seed run seed:firestore -- --dry-run                      # compte les documents
+npm --prefix scripts/seed run seed:firestore                                   # émulateur 127.0.0.1:8080, projet amc-2026-8ab03
+npm --prefix scripts/seed run seed:firestore -- --target cloud --yes           # VRAI projet, session de firebase login
+```
+
+Sur le vrai projet, le script prend le jeton de `firebase login` (pas de clé de service). Les uid des personas (`user-amina`…) ne correspondent pas aux vrais comptes Google : un vrai compte voit le catalogue public, pas le ménage d'Amina.
+
+## 7. Recommandations avant la démo publique
+
+- Restreindre la clé d'API iOS (Google Cloud Console › Identifiants) aux API Firebase utilisées et à l'app `ca.amc2026.mobileapp` : aujourd'hui elle répond sans restriction.
+- Activer App Check (App Attest) ; ne jamais committer de jeton de debug.
+- `groups.inviteCode` est lisible par tout utilisateur connecté : le déplacer dans une sous-collection privée avant d'avoir de vrais groupes privés.
+- Les lots en brouillon (`status: draft`) sont lisibles par les connectés : filtrer côté app.
+- Activer la protection contre la suppression de la base `(default)`.

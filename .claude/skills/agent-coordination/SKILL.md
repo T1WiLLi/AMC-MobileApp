@@ -10,6 +10,8 @@ Ils se parlent dans **un seul doc partagé**. Sans ce protocole, deux agents cod
 
 ## Le doc partagé (le « board »)
 
+Le doc a plusieurs onglets : Board (état courant), Backlog (un sous-onglet par épic), Projet, Requis, Maquettes, Compétition, Idées, Journal, Décisions. Écris le journal dans l'onglet Journal et les décisions dans l'onglet Décisions, pas dans le Board.
+
 - Lien : https://claude.ai/artifact/9Ur9bKmmbmnjgZqgbskohg
 - C'est un **Claude Docs** (pas une page HTML). Il se lit et s'écrit **uniquement via le connecteur Claude Docs** (`read`, `update`, `query`, `create`, `batch`, `guide`). Ne jamais le web-fetch, ne jamais le « publier ».
 - Identifiants (à réutiliser tels quels) :
@@ -31,6 +33,8 @@ Si tu ne peux pas lire/écrire le doc :
 
 Le doc contient ces sections (dans cet ordre). Si une section manque, le premier agent qui le voit la crée et le note dans le journal. Ne supprime **jamais** le texte d'un autre agent ; ajoute.
 
+**Exception : la section Backlog appartient au Product Owner (PO).** Seul l'agent PO (nommé dans « Décisions ») la modifie. Les autres demandent via « Demandes backlog ». Règles complètes : `.claude/skills/product-owner/SKILL.md`.
+
 ```
 # AMC-MobileApp — Board des agents
 
@@ -40,8 +44,11 @@ Le doc contient ces sections (dans cet ordre). Si une section manque, le premier
 ## Tâches en cours (claims)
 | ID | Tâche | Agent | Fichiers / zone touchés | Branche | Début | Statut |
 
-## Backlog (à prendre)
-- [ ] ...
+## Backlog (à prendre) — modifié par le PO uniquement
+| ID | Item | Priorité | Critères d'acceptation | Dépend de | Statut |
+
+## Demandes backlog (tout agent peut écrire ici)
+| ID | De (agent) | Type | Demande | Pourquoi | Décision PO | Statut |
 
 ## Questions entre agents
 | ID | De (agent) | Pour (agent / humain) | Question | Réponse | Statut |
@@ -105,21 +112,26 @@ boucle:
   git pull + relire le board (sinceRev)
   répondre aux questions qui me sont adressées
   terminer / mettre à jour mes claims en cours
-  si rien en cours → choisir dans le Backlog (ou proposer une amélioration utile et l'ajouter au Backlog)
-                     → annoncer le claim → vérifier → coder
-  coder par petits incréments, build + tests, commit, push, PR
+  si je suis PO → traiter les Demandes backlog, tenir le Backlog à jour (skill product-owner)
+  si rien en cours → choisir un item `prêt` du Backlog (une idée nouvelle → Demande backlog R-xxx, pas de code)
+                     → annoncer le claim (citer B-xxx) → vérifier → coder
+  coder par petits incréments, build + tests, commit, push, PR (+ auto-merge)
+  vérifier mes PR (CI rouge, conflit, PR empilée à débloquer) et relire celles des autres (git-workflow)
   journaliser
   recommencer
 ```
 
-- Plus rien dans le backlog ? Améliore la qualité : polish visuel iOS 26, accessibilité, états vides/chargement/erreur, tests, previews, données fake plus riches. Ajoute chaque idée au Backlog **avant** de la claimer.
+- Plus rien de `prêt` dans le backlog ? Propose des idées de qualité (polish visuel iOS 26, accessibilité, états vides/chargement/erreur, tests, previews, données fake plus riches) en **Demandes backlog** ; en attendant la décision du PO, relis les PR des autres. Ne code jamais une idée qui n'est pas un item `prêt`.
 - Ne termine pas ton tour en disant « j'ai fini » : passe à la tâche suivante. Si ton environnement t'impose de rendre la main, laisse le board à jour (claims, journal) pour qu'un autre puisse reprendre.
 - Si ton outil propose une boucle (ex. `/loop` dans Claude Code), utilise-la pour reprendre automatiquement.
 
 ## Formats rapides
 
-- Claim : `| T-012 | Écran détail d'un item (Liquid Glass) | claude-willi | Views/ItemDetailView.swift, ViewModels/ItemDetailViewModel.swift | feat/item-detail | 14:05 | en cours |`
+- Claim : `| T-012 | B-004 — Écran détail d'un item (Liquid Glass) | claude-willi | Views/ItemDetailView.swift, ViewModels/ItemDetailViewModel.swift | feat/item-detail | 14:05 | en cours |`
 - Journal : `- 2026-11-21 14:40 — claude-willi — T-012 PR ouverte (#7). Nouveau composant réutilisable GlassCard dans Views/Components/GlassCard.swift.`
+- Demande backlog : `| R-003 | codex-alex | ajout | Écran Réglages avec bascule clair/sombre | Rien de prêt côté profil | | ouverte |`
 - Question : `| Q-004 | codex-alex | claude-willi | On garde NavigationStack ou NavigationSplitView pour iPad ? | | ouverte |`
 
-Les IDs `T-` / `Q-` sont incrémentaux : prends le plus grand existant + 1.
+**IDs uniques :** relis la table des claims juste avant de choisir un ID, prends le plus grand + 1, puis relis juste après l'écriture ; en cas de doublon, celui qui a écrit en dernier renumérote et le dit dans le journal.
+
+Les IDs `T-` / `Q-` / `R-` sont incrémentaux (les `B-` sont attribués par le PO) : prends le plus grand existant + 1.

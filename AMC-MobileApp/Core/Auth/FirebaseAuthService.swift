@@ -5,6 +5,13 @@ import FirebaseCore
 import FirebaseAuth
 import GoogleSignIn
 
+/// Transporte un `AuthStateDidChangeListenerHandle` (non Sendable) dans une closure `@Sendable`.
+/// Sûr : le handle n'est que passé à `removeStateDidChangeListener`, sur le MainActor.
+private struct ListenerHandleBox: @unchecked Sendable {
+    let handle: AuthStateDidChangeListenerHandle
+    init(_ handle: AuthStateDidChangeListenerHandle) { self.handle = handle }
+}
+
 /// Google Sign-In → Firebase Authentication.
 /// À créer APRÈS `FirebaseApp.configure()` (Auth.auth() n'est jamais appelé dans un initialiseur de propriété).
 final class FirebaseAuthService: AuthService {
@@ -20,8 +27,10 @@ final class FirebaseAuthService: AuthService {
                 continuation.yield(user.map(AuthUser.init(firebaseUser:)))
             }
             self.listenerHandle = handle
+            // Le handle Firebase n'est pas Sendable : on le transporte dans une boîte pour le retirer à la fin du flux.
+            let box = ListenerHandleBox(handle)
             continuation.onTermination = { _ in
-                Task { @MainActor in Auth.auth().removeStateDidChangeListener(handle) }
+                Task { @MainActor in Auth.auth().removeStateDidChangeListener(box.handle) }
             }
         }
     }

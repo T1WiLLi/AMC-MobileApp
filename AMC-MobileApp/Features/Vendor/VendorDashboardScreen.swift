@@ -3,9 +3,9 @@ import SwiftUI
 struct VendorDashboardScreen: View {
     var body: some View {
         PlaceholderScreen(
-            title: "Tableau de bord",
-            systemImage: "chart.bar.fill",
-            message: "Tes lots actifs, les familles engagées et tes revenus prévus.",
+            title: "Tableau",
+            systemImage: "house.fill",
+            message: "Tes ventes de la semaine, les familles servies et les paliers atteints (maquette V1).",
             epic: "E09"
         )
     }

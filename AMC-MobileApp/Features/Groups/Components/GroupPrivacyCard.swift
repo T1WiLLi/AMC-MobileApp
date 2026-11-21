@@ -176,7 +176,9 @@ private struct InvitationRow: View {
         ViewThatFits(in: .horizontal) {
             HStack(spacing: 12) { details; Spacer(minLength: 8); actions }
             VStack(alignment: .leading, spacing: 8) { details; actions }
+                .frame(maxWidth: .infinity, alignment: .leading)
         }
+        .frame(maxWidth: .infinity, alignment: .leading)
         .padding(.vertical, 10)
     }
 

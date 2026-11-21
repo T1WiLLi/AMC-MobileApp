@@ -34,8 +34,9 @@ struct OfferCardTests {
         let text = card(shares: 25, households: 25).accessibilityText
         #expect(text.hasPrefix("Riz basmati"))
         #expect(text.contains("Ferme Lafleur"))
-        #expect(text.contains("le kg"))
-        #expect(text.contains("Encore 1 part pour −19 %"))
+        #expect(text.contains("le kilo"))
+        #expect(text.contains("Encore 1 part pour moins 19 pour cent"))
+        #expect(!text.contains("$"))
     }
 
     @Test func everyCategoryHasASymbol() {

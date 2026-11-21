@@ -193,6 +193,35 @@ struct RepositoryCacheTests {
         #expect(await spy.calls("shares") == 2)
     }
 
+    @Test func pickupChangesThroughTheDecoratorUpdateEntries() async throws {
+        let base = AppRepositories.fake(behavior: .instant)
+        let spy = SpyGroupOrderRepository(base: base.groupOrders)
+        var spied = base
+        spied.groupOrders = spy
+        let repos = spied.cached()
+
+        let before = try await repos.groupOrders.groupOrder(id: ID.potatoOrder)
+        _ = try await repos.groupOrders.groupOrders(ofGroup: ID.saintMichel)
+        _ = try await repos.groupOrders.shares(ofGroupOrder: ID.potatoOrder)
+        let slot = try #require(before.pickupSlots.first)
+        let later = PickupSlot(start: slot.end, end: slot.end.addingTimeInterval(3_600))
+
+        try await repos.groupOrders.setPickupPoint(before.pickupPointId, slots: [slot, later], groupOrderId: ID.potatoOrder)
+        #expect(try await repos.groupOrders.groupOrder(id: ID.potatoOrder).pickupSlots.count == 2)
+        #expect(try await repos.groupOrders.groupOrders(ofGroup: ID.saintMichel).first?.pickupSlots.count == 2)
+        #expect(await spy.calls("groupOrder") == 1)
+        #expect(await spy.calls("groupOrdersOfGroup") == 1)
+        _ = try await repos.groupOrders.shares(ofGroupOrder: ID.potatoOrder)
+        #expect(await spy.calls("shares") == 2)
+
+        // Réserver un créneau fait relire les parts.
+        try await repos.groupOrders.setShare(quantity: 1, householdId: ID.aminaHousehold, groupOrderId: ID.potatoOrder)
+        try await repos.groupOrders.reservePickupSlot(start: later.start, householdId: ID.aminaHousehold,
+                                                      groupOrderId: ID.potatoOrder)
+        let shares = try await repos.groupOrders.shares(ofGroupOrder: ID.potatoOrder)
+        #expect(shares.first { $0.householdId == ID.aminaHousehold }?.pickupSlotStart == later.start)
+    }
+
     @Test func savingAnOfferInvalidatesOfferLists() async throws {
         let base = AppRepositories.fake(behavior: .instant)
         let repos = base.cached()

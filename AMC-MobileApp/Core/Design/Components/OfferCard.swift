@@ -21,9 +21,10 @@ struct OfferCard: View {
                     Text("\(product.name) · \(offer.shareUnit)")
                         .font(.headline)
                         .foregroundStyle(.texte)
-                    Text("\(vendor.legalName) · ferme \(deadlineText)")
+                    Text("\(Image(systemName: vendor.isVerified ? "checkmark.seal.fill" : "storefront.fill")) \(vendor.legalName) · \(Image(systemName: "clock.fill")) ferme \(deadlineText)")
                         .font(.subheadline)
                         .foregroundStyle(.texteSecondaire)
+                        .symbolRenderingMode(.hierarchical)
                 }
                 if !isAccessibilityLayout { Spacer(minLength: 8) }
                 if savingsPercent > 0 {
@@ -35,14 +36,16 @@ struct OfferCard: View {
 
             footerLayout {
                 if let nudge = progressBar.shortNudge {
-                    Text(nudge)
+                    Label(nudge, systemImage: "arrow.up.forward.circle.fill")
                         .font(.subheadline.weight(.semibold))
                         .foregroundStyle(Color.grenier)
+                        .symbolRenderingMode(.hierarchical)
                         .monospacedDigit()
                 } else {
-                    Text(progressText)
+                    Label(progressText, systemImage: "person.2.fill")
                         .font(.subheadline)
                         .foregroundStyle(.texteSecondaire)
+                        .symbolRenderingMode(.hierarchical)
                         .monospacedDigit()
                 }
                 if !isAccessibilityLayout { Spacer(minLength: 8) }
@@ -85,13 +88,18 @@ struct OfferCard: View {
         "\(FrenchPlural.count(committedHouseholds, "famille")) · \(FrenchPlural.count(committedShares, "part")) sur \(offer.totalShares)"
     }
 
-    /// Lecture VoiceOver courte : « Riz basmati, Ferme Lafleur, 2,60 $ le kg, −37 %, encore 1 part pour −19 % ».
+    /// Lecture VoiceOver courte : « Riz basmati, Ferme Lafleur, 2 dollars 60 le kilo, 37 pour cent moins cher… ».
     var accessibilityText: String {
-        var parts = ["\(product.name), \(offer.shareUnit)", vendor.legalName, "ferme \(deadlineText)", "\(Money.format(currentPriceCents)) le \(product.unit)"]
+        var parts = ["\(product.name), \(offer.shareUnit)", vendor.legalName, "ferme \(deadlineText)", Money.spoken(currentPriceCents, per: product.unit)]
         if savingsPercent > 0 { parts.append("\(savingsPercent) pour cent moins cher qu'en épicerie") }
         parts.append(progressText)
-        if let nudge = progressBar.shortNudge { parts.append(nudge) }
+        if let nudge = progressBar.shortNudge { parts.append(Self.spokenPercent(nudge)) }
         return parts.joined(separator: ", ")
+    }
+
+    /// « −19 % » se lit « tiret 19 pour cent » : on écrit le mot.
+    static func spokenPercent(_ text: String) -> String {
+        text.replacingOccurrences(of: "−", with: "moins ").replacingOccurrences(of: " %", with: " pour cent")
     }
 
     private var isAccessibilityLayout: Bool { dynamicTypeSize.isAccessibilitySize }
@@ -187,5 +195,15 @@ enum CardPreviewData {
     }
     .grenierBackground()
     .dynamicTypeSize(.accessibility5)
+}
+
+#Preview("AX5 sombre") {
+    ScrollView {
+        OfferCard(offer: CardPreviewData.offer, product: CardPreviewData.product, vendor: CardPreviewData.vendor, committedShares: 3, committedHouseholds: 3)
+            .padding()
+    }
+    .grenierBackground()
+    .dynamicTypeSize(.accessibility5)
+    .preferredColorScheme(.dark)
 }
 #endif

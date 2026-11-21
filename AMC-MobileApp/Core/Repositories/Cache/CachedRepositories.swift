@@ -53,6 +53,7 @@ nonisolated struct CachedGroupOrderRepository: GroupOrderRepository {
     @discardableResult
     func setPickupPoint(_ pickupPointId: String?, slots: [PickupSlot], groupOrderId: String) async throws -> GroupOrder {
         let order = try await base.setPickupPoint(pickupPointId, slots: slots, groupOrderId: groupOrderId)
+        // Les réservations sur un créneau retiré sont effacées : `apply` fait aussi relire les parts.
         await Self.apply(order, to: cache)
         return order
     }
@@ -60,7 +61,6 @@ nonisolated struct CachedGroupOrderRepository: GroupOrderRepository {
     @discardableResult
     func reservePickupSlot(start: Date?, householdId: String, groupOrderId: String) async throws -> Share {
         let share = try await base.reservePickupSlot(start: start, householdId: householdId, groupOrderId: groupOrderId)
-        // La part a changé : les parts de la commande sont relues.
         await cache.invalidate(.shares(ofGroupOrder: groupOrderId))
         return share
     }

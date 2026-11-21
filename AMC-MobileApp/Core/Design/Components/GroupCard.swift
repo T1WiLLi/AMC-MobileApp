@@ -13,6 +13,7 @@ struct GroupCard: View {
     var onJoin: (() -> Void)?
 
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     /// Membres en plus des initiales affichées, pour que la pile annonce exactement `householdCount`.
     var extraMembers: Int { max(group.householdCount - memberInitials.prefix(3).count, 0) }
@@ -20,30 +21,47 @@ struct GroupCard: View {
     var body: some View {
         let layout = rowLayout
         layout {
+            // Le nombre de familles est déjà lu dans le détail : la pile d'avatars ne le répète pas.
             AvatarStack(initials: memberInitials, extraCount: extraMembers)
+                .accessibilityHidden(true)
             VStack(alignment: .leading, spacing: 2) {
                 Text(group.name)
                     .font(.headline)
                     .foregroundStyle(.texte)
-                Text(detailText)
+                Label(detailText, systemImage: pickupLabel == nil ? "house.fill" : "mappin.and.ellipse")
                     .font(.subheadline)
                     .foregroundStyle(.texteSecondaire)
+                    .symbolRenderingMode(.hierarchical)
             }
+            .fixedSize(horizontal: false, vertical: true)
+            .accessibilityElement(children: .ignore)
+            .accessibilityLabel("\(group.name), \(detailText)")
+            .accessibilityAddTraits(.isHeader)
             if !dynamicTypeSize.isAccessibilitySize { Spacer(minLength: 8) }
             if isMember {
                 Label("Membre", systemImage: "checkmark.circle.fill")
                     .labelStyle(.iconOnly)
                     .font(.title2)
+                    .symbolRenderingMode(.hierarchical)
                     .foregroundStyle(Color.economie)
-                    .accessibilityLabel("Tu es membre")
+                    .symbolEffect(.bounce, value: isMember && !reduceMotion)
+                    .transition(.scale.combined(with: .opacity))
+                    .accessibilityLabel("Tu es membre de \(group.name)")
             } else if let onJoin {
-                Button("Rejoindre", action: onJoin)
-                    .buttonStyle(.glass)
-                    .tint(.grenier)
-                    .fontWeight(.semibold)
+                Button(action: onJoin) {
+                    Label("Rejoindre", systemImage: "person.badge.plus")
+                        .symbolRenderingMode(.hierarchical)
+                }
+                .buttonStyle(.glass)
+                .tint(.grenier)
+                .fontWeight(.semibold)
+                .accessibilityLabel("Rejoindre \(group.name)")
+                .accessibilityHint("Ajoute ta famille à ce groupe d'achat")
             }
         }
         .grenierCard(padding: 14)
+        .grenierAnimation(.smooth, value: isMember)
+        .grenierHaptic(.success, trigger: isMember) { _, new in new }
         .accessibilityElement(children: .contain)
     }
 
@@ -88,10 +106,21 @@ struct GroupCard: View {
 }
 
 #Preview("AX5") {
-    GroupCard(group: CardPreviewData.group, memberInitials: ["FB", "RK"], pickupLabel: "rue Ogilvy", distanceMeters: 450, onJoin: {})
-        .padding()
-        .frame(maxHeight: .infinity)
-        .grenierBackground()
-        .dynamicTypeSize(.accessibility5)
+    ScrollView {
+        GroupCard(group: CardPreviewData.group, memberInitials: ["FB", "RK"], pickupLabel: "rue Ogilvy", distanceMeters: 450, onJoin: {})
+            .padding()
+    }
+    .grenierBackground()
+    .dynamicTypeSize(.accessibility5)
+}
+
+#Preview("AX5 sombre") {
+    ScrollView {
+        GroupCard(group: CardPreviewData.group, memberInitials: ["AM", "FB", "RK"], pickupLabel: "rue Ogilvy", distanceMeters: 1_200, isMember: true)
+            .padding()
+    }
+    .grenierBackground()
+    .dynamicTypeSize(.accessibility5)
+    .preferredColorScheme(.dark)
 }
 #endif

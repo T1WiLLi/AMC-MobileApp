@@ -9,39 +9,58 @@ struct PriceTag: View {
     var referenceCents: Cents?
     var font: Font = .price
 
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
     var body: some View {
-        HStack(alignment: .firstTextBaseline, spacing: 8) {
-            HStack(alignment: .firstTextBaseline, spacing: 0) {
-                Text(Money.format(priceCents))
-                    .priceStyle(font)
-                    .foregroundStyle(.texte)
-                    // Le montant ne se coupe jamais (« 11,50 » puis « $ » seul sur la ligne suivante) : seule l'unité passe à la ligne.
-                    .lineLimit(1)
-                    .fixedSize()
-                    .contentTransition(.numericText(value: Double(priceCents)))
-                    .animation(.smooth, value: priceCents)
-                if let unit {
-                    Text("/\(unit)")
-                        .font(.subheadline.weight(.semibold))
-                        .fontDesign(.rounded)
-                        .foregroundStyle(.texteSecondaire)
-                }
-            }
-            if let referenceCents, referenceCents > priceCents {
-                Text(Money.format(referenceCents))
-                    .font(.subheadline)
-                    .strikethrough()
-                    .foregroundStyle(.texteSecondaire)
-            }
+        ViewThatFits(in: .horizontal) {
+            HStack(alignment: .firstTextBaseline, spacing: 8) { priceAndUnit; reference }
+            // AX5 : le prix barré passe dessous plutôt que de couper le montant.
+            VStack(alignment: .leading, spacing: 2) { priceAndUnit; reference }
         }
         .accessibilityElement(children: .ignore)
         .accessibilityLabel(accessibilityText)
     }
 
-    var accessibilityText: String {
-        var text = "\(Money.format(priceCents))" + (unit.map { " par \($0)" } ?? "")
+    private var priceAndUnit: some View {
+        HStack(alignment: .firstTextBaseline, spacing: 0) {
+            Text(Money.format(priceCents))
+                .priceStyle(font)
+                .foregroundStyle(.texte)
+                // Le montant ne se coupe jamais (« 11,50 » puis « $ » seul sur la ligne suivante) : seule l'unité passe à la ligne.
+                .lineLimit(1)
+                .fixedSize()
+                .contentTransition(reduceMotion ? .opacity : .numericText(value: Double(priceCents)))
+                .grenierAnimation(.smooth, value: priceCents)
+            if let unit {
+                Text("/\(unit)")
+                    .font(.subheadline.weight(.semibold))
+                    .fontDesign(.rounded)
+                    .foregroundStyle(.texteSecondaire)
+            }
+        }
+    }
+
+    @ViewBuilder
+    private var reference: some View {
         if let referenceCents, referenceCents > priceCents {
-            text += ", au lieu de \(Money.format(referenceCents)) en épicerie"
+            // Panier d'épicerie : le prix barré est celui du magasin, pas un ancien prix Grenier.
+            HStack(alignment: .firstTextBaseline, spacing: 3) {
+                Image(systemName: "cart.fill")
+                    .imageScale(.small)
+                    .symbolRenderingMode(.hierarchical)
+                Text(Money.format(referenceCents))
+                    .strikethrough()
+            }
+            .font(.subheadline)
+            .foregroundStyle(.texteSecondaire)
+        }
+    }
+
+    /// « 2 dollars 60 le kilo, au lieu de 4 dollars 10 en épicerie »
+    var accessibilityText: String {
+        var text = Money.spoken(priceCents, per: unit)
+        if let referenceCents, referenceCents > priceCents {
+            text += ", au lieu de \(Money.spoken(referenceCents)) en épicerie"
         }
         return text
     }
@@ -64,4 +83,15 @@ struct PriceTag: View {
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .grenierBackground()
         .preferredColorScheme(.dark)
+}
+
+#Preview("AX5") {
+    VStack(alignment: .leading, spacing: 16) {
+        PriceTag(priceCents: 260, unit: "kg", referenceCents: 410)
+        PriceTag(priceCents: 1_450, unit: "caisse", font: .priceCompact)
+    }
+    .padding()
+    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .leading)
+    .grenierBackground()
+    .dynamicTypeSize(.accessibility5)
 }

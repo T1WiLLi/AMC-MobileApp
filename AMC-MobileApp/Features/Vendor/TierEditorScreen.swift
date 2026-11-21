@@ -24,7 +24,8 @@ struct TierEditorScreen: View {
 
     enum Field: Hashable {
         case totalShares
-        case shareUnit
+        case shareWeight
+        case shareValue
         case threshold(UUID)
         case price(UUID)
     }
@@ -157,16 +158,66 @@ struct TierEditorScreen: View {
             }
             .id(ErrorAnchor.quantity)
 
-            LabeledContent {
-                TextField("sac de 10 kg", text: $model.shareUnit)
-                    .multilineTextAlignment(.trailing)
-                    .textInputAutocapitalization(.never)
-                    .submitLabel(.done)
-                    .focused($focus, equals: .shareUnit)
-                    .accessibilityLabel("Contenu d'une part")
+            // B-050 : la part est structurée (contenant, nombre, poids, valeur) au lieu d'un texte libre.
+            Picker(selection: $model.share.container) {
+                ForEach(ShareSpec.Container.allCases) { container in
+                    Label(container.menuTitle, systemImage: container.systemImage).tag(container)
+                }
             } label: {
-                Label("Une part", systemImage: "scalemass.fill")
+                Label("Contenant", systemImage: model.share.container.systemImage)
             }
+            .pickerStyle(.menu)
+
+            if model.share.container != .bulk {
+                Stepper(value: $model.share.count, in: 1...100) {
+                    Label {
+                        Text("\(model.share.count) \(model.share.count > 1 ? model.share.container.pluralName : model.share.container.name) par part")
+                            .monospacedDigit()
+                            .contentTransition(.numericText())
+                    } icon: {
+                        Image(systemName: "square.stack.fill")
+                    }
+                }
+            }
+
+            LabeledContent {
+                HStack(spacing: 6) {
+                    WeightField(label: "Poids", value: $model.share.weight.value)
+                        .frame(minWidth: 64)
+                        .focused($focus, equals: .shareWeight)
+                        .fieldBox(isInvalid: isInvalid(.quantity) && !model.share.isValid, compact: true)
+                    Picker("Unité", selection: $model.share.weight.unit) {
+                        ForEach(ShareSpec.Unit.allCases) { unit in
+                            Text(unit == .piece ? "unités" : unit.rawValue).tag(unit)
+                        }
+                    }
+                    .pickerStyle(.menu)
+                    .labelsHidden()
+                    .fixedSize()
+                }
+            } label: {
+                Label(model.share.container == .bulk ? "Poids" : "Poids par \(model.share.container.name)", systemImage: "scalemass.fill")
+            }
+
+            LabeledContent {
+                PriceField(label: "Valeur d'une part", value: shareValue)
+                    .frame(minWidth: 96)
+                    .focused($focus, equals: .shareValue)
+                    .fieldBox(isInvalid: false, compact: true)
+            } label: {
+                Label("Valeur d'une part", systemImage: "dollarsign.circle.fill")
+            }
+
+            LabeledContent {
+                Text(model.share.label)
+                    .foregroundStyle(.texte)
+                    .contentTransition(.interpolate)
+                    .multilineTextAlignment(.trailing)
+            } label: {
+                Label("Une part", systemImage: "checkmark.seal.fill")
+            }
+            .accessibilityElement(children: .combine)
+            .animation(.smooth, value: model.share)
 
             LabeledContent {
                 Text(referencePriceText)
@@ -398,13 +449,24 @@ struct TierEditorScreen: View {
         }
     }
 
+    /// Valeur d'une part en dollars (0 = non renseignée) ↔ `ShareSpec.valueCents`.
+    private var shareValue: Binding<Decimal> {
+        Binding(
+            get: { Decimal(model.share.valueCents ?? 0) / 100 },
+            set: { newValue in
+                let cents = NSDecimalNumber(decimal: newValue * 100).intValue
+                model.share.valueCents = cents > 0 ? cents : nil
+            }
+        )
+    }
+
     // MARK: Erreurs
 
     /// Où se trouve la première règle non respectée (même ordre que `TierEditorViewModel.validatedOffer()`).
     private var errorAnchor: ErrorAnchor? {
         guard model.validationError != nil else { return nil }
         if model.productId == nil { return .product }
-        if model.totalShares <= 0 || model.shareUnit.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+        if model.totalShares <= 0 || !model.share.isValid {
             return .quantity
         }
         guard !model.tiers.isEmpty else { return .tiers }
@@ -749,6 +811,61 @@ private struct IntegerField: View {
             .onChange(of: value) { _, newValue in
                 if (Int(text) ?? 0) != newValue { text = newValue == 0 ? "" : String(newValue) }
             }
+    }
+}
+
+/// Champ de poids (pavé décimal, virgule ou point, deux décimales) mis à jour à chaque frappe.
+private struct WeightField: View {
+    let label: String
+    @Binding var value: Double
+    @State private var text = ""
+
+    private static let locale = Locale(identifier: "fr_CA")
+
+    var body: some View {
+        TextField(label, text: $text, prompt: Text("10"))
+            .keyboardType(.decimalPad)
+            .multilineTextAlignment(.trailing)
+            .monospacedDigit()
+            .accessibilityLabel(label)
+            .onAppear { text = Self.format(value) }
+            .onChange(of: text) { _, newText in
+                let cleaned = Self.clean(newText)
+                if cleaned != newText { text = cleaned; return }
+                value = Double(cleaned.replacingOccurrences(of: ",", with: ".")) ?? 0
+            }
+            .onChange(of: value) { _, newValue in
+                let current = Double(text.replacingOccurrences(of: ",", with: ".")) ?? 0
+                if current != newValue { text = Self.format(newValue) }
+            }
+    }
+
+    /// Chiffres et un seul séparateur décimal, deux décimales et 7 chiffres entiers au plus.
+    private static func clean(_ text: String) -> String {
+        var result = ""
+        var hasSeparator = false
+        var decimals = 0
+        var integers = 0
+        for character in text {
+            if character.isNumber {
+                if hasSeparator {
+                    guard decimals < 2 else { continue }
+                    decimals += 1
+                } else {
+                    guard integers < 7 else { continue }
+                    integers += 1
+                }
+                result.append(character)
+            } else if (character == "," || character == "."), !hasSeparator {
+                hasSeparator = true
+                result.append(",")
+            }
+        }
+        return result
+    }
+
+    private static func format(_ value: Double) -> String {
+        value > 0 ? ShareSpec.format(value) : ""
     }
 }
 

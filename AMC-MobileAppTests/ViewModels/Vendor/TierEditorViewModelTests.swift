@@ -146,10 +146,18 @@ struct TierEditorViewModelTests {
         expectInvalid(model, "Le lot doit contenir au moins une part.")
     }
 
-    @Test func requiresAShareUnit() {
+    @Test func requiresAShareWeight() {
         let model = validEditor()
-        model.shareUnit = "   "
-        expectInvalid(model, "Indique ce que contient une part (par exemple « sac de 10 kg »).")
+        model.share.weight.value = 0
+        expectInvalid(model, "Indique ce que contient une part : un poids plus grand que 0 (par exemple « sac de 10 kg »).")
+    }
+
+    @Test func savesTheStructuredShare() throws {
+        let model = validEditor()
+        model.share = ShareSpec(container: .crate, count: 2, weight: .init(2.5, .kilogram), valueCents: 1_299)
+        let offer = try model.validatedOffer()
+        #expect(offer.share == model.share)
+        #expect(offer.shareUnit == "2 caisses de 2,5 kg")
     }
 
     @Test func requiresAtLeastOneTier() {

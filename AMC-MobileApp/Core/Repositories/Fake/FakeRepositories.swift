@@ -157,6 +157,16 @@ actor FakeVendorRepository: VendorRepository {
         guard vendors[product.vendorId] != nil else { throw AppError.notFound }
         products[product.id] = product
     }
+
+    func saveVendor(_ vendor: Vendor) async throws {
+        try await behavior.simulate()
+        guard let current = vendors[vendor.id] else { throw AppError.notFound }
+        // Comme firestore.rules : raison sociale, type, note et vérification restent en lecture seule.
+        guard current.legalName == vendor.legalName, current.kind == vendor.kind,
+              current.averageRating == vendor.averageRating, current.isVerified == vendor.isVerified
+        else { throw AppError.permissionDenied }
+        vendors[vendor.id] = vendor
+    }
 }
 
 actor FakeOfferRepository: OfferRepository {
@@ -296,6 +306,36 @@ actor FakeGroupOrderRepository: GroupOrderRepository {
         return updated
     }
 
+    @discardableResult
+    func setPickupPoint(_ pickupPointId: String?, slots: [PickupSlot], groupOrderId: String) async throws -> GroupOrder {
+        try await behavior.simulate()
+        guard var order = groupOrders[groupOrderId] else { throw AppError.notFound }
+        guard order.status != .cancelled, order.status != .delivered else { throw AppError.orderClosed }
+        let slots = pickupPointId == nil ? [] : try PickupSlotBook.validatedSlots(slots)
+        order.pickupPointId = pickupPointId
+        order.pickupSlots = slots
+        shares[groupOrderId] = PickupSlotBook.clearingRemovedSlots(shares[groupOrderId, default: []], keeping: slots)
+        groupOrders[groupOrderId] = order
+        broadcaster.send(order, for: groupOrderId)
+        return order
+    }
+
+    @discardableResult
+    func reservePickupSlot(start: Date?, householdId: String, groupOrderId: String) async throws -> Share {
+        try await behavior.simulate()
+        guard let order = groupOrders[groupOrderId] else { throw AppError.notFound }
+        guard order.status != .cancelled, order.status != .delivered else { throw AppError.orderClosed }
+        var orderShares = shares[groupOrderId, default: []]
+        let share = try PickupSlotBook.reserving(
+            start, householdId: householdId, slots: order.pickupSlots, shares: orderShares, now: now()
+        )
+        if let index = orderShares.firstIndex(where: { $0.householdId == householdId }) {
+            orderShares[index] = share
+        }
+        shares[groupOrderId] = orderShares
+        return share
+    }
+
     func observeGroupOrder(id: String) async -> AsyncThrowingStream<GroupOrder, any Error> {
         let (stream, continuation) = AsyncThrowingStream<GroupOrder, any Error>.makeStream()
         guard let order = groupOrders[id] else {
@@ -317,7 +357,7 @@ actor FakeGroupOrderRepository: GroupOrderRepository {
 
 actor FakePickupPointRepository: PickupPointRepository {
     private let behavior: FakeBehavior
-    private let pickupPoints: [String: PickupPoint]
+    private var pickupPoints: [String: PickupPoint]
 
     init(behavior: FakeBehavior = .instant, pickupPoints: [PickupPoint] = []) {
         self.behavior = behavior
@@ -333,5 +373,13 @@ actor FakePickupPointRepository: PickupPointRepository {
         try await behavior.simulate()
         guard let point = pickupPoints[id] else { throw AppError.notFound }
         return point
+    }
+
+    func savePickupPoint(_ point: PickupPoint) async throws {
+        try await behavior.simulate()
+        if let existing = pickupPoints[point.id], existing.hostUserId != point.hostUserId {
+            throw AppError.permissionDenied
+        }
+        pickupPoints[point.id] = try PickupSlotBook.validatedPoint(point)
     }
 }

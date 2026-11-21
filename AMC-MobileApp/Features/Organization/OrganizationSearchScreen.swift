@@ -1,0 +1,56 @@
+import SwiftUI
+
+/// Onglet Recherche du portail Organismes (T-116) : un groupe ou un quartier, puis Financer.
+struct OrganizationSearchScreen: View {
+    let model: OrganizationPortalModel?
+
+    @State private var query = ""
+    @State private var donationTarget: GroupSolidarityProfile?
+
+    var body: some View {
+        NavigationStack {
+            OrganizationStateContainer(model: model) { model, _ in
+                ScrollView {
+                    VStack(alignment: .leading, spacing: 12) {
+                        if model.searchResults.isEmpty {
+                            EmptyStateView(title: "Aucun groupe trouvé", systemImage: "magnifyingglass",
+                                           message: "Essaie un autre quartier.")
+                        }
+                        ForEach(model.searchResults) { profile in
+                            GroupNeedCard(profile: profile, distance: model.distanceText(for: profile),
+                                          isSponsored: profile.isSponsored(by: model.organizationId)) {
+                                Button {
+                                    donationTarget = profile
+                                } label: {
+                                    Label("Financer", systemImage: "heart.fill")
+                                        .frame(maxWidth: .infinity, minHeight: 36)
+                                }
+                                .buttonStyle(.glass)
+                                .tint(.grenier)
+                            }
+                        }
+                    }
+                    .padding(16)
+                }
+                .searchable(text: $query, prompt: "Groupe ou quartier")
+                .searchSuggestions {
+                    ForEach(model.neighborhoodSuggestions, id: \.self) { name in
+                        Label(name, systemImage: "mappin.and.ellipse").searchCompletion(name)
+                    }
+                }
+                .onChange(of: query, initial: true) { _, text in model.searchText = text }
+                .sheet(item: $donationTarget) { profile in
+                    DonationSheet(model: model, groupId: profile.groupId)
+                }
+            }
+            .grenierBackground()
+            .navigationTitle("Rechercher")
+        }
+    }
+}
+
+#Preview("Clair") {
+    let model = OrganizationPortalModel(repository: FakeOrganizationRepository(), organizationId: FakeData.ID.laRuche)
+    OrganizationSearchScreen(model: model)
+        .task { await model.load() }
+}

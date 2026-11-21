@@ -77,4 +77,16 @@ nonisolated enum VendorRepositoryQueries {
         guard let price = currentPrice(of: order, offer: offer) else { return 0 }
         return order.committedShares * price
     }
+
+    /// Revenu d'une commande calculé depuis ses parts réelles (`groupOrders/{id}/shares`, T-129) :
+    /// prix figé à la clôture (`finalPriceCents`, total de la part) quand il existe, sinon quantité × prix du palier
+    /// atteint par la commande. Sans parts lues (liste vide), on retombe sur `projectedRevenue(of:offer:)`.
+    /// Les dons au panier suspendu et les subventions ne sont pas du revenu du vendeur : ils sont ignorés.
+    static func revenue(of order: GroupOrder, offer: Offer, shares: [Share]) -> Cents {
+        guard !shares.isEmpty else { return projectedRevenue(of: order, offer: offer) }
+        let price = currentPrice(of: order, offer: offer) ?? 0
+        return shares.reduce(0) { total, share in
+            total + (share.finalPriceCents ?? share.quantity * price)
+        }
+    }
 }

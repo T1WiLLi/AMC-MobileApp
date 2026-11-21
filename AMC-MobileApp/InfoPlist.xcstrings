@@ -1,0 +1,22 @@
+{
+  "sourceLanguage" : "fr",
+  "strings" : {
+    "CFBundleDisplayName" : {
+      "comment" : "Nom affiché sous l'icône.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Grenier" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Grenier" } }
+      }
+    },
+    "CFBundleName" : {
+      "comment" : "Nom du bundle affiché par la feuille système « … veut utiliser accounts.google.com » (sinon « AMC-MobileApp »).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Grenier" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Grenier" } }
+      }
+    }
+  },
+  "version" : "1.0"
+}

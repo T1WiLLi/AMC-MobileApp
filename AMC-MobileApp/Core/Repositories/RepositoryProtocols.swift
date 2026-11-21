@@ -182,8 +182,29 @@ nonisolated struct AppRepositories: Sendable {
     var supplies: any VendorSupplyRepository = FakeVendorSupplyRepository()
     /// RQ-093 (T-114). Fake vide par défaut.
     var boroughStats: any BoroughStatsRepository = FakeBoroughStatsRepository()
+    /// RQ-069 (T-117) : livraison à domicile par un voisin bénévole.
+    var deliveries: any VolunteerDeliveryRepository = FakeVolunteerDeliveryRepository()
+    /// T-116 : portail Organismes (fonds de solidarité, financements, parrainages).
+    var organizations: any OrganizationRepository = FakeOrganizationRepository(
+        organizations: [], profiles: [], donations: [], sponsorships: []
+    )
 
-    /// Dépôts en mémoire remplis avec `FakeData`.
+    /// Dépôts en mémoire VIDES (aucune persona de `FakeData`) : repli quand Firebase n'est pas configuré
+    /// et contexte non résolu (`AppContext.unresolved`). Un écran qui les lit n'affiche rien plutôt que du faux.
+    static func empty() -> AppRepositories {
+        AppRepositories(
+            users: FakeUserRepository(),
+            groups: FakeGroupRepository(),
+            vendors: FakeVendorRepository(),
+            offers: FakeOfferRepository(),
+            groupOrders: FakeGroupOrderRepository(),
+            pickupPoints: FakePickupPointRepository(),
+            wishes: FakeGroupWishRepository(),
+            supplies: FakeVendorSupplyRepository()
+        )
+    }
+
+    /// Dépôts en mémoire remplis avec `FakeData` : previews, tests et mode `.fake` (`-useFakeData`) seulement.
     static func fake(behavior: FakeBehavior = .realistic, data: FakeData = .montreal) -> AppRepositories {
         AppRepositories(
             users: FakeUserRepository(behavior: behavior, users: data.users, households: data.households),
@@ -196,7 +217,9 @@ nonisolated struct AppRepositories: Sendable {
             pickupPoints: FakePickupPointRepository(behavior: behavior, pickupPoints: data.pickupPoints),
             wishes: FakeGroupWishRepository(behavior: behavior, wishes: FakeData.demoWishes),
             supplies: FakeVendorSupplyRepository(behavior: behavior, supplies: FakeData.demoSupplies),
-            boroughStats: FakeBoroughStatsRepository(behavior: behavior, stats: FakeData.montrealBoroughs)
+            boroughStats: FakeBoroughStatsRepository(behavior: behavior, stats: FakeData.montrealBoroughs),
+            deliveries: FakeVolunteerDeliveryRepository.demo(behavior: behavior),
+            organizations: FakeOrganizationRepository(behavior: behavior)
         )
     }
 }

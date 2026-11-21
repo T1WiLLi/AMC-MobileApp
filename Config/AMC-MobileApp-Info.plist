@@ -29,9 +29,6 @@
 			</array>
 		</dict>
 	</array>
-	<!-- Nom affiché sous l'icône et dans la feuille système « … veut utiliser accounts.google.com » (sinon « AMC-MobileApp »). -->
-	<key>CFBundleDisplayName</key>
-	<string>Grenier</string>
 	<!-- Bouton « Se connecter avec Apple » (RQ-012). false si l'App ID n'a pas la capability Sign in with Apple. -->
 	<key>GRNSignInWithAppleEnabled</key>
 	<true/>

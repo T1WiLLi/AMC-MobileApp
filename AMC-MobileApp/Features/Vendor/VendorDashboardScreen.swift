@@ -20,8 +20,8 @@ struct VendorDashboardScreen: View {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     init(
-        repositories: AppRepositories = .fake(),
-        vendorId: String = FakeData.ID.fermeRive,
+        repositories: AppRepositories,
+        vendorId: String,
         onCreateOffer: (() -> Void)? = nil
     ) {
         self.repositories = repositories
@@ -41,7 +41,7 @@ struct VendorDashboardScreen: View {
                 .padding(.bottom, 24)
                 .frame(maxWidth: .infinity, alignment: .leading)
             }
-            .scrollEdgeEffectStyle(.soft, for: .top)
+            .grenierScrollEdge()
             .onScrollGeometryChange(for: Bool.self) { geometry in
                 geometry.contentOffset.y + geometry.contentInsets.top > 90
             } action: { _, isPastHeader in
@@ -942,23 +942,23 @@ private extension VendorDashboardViewModel.Dashboard {
 // MARK: - Previews
 
 #Preview("Clair") {
-    VendorDashboardScreen(onCreateOffer: {})
+    VendorDashboardScreen(repositories: .fake(), vendorId: FakeData.ID.fermeRive, onCreateOffer: {})
 }
 
 #Preview("Sombre") {
-    VendorDashboardScreen(onCreateOffer: {})
+    VendorDashboardScreen(repositories: .fake(), vendorId: FakeData.ID.fermeRive, onCreateOffer: {})
         .preferredColorScheme(.dark)
 }
 
 #Preview("AX5") {
-    VendorDashboardScreen(onCreateOffer: {})
+    VendorDashboardScreen(repositories: .fake(), vendorId: FakeData.ID.fermeRive, onCreateOffer: {})
         .dynamicTypeSize(.accessibility5)
 }
 
 #Preview("Vide") {
-    VendorDashboardScreen(vendorId: "vendeur-sans-lot", onCreateOffer: {})
+    VendorDashboardScreen(repositories: .fake(), vendorId: "vendeur-sans-lot", onCreateOffer: {})
 }
 
 #Preview("Erreur") {
-    VendorDashboardScreen(repositories: .fake(behavior: .failing()))
+    VendorDashboardScreen(repositories: .fake(behavior: .failing()), vendorId: FakeData.ID.fermeRive)
 }

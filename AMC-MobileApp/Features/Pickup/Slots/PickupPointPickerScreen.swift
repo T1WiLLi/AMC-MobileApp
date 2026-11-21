@@ -98,7 +98,7 @@ private struct PickerContent: View {
             .padding(.bottom, 24)
             .grenierAnimation(.smooth, value: viewModel.slots)
         }
-        .scrollEdgeEffectStyle(.soft, for: .top)
+        .grenierScrollEdge()
         .safeAreaInset(edge: .bottom) { saveBar }
         .grenierHaptic(.warning, trigger: showsValidation) { _, new in new }
     }

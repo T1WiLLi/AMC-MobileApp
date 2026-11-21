@@ -176,7 +176,7 @@ private struct GroupDetailContent: View {
             .padding(.horizontal, 16)
             .padding(.bottom, 24)
         }
-        .scrollEdgeEffectStyle(.soft, for: .top)
+        .grenierScrollEdge()
         .safeAreaInset(edge: .bottom) {
             if !content.isMember {
                 Button {
@@ -240,11 +240,11 @@ private struct GroupDetailContent: View {
 
     @ViewBuilder
     private var members: some View {
-        let initials = content.members.prefix(3).map { MemberInitials.of($0.householdId) }
+        let initials = content.memberInitials
         AvatarStack(initials: initials, extraCount: max(group.householdCount - initials.count, 0))
         VStack(alignment: .leading, spacing: 2) {
             Label {
-                Text("\(group.householdCount) \(group.householdCount > 1 ? "familles" : "famille")")
+                Text(FrenchPlural.count(group.householdCount, "famille"))
                     .contentTransition(.numericText(value: Double(group.householdCount)))
             } icon: {
                 Image(systemName: "person.2.fill")
@@ -510,15 +510,6 @@ private enum GroupInvite {
     }
 }
 
-private enum MemberInitials {
-    /// « household-voisin-3 » → « V3 », « household-benali » → « B ».
-    static func of(_ householdId: String) -> String {
-        let parts = householdId.split(separator: "-").dropFirst()
-        let letters = parts.prefix(2).compactMap(\.first)
-        return letters.isEmpty ? "?" : String(letters).uppercased()
-    }
-}
-
 enum PickupTime {
     private static let locale = Locale(identifier: "fr_CA")
 
@@ -528,9 +519,11 @@ enum PickupTime {
         return "\(day.prefix(1).uppercased())\(day.dropFirst()), \(hour(slot.start)) – \(hour(slot.end))"
     }
 
-    /// « 17 h » ou « 18 h 30 »
+    /// « 17 h » ou « 18 h 30 », arrondi au quart d'heure le plus proche (un créneau ne s'annonce pas « 14 h 33 »).
     static func hour(_ date: Date) -> String {
-        let parts = Calendar.current.dateComponents([.hour, .minute], from: date)
+        let quarter: TimeInterval = 15 * 60
+        let rounded = Date(timeIntervalSinceReferenceDate: (date.timeIntervalSinceReferenceDate / quarter).rounded() * quarter)
+        let parts = Calendar.current.dateComponents([.hour, .minute], from: rounded)
         let hour = parts.hour ?? 0, minute = parts.minute ?? 0
         return minute == 0 ? "\(hour) h" : String(format: "%d h %02d", hour, minute)
     }

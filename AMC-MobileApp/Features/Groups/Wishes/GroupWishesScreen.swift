@@ -111,6 +111,16 @@ struct GroupWishesScreen: View {
                 GroupsSectionHeader(title: "Ma famille", systemImage: "house.fill", tint: .economie,
                                     count: content.myWishes.count)
             }
+
+            if !content.myWishes.isEmpty {
+                Section {
+                    NavigationLink {
+                        MatchingOffersScreen(groupId: groupId)
+                    } label: {
+                        Label("Offres qui correspondent à vos souhaits", systemImage: "sparkle.magnifyingglass")
+                    }
+                }
+            }
         }
         .scrollContentBackground(.hidden)
         .animation(reduceMotion ? nil : .smooth, value: content)

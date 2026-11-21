@@ -3,6 +3,7 @@ import Testing
 @testable import AMC_MobileApp
 
 /// Enveloppe du faux planificateur qui compte chaque appel (le faux ne garde qu'une notification par identifiant).
+@MainActor
 private final class RecordingNotificationScheduler: NotificationScheduler {
     let fake: FakeNotificationScheduler
     private(set) var scheduleCalls: [GrenierNotification] = []

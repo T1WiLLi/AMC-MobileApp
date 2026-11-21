@@ -3,7 +3,6 @@ name: CI
 on:
   pull_request:
     branches: [main]
-    paths-ignore: ['docs/**', '**/*.md', '.claude/**', 'scripts/**', 'firestore.rules', 'storage.rules', 'firebase*.json', 'firestore.indexes.json']
   push:
     branches: [main]
     # Sur main, on ne rebâtit que pour régénérer le cache des paquets : ça libère les runners macOS (5 max en parallèle).

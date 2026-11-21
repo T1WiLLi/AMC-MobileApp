@@ -60,4 +60,68 @@ struct TierProgressBarTests {
     @Test func noNudgeOnLastTier() {
         #expect(TierProgressBar(tiers: tiers, committedShares: 26).nudge == nil)
     }
+
+    @Test func shortNudgeMatchesF1() {
+        let bar = TierProgressBar(tiers: tiers, committedShares: 25, unitSingular: "famille", unitPlural: "familles")
+        #expect(bar.shortNudge == "Encore 1 famille pour −19 %")
+    }
+
+    @Test func launchFollowsMinimumToLaunch() {
+        // Le premier palier est à 1 part, mais le lot ne part qu'à 10.
+        let bar = TierProgressBar(tiers: tiers, committedShares: 3, minimumToLaunch: 10)
+        #expect(bar.launchThreshold == 10)
+        #expect(bar.nudge == "Encore 7 parts pour lancer la commande")
+        #expect(bar.shortNudge == "Encore 7 parts pour lancer la commande")
+    }
+
+    @Test func launchSingular() {
+        let bar = TierProgressBar(tiers: tiers, committedShares: 9, minimumToLaunch: 10)
+        #expect(bar.nudge == "Encore 1 part pour lancer la commande")
+    }
+
+    @Test func launchReachedFallsBackToNextTier() {
+        let bar = TierProgressBar(tiers: tiers, committedShares: 10, minimumToLaunch: 10)
+        #expect(bar.nudge == "Encore 1 part pour débloquer −19 %")
+    }
+
+    @Test func withoutMinimumUsesFirstTier() {
+        #expect(TierProgressBar(tiers: tiers, committedShares: 0).launchThreshold == 1)
+        #expect(TierProgressBar(tiers: tiers, committedShares: 0).nudge == "Encore 1 part pour lancer la commande")
+    }
+
+    @Test func accessibilityAgreesInNumber() {
+        #expect(TierProgressBar(tiers: tiers, committedShares: 0).accessibilityText.hasPrefix("0 part engagée"))
+        #expect(TierProgressBar(tiers: tiers, committedShares: 1).accessibilityText.hasPrefix("1 part engagée,"))
+        #expect(TierProgressBar(tiers: tiers, committedShares: 24).accessibilityText.hasPrefix("24 parts engagées,"))
+    }
+}
+
+@MainActor
+struct AvatarStackTests {
+    @Test func announcesShownPlusExtra() {
+        #expect(AvatarStack(initials: ["FB", "RK"], extraCount: 21).accessibilityText == "23 membres")
+    }
+
+    @Test func neverCountsHiddenInitials() {
+        // 5 initiales, seules 3 sont affichées : le groupe de 24 doit être annoncé à 24, pas 26.
+        let group = CardPreviewData.group
+        let card = GroupCard(group: group, memberInitials: ["AM", "FB", "RK", "LT", "SN"])
+        let stack = AvatarStack(initials: card.memberInitials, extraCount: card.extraMembers)
+        #expect(stack.memberCount == group.householdCount)
+        #expect(stack.accessibilityText == "24 membres")
+    }
+
+    @Test func singleMember() {
+        #expect(AvatarStack(initials: ["AM"]).accessibilityText == "1 membre")
+    }
+}
+
+@MainActor
+struct PriceTagTests {
+    @Test func accessibilityReadsUnit() {
+        let text = PriceTag(priceCents: 260, unit: "kg", referenceCents: 410).accessibilityText
+        #expect(text.contains("2,60"))
+        #expect(text.contains("par kg"))
+        #expect(text.contains("en épicerie"))
+    }
 }

@@ -32,13 +32,21 @@ enum OnboardingKeys {
 enum AppFlowStep: Equatable, Sendable {
     case intro
     case signIn
+    /// Compte courriel créé ou connecté, en attente du lien de vérification.
+    case emailVerification
     case portalChoice
     case app
 
     /// Étape à afficher selon les drapeaux persistés et l'état de session.
-    /// La présentation passe avant tout ; le choix du portail n'arrive qu'une fois connecté, et une seule fois.
-    static func resolve(hasSeenIntro: Bool, isSignedIn: Bool, hasChosenPortal: Bool) -> AppFlowStep {
+    /// La présentation passe avant tout ; le choix du portail n'arrive qu'une fois connecté (et vérifié), et une seule fois.
+    static func resolve(
+        hasSeenIntro: Bool,
+        isSignedIn: Bool,
+        hasChosenPortal: Bool,
+        needsEmailVerification: Bool = false
+    ) -> AppFlowStep {
         guard hasSeenIntro else { return .intro }
+        if needsEmailVerification { return .emailVerification }
         guard isSignedIn else { return .signIn }
         guard hasChosenPortal else { return .portalChoice }
         return .app

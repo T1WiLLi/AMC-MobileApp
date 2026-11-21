@@ -1,27 +1,35 @@
 rules_version = '2';
 
 // ===============================================================
-// Règles Firestore initiales (B-014) — prototype, à revoir avant diffusion large.
+// Règles Firestore de Grenier — prototype de la compétition, à revoir avant diffusion large.
+// Tests : scripts/rules-tests (émulateur). Déploiement : docs/firebase.md.
 // ===============================================================
 //
-// Assumed Data Model : schéma de l'onglet « Requis » du board (users, households, groups,
-// vendors, products, offers, groupOrders, shares, pickupPoints…). Aucune collection n'est
-// encore ouverte : tout est refusé par défaut.
+// Modèle (AMC-MobileApp/Core/Models/, onglet « Requis ») :
+//   users/{uid}                          profil ; lu et écrit par son propriétaire seulement
+//   households/{id}                      ménage ; lu et écrit par ses membres (userIds)
+//   households/{id}/private/profile      isSubsidized, referralCode ; membres du ménage seulement
+//   groups/{id}                          groupe de quartier ; lecture par tout utilisateur connecté
+//   groups/{id}/members/{householdId}    adhésion ; un ménage s'ajoute ou se retire lui-même
+//   vendors/{id}                         vendeur ; lecture connectée, le vendeur modifie sa vitrine
+//   products/{id}, offers/{id}           catalogue ; lecture connectée, écrit par le vendeur propriétaire
+//   groupOrders/{id}                     commande groupée ; lecture connectée, écriture serveur/seed seulement
+//   groupOrders/{id}/shares/{householdId} part d'un ménage ; le ménage la crée, change sa quantité, la retire
+//   pickupPoints/{id}                    point de cueillette ; lecture connectée, l'hôte gère créneaux et capacité
 //
-// Pour ouvrir une collection (items B-017 à B-019) :
-//   1. documenter ses champs ici (type, obligatoire, tailles, immuables) ;
-//   2. écrire un validateur isValidX(data) (hasOnly + hasAll + types + tailles) ;
-//   3. l'appeler en create ET en update, avec isOwner()/rôle ; jamais de lecture
-//      d'un document contenant de la PII (e-mail, adresse) par quelqu'un d'autre que son propriétaire ;
-//   4. passer par le skill Firebase firestore-rules-creation (attaques « devil's advocate »).
-//
+// Points sensibles :
+//   - users.vendorId n'est JAMAIS écrit par le client (sinon n'importe qui deviendrait vendeur d'un autre).
+//   - Dans une part, isPaid, finalPriceCents, subsidyCents, qrCode et isPickedUp ne sont pas modifiables
+//     par le client : ils viendront d'un processus de confiance.
+//   - Aucune lecture d'un document de PII (users, households, private) par quelqu'un d'extérieur.
+//   - Le seed (Admin SDK) contourne ces règles.
 // ===============================================================
 
 service cloud.firestore {
   match /databases/{database}/documents {
 
     // ---------------------------------------------------------------
-    // Helper Functions (à réutiliser par les règles des collections)
+    // Helper Functions
     // ---------------------------------------------------------------
 
     function isAuthenticated() {
@@ -42,6 +50,265 @@ service cloud.firestore {
 
     function areImmutableFieldsUnchanged(fields) {
       return !request.resource.data.diff(resource.data).affectedKeys().hasAny(fields);
+    }
+
+    function onlyChanges(fields) {
+      return request.resource.data.diff(resource.data).affectedKeys().hasOnly(fields);
+    }
+
+    function isShortString(value, minSize, maxSize) {
+      return value is string && value.size() >= minSize && value.size() <= maxSize;
+    }
+
+    function isIntIn(value, low, high) {
+      return value is int && value >= low && value <= high;
+    }
+
+    function isStringList(value, maxSize) {
+      return value is list && value.size() <= maxSize;
+    }
+
+    function isOptionalString(data, field, maxSize) {
+      return !(field in data) || data[field] == null || isShortString(data[field], 0, maxSize);
+    }
+
+    function myUserPath() {
+      return /databases/$(database)/documents/users/$(request.auth.uid);
+    }
+
+    // Le vendeur rattaché au compte connecté (posé par le seed ou un admin, jamais par le client).
+    function isVendorOf(vendorId) {
+      return isAuthenticated()
+        && vendorId is string && vendorId.size() > 0
+        && exists(myUserPath())
+        && get(myUserPath()).data.get('vendorId', '') == vendorId;
+    }
+
+    function isMemberOfHousehold(householdId) {
+      let path = /databases/$(database)/documents/households/$(householdId);
+      return isAuthenticated() && exists(path) && request.auth.uid in get(path).data.userIds;
+    }
+
+    // ---------------------------------------------------------------
+    // users/{userId}
+    // ---------------------------------------------------------------
+
+    function isValidUser(data) {
+      return data.keys().hasOnly(['id', 'displayName', 'photoURL', 'language', 'roles', 'neighborhood',
+                                  'dietaryPreferences', 'seniorMode', 'householdId', 'vendorId'])
+        && data.keys().hasAll(['id', 'displayName', 'language', 'roles', 'neighborhood',
+                               'dietaryPreferences', 'seniorMode'])
+        && isShortString(data.displayName, 1, 80)
+        && data.language in ['fr', 'en']
+        && isStringList(data.roles, 4)
+        && data.roles.toSet().difference(['family', 'vendor', 'host', 'organization'].toSet()).size() == 0
+        && isShortString(data.neighborhood, 0, 60)
+        && isStringList(data.dietaryPreferences, 20)
+        && data.seniorMode is bool
+        && isOptionalString(data, 'photoURL', 2048)
+        && isOptionalString(data, 'householdId', 128);
+    }
+
+    match /users/{userId} {
+      allow read: if isOwner(userId);
+      allow create: if isOwner(userId)
+        && isValidUser(request.resource.data)
+        && request.resource.data.id == userId
+        && !('vendorId' in request.resource.data);
+      allow update: if isOwner(userId)
+        && isValidUser(request.resource.data)
+        && areImmutableFieldsUnchanged(['id', 'vendorId']);
+      allow delete: if isOwner(userId);
+    }
+
+    // ---------------------------------------------------------------
+    // households/{householdId} (+ private/profile)
+    // ---------------------------------------------------------------
+
+    function isValidHousehold(data) {
+      return data.keys().hasOnly(['id', 'name', 'size', 'geohash', 'userIds', 'groupId'])
+        && data.keys().hasAll(['id', 'name', 'size', 'geohash', 'userIds'])
+        && isShortString(data.name, 1, 80)
+        && isIntIn(data.size, 1, 30)
+        && isShortString(data.geohash, 0, 12)
+        && data.userIds is list && data.userIds.size() >= 1 && data.userIds.size() <= 10
+        && isOptionalString(data, 'groupId', 128);
+    }
+
+    match /households/{householdId} {
+      allow read: if isAuthenticated() && request.auth.uid in resource.data.userIds;
+      allow create: if isAuthenticated()
+        && isValidHousehold(request.resource.data)
+        && request.resource.data.id == householdId
+        && request.auth.uid in request.resource.data.userIds;
+      allow update: if isAuthenticated()
+        && request.auth.uid in resource.data.userIds
+        && isValidHousehold(request.resource.data)
+        && areImmutableFieldsUnchanged(['id']);
+      allow delete: if false;
+
+      match /private/{docId} {
+        allow read: if isMemberOfHousehold(householdId);
+        allow create, update: if isMemberOfHousehold(householdId)
+          && docId == 'profile'
+          && request.resource.data.keys().hasOnly(['isSubsidized', 'referralCode'])
+          && request.resource.data.isSubsidized is bool
+          && isOptionalString(request.resource.data, 'referralCode', 64);
+        allow delete: if false;
+      }
+    }
+
+    // ---------------------------------------------------------------
+    // groups/{groupId} (+ members)
+    // ---------------------------------------------------------------
+
+    match /groups/{groupId} {
+      allow read: if isAuthenticated();
+      allow write: if false;
+
+      match /members/{householdId} {
+        allow read: if isAuthenticated();
+        allow create: if isMemberOfHousehold(householdId)
+          && request.resource.data.keys().hasOnly(['householdId', 'role', 'joinedAt'])
+          && request.resource.data.householdId == householdId
+          && request.resource.data.role == 'member'
+          && request.resource.data.joinedAt == request.time;
+        allow update: if false;
+        allow delete: if isMemberOfHousehold(householdId);
+      }
+    }
+
+    // ---------------------------------------------------------------
+    // vendors/{vendorId}
+    // ---------------------------------------------------------------
+
+    match /vendors/{vendorId} {
+      allow read: if isAuthenticated();
+      allow update: if isVendorOf(vendorId)
+        && onlyChanges(['description', 'photoURLs', 'servedZones'])
+        && isShortString(request.resource.data.description, 0, 2000)
+        && isStringList(request.resource.data.photoURLs, 10)
+        && isStringList(request.resource.data.servedZones, 20);
+      allow create, delete: if false;
+    }
+
+    // ---------------------------------------------------------------
+    // products/{productId}
+    // ---------------------------------------------------------------
+
+    function isValidProduct(data) {
+      return data.keys().hasOnly(['id', 'vendorId', 'name', 'category', 'unit', 'origin', 'tags',
+                                  'photoURL', 'referenceGroceryPriceCents', 'referencePriceSource'])
+        && data.keys().hasAll(['id', 'vendorId', 'name', 'category', 'unit', 'origin', 'tags',
+                               'referenceGroceryPriceCents'])
+        && isShortString(data.name, 1, 120)
+        && data.category in ['grains', 'legumes', 'oils', 'flour', 'canned', 'eggs', 'meat', 'produce', 'household']
+        && isShortString(data.unit, 1, 60)
+        && isShortString(data.origin, 0, 120)
+        && isStringList(data.tags, 20)
+        && isOptionalString(data, 'photoURL', 2048)
+        && isOptionalString(data, 'referencePriceSource', 500)
+        && isIntIn(data.referenceGroceryPriceCents, 0, 10000000);
+    }
+
+    match /products/{productId} {
+      allow read: if isAuthenticated();
+      allow create: if isVendorOf(request.resource.data.vendorId)
+        && request.resource.data.id == productId
+        && isValidProduct(request.resource.data);
+      allow update: if isVendorOf(resource.data.vendorId)
+        && areImmutableFieldsUnchanged(['id', 'vendorId'])
+        && isValidProduct(request.resource.data);
+      allow delete: if isVendorOf(resource.data.vendorId);
+    }
+
+    // ---------------------------------------------------------------
+    // offers/{offerId}
+    // ---------------------------------------------------------------
+
+    function isValidOffer(data) {
+      let productPath = /databases/$(database)/documents/products/$(data.productId);
+      return data.keys().hasOnly(['id', 'vendorId', 'productId', 'totalShares', 'shareUnit', 'tiers',
+                                  'minimumSharesToLaunch', 'deadline', 'zones', 'status'])
+        && data.keys().hasAll(['id', 'vendorId', 'productId', 'totalShares', 'shareUnit', 'tiers',
+                               'minimumSharesToLaunch', 'deadline', 'zones', 'status'])
+        && isIntIn(data.totalShares, 1, 10000)
+        && isIntIn(data.minimumSharesToLaunch, 1, data.totalShares)
+        && isShortString(data.shareUnit, 1, 60)
+        && data.tiers is list && data.tiers.size() >= 1 && data.tiers.size() <= 10
+        && data.deadline is timestamp
+        && isStringList(data.zones, 20)
+        && data.status in ['draft', 'active', 'closed', 'cancelled']
+        && data.productId is string
+        && exists(productPath)
+        && get(productPath).data.vendorId == data.vendorId;
+    }
+
+    match /offers/{offerId} {
+      allow read: if isAuthenticated();
+      allow create: if isVendorOf(request.resource.data.vendorId)
+        && request.resource.data.id == offerId
+        && isValidOffer(request.resource.data);
+      allow update: if isVendorOf(resource.data.vendorId)
+        && areImmutableFieldsUnchanged(['id', 'vendorId'])
+        && isValidOffer(request.resource.data);
+      allow delete: if isVendorOf(resource.data.vendorId);
+    }
+
+    // ---------------------------------------------------------------
+    // groupOrders/{orderId} (+ shares)
+    // ---------------------------------------------------------------
+
+    match /groupOrders/{orderId} {
+      allow read: if isAuthenticated();
+      allow write: if false;
+
+      match /shares/{householdId} {
+        function orderIsOpen() {
+          let order = get(/databases/$(database)/documents/groupOrders/$(orderId));
+          return order.data.status in ['open', 'reached'];
+        }
+
+        allow read: if isMemberOfHousehold(householdId);
+        allow create: if isMemberOfHousehold(householdId)
+          && orderIsOpen()
+          && hasOnlyAllowedFields(['householdId', 'quantity', 'finalPriceCents', 'isPaid',
+                                   'suspendedAmountCents', 'subsidyCents', 'qrCode', 'isPickedUp', 'updatedAt'])
+          && hasRequiredFields(['householdId', 'quantity', 'isPaid', 'suspendedAmountCents',
+                                'subsidyCents', 'isPickedUp'])
+          && request.resource.data.householdId == householdId
+          && isIntIn(request.resource.data.quantity, 1, 100)
+          && request.resource.data.isPaid == false
+          && request.resource.data.isPickedUp == false
+          && request.resource.data.subsidyCents == 0
+          && isIntIn(request.resource.data.suspendedAmountCents, 0, 100000)
+          && request.resource.data.get('finalPriceCents', null) == null
+          && request.resource.data.get('qrCode', null) == null;
+        allow update: if isMemberOfHousehold(householdId)
+          && orderIsOpen()
+          && onlyChanges(['quantity', 'suspendedAmountCents', 'updatedAt'])
+          && isIntIn(request.resource.data.quantity, 1, 100)
+          && isIntIn(request.resource.data.suspendedAmountCents, 0, 100000);
+        allow delete: if isMemberOfHousehold(householdId)
+          && orderIsOpen()
+          && resource.data.isPaid == false;
+      }
+    }
+
+    // ---------------------------------------------------------------
+    // pickupPoints/{pickupPointId}
+    // ---------------------------------------------------------------
+
+    match /pickupPoints/{pickupPointId} {
+      allow read: if isAuthenticated();
+      allow update: if isAuthenticated()
+        && resource.data.hostUserId == request.auth.uid
+        && onlyChanges(['slots', 'capacity', 'accessibility', 'photoURL'])
+        && request.resource.data.slots is list && request.resource.data.slots.size() <= 50
+        && isIntIn(request.resource.data.capacity, 0, 1000)
+        && isStringList(request.resource.data.accessibility, 10)
+        && isOptionalString(request.resource.data, 'photoURL', 2048);
+      allow create, delete: if false;
     }
 
     // Tout le reste : refusé par défaut.

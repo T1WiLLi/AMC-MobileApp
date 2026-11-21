@@ -24,6 +24,16 @@ struct AMCMobileApp: App {
                 #if canImport(GoogleSignIn)
                 .onOpenURL { url in _ = GIDSignIn.sharedInstance.handle(url) }
                 #endif
+                #if DEBUG
+                // Démo jury : `-GrenierLiveActivityDemo` au lancement démarre la Live Activity
+                // et enchaîne palier franchi → en route → arrivée (OrderActivityController).
+                // `-GrenierLiveActivityDemoStep 8` règle l'intervalle entre les étapes (5 s par défaut).
+                .task {
+                    guard ProcessInfo.processInfo.arguments.contains("-GrenierLiveActivityDemo") else { return }
+                    let step = UserDefaults.standard.integer(forKey: "GrenierLiveActivityDemoStep")
+                    try? await OrderActivityController.shared.startDemo(stepInterval: .seconds(step > 0 ? step : 5))
+                }
+                #endif
         }
     }
 }

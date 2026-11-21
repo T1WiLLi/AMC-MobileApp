@@ -23,6 +23,10 @@ protocol AuthService: AnyObject {
     /// Envoie le lien de réinitialisation du mot de passe.
     func sendPasswordReset(email: String) async throws
     func signOut() throws
+    /// Supprime le compte : retire l'utilisateur de son ménage (`userIds`), supprime `users/{uid}`,
+    /// puis le compte Firebase Auth. Lève `.requiresRecentLogin` si la connexion date trop : rien n'est supprimé,
+    /// il faut se reconnecter puis réessayer. L'état de session passe ensuite à « déconnecté ».
+    func deleteAccount() async throws
 }
 
 enum AuthError: LocalizedError, Equatable {
@@ -36,6 +40,8 @@ enum AuthError: LocalizedError, Equatable {
     case tooManyRequests
     case network
     case notSignedIn
+    /// Action sensible (suppression du compte) : Firebase exige une connexion récente.
+    case requiresRecentLogin
     case failed(String)
 
     /// Champ du formulaire sous lequel afficher l'erreur.
@@ -55,6 +61,7 @@ enum AuthError: LocalizedError, Equatable {
         case .tooManyRequests: "Trop de tentatives. Attends quelques minutes, puis réessaie."
         case .network: "Pas de connexion. Vérifie ton Internet, puis réessaie."
         case .notSignedIn: "Ta session a expiré. Connecte-toi de nouveau."
+        case .requiresRecentLogin: "Pour protéger ton compte, reconnecte-toi, puis supprime-le de nouveau."
         case .failed(let message): message
         }
     }
@@ -72,7 +79,7 @@ enum AuthError: LocalizedError, Equatable {
     var appError: AppError {
         switch self {
         case .network: .offline
-        case .notSignedIn: .unauthenticated
+        case .notSignedIn, .requiresRecentLogin: .unauthenticated
         case .invalidEmail, .emailAlreadyInUse, .weakPassword, .wrongPassword:
             .invalidInput(errorDescription ?? "")
         case .tooManyRequests, .cancelled, .missingConfiguration, .noPresentingScreen, .failed:
@@ -209,6 +216,22 @@ final class FakeAuthService: AuthService {
     }
 
     func signOut() throws {
+        setCurrentUser(nil)
+    }
+
+    /// Données de l'utilisateur à effacer avec le compte (ménage + `users/{uid}`) ; nil = compte seul.
+    var userData: FakeUserRepository?
+    /// Uid dont les données vivent dans `userData` (dans la démo, il diffère de l'uid Auth fake).
+    var dataUserId: String?
+    /// Comptes supprimés (tests).
+    private(set) var deletedAccountIds: [String] = []
+
+    func deleteAccount() async throws {
+        try await simulateCall()
+        guard let user = currentUser else { throw AuthError.notSignedIn }
+        await userData?.removeUserAndLeaveHousehold(id: dataUserId ?? user.id)
+        accounts[user.email.lowercased()] = nil
+        deletedAccountIds.append(user.id)
         setCurrentUser(nil)
     }
 

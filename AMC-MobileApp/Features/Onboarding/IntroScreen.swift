@@ -701,7 +701,7 @@ private struct BasketScene: View {
 }
 
 /// Arc entre deux maisons, en bas à gauche et en bas à droite du cadre.
-private struct ArcPath: Shape {
+nonisolated private struct ArcPath: Shape {
     func path(in rect: CGRect) -> Path {
         var path = Path()
         path.move(to: Self.start(in: rect))

@@ -4,14 +4,32 @@
 import Foundation
 
 nonisolated struct Product: Identifiable, Codable, Sendable, Hashable {
+    /// Catégories de RQ-039.
     enum Category: String, Codable, Sendable, CaseIterable {
-        case produce
         case grains
-        case dairy
+        case legumes
+        case oils
+        case flour
+        case canned
+        case eggs
         case meat
-        case pantry
-        case bakery
-        case other
+        case produce
+        case household
+
+        /// Libellé affiché, en français.
+        var title: String {
+            switch self {
+            case .grains: "Céréales"
+            case .legumes: "Légumineuses"
+            case .oils: "Huiles"
+            case .flour: "Farine"
+            case .canned: "Conserves"
+            case .eggs: "Œufs"
+            case .meat: "Viande"
+            case .produce: "Fruits et légumes"
+            case .household: "Produits ménagers"
+            }
+        }
     }
 
     var id: String

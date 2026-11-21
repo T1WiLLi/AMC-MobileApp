@@ -31,4 +31,12 @@ nonisolated struct Vendor: Identifiable, Codable, Sendable, Hashable {
     var memberSince: Date? = nil
     /// Produits mis en avant sur la vitrine (T-157), dans l'ordre choisi ; modifiable par le vendeur. nil = aucun.
     var featuredProductIds: [String]? = nil
+    /// Compte propriétaire (`users/{uid}`) d'un vendeur créé depuis l'app (onboarding producteur, T-158).
+    /// nil pour les vendeurs du seed. firestore.rules : posé à la création, jamais modifié par le client.
+    var ownerId: String? = nil
+    /// Catégories de produits annoncées à l'onboarding (T-158). nil pour les vendeurs du seed.
+    var productCategories: [Product.Category]? = nil
+
+    /// Id du vendeur créé par un compte : un seul par compte (firestore.rules l'exige).
+    static func ownedId(forUserId userId: String) -> String { "vendor-\(userId)" }
 }

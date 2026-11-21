@@ -36,10 +36,18 @@ struct RootView: View {
                 if context.hasVendor {
                     VendorTabView()
                 } else {
-                    // Pas de vendeur rattaché (users/{uid}.vendorId, posé par le seed ou un admin).
-                    ContextRequirementView(.vendor) {
-                        portalSwitch.switchPortal(from: .vendor, to: .family, reduceMotion: reduceMotion)
-                    }
+                    // T-158 : tout compte peut devenir vendeur. Sans vendeur rattaché, il décrit sa production ;
+                    // à la fin, le portail Vendeurs s'ouvre sur son vendeur (non vérifié, rien n'est bloqué).
+                    VendorOnboardingScreen(
+                        model: VendorOnboardingViewModel(context: context),
+                        onFinish: { vendorId in
+                            Task { await contextStore?.completeVendorOnboarding(vendorId: vendorId) }
+                        },
+                        onCancel: {
+                            portalSwitch.switchPortal(from: .vendor, to: .family, reduceMotion: reduceMotion)
+                        }
+                    )
+                    .id(context.userId)
                 }
             case .organization:
                 // T-116 : organisme de la session ; en démo fake, l'organisme de démo (AppContext.demo).

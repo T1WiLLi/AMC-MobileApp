@@ -28,13 +28,16 @@ final class SessionContextStore {
     private let defaults: UserDefaults
     /// Démo (`-demoOnboarding`, mode `.fake` seulement) : rejoue l'onboarding sur le contexte de démo déjà résolu.
     private let forcesOnboarding: Bool
+    /// Démo (`-demoVendorOnboarding`, mode `.fake` seulement) : la démo sans vendeur, pour montrer l'onboarding producteur.
+    private let forcesVendorOnboarding: Bool
 
     /// Groupe choisi en dernier (mémorisé par appareil) ; repris s'il fait encore partie des groupes du ménage.
     static let preferredGroupKey = "preferredGroupId"
 
-    init(defaults: UserDefaults = .standard, forcesOnboarding: Bool = false) {
+    init(defaults: UserDefaults = .standard, forcesOnboarding: Bool = false, forcesVendorOnboarding: Bool = false) {
         self.defaults = defaults
         self.forcesOnboarding = forcesOnboarding
+        self.forcesVendorOnboarding = forcesVendorOnboarding
     }
 
     /// Ménage actif de la session, `nil` sans contexte résolu ou sans ménage (rafraîchissement en arrière-plan).
@@ -51,6 +54,7 @@ final class SessionContextStore {
             self.base = base
             context = base
             if forcesOnboarding { context.needsOnboarding = true }
+            if forcesVendorOnboarding { context.vendorId = "" }
             phase = .ready
             return
         }
@@ -98,6 +102,14 @@ final class SessionContextStore {
             context.householdId = householdId
             context.groupId = nil
         }
+    }
+
+    /// Onboarding producteur fini (T-158) : le vendeur est créé et rattaché (`AppContextResolver.createVendor`).
+    /// Ouvre le portail Vendeurs tout de suite, puis relit `users/{uid}` (Firestore) pour repartir d'un contexte frais.
+    func completeVendorOnboarding(vendorId: String) async {
+        guard context.isResolved, !vendorId.isEmpty else { return }
+        context.vendorId = vendorId
+        await reload()
     }
 
     /// Déconnexion : on oublie le contexte (le prochain compte repart de zéro).

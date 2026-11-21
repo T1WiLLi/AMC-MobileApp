@@ -431,8 +431,8 @@ struct PostSignupOnboardingScreen: View {
 
 // MARK: - Tuile à cocher
 
-/// Carte opaque tapable, cochée quand elle est choisie (catégories, restrictions).
-private struct ChoiceTile: View {
+/// Carte opaque tapable, cochée quand elle est choisie (catégories, restrictions, type de vendeur T-158).
+struct ChoiceTile: View {
     let title: String
     let systemImage: String
     let isSelected: Bool
@@ -481,7 +481,8 @@ private struct ChoiceTile: View {
 
 // MARK: - Ligne du récapitulatif
 
-private struct SummaryRow: View {
+/// Ligne de récapitulatif (onboarding Familles et producteur).
+struct SummaryRow: View {
     let title: LocalizedStringKey
     let value: String
     let systemImage: String

@@ -33,11 +33,20 @@ struct PostSignupOnboardingTests {
 
     // MARK: Drapeau
 
-    @Test func onlyAnExplicitFalseNeedsOnboarding() {
+    @Test func explicitFlagDecides() {
         #expect(Self.newUser(completed: false).needsOnboarding)
         #expect(!Self.newUser(completed: true).needsOnboarding)
-        // Profils d'avant T-156 : pas d'onboarding.
-        #expect(!Self.newUser(completed: nil).needsOnboarding)
+    }
+
+    @Test func profileWithoutFlagNeedsOnboardingOnlyIfNothingWasChosen() {
+        // Compte créé avant T-156 ou par un ancien build : rien de choisi, on montre l'onboarding.
+        #expect(Self.newUser(completed: nil).needsOnboarding)
+        var withNeighborhood = Self.newUser(completed: nil)
+        withNeighborhood.neighborhood = "saint-michel"
+        #expect(!withNeighborhood.needsOnboarding)
+        var withCategories = Self.newUser(completed: nil)
+        withCategories.favoriteCategories = [.eggs]
+        #expect(!withCategories.needsOnboarding)
     }
 
     @Test func newAccountIsResolvedWithOnboardingPending() async throws {
@@ -52,7 +61,9 @@ struct PostSignupOnboardingTests {
     }
 
     @Test func legacyProfileIsResolvedWithoutOnboarding() async throws {
-        let fixture = Self.fixture(user: Self.newUser(completed: nil))
+        var legacy = Self.newUser(completed: nil)
+        legacy.neighborhood = "parc-extension"
+        let fixture = Self.fixture(user: legacy)
         let context = try await AppContextResolver(repositories: fixture.repositories)
             .resolve(user: AuthUser(id: "uid-neuf", displayName: "Amina", email: "a@example.com", photoURL: nil))
         #expect(!context.needsOnboarding)

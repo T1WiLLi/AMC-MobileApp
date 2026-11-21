@@ -55,6 +55,12 @@ final class GroupDetailViewModel {
         return group.coordinatorIds.contains(userId)
     }
 
+    /// B-056 : l'utilisateur a créé ce groupe (visibilité et invitations à usage unique).
+    var isCreator: Bool {
+        guard let group = state.value?.group else { return false }
+        return GroupRules.isCreator(userId, of: group)
+    }
+
     /// T-122 : remplace le groupe affiché (après un changement de photo ou de bannière).
     func replaceGroup(_ group: NeighborhoodGroup) {
         guard var content = state.value, group.id == content.group.id else { return }

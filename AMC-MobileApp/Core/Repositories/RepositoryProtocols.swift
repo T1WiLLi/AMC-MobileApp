@@ -34,6 +34,22 @@ nonisolated protocol GroupRepository: Sendable {
     /// B-036 : remplace la marque du groupe (`branding`). Seul un coordinateur le peut :
     /// `.permissionDenied` sinon, `.notFound` si le groupe n'existe pas. `GroupBranding()` = marque par défaut.
     func updateBranding(_ branding: GroupBranding, ofGroup groupId: String, byUserId userId: String) async throws
+
+    // B-056 : visibilité et invitations à usage unique. Le créateur du groupe seulement
+    // (`GroupRules.isCreator`) : `.permissionDenied` sinon, `.notFound` si le groupe n'existe pas.
+
+    /// Rend le groupe public (listé) ou privé (sur invitation). Renvoie le groupe à jour.
+    func setVisibility(isPublic: Bool, ofGroup groupId: String, byUserId userId: String) async throws -> NeighborhoodGroup
+    /// Invitations du groupe, actives d'abord (`GroupRules.sortedForDisplay`).
+    func invitations(ofGroup groupId: String, byUserId userId: String) async throws -> [GroupInvitation]
+    /// Crée une invitation à usage unique.
+    func createInvitation(forGroup groupId: String, byUserId userId: String) async throws -> GroupInvitation
+    /// Révoque une invitation pas encore utilisée.
+    func revokeInvitation(code: String, ofGroup groupId: String, byUserId userId: String) async throws -> GroupInvitation
+    /// Rejoint avec un code ou un lien : une invitation à usage unique (consommée dans la même transaction que
+    /// l'adhésion) ou le code fixe d'un groupe public. Invitation utilisée ou révoquée : `.invalidInput` au message clair.
+    /// Renvoie le groupe rejoint ; déjà membre : sans effet (l'invitation n'est pas consommée).
+    func join(withCode code: String, householdId: String) async throws -> NeighborhoodGroup
 }
 
 extension GroupRepository {
@@ -229,7 +245,8 @@ nonisolated struct AppRepositories: Sendable {
     static func fake(behavior: FakeBehavior = .realistic, data: FakeData = .montreal) -> AppRepositories {
         AppRepositories(
             users: FakeUserRepository(behavior: behavior, users: data.users, households: data.households),
-            groups: FakeGroupRepository(behavior: behavior, groups: data.groups, members: data.members),
+            groups: FakeGroupRepository(behavior: behavior, groups: data.groups, members: data.members,
+                                        invitations: data.invitations),
             vendors: FakeVendorRepository(behavior: behavior, vendors: data.vendors, products: data.products),
             offers: FakeOfferRepository(behavior: behavior, offers: data.offers),
             groupOrders: FakeGroupOrderRepository(

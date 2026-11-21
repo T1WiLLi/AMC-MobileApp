@@ -624,3 +624,129 @@ describe('point de cueillette seedé (T-144)', () => {
     await assertFails(updateDoc(doc(amina(), 'pickupPoints/pickup-seed'), { secret: 'x' }))
   })
 })
+
+// B-056 : groupes publics ou privés, invitations à usage unique (groupInvitations/{code}).
+describe('groupes privés et invitations (B-056)', () => {
+  const privatePath = 'groups/group-prive'
+  const invitation = (code: string, extra: object = {}) => ({
+    code, groupId: 'group-prive', createdBy: 'amina', createdAt: Timestamp.now(), ...extra
+  })
+
+  beforeEach(async () => {
+    await env.withSecurityRulesDisabled(async (c) => {
+      const db = c.firestore()
+      await setDoc(doc(db, privatePath), {
+        id: 'group-prive', name: 'Cuisine collective', isPublic: false, inviteCode: '',
+        coordinatorIds: ['amina'], createdBy: 'amina', householdCount: 1
+      })
+      // Ancien document sans `isPublic` : public.
+      await setDoc(doc(db, 'groups/group-ancien'), { id: 'group-ancien', name: 'Ancien', householdCount: 0 })
+      await setDoc(doc(db, 'groupInvitations/ABC234'), invitation('ABC234'))
+      await setDoc(doc(db, 'groupInvitations/USED22'), invitation('USED22', { usedBy: 'household-amina', usedAt: Timestamp.now() }))
+      await setDoc(doc(db, 'groupInvitations/REVOK2'), invitation('REVOK2', { revokedAt: Timestamp.now() }))
+      await setDoc(doc(db, 'groupInvitations/OTHER2'), { ...invitation('OTHER2'), groupId: 'group-parc-extension' })
+    })
+  })
+
+  // Ce que fait FirestoreGroupRepository.consume : adhésion qui nomme l'invitation, compteur, invitation utilisée.
+  function joinWithInvitation(db: Firestore, code: string | null, groupPath = privatePath, consume = true) {
+    const batch = writeBatch(db)
+    const member: Record<string, unknown> = { householdId: 'household-intrus', role: 'member', joinedAt: serverTimestamp() }
+    if (code) member.invitationCode = code
+    batch.set(doc(db, `${groupPath}/members/household-intrus`), member)
+    batch.update(doc(db, groupPath), { householdCount: increment(1), lastMembershipChange: 'household-intrus' })
+    if (code && consume) batch.update(doc(db, `groupInvitations/${code}`), { usedBy: 'household-intrus', usedAt: serverTimestamp() })
+    return batch.commit()
+  }
+  async function invitationData(code: string) {
+    let data: Record<string, unknown> | undefined
+    await env.withSecurityRulesDisabled(async (c) => { data = (await getDoc(doc(c.firestore(), `groupInvitations/${code}`))).data() })
+    return data
+  }
+
+  test('un groupe privé se lit par son id, mais n’est jamais listé', async () => {
+    await assertSucceeds(getDoc(doc(intruder(), privatePath)))
+    await assertSucceeds(getDocs(query(collection(intruder(), 'groups'), where('isPublic', '==', true))))
+    await assertFails(getDocs(collection(intruder(), 'groups')))
+  })
+
+  test('le créateur change la visibilité, et rien d’autre', async () => {
+    await assertSucceeds(updateDoc(doc(amina(), privatePath), { isPublic: true }))
+    await assertSucceeds(updateDoc(doc(amina(), privatePath), { isPublic: false }))
+    await assertFails(updateDoc(doc(amina(), privatePath), { isPublic: 'oui' }))
+    await assertFails(updateDoc(doc(amina(), privatePath), { isPublic: true, name: 'Renommé' }))
+    await assertFails(updateDoc(doc(intruder(), privatePath), { isPublic: true }))
+    // Sans `createdBy` ni coordonnateur : personne.
+    await assertFails(updateDoc(doc(amina(), 'groups/group-parc-extension'), { isPublic: false }))
+  })
+
+  test('sans `createdBy`, le premier coordonnateur est le créateur', async () => {
+    await env.withSecurityRulesDisabled(async (c) => {
+      await setDoc(doc(c.firestore(), 'groups/group-coord'), { id: 'group-coord', name: 'x', isPublic: true, coordinatorIds: ['amina', 'intrus'] })
+    })
+    await assertSucceeds(updateDoc(doc(amina(), 'groups/group-coord'), { isPublic: false }))
+    await assertFails(updateDoc(doc(intruder(), 'groups/group-coord'), { isPublic: true }))
+  })
+
+  test('seul le créateur crée une invitation, au bon format', async () => {
+    const fresh = { code: 'NEW234', groupId: 'group-prive', createdBy: 'amina', createdAt: serverTimestamp() }
+    await assertSucceeds(setDoc(doc(amina(), 'groupInvitations/NEW234'), fresh))
+    await assertFails(setDoc(doc(intruder(), 'groupInvitations/NEW235'), { ...fresh, code: 'NEW235', createdBy: 'intrus' }))
+    await assertFails(setDoc(doc(amina(), 'groupInvitations/NEW236'), { ...fresh }))
+    await assertFails(setDoc(doc(amina(), 'groupInvitations/new237'), { ...fresh, code: 'new237' }))
+    await assertFails(setDoc(doc(amina(), 'groupInvitations/NEW238'), { ...fresh, code: 'NEW238', createdAt: Timestamp.fromMillis(0) }))
+    await assertFails(setDoc(doc(amina(), 'groupInvitations/NEW239'), { ...fresh, code: 'NEW239', usedBy: 'household-amina' }))
+    // Une invitation existante ne s'écrase pas.
+    await assertFails(setDoc(doc(amina(), 'groupInvitations/USED22'), { ...fresh, code: 'USED22' }))
+  })
+
+  test('le créateur liste ses invitations ; personne d’autre', async () => {
+    await assertSucceeds(getDocs(query(collection(amina(), 'groupInvitations'),
+      where('groupId', '==', 'group-prive'), where('createdBy', '==', 'amina'))))
+    await assertFails(getDocs(query(collection(intruder(), 'groupInvitations'), where('createdBy', '==', 'amina'))))
+    await assertFails(getDocs(collection(amina(), 'groupInvitations')))
+    // Qui a reçu un code le lit.
+    await assertSucceeds(getDoc(doc(intruder(), 'groupInvitations/ABC234')))
+    await assertFails(getDoc(doc(anonymous(), 'groupInvitations/ABC234')))
+  })
+
+  test('le créateur révoque une invitation pas encore utilisée', async () => {
+    await assertFails(updateDoc(doc(intruder(), 'groupInvitations/ABC234'), { revokedAt: serverTimestamp() }))
+    await assertFails(updateDoc(doc(amina(), 'groupInvitations/ABC234'), { revokedAt: Timestamp.fromMillis(0) }))
+    await assertFails(updateDoc(doc(amina(), 'groupInvitations/USED22'), { revokedAt: serverTimestamp() }))
+    await assertSucceeds(updateDoc(doc(amina(), 'groupInvitations/ABC234'), { revokedAt: serverTimestamp() }))
+    await assertFails(deleteDoc(doc(amina(), 'groupInvitations/ABC234')))
+  })
+
+  test('une invitation valide fait entrer dans le groupe privé et sert une seule fois', async () => {
+    await assertSucceeds(joinWithInvitation(intruder(), 'ABC234'))
+    const used = await invitationData('ABC234')
+    assert.equal(used?.usedBy, 'household-intrus')
+    // Le ménage repart, puis essaie de revenir avec la même invitation.
+    const leave = writeBatch(intruder())
+    leave.delete(doc(intruder(), `${privatePath}/members/household-intrus`))
+    leave.update(doc(intruder(), privatePath), { householdCount: increment(-1), lastMembershipChange: 'household-intrus' })
+    await assertSucceeds(leave.commit())
+    await assertFails(joinWithInvitation(intruder(), 'ABC234'))
+  })
+
+  test('pas d’entrée dans un groupe privé sans invitation valide', async () => {
+    await assertFails(joinWithInvitation(intruder(), null))
+    await assertFails(joinWithInvitation(intruder(), 'USED22'))
+    await assertFails(joinWithInvitation(intruder(), 'REVOK2'))
+    await assertFails(joinWithInvitation(intruder(), 'OTHER2'))
+    await assertFails(joinWithInvitation(intruder(), 'NOPE22'))
+    // L'adhésion nomme l'invitation mais ne la consomme pas : refusé.
+    await assertFails(joinWithInvitation(intruder(), 'ABC234', privatePath, false))
+  })
+
+  test('une invitation ne se consomme pas sans l’adhésion qui la nomme', async () => {
+    await assertFails(updateDoc(doc(intruder(), 'groupInvitations/ABC234'), { usedBy: 'household-intrus', usedAt: serverTimestamp() }))
+    // Au nom d'un autre ménage : refusé.
+    await assertFails(updateDoc(doc(intruder(), 'groupInvitations/ABC234'), { usedBy: 'household-amina', usedAt: serverTimestamp() }))
+  })
+
+  test('un groupe sans `isPublic` reste public : on y entre sans invitation', async () => {
+    await assertSucceeds(joinWithInvitation(intruder(), null, 'groups/group-ancien'))
+  })
+})

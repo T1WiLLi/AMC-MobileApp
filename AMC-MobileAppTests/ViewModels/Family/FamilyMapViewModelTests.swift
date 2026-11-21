@@ -95,7 +95,7 @@ struct FamilyMapViewModelTests {
         var data = FakeData.montreal
         data.pickupPoints = []
         data.vendors = []
-        data.groups.removeAll { $0.id == ID.saintMichel }
+        data.groups.removeAll { $0.id == ID.saintMichel || $0.id == ID.villerayKitchen }
         let model = viewModel(data: data, radius: .twoKilometers)
         await model.load()
         #expect(model.allPlaces.value?.map(\.sourceId) == [ID.hochelaga])

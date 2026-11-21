@@ -197,6 +197,38 @@ nonisolated struct CachedGroupRepository: GroupRepository {
     }
 
     /// Le nombre de ménages du groupe et la liste des groupes du ménage ont changé.
+    // MARK: B-056 (invitations jamais mises en cache : le créateur doit voir leur état réel)
+
+    func setVisibility(isPublic: Bool, ofGroup groupId: String, byUserId userId: String) async throws -> NeighborhoodGroup {
+        let group = try await base.setVisibility(isPublic: isPublic, ofGroup: groupId, byUserId: userId)
+        await cache.invalidate(.group(groupId))
+        await cache.invalidate { key in
+            switch key {
+            case .groupsInNeighborhood, .groupsOfHousehold: true
+            default: false
+            }
+        }
+        return group
+    }
+
+    func invitations(ofGroup groupId: String, byUserId userId: String) async throws -> [GroupInvitation] {
+        try await base.invitations(ofGroup: groupId, byUserId: userId)
+    }
+
+    func createInvitation(forGroup groupId: String, byUserId userId: String) async throws -> GroupInvitation {
+        try await base.createInvitation(forGroup: groupId, byUserId: userId)
+    }
+
+    func revokeInvitation(code: String, ofGroup groupId: String, byUserId userId: String) async throws -> GroupInvitation {
+        try await base.revokeInvitation(code: code, ofGroup: groupId, byUserId: userId)
+    }
+
+    func join(withCode code: String, householdId: String) async throws -> NeighborhoodGroup {
+        let group = try await base.join(withCode: code, householdId: householdId)
+        await Self.invalidateMembership(groupId: group.id, householdId: householdId, in: cache)
+        return group
+    }
+
     private static func invalidateMembership(groupId: String, householdId: String, in cache: RepositoryCache) async {
         await cache.invalidate(.group(groupId))
         await cache.invalidate(.members(ofGroup: groupId))

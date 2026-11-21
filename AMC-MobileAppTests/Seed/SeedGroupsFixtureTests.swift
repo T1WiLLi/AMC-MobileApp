@@ -61,7 +61,10 @@ struct SeedGroupsFixtureTests {
     }
 
     @Test func eightPublicGroupsWithFixedIds() throws {
-        let groups = try groups()
+        // B-056 : plus un groupe privé de démo (sur invitation seulement, sans membre ni point de cueillette).
+        let all = try groups()
+        #expect(all.filter { !$0.isPublic }.map(\.id) == ["group-cuisine-parc-ex"])
+        let groups = all.filter(\.isPublic)
         #expect(groups.count == 8)
         #expect(Set(groups.map(\.id)) == Self.groupIds)
         #expect(groups.allSatisfy { $0.isPublic })
@@ -74,7 +77,7 @@ struct SeedGroupsFixtureTests {
         let users = try users()
         #expect(Set(points.map(\.id)).count == points.count)
         #expect(Set(users.map(\.id)).count == users.count)
-        #expect(Set(try groups().map(\.inviteCode)).count == 8)
+        #expect(Set(try groups().filter(\.isPublic).map(\.inviteCode)).count == 8)
     }
 
     @Test func householdCountsMatchB028() throws {
@@ -90,7 +93,7 @@ struct SeedGroupsFixtureTests {
         for group in try raw("groups") {
             let id = try #require(group["id"] as? String)
             let pointIds = try #require(group["pickupPointIds"] as? [String], "\(id)")
-            #expect(!pointIds.isEmpty, "\(id)")
+            if group["isPublic"] as? Bool != false { #expect(!pointIds.isEmpty, "\(id)") }
             #expect(pointIds.allSatisfy { points[$0] != nil }, "\(id)")
         }
         for point in try raw("pickupPoints") {

@@ -5,14 +5,18 @@ struct GroupRoute: Hashable, Sendable {
     let groupId: String
 }
 
-/// Onglet Groupes : les groupes de quartier publics, les tiens d'abord. Tap → fiche du groupe (F2).
-/// Pas d'action principale : la création de groupe n'est pas encore prévue.
+/// Onglet Groupes : tes groupes (publics et privés), puis les groupes publics du plus proche au plus loin.
+/// Tap → fiche du groupe (F2). B-056 : « Rejoindre avec un code » (invitation à un groupe privé, ou code
+/// d'un groupe public), aussi ouvert par un lien `grenier://join/<code>` ou `https://grenier.app/join/<code>`.
 struct GroupsScreen: View {
     @Environment(\.appContext) private var context
     @State private var viewModel: GroupsViewModel?
+    @State private var path = NavigationPath()
+    /// Feuille « Rejoindre avec un code » ouverte, avec le code d'un lien reçu s'il y en a un.
+    @State private var joinCode: JoinCodeRequest?
 
     var body: some View {
-        NavigationStack {
+        NavigationStack(path: $path) {
             Group {
                 if let viewModel {
                     switch viewModel.state {
@@ -55,6 +59,12 @@ struct GroupsScreen: View {
             .profileToolbar()
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
+                    Button("Rejoindre avec un code", systemImage: "ticket") {
+                        joinCode = JoinCodeRequest(code: "")
+                    }
+                    .accessibilityHint("Entre dans un groupe avec une invitation reçue")
+                }
+                ToolbarItem(placement: .topBarTrailing) {
                     NavigationLink {
                         FamilyMapScreen()
                     } label: {
@@ -80,6 +90,18 @@ struct GroupsScreen: View {
             } message: { error in
                 Text(error.message)
             }
+            .sheet(item: $joinCode) { request in
+                JoinWithCodeSheet(repositories: context.repositories, householdId: context.householdId,
+                                  code: request.code) { group in
+                    Task { await viewModel?.didJoin(group) }
+                    path.append(GroupRoute(groupId: group.id))
+                }
+            }
+        }
+        // B-056 : un lien d'invitation ouvre la feuille avec son code.
+        .onOpenURL { url in
+            guard let code = GroupRules.inviteCode(from: url) else { return }
+            joinCode = JoinCodeRequest(code: code)
         }
         .task {
             guard viewModel == nil else { return }
@@ -88,6 +110,12 @@ struct GroupsScreen: View {
             await model.load()
         }
     }
+}
+
+/// Ouverture de la feuille « Rejoindre avec un code ».
+private struct JoinCodeRequest: Identifiable {
+    let id = UUID()
+    let code: String
 }
 
 private struct GroupList: View {
@@ -357,8 +385,16 @@ private struct GroupRow: View {
 
     @ViewBuilder
     private var meta: some View {
+        if !group.isPublic {
+            GroupsMetaLabel(text: String(localized: "Privé"), systemImage: "lock.fill", tint: .texteSecondaire)
+        }
         GroupsMetaLabel(text: familiesText, systemImage: "person.2.fill", tint: .solidarite)
-        GroupsMetaLabel(text: group.neighborhood, systemImage: "mappin", tint: .grenier)
+        if let distance = item.distanceText {
+            // B-056 : distance du ménage au groupe (la liste est triée du plus proche au plus loin).
+            GroupsMetaLabel(text: distance, systemImage: "location.fill", tint: .grenier)
+        } else {
+            GroupsMetaLabel(text: group.neighborhood, systemImage: "mappin", tint: .grenier)
+        }
         GroupsMetaLabel(text: GroupCard.distanceText(group.radiusMeters), systemImage: "circle.dashed", tint: .economie)
     }
 
@@ -392,9 +428,11 @@ private struct GroupRow: View {
         FrenchPlural.count(group.householdCount, "famille")
     }
 
-    /// « 27 familles · Hochelaga · rayon 900 m »
+    /// « 27 familles · Hochelaga · à 1,4 km · rayon 900 m » (« groupe privé » en tête s'il l'est).
     private var detailText: String {
-        String(localized: "\(familiesText) · \(group.neighborhood) · rayon \(GroupCard.distanceText(group.radiusMeters))")
+        let distance = item.distanceText.map { " · \($0)" } ?? ""
+        let base = String(localized: "\(familiesText) · \(group.neighborhood)\(distance) · rayon \(GroupCard.distanceText(group.radiusMeters))")
+        return group.isPublic ? base : String(localized: "Groupe privé · \(base)")
     }
 }
 

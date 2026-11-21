@@ -88,7 +88,8 @@ nonisolated enum GroupRules {
             coordinatorIds: [creatorUserId],
             householdCount: 1,
             isPublic: clean.isPublic,
-            inviteCode: makeInviteCode()
+            inviteCode: makeInviteCode(),
+            createdBy: creatorUserId
         )
         let member = GroupMember(householdId: creatorHouseholdId, role: .coordinator, joinedAt: now)
         return Creation(group: group, creatorMember: member)
@@ -185,6 +186,96 @@ nonisolated enum GroupRules {
             return inviteCode(from: url)
         }
         return isValidInviteCode(trimmed) ? normalizedInviteCode(trimmed) : nil
+    }
+
+    // MARK: - B-056 Groupes publics ou privés, invitations à usage unique
+
+    /// Seul le créateur du groupe change sa visibilité et gère ses invitations.
+    static func isCreator(_ userId: String?, of group: NeighborhoodGroup) -> Bool {
+        guard let userId, !userId.isEmpty else { return false }
+        return group.creatorId == userId
+    }
+
+    /// Lève `.permissionDenied` si `userId` n'a pas créé le groupe.
+    static func requireCreator(_ userId: String?, of group: NeighborhoodGroup) throws {
+        guard isCreator(userId, of: group) else { throw AppError.permissionDenied }
+    }
+
+    /// Nouvelle invitation à usage unique, avec un code absent de `existingCodes`.
+    static func makeInvitation<G: RandomNumberGenerator>(
+        for group: NeighborhoodGroup, byUserId userId: String, existingCodes: Set<String>,
+        now: Date = .now, using rng: inout G
+    ) throws -> GroupInvitation {
+        try requireCreator(userId, of: group)
+        let code = generateInviteCode(avoiding: existingCodes, using: &rng)
+        return GroupInvitation(code: code, groupId: group.id, createdBy: userId, createdAt: now)
+    }
+
+    static func makeInvitation(for group: NeighborhoodGroup, byUserId userId: String,
+                               existingCodes: Set<String> = [], now: Date = .now) throws -> GroupInvitation {
+        var rng = SystemRandomNumberGenerator()
+        return try makeInvitation(for: group, byUserId: userId, existingCodes: existingCodes, now: now, using: &rng)
+    }
+
+    /// Invitation déjà utilisée : message clair pour la personne qui essaie d'entrer.
+    static let usedInvitationError = AppError.invalidInput(
+        String(localized: "Cette invitation a déjà servi. Demande une nouvelle invitation à la personne qui a créé le groupe.")
+    )
+    /// Invitation révoquée par le créateur.
+    static let revokedInvitationError = AppError.invalidInput(
+        String(localized: "Cette invitation a été annulée par la personne qui a créé le groupe. Demande-lui-en une nouvelle.")
+    )
+    /// Code inconnu (ni invitation ni code d'un groupe public).
+    static let unknownInviteCodeError = AppError.invalidInput(
+        String(localized: "Ce code d'invitation ne correspond à aucun groupe. Vérifie-le ou demande un nouveau lien.")
+    )
+
+    /// Lève une erreur claire si l'invitation ne peut plus servir.
+    static func validateForJoining(_ invitation: GroupInvitation) throws {
+        switch invitation.status {
+        case .active: return
+        case .used: throw usedInvitationError
+        case .revoked: throw revokedInvitationError
+        }
+    }
+
+    /// Invitation consommée par `householdId`.
+    static func consuming(_ invitation: GroupInvitation, byHousehold householdId: String, now: Date = .now) throws -> GroupInvitation {
+        try validateForJoining(invitation)
+        var used = invitation
+        used.usedBy = householdId
+        used.usedAt = now
+        return used
+    }
+
+    /// Invitation révoquée par le créateur. Une invitation déjà utilisée ne se révoque plus.
+    static func revoking(_ invitation: GroupInvitation, in group: NeighborhoodGroup, byUserId userId: String,
+                         now: Date = .now) throws -> GroupInvitation {
+        try requireCreator(userId, of: group)
+        guard invitation.groupId == group.id else { throw AppError.notFound }
+        switch invitation.status {
+        case .revoked: return invitation
+        case .used:
+            throw AppError.invalidInput(String(localized: "Cette invitation a déjà servi : il n'y a plus rien à annuler."))
+        case .active:
+            var revoked = invitation
+            revoked.revokedAt = now
+            return revoked
+        }
+    }
+
+    /// Le code fixe d'un groupe ne fait entrer que dans un groupe public.
+    static func acceptsFixedCode(_ group: NeighborhoodGroup, code: String) -> Bool {
+        group.isPublic && !group.inviteCode.isEmpty && normalizedInviteCode(group.inviteCode) == normalizedInviteCode(code)
+    }
+
+    /// Invitations à montrer au créateur : actives d'abord, puis les plus récentes.
+    static func sortedForDisplay(_ invitations: [GroupInvitation]) -> [GroupInvitation] {
+        invitations.sorted { lhs, rhs in
+            let lhsActive = lhs.status == .active, rhsActive = rhs.status == .active
+            if lhsActive != rhsActive { return lhsActive }
+            return lhs.createdAt > rhs.createdAt
+        }
     }
 
     // MARK: - RQ-030 Au plus 3 groupes par ménage

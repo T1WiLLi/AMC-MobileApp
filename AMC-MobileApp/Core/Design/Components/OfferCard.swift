@@ -83,11 +83,13 @@ struct ProductIcon: View {
         switch category {
         case .produce: "carrot.fill"
         case .grains: "shippingbox.fill"
-        case .dairy: "cup.and.saucer.fill"
+        case .legumes: "leaf.fill"
+        case .oils: "drop.fill"
+        case .flour: "birthday.cake.fill"
+        case .canned: "cylinder.fill"
+        case .eggs: "oval.portrait.fill"
         case .meat: "fork.knife"
-        case .pantry: "archivebox.fill"
-        case .bakery: "basket.fill"
-        case .other: "bag.fill"
+        case .household: "bubbles.and.sparkles.fill"
         }
     }
 }

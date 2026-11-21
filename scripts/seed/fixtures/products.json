@@ -1,0 +1,579 @@
+[
+  {
+    "id": "product-pommes-de-terre-jaunes",
+    "vendorId": "vendor-ferme-lafleur",
+    "name": "Pommes de terre jaunes",
+    "category": "produce",
+    "unit": "sac de 10 kg",
+    "origin": "Saint-Rémi, QC",
+    "tags": [
+      "local"
+    ],
+    "photoURL": null,
+    "referenceGroceryPriceCents": 1599,
+    "referencePriceSource": "Estimation d'après Statistique Canada, tableau 18-10-0245-01 (prix de détail moyens, Québec, 2025) et circulaires d'épiceries de Montréal ; valeur approximative, à vérifier"
+  },
+  {
+    "id": "product-carottes",
+    "vendorId": "vendor-ferme-lafleur",
+    "name": "Carottes",
+    "category": "produce",
+    "unit": "sac de 5 kg",
+    "origin": "Saint-Rémi, QC",
+    "tags": [
+      "local"
+    ],
+    "photoURL": null,
+    "referenceGroceryPriceCents": 899,
+    "referencePriceSource": "Estimation d'après Statistique Canada, tableau 18-10-0245-01 (prix de détail moyens, Québec, 2025) et circulaires d'épiceries de Montréal ; valeur approximative, à vérifier"
+  },
+  {
+    "id": "product-oignons-jaunes",
+    "vendorId": "vendor-ferme-lafleur",
+    "name": "Oignons jaunes",
+    "category": "produce",
+    "unit": "sac de 5 kg",
+    "origin": "Saint-Rémi, QC",
+    "tags": [
+      "local"
+    ],
+    "photoURL": null,
+    "referenceGroceryPriceCents": 999,
+    "referencePriceSource": "Estimation d'après Statistique Canada, tableau 18-10-0245-01 (prix de détail moyens, Québec, 2025) et circulaires d'épiceries de Montréal ; valeur approximative, à vérifier"
+  },
+  {
+    "id": "product-choux-verts",
+    "vendorId": "vendor-ferme-lafleur",
+    "name": "Chou vert",
+    "category": "produce",
+    "unit": "caisse de 6",
+    "origin": "Saint-Rémi, QC",
+    "tags": [
+      "local"
+    ],
+    "photoURL": null,
+    "referenceGroceryPriceCents": 1494,
+    "referencePriceSource": "Estimation d'après Statistique Canada, tableau 18-10-0245-01 (prix de détail moyens, Québec, 2025) et circulaires d'épiceries de Montréal ; valeur approximative, à vérifier"
+  },
+  {
+    "id": "product-oeufs-lafleur",
+    "vendorId": "vendor-ferme-lafleur",
+    "name": "Œufs de poules en liberté",
+    "category": "eggs",
+    "unit": "plateau de 30",
+    "origin": "Saint-Rémi, QC",
+    "tags": [
+      "local"
+    ],
+    "photoURL": null,
+    "referenceGroceryPriceCents": 1299,
+    "referencePriceSource": "Estimation d'après Statistique Canada, tableau 18-10-0245-01 (prix de détail moyens, Québec, 2025) et circulaires d'épiceries de Montréal ; valeur approximative, à vérifier"
+  },
+  {
+    "id": "product-betteraves",
+    "vendorId": "vendor-ferme-lafleur",
+    "name": "Betteraves",
+    "category": "produce",
+    "unit": "sac de 5 kg",
+    "origin": "Saint-Rémi, QC",
+    "tags": [
+      "local"
+    ],
+    "photoURL": null,
+    "referenceGroceryPriceCents": 1099,
+    "referencePriceSource": "Estimation d'après Statistique Canada, tableau 18-10-0245-01 (prix de détail moyens, Québec, 2025) et circulaires d'épiceries de Montréal ; valeur approximative, à vérifier"
+  },
+  {
+    "id": "product-courges-butternut",
+    "vendorId": "vendor-ferme-lafleur",
+    "name": "Courges butternut",
+    "category": "produce",
+    "unit": "caisse de 8 kg",
+    "origin": "Saint-Rémi, QC",
+    "tags": [
+      "local"
+    ],
+    "photoURL": null,
+    "referenceGroceryPriceCents": 2199,
+    "referencePriceSource": "Estimation d'après Statistique Canada, tableau 18-10-0245-01 (prix de détail moyens, Québec, 2025) et circulaires d'épiceries de Montréal ; valeur approximative, à vérifier"
+  },
+  {
+    "id": "product-pommes-cortland",
+    "vendorId": "vendor-ferme-bio-rive",
+    "name": "Pommes Cortland",
+    "category": "produce",
+    "unit": "caisse de 5 kg",
+    "origin": "Mirabel, QC",
+    "tags": [
+      "organic",
+      "local"
+    ],
+    "photoURL": null,
+    "referenceGroceryPriceCents": 1499,
+    "referencePriceSource": "Estimation d'après Statistique Canada, tableau 18-10-0245-01 (prix de détail moyens, Québec, 2025) et circulaires d'épiceries de Montréal ; valeur approximative, à vérifier"
+  },
+  {
+    "id": "product-pommes-mcintosh",
+    "vendorId": "vendor-ferme-bio-rive",
+    "name": "Pommes McIntosh",
+    "category": "produce",
+    "unit": "caisse de 5 kg",
+    "origin": "Mirabel, QC",
+    "tags": [
+      "organic",
+      "local"
+    ],
+    "photoURL": null,
+    "referenceGroceryPriceCents": 1399,
+    "referencePriceSource": "Estimation d'après Statistique Canada, tableau 18-10-0245-01 (prix de détail moyens, Québec, 2025) et circulaires d'épiceries de Montréal ; valeur approximative, à vérifier"
+  },
+  {
+    "id": "product-poireaux",
+    "vendorId": "vendor-ferme-bio-rive",
+    "name": "Poireaux",
+    "category": "produce",
+    "unit": "botte de 6",
+    "origin": "Mirabel, QC",
+    "tags": [
+      "organic",
+      "local"
+    ],
+    "photoURL": null,
+    "referenceGroceryPriceCents": 1199,
+    "referencePriceSource": "Estimation d'après Statistique Canada, tableau 18-10-0245-01 (prix de détail moyens, Québec, 2025) et circulaires d'épiceries de Montréal ; valeur approximative, à vérifier"
+  },
+  {
+    "id": "product-patates-douces",
+    "vendorId": "vendor-ferme-bio-rive",
+    "name": "Patates douces",
+    "category": "produce",
+    "unit": "sac de 5 kg",
+    "origin": "Mirabel, QC",
+    "tags": [
+      "organic"
+    ],
+    "photoURL": null,
+    "referenceGroceryPriceCents": 1799,
+    "referencePriceSource": "Estimation d'après Statistique Canada, tableau 18-10-0245-01 (prix de détail moyens, Québec, 2025) et circulaires d'épiceries de Montréal ; valeur approximative, à vérifier"
+  },
+  {
+    "id": "product-navets",
+    "vendorId": "vendor-ferme-bio-rive",
+    "name": "Navets",
+    "category": "produce",
+    "unit": "sac de 5 kg",
+    "origin": "Mirabel, QC",
+    "tags": [
+      "organic",
+      "local"
+    ],
+    "photoURL": null,
+    "referenceGroceryPriceCents": 999,
+    "referencePriceSource": "Estimation d'après Statistique Canada, tableau 18-10-0245-01 (prix de détail moyens, Québec, 2025) et circulaires d'épiceries de Montréal ; valeur approximative, à vérifier"
+  },
+  {
+    "id": "product-riz-basmati",
+    "vendorId": "vendor-moulins-du-nord",
+    "name": "Riz basmati",
+    "category": "grains",
+    "unit": "sac de 10 kg",
+    "origin": "Inde (importé)",
+    "tags": [
+      "halal",
+      "vegan",
+      "glutenFree"
+    ],
+    "photoURL": null,
+    "referenceGroceryPriceCents": 2899,
+    "referencePriceSource": "Estimation d'après Statistique Canada, tableau 18-10-0245-01 (prix de détail moyens, Québec, 2025) et circulaires d'épiceries de Montréal ; valeur approximative, à vérifier"
+  },
+  {
+    "id": "product-riz-jasmin",
+    "vendorId": "vendor-moulins-du-nord",
+    "name": "Riz jasmin",
+    "category": "grains",
+    "unit": "sac de 8 kg",
+    "origin": "Thaïlande (importé)",
+    "tags": [
+      "vegan",
+      "glutenFree"
+    ],
+    "photoURL": null,
+    "referenceGroceryPriceCents": 2499,
+    "referencePriceSource": "Estimation d'après Statistique Canada, tableau 18-10-0245-01 (prix de détail moyens, Québec, 2025) et circulaires d'épiceries de Montréal ; valeur approximative, à vérifier"
+  },
+  {
+    "id": "product-flocons-avoine",
+    "vendorId": "vendor-moulins-du-nord",
+    "name": "Flocons d'avoine",
+    "category": "grains",
+    "unit": "sac de 5 kg",
+    "origin": "Saskatchewan, CA",
+    "tags": [
+      "vegan"
+    ],
+    "photoURL": null,
+    "referenceGroceryPriceCents": 1499,
+    "referencePriceSource": "Estimation d'après Statistique Canada, tableau 18-10-0245-01 (prix de détail moyens, Québec, 2025) et circulaires d'épiceries de Montréal ; valeur approximative, à vérifier"
+  },
+  {
+    "id": "product-pates-penne",
+    "vendorId": "vendor-moulins-du-nord",
+    "name": "Pâtes penne",
+    "category": "grains",
+    "unit": "caisse de 12 × 900 g",
+    "origin": "Québec, CA",
+    "tags": [
+      "vegan"
+    ],
+    "photoURL": null,
+    "referenceGroceryPriceCents": 2388,
+    "referencePriceSource": "Estimation d'après Statistique Canada, tableau 18-10-0245-01 (prix de détail moyens, Québec, 2025) et circulaires d'épiceries de Montréal ; valeur approximative, à vérifier"
+  },
+  {
+    "id": "product-couscous",
+    "vendorId": "vendor-moulins-du-nord",
+    "name": "Couscous moyen",
+    "category": "grains",
+    "unit": "sac de 5 kg",
+    "origin": "Importé",
+    "tags": [
+      "halal",
+      "vegan"
+    ],
+    "photoURL": null,
+    "referenceGroceryPriceCents": 1999,
+    "referencePriceSource": "Estimation d'après Statistique Canada, tableau 18-10-0245-01 (prix de détail moyens, Québec, 2025) et circulaires d'épiceries de Montréal ; valeur approximative, à vérifier"
+  },
+  {
+    "id": "product-farine-tout-usage",
+    "vendorId": "vendor-moulins-du-nord",
+    "name": "Farine tout usage",
+    "category": "flour",
+    "unit": "sac de 10 kg",
+    "origin": "Québec, CA",
+    "tags": [
+      "vegan"
+    ],
+    "photoURL": null,
+    "referenceGroceryPriceCents": 1999,
+    "referencePriceSource": "Estimation d'après Statistique Canada, tableau 18-10-0245-01 (prix de détail moyens, Québec, 2025) et circulaires d'épiceries de Montréal ; valeur approximative, à vérifier"
+  },
+  {
+    "id": "product-farine-ble-entier",
+    "vendorId": "vendor-moulins-du-nord",
+    "name": "Farine de blé entier",
+    "category": "flour",
+    "unit": "sac de 10 kg",
+    "origin": "Québec, CA",
+    "tags": [
+      "vegan",
+      "local"
+    ],
+    "photoURL": null,
+    "referenceGroceryPriceCents": 2299,
+    "referencePriceSource": "Estimation d'après Statistique Canada, tableau 18-10-0245-01 (prix de détail moyens, Québec, 2025) et circulaires d'épiceries de Montréal ; valeur approximative, à vérifier"
+  },
+  {
+    "id": "product-farine-sarrasin",
+    "vendorId": "vendor-moulins-du-nord",
+    "name": "Farine de sarrasin",
+    "category": "flour",
+    "unit": "sac de 2,5 kg",
+    "origin": "Québec, CA",
+    "tags": [
+      "glutenFree",
+      "local"
+    ],
+    "photoURL": null,
+    "referenceGroceryPriceCents": 1399,
+    "referencePriceSource": "Estimation d'après Statistique Canada, tableau 18-10-0245-01 (prix de détail moyens, Québec, 2025) et circulaires d'épiceries de Montréal ; valeur approximative, à vérifier"
+  },
+  {
+    "id": "product-lentilles-rouges",
+    "vendorId": "vendor-moulins-du-nord",
+    "name": "Lentilles rouges",
+    "category": "legumes",
+    "unit": "sac de 4 kg",
+    "origin": "Saskatchewan, CA",
+    "tags": [
+      "vegan",
+      "halal",
+      "glutenFree"
+    ],
+    "photoURL": null,
+    "referenceGroceryPriceCents": 1799,
+    "referencePriceSource": "Estimation d'après Statistique Canada, tableau 18-10-0245-01 (prix de détail moyens, Québec, 2025) et circulaires d'épiceries de Montréal ; valeur approximative, à vérifier"
+  },
+  {
+    "id": "product-lentilles-vertes",
+    "vendorId": "vendor-moulins-du-nord",
+    "name": "Lentilles vertes",
+    "category": "legumes",
+    "unit": "sac de 4 kg",
+    "origin": "Saskatchewan, CA",
+    "tags": [
+      "vegan",
+      "halal",
+      "glutenFree"
+    ],
+    "photoURL": null,
+    "referenceGroceryPriceCents": 1699,
+    "referencePriceSource": "Estimation d'après Statistique Canada, tableau 18-10-0245-01 (prix de détail moyens, Québec, 2025) et circulaires d'épiceries de Montréal ; valeur approximative, à vérifier"
+  },
+  {
+    "id": "product-pois-chiches",
+    "vendorId": "vendor-moulins-du-nord",
+    "name": "Pois chiches secs",
+    "category": "legumes",
+    "unit": "sac de 4 kg",
+    "origin": "Saskatchewan, CA",
+    "tags": [
+      "vegan",
+      "halal",
+      "glutenFree"
+    ],
+    "photoURL": null,
+    "referenceGroceryPriceCents": 1599,
+    "referencePriceSource": "Estimation d'après Statistique Canada, tableau 18-10-0245-01 (prix de détail moyens, Québec, 2025) et circulaires d'épiceries de Montréal ; valeur approximative, à vérifier"
+  },
+  {
+    "id": "product-haricots-noirs",
+    "vendorId": "vendor-moulins-du-nord",
+    "name": "Haricots noirs secs",
+    "category": "legumes",
+    "unit": "sac de 4 kg",
+    "origin": "Ontario, CA",
+    "tags": [
+      "vegan",
+      "glutenFree"
+    ],
+    "photoURL": null,
+    "referenceGroceryPriceCents": 1699,
+    "referencePriceSource": "Estimation d'après Statistique Canada, tableau 18-10-0245-01 (prix de détail moyens, Québec, 2025) et circulaires d'épiceries de Montréal ; valeur approximative, à vérifier"
+  },
+  {
+    "id": "product-pois-casses",
+    "vendorId": "vendor-moulins-du-nord",
+    "name": "Pois cassés jaunes",
+    "category": "legumes",
+    "unit": "sac de 4 kg",
+    "origin": "Québec, CA",
+    "tags": [
+      "vegan",
+      "glutenFree",
+      "local"
+    ],
+    "photoURL": null,
+    "referenceGroceryPriceCents": 1299,
+    "referencePriceSource": "Estimation d'après Statistique Canada, tableau 18-10-0245-01 (prix de détail moyens, Québec, 2025) et circulaires d'épiceries de Montréal ; valeur approximative, à vérifier"
+  },
+  {
+    "id": "product-oeufs-gros",
+    "vendorId": "vendor-coop-lanaudiere",
+    "name": "Œufs gros calibre",
+    "category": "eggs",
+    "unit": "plateau de 30",
+    "origin": "Lanaudière, QC",
+    "tags": [
+      "local"
+    ],
+    "photoURL": null,
+    "referenceGroceryPriceCents": 1199,
+    "referencePriceSource": "Estimation d'après Statistique Canada, tableau 18-10-0245-01 (prix de détail moyens, Québec, 2025) et circulaires d'épiceries de Montréal ; valeur approximative, à vérifier"
+  },
+  {
+    "id": "product-oeufs-bruns-bio",
+    "vendorId": "vendor-coop-lanaudiere",
+    "name": "Œufs bruns biologiques",
+    "category": "eggs",
+    "unit": "caisse de 6 douzaines",
+    "origin": "Lanaudière, QC",
+    "tags": [
+      "organic",
+      "local"
+    ],
+    "photoURL": null,
+    "referenceGroceryPriceCents": 4194,
+    "referencePriceSource": "Estimation d'après Statistique Canada, tableau 18-10-0245-01 (prix de détail moyens, Québec, 2025) et circulaires d'épiceries de Montréal ; valeur approximative, à vérifier"
+  },
+  {
+    "id": "product-poulet-entier",
+    "vendorId": "vendor-coop-lanaudiere",
+    "name": "Poulet entier",
+    "category": "meat",
+    "unit": "boîte de 3 poulets (≈ 6 kg)",
+    "origin": "Lanaudière, QC",
+    "tags": [
+      "local"
+    ],
+    "photoURL": null,
+    "referenceGroceryPriceCents": 4497,
+    "referencePriceSource": "Estimation d'après Statistique Canada, tableau 18-10-0245-01 (prix de détail moyens, Québec, 2025) et circulaires d'épiceries de Montréal ; valeur approximative, à vérifier"
+  },
+  {
+    "id": "product-cuisses-poulet",
+    "vendorId": "vendor-coop-lanaudiere",
+    "name": "Cuisses de poulet",
+    "category": "meat",
+    "unit": "boîte de 4 kg",
+    "origin": "Lanaudière, QC",
+    "tags": [
+      "local"
+    ],
+    "photoURL": null,
+    "referenceGroceryPriceCents": 3596,
+    "referencePriceSource": "Estimation d'après Statistique Canada, tableau 18-10-0245-01 (prix de détail moyens, Québec, 2025) et circulaires d'épiceries de Montréal ; valeur approximative, à vérifier"
+  },
+  {
+    "id": "product-porc-hache",
+    "vendorId": "vendor-coop-lanaudiere",
+    "name": "Porc haché mi-maigre",
+    "category": "meat",
+    "unit": "boîte de 3 kg",
+    "origin": "Lanaudière, QC",
+    "tags": [
+      "local"
+    ],
+    "photoURL": null,
+    "referenceGroceryPriceCents": 2697,
+    "referencePriceSource": "Estimation d'après Statistique Canada, tableau 18-10-0245-01 (prix de détail moyens, Québec, 2025) et circulaires d'épiceries de Montréal ; valeur approximative, à vérifier"
+  },
+  {
+    "id": "product-huile-canola",
+    "vendorId": "vendor-marche-central",
+    "name": "Huile de canola",
+    "category": "oils",
+    "unit": "bidon de 4 L",
+    "origin": "Canada",
+    "tags": [
+      "vegan",
+      "halal",
+      "kosher"
+    ],
+    "photoURL": null,
+    "referenceGroceryPriceCents": 1799,
+    "referencePriceSource": "Estimation d'après Statistique Canada, tableau 18-10-0245-01 (prix de détail moyens, Québec, 2025) et circulaires d'épiceries de Montréal ; valeur approximative, à vérifier"
+  },
+  {
+    "id": "product-huile-olive",
+    "vendorId": "vendor-marche-central",
+    "name": "Huile d'olive extra vierge",
+    "category": "oils",
+    "unit": "bidon de 3 L",
+    "origin": "Espagne (importé)",
+    "tags": [
+      "vegan"
+    ],
+    "photoURL": null,
+    "referenceGroceryPriceCents": 3999,
+    "referencePriceSource": "Estimation d'après Statistique Canada, tableau 18-10-0245-01 (prix de détail moyens, Québec, 2025) et circulaires d'épiceries de Montréal ; valeur approximative, à vérifier"
+  },
+  {
+    "id": "product-tomates-en-des",
+    "vendorId": "vendor-marche-central",
+    "name": "Tomates en dés",
+    "category": "canned",
+    "unit": "caisse de 12 × 796 mL",
+    "origin": "Canada",
+    "tags": [
+      "vegan"
+    ],
+    "photoURL": null,
+    "referenceGroceryPriceCents": 2388,
+    "referencePriceSource": "Estimation d'après Statistique Canada, tableau 18-10-0245-01 (prix de détail moyens, Québec, 2025) et circulaires d'épiceries de Montréal ; valeur approximative, à vérifier"
+  },
+  {
+    "id": "product-pois-chiches-conserve",
+    "vendorId": "vendor-marche-central",
+    "name": "Pois chiches en conserve",
+    "category": "canned",
+    "unit": "caisse de 12 × 540 mL",
+    "origin": "Canada",
+    "tags": [
+      "vegan",
+      "halal"
+    ],
+    "photoURL": null,
+    "referenceGroceryPriceCents": 2028,
+    "referencePriceSource": "Estimation d'après Statistique Canada, tableau 18-10-0245-01 (prix de détail moyens, Québec, 2025) et circulaires d'épiceries de Montréal ; valeur approximative, à vérifier"
+  },
+  {
+    "id": "product-thon-pale",
+    "vendorId": "vendor-marche-central",
+    "name": "Thon pâle en morceaux",
+    "category": "canned",
+    "unit": "caisse de 24 × 170 g",
+    "origin": "Importé",
+    "tags": [
+      "halal"
+    ],
+    "photoURL": null,
+    "referenceGroceryPriceCents": 4776,
+    "referencePriceSource": "Estimation d'après Statistique Canada, tableau 18-10-0245-01 (prix de détail moyens, Québec, 2025) et circulaires d'épiceries de Montréal ; valeur approximative, à vérifier"
+  },
+  {
+    "id": "product-mais-conserve",
+    "vendorId": "vendor-marche-central",
+    "name": "Maïs en grains",
+    "category": "canned",
+    "unit": "caisse de 12 × 341 mL",
+    "origin": "Canada",
+    "tags": [
+      "vegan"
+    ],
+    "photoURL": null,
+    "referenceGroceryPriceCents": 1668,
+    "referencePriceSource": "Estimation d'après Statistique Canada, tableau 18-10-0245-01 (prix de détail moyens, Québec, 2025) et circulaires d'épiceries de Montréal ; valeur approximative, à vérifier"
+  },
+  {
+    "id": "product-savon-vaisselle",
+    "vendorId": "vendor-marche-central",
+    "name": "Savon à vaisselle",
+    "category": "household",
+    "unit": "bidon de 4 L",
+    "origin": "Québec, CA",
+    "tags": [],
+    "photoURL": null,
+    "referenceGroceryPriceCents": 1999,
+    "referencePriceSource": "Estimation d'après Statistique Canada, tableau 18-10-0245-01 (prix de détail moyens, Québec, 2025) et circulaires d'épiceries de Montréal ; valeur approximative, à vérifier"
+  },
+  {
+    "id": "product-detergent-lessive",
+    "vendorId": "vendor-marche-central",
+    "name": "Détergent à lessive concentré",
+    "category": "household",
+    "unit": "bidon de 5 L (100 brassées)",
+    "origin": "Canada",
+    "tags": [],
+    "photoURL": null,
+    "referenceGroceryPriceCents": 2999,
+    "referencePriceSource": "Estimation d'après Statistique Canada, tableau 18-10-0245-01 (prix de détail moyens, Québec, 2025) et circulaires d'épiceries de Montréal ; valeur approximative, à vérifier"
+  },
+  {
+    "id": "product-papier-toilette",
+    "vendorId": "vendor-marche-central",
+    "name": "Papier hygiénique",
+    "category": "household",
+    "unit": "paquet de 48 rouleaux",
+    "origin": "Canada",
+    "tags": [],
+    "photoURL": null,
+    "referenceGroceryPriceCents": 3299,
+    "referencePriceSource": "Estimation d'après Statistique Canada, tableau 18-10-0245-01 (prix de détail moyens, Québec, 2025) et circulaires d'épiceries de Montréal ; valeur approximative, à vérifier"
+  },
+  {
+    "id": "product-boeuf-hache",
+    "vendorId": "vendor-boucherie-cantons",
+    "name": "Bœuf haché maigre",
+    "category": "meat",
+    "unit": "boîte de 3 kg",
+    "origin": "Compton, QC",
+    "tags": [
+      "local"
+    ],
+    "photoURL": null,
+    "referenceGroceryPriceCents": 3897,
+    "referencePriceSource": "Estimation d'après Statistique Canada, tableau 18-10-0245-01 (prix de détail moyens, Québec, 2025) et circulaires d'épiceries de Montréal ; valeur approximative, à vérifier"
+  }
+]

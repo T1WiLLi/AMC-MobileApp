@@ -1,0 +1,830 @@
+[
+  {
+    "id": "offer-pommes-de-terre-jaunes",
+    "vendorId": "vendor-ferme-lafleur",
+    "productId": "product-pommes-de-terre-jaunes",
+    "totalShares": 40,
+    "shareUnit": "sac de 10 kg",
+    "tiers": [
+      {
+        "minShares": 10,
+        "priceCents": 1279
+      },
+      {
+        "minShares": 20,
+        "priceCents": 1119
+      },
+      {
+        "minShares": 30,
+        "priceCents": 959
+      }
+    ],
+    "minimumSharesToLaunch": 10,
+    "deadlineInDays": 2,
+    "zones": [
+      "parc-extension",
+      "rosemont",
+      "hochelaga",
+      "saint-michel",
+      "verdun",
+      "cote-des-neiges",
+      "montreal-nord",
+      "villeray"
+    ],
+    "status": "active"
+  },
+  {
+    "id": "offer-carottes",
+    "vendorId": "vendor-ferme-lafleur",
+    "productId": "product-carottes",
+    "totalShares": 40,
+    "shareUnit": "sac de 5 kg",
+    "tiers": [
+      {
+        "minShares": 8,
+        "priceCents": 739
+      },
+      {
+        "minShares": 16,
+        "priceCents": 649
+      },
+      {
+        "minShares": 24,
+        "priceCents": 559
+      }
+    ],
+    "minimumSharesToLaunch": 8,
+    "deadlineInDays": 3,
+    "zones": [
+      "parc-extension",
+      "rosemont",
+      "hochelaga",
+      "saint-michel",
+      "verdun",
+      "cote-des-neiges",
+      "montreal-nord",
+      "villeray"
+    ],
+    "status": "active"
+  },
+  {
+    "id": "offer-oignons-jaunes",
+    "vendorId": "vendor-ferme-lafleur",
+    "productId": "product-oignons-jaunes",
+    "totalShares": 30,
+    "shareUnit": "sac de 5 kg",
+    "tiers": [
+      {
+        "minShares": 8,
+        "priceCents": 849
+      },
+      {
+        "minShares": 15,
+        "priceCents": 749
+      },
+      {
+        "minShares": 25,
+        "priceCents": 649
+      }
+    ],
+    "minimumSharesToLaunch": 8,
+    "deadlineInDays": 4,
+    "zones": [
+      "parc-extension",
+      "rosemont",
+      "hochelaga",
+      "saint-michel",
+      "verdun",
+      "cote-des-neiges",
+      "montreal-nord",
+      "villeray"
+    ],
+    "status": "active"
+  },
+  {
+    "id": "offer-oeufs-lafleur",
+    "vendorId": "vendor-ferme-lafleur",
+    "productId": "product-oeufs-lafleur",
+    "totalShares": 60,
+    "shareUnit": "plateau de 30",
+    "tiers": [
+      {
+        "minShares": 15,
+        "priceCents": 1139
+      },
+      {
+        "minShares": 30,
+        "priceCents": 1039
+      },
+      {
+        "minShares": 45,
+        "priceCents": 939
+      }
+    ],
+    "minimumSharesToLaunch": 15,
+    "deadlineInDays": 2,
+    "zones": [
+      "parc-extension",
+      "rosemont",
+      "hochelaga",
+      "saint-michel",
+      "verdun",
+      "cote-des-neiges",
+      "montreal-nord",
+      "villeray"
+    ],
+    "status": "active"
+  },
+  {
+    "id": "offer-courges-butternut",
+    "vendorId": "vendor-ferme-lafleur",
+    "productId": "product-courges-butternut",
+    "totalShares": 25,
+    "shareUnit": "caisse de 8 kg",
+    "tiers": [
+      {
+        "minShares": 6,
+        "priceCents": 1869
+      },
+      {
+        "minShares": 12,
+        "priceCents": 1649
+      },
+      {
+        "minShares": 20,
+        "priceCents": 1429
+      }
+    ],
+    "minimumSharesToLaunch": 6,
+    "deadlineInDays": 5,
+    "zones": [
+      "parc-extension",
+      "rosemont",
+      "hochelaga",
+      "saint-michel",
+      "verdun",
+      "cote-des-neiges",
+      "montreal-nord",
+      "villeray"
+    ],
+    "status": "active"
+  },
+  {
+    "id": "offer-betteraves",
+    "vendorId": "vendor-ferme-lafleur",
+    "productId": "product-betteraves",
+    "totalShares": 30,
+    "shareUnit": "sac de 5 kg",
+    "tiers": [
+      {
+        "minShares": 8,
+        "priceCents": 929
+      },
+      {
+        "minShares": 16,
+        "priceCents": 819
+      },
+      {
+        "minShares": 24,
+        "priceCents": 709
+      }
+    ],
+    "minimumSharesToLaunch": 8,
+    "deadlineInDays": 6,
+    "zones": [
+      "parc-extension",
+      "rosemont",
+      "hochelaga",
+      "saint-michel",
+      "verdun",
+      "cote-des-neiges",
+      "montreal-nord",
+      "villeray"
+    ],
+    "status": "draft"
+  },
+  {
+    "id": "offer-pommes-cortland",
+    "vendorId": "vendor-ferme-bio-rive",
+    "productId": "product-pommes-cortland",
+    "totalShares": 40,
+    "shareUnit": "caisse de 5 kg",
+    "tiers": [
+      {
+        "minShares": 10,
+        "priceCents": 1269
+      },
+      {
+        "minShares": 20,
+        "priceCents": 1119
+      },
+      {
+        "minShares": 30,
+        "priceCents": 969
+      }
+    ],
+    "minimumSharesToLaunch": 10,
+    "deadlineInDays": 3,
+    "zones": [
+      "parc-extension",
+      "saint-michel",
+      "montreal-nord",
+      "villeray",
+      "rosemont"
+    ],
+    "status": "active"
+  },
+  {
+    "id": "offer-patates-douces",
+    "vendorId": "vendor-ferme-bio-rive",
+    "productId": "product-patates-douces",
+    "totalShares": 30,
+    "shareUnit": "sac de 5 kg",
+    "tiers": [
+      {
+        "minShares": 8,
+        "priceCents": 1579
+      },
+      {
+        "minShares": 15,
+        "priceCents": 1399
+      },
+      {
+        "minShares": 25,
+        "priceCents": 1219
+      }
+    ],
+    "minimumSharesToLaunch": 8,
+    "deadlineInDays": 4,
+    "zones": [
+      "parc-extension",
+      "saint-michel",
+      "montreal-nord",
+      "villeray",
+      "rosemont"
+    ],
+    "status": "active"
+  },
+  {
+    "id": "offer-riz-basmati",
+    "vendorId": "vendor-moulins-du-nord",
+    "productId": "product-riz-basmati",
+    "totalShares": 30,
+    "shareUnit": "sac de 10 kg",
+    "tiers": [
+      {
+        "minShares": 8,
+        "priceCents": 2459
+      },
+      {
+        "minShares": 16,
+        "priceCents": 2169
+      },
+      {
+        "minShares": 24,
+        "priceCents": 1969
+      }
+    ],
+    "minimumSharesToLaunch": 8,
+    "deadlineInDays": 4,
+    "zones": [
+      "parc-extension",
+      "rosemont",
+      "hochelaga",
+      "saint-michel",
+      "verdun",
+      "cote-des-neiges",
+      "montreal-nord",
+      "villeray"
+    ],
+    "status": "active"
+  },
+  {
+    "id": "offer-flocons-avoine",
+    "vendorId": "vendor-moulins-du-nord",
+    "productId": "product-flocons-avoine",
+    "totalShares": 30,
+    "shareUnit": "sac de 5 kg",
+    "tiers": [
+      {
+        "minShares": 8,
+        "priceCents": 1269
+      },
+      {
+        "minShares": 16,
+        "priceCents": 1119
+      },
+      {
+        "minShares": 24,
+        "priceCents": 969
+      }
+    ],
+    "minimumSharesToLaunch": 8,
+    "deadlineInDays": 5,
+    "zones": [
+      "parc-extension",
+      "rosemont",
+      "hochelaga",
+      "saint-michel",
+      "verdun",
+      "cote-des-neiges",
+      "montreal-nord",
+      "villeray"
+    ],
+    "status": "active"
+  },
+  {
+    "id": "offer-pates-penne",
+    "vendorId": "vendor-moulins-du-nord",
+    "productId": "product-pates-penne",
+    "totalShares": 30,
+    "shareUnit": "caisse de 12 × 900 g",
+    "tiers": [
+      {
+        "minShares": 6,
+        "priceCents": 2029
+      },
+      {
+        "minShares": 12,
+        "priceCents": 1789
+      },
+      {
+        "minShares": 20,
+        "priceCents": 1599
+      }
+    ],
+    "minimumSharesToLaunch": 6,
+    "deadlineInDays": 6,
+    "zones": [
+      "parc-extension",
+      "rosemont",
+      "hochelaga",
+      "saint-michel",
+      "verdun",
+      "cote-des-neiges",
+      "montreal-nord",
+      "villeray"
+    ],
+    "status": "active"
+  },
+  {
+    "id": "offer-farine-tout-usage",
+    "vendorId": "vendor-moulins-du-nord",
+    "productId": "product-farine-tout-usage",
+    "totalShares": 30,
+    "shareUnit": "sac de 10 kg",
+    "tiers": [
+      {
+        "minShares": 8,
+        "priceCents": 1699
+      },
+      {
+        "minShares": 16,
+        "priceCents": 1499
+      },
+      {
+        "minShares": 24,
+        "priceCents": 1299
+      }
+    ],
+    "minimumSharesToLaunch": 8,
+    "deadlineInDays": 3,
+    "zones": [
+      "parc-extension",
+      "rosemont",
+      "hochelaga",
+      "saint-michel",
+      "verdun",
+      "cote-des-neiges",
+      "montreal-nord",
+      "villeray"
+    ],
+    "status": "active"
+  },
+  {
+    "id": "offer-lentilles-rouges",
+    "vendorId": "vendor-moulins-du-nord",
+    "productId": "product-lentilles-rouges",
+    "totalShares": 40,
+    "shareUnit": "sac de 4 kg",
+    "tiers": [
+      {
+        "minShares": 10,
+        "priceCents": 1479
+      },
+      {
+        "minShares": 20,
+        "priceCents": 1299
+      },
+      {
+        "minShares": 30,
+        "priceCents": 1119
+      }
+    ],
+    "minimumSharesToLaunch": 10,
+    "deadlineInDays": 3,
+    "zones": [
+      "parc-extension",
+      "rosemont",
+      "hochelaga",
+      "saint-michel",
+      "verdun",
+      "cote-des-neiges",
+      "montreal-nord",
+      "villeray"
+    ],
+    "status": "active"
+  },
+  {
+    "id": "offer-pois-chiches",
+    "vendorId": "vendor-moulins-du-nord",
+    "productId": "product-pois-chiches",
+    "totalShares": 40,
+    "shareUnit": "sac de 4 kg",
+    "tiers": [
+      {
+        "minShares": 10,
+        "priceCents": 1309
+      },
+      {
+        "minShares": 20,
+        "priceCents": 1149
+      },
+      {
+        "minShares": 30,
+        "priceCents": 989
+      }
+    ],
+    "minimumSharesToLaunch": 10,
+    "deadlineInDays": 5,
+    "zones": [
+      "parc-extension",
+      "rosemont",
+      "hochelaga",
+      "saint-michel",
+      "verdun",
+      "cote-des-neiges",
+      "montreal-nord",
+      "villeray"
+    ],
+    "status": "active"
+  },
+  {
+    "id": "offer-haricots-noirs",
+    "vendorId": "vendor-moulins-du-nord",
+    "productId": "product-haricots-noirs",
+    "totalShares": 30,
+    "shareUnit": "sac de 4 kg",
+    "tiers": [
+      {
+        "minShares": 8,
+        "priceCents": 1439
+      },
+      {
+        "minShares": 16,
+        "priceCents": 1269
+      },
+      {
+        "minShares": 24,
+        "priceCents": 1099
+      }
+    ],
+    "minimumSharesToLaunch": 8,
+    "deadlineInDays": 7,
+    "zones": [
+      "parc-extension",
+      "rosemont",
+      "hochelaga",
+      "saint-michel",
+      "verdun",
+      "cote-des-neiges",
+      "montreal-nord",
+      "villeray"
+    ],
+    "status": "active"
+  },
+  {
+    "id": "offer-oeufs-gros",
+    "vendorId": "vendor-coop-lanaudiere",
+    "productId": "product-oeufs-gros",
+    "totalShares": 60,
+    "shareUnit": "plateau de 30",
+    "tiers": [
+      {
+        "minShares": 15,
+        "priceCents": 1059
+      },
+      {
+        "minShares": 30,
+        "priceCents": 959
+      },
+      {
+        "minShares": 45,
+        "priceCents": 859
+      }
+    ],
+    "minimumSharesToLaunch": 15,
+    "deadlineInDays": 2,
+    "zones": [
+      "rosemont",
+      "hochelaga",
+      "saint-michel",
+      "villeray"
+    ],
+    "status": "active"
+  },
+  {
+    "id": "offer-poulet-entier",
+    "vendorId": "vendor-coop-lanaudiere",
+    "productId": "product-poulet-entier",
+    "totalShares": 25,
+    "shareUnit": "boîte de 3 poulets (≈ 6 kg)",
+    "tiers": [
+      {
+        "minShares": 6,
+        "priceCents": 3959
+      },
+      {
+        "minShares": 12,
+        "priceCents": 3599
+      },
+      {
+        "minShares": 18,
+        "priceCents": 3279
+      }
+    ],
+    "minimumSharesToLaunch": 6,
+    "deadlineInDays": 4,
+    "zones": [
+      "rosemont",
+      "hochelaga",
+      "saint-michel",
+      "villeray"
+    ],
+    "status": "active"
+  },
+  {
+    "id": "offer-porc-hache",
+    "vendorId": "vendor-coop-lanaudiere",
+    "productId": "product-porc-hache",
+    "totalShares": 30,
+    "shareUnit": "boîte de 3 kg",
+    "tiers": [
+      {
+        "minShares": 8,
+        "priceCents": 2369
+      },
+      {
+        "minShares": 15,
+        "priceCents": 2159
+      },
+      {
+        "minShares": 22,
+        "priceCents": 1969
+      }
+    ],
+    "minimumSharesToLaunch": 8,
+    "deadlineInDays": 5,
+    "zones": [
+      "rosemont",
+      "hochelaga",
+      "saint-michel",
+      "villeray"
+    ],
+    "status": "active"
+  },
+  {
+    "id": "offer-huile-canola",
+    "vendorId": "vendor-marche-central",
+    "productId": "product-huile-canola",
+    "totalShares": 40,
+    "shareUnit": "bidon de 4 L",
+    "tiers": [
+      {
+        "minShares": 10,
+        "priceCents": 1529
+      },
+      {
+        "minShares": 20,
+        "priceCents": 1389
+      },
+      {
+        "minShares": 30,
+        "priceCents": 1259
+      }
+    ],
+    "minimumSharesToLaunch": 10,
+    "deadlineInDays": 6,
+    "zones": [
+      "parc-extension",
+      "rosemont",
+      "hochelaga",
+      "saint-michel",
+      "verdun",
+      "cote-des-neiges",
+      "montreal-nord",
+      "villeray"
+    ],
+    "status": "active"
+  },
+  {
+    "id": "offer-tomates-en-des",
+    "vendorId": "vendor-marche-central",
+    "productId": "product-tomates-en-des",
+    "totalShares": 30,
+    "shareUnit": "caisse de 12 × 796 mL",
+    "tiers": [
+      {
+        "minShares": 8,
+        "priceCents": 2029
+      },
+      {
+        "minShares": 16,
+        "priceCents": 1789
+      },
+      {
+        "minShares": 24,
+        "priceCents": 1619
+      }
+    ],
+    "minimumSharesToLaunch": 8,
+    "deadlineInDays": 5,
+    "zones": [
+      "parc-extension",
+      "rosemont",
+      "hochelaga",
+      "saint-michel",
+      "verdun",
+      "cote-des-neiges",
+      "montreal-nord",
+      "villeray"
+    ],
+    "status": "active"
+  },
+  {
+    "id": "offer-thon-pale",
+    "vendorId": "vendor-marche-central",
+    "productId": "product-thon-pale",
+    "totalShares": 25,
+    "shareUnit": "caisse de 24 × 170 g",
+    "tiers": [
+      {
+        "minShares": 6,
+        "priceCents": 4199
+      },
+      {
+        "minShares": 12,
+        "priceCents": 3819
+      },
+      {
+        "minShares": 18,
+        "priceCents": 3439
+      }
+    ],
+    "minimumSharesToLaunch": 6,
+    "deadlineInDays": 7,
+    "zones": [
+      "parc-extension",
+      "rosemont",
+      "hochelaga",
+      "saint-michel",
+      "verdun",
+      "cote-des-neiges",
+      "montreal-nord",
+      "villeray"
+    ],
+    "status": "active"
+  },
+  {
+    "id": "offer-savon-vaisselle",
+    "vendorId": "vendor-marche-central",
+    "productId": "product-savon-vaisselle",
+    "totalShares": 30,
+    "shareUnit": "bidon de 4 L",
+    "tiers": [
+      {
+        "minShares": 8,
+        "priceCents": 1699
+      },
+      {
+        "minShares": 16,
+        "priceCents": 1499
+      },
+      {
+        "minShares": 24,
+        "priceCents": 1299
+      }
+    ],
+    "minimumSharesToLaunch": 8,
+    "deadlineInDays": 8,
+    "zones": [
+      "parc-extension",
+      "rosemont",
+      "hochelaga",
+      "saint-michel",
+      "verdun",
+      "cote-des-neiges",
+      "montreal-nord",
+      "villeray"
+    ],
+    "status": "active"
+  },
+  {
+    "id": "offer-detergent-lessive",
+    "vendorId": "vendor-marche-central",
+    "productId": "product-detergent-lessive",
+    "totalShares": 30,
+    "shareUnit": "bidon de 5 L (100 brassées)",
+    "tiers": [
+      {
+        "minShares": 8,
+        "priceCents": 2549
+      },
+      {
+        "minShares": 16,
+        "priceCents": 2249
+      },
+      {
+        "minShares": 24,
+        "priceCents": 1949
+      }
+    ],
+    "minimumSharesToLaunch": 8,
+    "deadlineInDays": 8,
+    "zones": [
+      "parc-extension",
+      "rosemont",
+      "hochelaga",
+      "saint-michel",
+      "verdun",
+      "cote-des-neiges",
+      "montreal-nord",
+      "villeray"
+    ],
+    "status": "active"
+  },
+  {
+    "id": "offer-papier-toilette",
+    "vendorId": "vendor-marche-central",
+    "productId": "product-papier-toilette",
+    "totalShares": 30,
+    "shareUnit": "paquet de 48 rouleaux",
+    "tiers": [
+      {
+        "minShares": 8,
+        "priceCents": 2899
+      },
+      {
+        "minShares": 16,
+        "priceCents": 2639
+      },
+      {
+        "minShares": 24,
+        "priceCents": 2379
+      }
+    ],
+    "minimumSharesToLaunch": 8,
+    "deadlineInDays": 6,
+    "zones": [
+      "parc-extension",
+      "rosemont",
+      "hochelaga",
+      "saint-michel",
+      "verdun",
+      "cote-des-neiges",
+      "montreal-nord",
+      "villeray"
+    ],
+    "status": "draft"
+  },
+  {
+    "id": "offer-boeuf-hache",
+    "vendorId": "vendor-boucherie-cantons",
+    "productId": "product-boeuf-hache",
+    "totalShares": 30,
+    "shareUnit": "boîte de 3 kg",
+    "tiers": [
+      {
+        "minShares": 8,
+        "priceCents": 3429
+      },
+      {
+        "minShares": 15,
+        "priceCents": 3119
+      },
+      {
+        "minShares": 22,
+        "priceCents": 2839
+      }
+    ],
+    "minimumSharesToLaunch": 8,
+    "deadlineInDays": 4,
+    "zones": [
+      "verdun",
+      "cote-des-neiges",
+      "parc-extension",
+      "rosemont"
+    ],
+    "status": "active"
+  }
+]

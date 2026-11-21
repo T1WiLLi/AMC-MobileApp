@@ -43,3 +43,7 @@ Projet `amc-2026-8ab03` : Auth (Google Sign-In) et Firestore (Montréal). La vra
 ```bash
 xcodebuild test -project AMC-MobileApp.xcodeproj -scheme AMC-MobileApp -destination 'platform=iOS Simulator,name=iPhone 17 Pro'
 ```
+
+## CI
+
+`.github/workflows/ci.yml` lance build + tests sur chaque PR vers `main` (runner macOS 26, Xcode 26, simulateur iPhone iOS 26, sans tests parallèles). Règle de l'équipe : on merge sa PR en squash dès que le check **CI** est vert.

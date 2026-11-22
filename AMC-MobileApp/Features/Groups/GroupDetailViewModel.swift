@@ -105,7 +105,11 @@ final class GroupDetailViewModel {
             async let initials = Self.memberInitials(of: members, repositories: repositories)
             async let coordinator = Self.coordinatorName(of: members, repositories: repositories)
             async let pickupPointLoad: PickupPoint? = {
-                guard let pointId = orders.lazy.compactMap(\.pickupPointId).first else { return nil }
+                guard let pointId = orders.lazy.compactMap(\.pickupPointId).first else {
+                    // Aucune commande n'a encore de point : la zone de livraison du groupe, si elle existe.
+                    let points = (try? await repositories.pickupPoints.pickupPoints()) ?? []
+                    return PickupPoint.deliveryZone(ofGroup: groupId, in: points)
+                }
                 return try await repositories.pickupPoints.pickupPoint(id: pointId)
             }()
             let offers = try await FamilyHomeViewModel.offers(for: orders, repositories: repositories)
@@ -155,6 +159,7 @@ final class GroupDetailViewModel {
     /// Suit le groupe et ses lots ouverts en temps réel. À lancer dans `.task` après `load()` ; s'arrête avec la tâche.
     func observe() async {
         guard let content = state.value else { return }
+        let loadedGroup = content.group
         // Abonnements ouverts avant de rendre la main : aucun changement n'est perdu une fois `isLive` vrai.
         let groupUpdates = await repositories.groups.observeGroup(id: groupId)
         var orderUpdates: [AsyncThrowingStream<GroupOrder, any Error>] = []
@@ -168,8 +173,9 @@ final class GroupDetailViewModel {
                 var isFirst = true
                 do {
                     for try await group in groupUpdates {
-                        // La première émission est l'état déjà chargé.
-                        if !isFirst { await self?.groupChanged(group) }
+                        // La première émission est l'état déjà chargé, sauf si le groupe a changé pendant
+                        // que l'écran était caché (retour d'une page poussée par-dessus).
+                        if !isFirst || group != loadedGroup { await self?.groupChanged(group) }
                         isFirst = false
                     }
                 } catch {}

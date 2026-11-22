@@ -89,8 +89,17 @@ struct CreateGroupTests {
 
     // MARK: ViewModel
 
-    private static func viewModel(householdId: String = ID.aminaHousehold) -> CreateGroupViewModel {
-        CreateGroupViewModel(repositories: .fake(behavior: .instant, data: Self.data), userId: ID.amina, householdId: householdId)
+    private static func viewModel(householdId: String = ID.aminaHousehold,
+                                  repositories: AppRepositories? = nil,
+                                  validator: FakeAddressValidator = FakeAddressValidator()) -> CreateGroupViewModel {
+        CreateGroupViewModel(repositories: repositories ?? .fake(behavior: .instant, data: Self.data), userId: ID.amina,
+                             householdId: householdId, addressValidator: validator)
+    }
+
+    /// Remplit la zone de livraison (point de cueillette) obligatoire.
+    private static func fillPickup(_ model: CreateGroupViewModel) {
+        model.pickupName = "Centre communautaire Saint-Michel"
+        model.pickupAddress = "8150 Boulevard Pie-IX"
     }
 
     @Test func formIsPrefilledFromTheHousehold() async {
@@ -126,7 +135,12 @@ struct CreateGroupTests {
         #expect(!model.canCreate)
         #expect(model.validationMessage != nil)
         model.name = "Voisins de la rue Jarry"
+        // Retour samuel : le point de cueillette est obligatoire.
+        #expect(!model.canCreate)
+        #expect(model.validationMessage != nil)
+        Self.fillPickup(model)
         #expect(model.canCreate)
+        #expect(model.validationMessage == nil)
         #expect(model.draft.radiusMeters == 1_500)
         #expect(model.draft.centerGeohash.count == 7)
     }
@@ -135,6 +149,7 @@ struct CreateGroupTests {
         let model = Self.viewModel()
         await model.load()
         model.name = "Voisins de la rue Jarry"
+        Self.fillPickup(model)
         model.isPublic = false
         model.radiusMeters = 2_000
         await model.create()
@@ -142,6 +157,76 @@ struct CreateGroupTests {
         #expect(model.createdGroup?.isPublic == false)
         #expect(model.createdGroup?.radiusMeters == 2_000)
         #expect(model.createdGroup?.creatorId == ID.amina)
+    }
+
+    // MARK: Point de cueillette (zone de livraison)
+
+    @Test func pickupPointNeedsANameAndAnAddress() async {
+        let model = Self.viewModel()
+        await model.load()
+        model.name = "Voisins de la rue Jarry"
+        model.pickupAddress = "8150 Boulevard Pie-IX"
+        #expect(!model.canCreate)
+        #expect(model.pickupValidationMessage != nil)
+        model.pickupName = "   "
+        #expect(!model.canCreate)
+        model.pickupName = "Centre communautaire Saint-Michel"
+        model.pickupAddress = ""
+        #expect(!model.canCreate)
+        #expect(model.pickupValidationMessage != nil)
+        model.pickupAddress = "8150 Boulevard Pie-IX"
+        #expect(model.pickupValidationMessage == nil)
+        #expect(model.canCreate)
+    }
+
+    @Test func unknownPickupAddressBlocksCreation() async throws {
+        let repositories = AppRepositories.fake(behavior: .instant, data: Self.data)
+        let model = Self.viewModel(repositories: repositories)
+        await model.load()
+        model.name = "Voisins de la rue Jarry"
+        model.pickupName = "Centre introuvable"
+        model.pickupAddress = "12 rue Inexistante"
+        await model.create()
+        #expect(model.createdGroup == nil)
+        #expect(model.submitError != nil)
+        #expect(model.addressCheck.status(for: model.pickupAddress) == .notFound)
+        #expect(!model.canCreate)
+        #expect(try await repositories.groups.groups(ofHousehold: ID.aminaHousehold).count == 2)
+    }
+
+    @Test func creatingTheGroupCreatesItsPickupPoint() async throws {
+        let repositories = AppRepositories.fake(behavior: .instant, data: Self.data)
+        let model = Self.viewModel(repositories: repositories)
+        await model.load()
+        model.name = "Voisins de la rue Jarry"
+        Self.fillPickup(model)
+        await model.create()
+        let group = try #require(model.createdGroup)
+        let point = try #require(try await repositories.pickupPoints.pickupPoints().first { $0.groupId == group.id })
+        #expect(point.hostUserId == ID.amina)
+        #expect(point.name == "Centre communautaire Saint-Michel")
+        // Adresse normalisée par Apple (validateur fake), position approximative à 6 caractères.
+        #expect(point.address == "8150 Boulevard Pie-IX, Montréal QC H1Z 3T6")
+        #expect(point.geohash?.count == 6)
+        #expect(point.capacity == PickupPoint.deliveryZoneCapacity)
+        #expect(point.slots.isEmpty)
+        #expect(PickupPoint.deliveryZone(ofGroup: group.id, in: [point])?.id == point.id)
+    }
+
+    /// Hors ligne, Apple ne peut pas vérifier l'adresse : elle est gardée telle quelle, sans position.
+    @Test func unverifiedPickupAddressIsAcceptedWithoutGeohash() async throws {
+        let repositories = AppRepositories.fake(behavior: .instant, data: Self.data)
+        let model = Self.viewModel(repositories: repositories, validator: FakeAddressValidator(isOffline: true))
+        await model.load()
+        model.name = "Voisins de la rue Jarry"
+        model.pickupName = "Centre communautaire Côte-des-Neiges"
+        model.pickupAddress = "5347 chemin de la Côte-des-Neiges"
+        await model.create()
+        let group = try #require(model.createdGroup)
+        #expect(model.addressCheck.status(for: model.pickupAddress) == .unverified)
+        let point = try #require(try await repositories.pickupPoints.pickupPoints().first { $0.groupId == group.id })
+        #expect(point.address == "5347 chemin de la Côte-des-Neiges")
+        #expect(point.geohash == nil)
     }
 
     @Test func theLimitBlocksTheForm() async {

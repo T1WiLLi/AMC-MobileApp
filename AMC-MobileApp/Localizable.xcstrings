@@ -28810,6 +28810,92 @@
         }
       }
     },
+    "Le vendeur y livre les commandes du groupe, et les familles y viennent chercher leurs parts." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The vendor delivers the group's orders here, and families come here to pick up their shares."
+          }
+        }
+      }
+    },
+    "Ex. : centre communautaire" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "E.g. community centre"
+          }
+        }
+      }
+    },
+    "Nom du point de cueillette" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pickup point name"
+          }
+        }
+      }
+    },
+    "Adresse du point de cueillette" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pickup point address"
+          }
+        }
+      }
+    },
+    "Seul un quartier approximatif apparaît sur la carte, jamais l'adresse exacte." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Only an approximate area appears on the map, never the exact address."
+          }
+        }
+      }
+    },
+    "Groupe créé, mais son point de cueillette n'a pas été enregistré. Touche « Créer le groupe » pour réessayer." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Group created, but its pickup point wasn't saved. Tap “Create group” to try again."
+          }
+        }
+      }
+    },
+    "%lld lieux de cueillette, détaillés plus bas" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld pickup places, detailed below"
+          }
+        }
+      }
+    },
+    "Lieu %lld sur %lld" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Place %1$lld of %2$lld"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Lieu %1$lld sur %2$lld"
+          }
+        }
+      }
+    },
     "Tu es le créateur du groupe : il sera confié à %@, la famille la plus ancienne. Tes parts déjà réservées restent valides." : {
       "localizations" : {
         "en" : {

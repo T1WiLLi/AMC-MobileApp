@@ -151,7 +151,8 @@ struct GroupsScreen: View {
     }
 
     /// Crée le modèle au premier passage, puis suit les groupes du ménage (FB-22) tant que l'onglet vit :
-    /// quand un autre membre rejoint ou quitte un groupe, la liste et l'Accueil suivent.
+    /// quand un autre membre rejoint ou quitte un groupe, la liste et l'Accueil suivent ; un groupe modifié
+    /// (nom, photo, bannière, membres…) change dans la liste sans recharger.
     private func startViewModel() async {
         let model: GroupsViewModel
         if let existing = viewModel {
@@ -162,7 +163,10 @@ struct GroupsScreen: View {
             await model.load()
         }
         let store = contextStore
+        // Chaque groupe affiché est suivi en direct, en même temps que les adhésions du ménage.
+        async let groups: Void = model.observeGroups()
         await model.observeHouseholdGroups { await store?.reload() }
+        await groups
     }
 }
 
@@ -204,8 +208,11 @@ private struct GroupList: View {
                     rows(mine, tourAnchorOnFirst: true)
                 }
 
-                CreateGroupCard(hasGroup: !mine.isEmpty, action: onCreateGroup)
-                    .grenierTransition(.cardAppear)
+                // Déjà dans un groupe : pas de grande carte, « Créer un groupe » reste dans le menu + de la barre.
+                if mine.isEmpty {
+                    CreateGroupCard(action: onCreateGroup)
+                        .grenierTransition(.cardAppear)
+                }
 
                 if !others.isEmpty {
                     VStack(alignment: .leading, spacing: 12) {
@@ -337,7 +344,6 @@ private struct NoGroupYetCard: View {
 /// FB-10 : créer son propre groupe doit se trouver sans chercher. Carte visible dans la liste,
 /// en plus de l'entrée du menu + de la barre.
 private struct CreateGroupCard: View {
-    let hasGroup: Bool
     let action: () -> Void
 
     var body: some View {
@@ -351,7 +357,7 @@ private struct CreateGroupCard: View {
                     .background(Color.grenier.opacity(0.12), in: .circle)
                     .accessibilityHidden(true)
                 VStack(alignment: .leading, spacing: 2) {
-                    Text(hasGroup ? "Un autre quartier ?" : "Pas de groupe qui te convient ?")
+                    Text("Pas de groupe qui te convient ?")
                         .font(.headline)
                         .foregroundStyle(.texte)
                     Text("Crée ton groupe : ton ménage en devient le premier membre, puis invite tes voisins.")

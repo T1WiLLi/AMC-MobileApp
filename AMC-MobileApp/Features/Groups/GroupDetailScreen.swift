@@ -120,7 +120,8 @@ struct GroupDetailScreen: View {
             Text(error.message)
         }
         .task(id: groupId) {
-            guard viewModel == nil else { return }
+            // Le groupe et ses lots sont suivis en direct tant que l'écran est affiché (relancé au retour).
+            if let viewModel { return await viewModel.observe() }
             let model = GroupDetailViewModel(
                 repositories: context.repositories,
                 householdId: context.householdId,
@@ -130,6 +131,7 @@ struct GroupDetailScreen: View {
             viewModel = model
             imageEditor = GroupImageEditorViewModel(repositories: context.repositories, groupId: groupId, userId: context.userId)
             await model.load()
+            await model.observe()
         }
     }
 }

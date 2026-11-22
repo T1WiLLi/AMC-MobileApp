@@ -117,7 +117,7 @@ nonisolated enum TourStep: String, Sendable, CaseIterable {
     case pickup
     /// Les économies, l'impact et le classement.
     case impact
-    /// Le Profil : préférences, langue, mode aîné, revoir le tutoriel.
+    /// Le Profil : préférences, langue, revoir le tutoriel.
     case profile
 
     // MARK: Racoonette
@@ -242,7 +242,7 @@ nonisolated enum TourStep: String, Sendable, CaseIterable {
         case .impact:
             String(localized: "Tes économies, ce que ton quartier change ensemble, et plus bas le classement solidaire des arrondissements.")
         case .profile:
-            String(localized: "Ici : tes préférences, la langue, le mode aîné (plus gros et plus simple) et « Revoir le tutoriel avec Noisette » pour me retrouver. Bonne cueillette !")
+            String(localized: "Ici : tes préférences, la langue et « Revoir le tutoriel avec Noisette » pour me retrouver. Bonne cueillette !")
         case .vendorIntro:
             String(localized: "Ce portail te permet de vendre à des quartiers entiers : tu publies un lot avec des paliers de prix, les familles se regroupent pour les atteindre, et tu livres une seule fois par groupe.")
         case .vendorStats:
@@ -262,7 +262,7 @@ nonisolated enum TourStep: String, Sendable, CaseIterable {
         case .vendorRevenue:
             String(localized: "Tes revenus prévus et tes chiffres clés, puis plus bas les ventes par produit : tu vois tout de suite ce qui marche le mieux.")
         case .vendorProfile:
-            String(localized: "Ici : tes préférences, la langue, le mode aîné et « Revoir le tutoriel avec Racoonette » pour me retrouver. Bonne vente !")
+            String(localized: "Ici : tes préférences, la langue et « Revoir le tutoriel avec Racoonette » pour me retrouver. Bonne vente !")
         }
     }
 

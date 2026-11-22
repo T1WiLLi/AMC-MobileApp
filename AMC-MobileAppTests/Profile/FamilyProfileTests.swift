@@ -192,20 +192,18 @@ struct FamilyProfileTests {
         #expect(saved.dietaryPreferences == [.organic, .glutenFree])
     }
 
-    @Test func savesLanguageAndSeniorMode() async throws {
+    @Test func savesLanguage() async throws {
         let repositories = AppRepositories.fake(behavior: .instant)
         let viewModel = PreferencesViewModel(repositories: repositories, userId: ID.amina)
         await viewModel.load()
 
         await viewModel.setLanguage(.english)
-        await viewModel.setSeniorMode(true)
         // Même valeur : rien n'est réécrit.
-        await viewModel.setSeniorMode(true)
-        #expect(viewModel.saveCount == 2)
+        await viewModel.setLanguage(.english)
+        #expect(viewModel.saveCount == 1)
 
         let saved = try await repositories.users.user(id: ID.amina)
         #expect(saved.language == .english)
-        #expect(saved.seniorMode)
     }
 
     @Test func everyTagHasAGroup() {

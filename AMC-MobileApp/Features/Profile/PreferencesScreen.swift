@@ -29,7 +29,6 @@ struct PreferencesLink: View {
 
 private struct PreferencesForm: View {
     let viewModel: PreferencesViewModel
-    @AppStorage(SeniorMode.storageKey) private var seniorModeStorage = false
     @AppStorage(AppLanguage.storageKey) private var appLanguage: AppLanguage = .system
     @Environment(\.openURL) private var openURL
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
@@ -70,16 +69,12 @@ private struct PreferencesForm: View {
             }
 
             languageSection
-            seniorSection
         }
         .scrollContentBackground(.hidden)
         .grenierBackground()
         .grenierHaptic(.selection, trigger: viewModel.saveCount)
         .grenierHaptic(.error, trigger: viewModel.saveError)
         .grenierAnimation(.smooth, value: viewModel.saveError)
-        .onChange(of: viewModel.user?.seniorMode, initial: true) { _, isOn in
-            if let isOn { seniorModeStorage = isOn }
-        }
     }
 
     private var languageSection: some View {
@@ -136,27 +131,6 @@ private struct PreferencesForm: View {
         }
         .accessibilityLabel("Langue de l'app")
         .accessibilityValue(PreferencesViewModel.title(of: appLanguage))
-    }
-
-    private var seniorSection: some View {
-        Section {
-            Toggle(isOn: Binding(
-                get: { viewModel.user?.seniorMode ?? false },
-                set: { isOn in Task { await viewModel.setSeniorMode(isOn) } }
-            )) {
-                Label("Mode aîné", systemImage: "textformat.size")
-            }
-            if viewModel.user?.seniorMode == true {
-                Label("Texte très grand et parcours simplifié activés.", systemImage: "checkmark.circle.fill")
-                    .foregroundStyle(Color.economie)
-                    .grenierTransition(.banner)
-            }
-        } header: {
-            Label("Lisibilité", systemImage: "eye")
-        } footer: {
-            Text("Agrandit tout le texte et garde seulement l'essentiel : ta commande, ta cueillette et ton groupe.")
-        }
-        .grenierAnimation(.smooth, value: viewModel.user?.seniorMode)
     }
 }
 

@@ -546,7 +546,7 @@ private struct StatTiles: View {
             systemImage: "square.stack.3d.up.fill",
             value: "\(dashboard.totalCommittedShares)",
             numericValue: Double(dashboard.totalCommittedShares),
-            caption: "sur \(FrenchPlural.count(dashboard.totalShares, "part"))",
+            caption: String(localized: "sur \(FrenchPlural.count(dashboard.totalShares, "part"))"),
             progress: dashboard.totalShares > 0
                 ? min(Double(dashboard.totalCommittedShares) / Double(dashboard.totalShares), 1)
                 : nil,
@@ -740,7 +740,7 @@ private struct ClosingSoonRow: View {
                 Text(summary.title)
                     .font(.headline)
                     .foregroundStyle(.texte)
-                MetaLabel("Ferme \(VendorDeadline.relative(summary.offer.deadline))", systemImage: "calendar.badge.clock")
+                MetaLabel(String(localized: "Ferme \(VendorDeadline.relative(summary.offer.deadline))"), systemImage: "calendar.badge.clock")
                 MetaLabel(remainingText, systemImage: isFull ? "checkmark.circle.fill" : "person.badge.plus")
             }
             Spacer(minLength: 0)
@@ -857,7 +857,7 @@ private struct VendorOfferCard: View {
                 .font(.headline)
                 .foregroundStyle(.texte)
             MetaLabel(placeText, systemImage: summary.linkedOrders.isEmpty ? "person.2.slash" : "person.3.fill")
-            MetaLabel("Ferme \(VendorDeadline.weekday(summary.offer.deadline))", systemImage: "calendar.badge.clock")
+            MetaLabel(String(localized: "Ferme \(VendorDeadline.weekday(summary.offer.deadline))"), systemImage: "calendar.badge.clock")
         }
         .layoutPriority(1)
     }

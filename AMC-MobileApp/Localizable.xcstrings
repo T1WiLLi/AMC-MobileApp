@@ -21288,6 +21288,16 @@
           }
         }
       }
+    },
+    "sur %@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "of %@"
+          }
+        }
+      }
     }
   },
   "version" : "1.0"

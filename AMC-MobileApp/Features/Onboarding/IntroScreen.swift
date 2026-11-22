@@ -256,8 +256,8 @@ private struct IntroPageView: View {
 
     var body: some View {
         ScrollView {
-            VStack(alignment: .leading, spacing: 24) {
-                VStack(spacing: -64) {
+            VStack(alignment: .leading, spacing: 16) {
+                VStack(spacing: -72) {
                     IntroPhotoCard(page: page, isActive: isActive, appeared: shown)
                     scene
                         .padding(.horizontal, 14)
@@ -265,7 +265,7 @@ private struct IntroPageView: View {
                         .opacity(shown ? 1 : 0)
                 }
 
-                VStack(alignment: .leading, spacing: 12) {
+                VStack(alignment: .leading, spacing: 8) {
                     Label(page.eyebrow, systemImage: page.eyebrowSymbol)
                         .font(.footnote.weight(.semibold))
                         .foregroundStyle(page.accent)
@@ -273,13 +273,13 @@ private struct IntroPageView: View {
                         .padding(.vertical, 6)
                         .background(page.accent.opacity(0.14), in: .capsule)
                     Text(page.title)
-                        .font(.largeTitle.bold())
+                        .font(.title.bold())
                         .fontDesign(.rounded)
                         .foregroundStyle(Color.texte)
                         .fixedSize(horizontal: false, vertical: true)
                         .accessibilityAddTraits(.isHeader)
                     Text(page.message)
-                        .font(.body)
+                        .font(.callout)
                         .foregroundStyle(Color.texteSecondaire)
                         .fixedSize(horizontal: false, vertical: true)
                 }
@@ -323,7 +323,7 @@ private struct IntroPhotoCard: View {
     var body: some View {
         Color.clear
             .frame(maxWidth: .infinity)
-            .containerRelativeFrame(.vertical) { height, _ in height * 0.40 }
+            .containerRelativeFrame(.vertical) { height, _ in height * 0.30 }
             .overlay {
                 Image(page.photo)
                     .resizable()
@@ -394,7 +394,7 @@ private struct SceneCard<Content: View>: View {
 
     var body: some View {
         content
-            .padding(18)
+            .padding(14)
             .frame(maxWidth: .infinity, alignment: .leading)
             .background(Color.surface, in: .rect(cornerRadius: 28))
             .shadow(color: .black.opacity(0.16), radius: 24, y: 12)

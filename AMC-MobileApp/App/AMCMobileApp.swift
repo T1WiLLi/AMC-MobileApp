@@ -51,8 +51,9 @@ struct AMCMobileApp: App {
         backgroundRefresh.schedule()
         // Démo : -resetOnboarding rejoue l'accueil, -demoFamilyPortal rouvre côté Familles. Ne touche pas Firebase.
         OnboardingKeys.applyLaunchArguments(ProcessInfo.processInfo.arguments)
-        // Visite guidée avec Noisette (FB-19) : -demoTour la rejoue depuis la carte d'accueil ; rien en tests ni avec -useFakeData sans -demoTour.
-        GuidedTour.shared.configureAtLaunch()
+        // Visites guidées (FB-19) : -demoTour (Noisette) et -demoVendorTour (Racoonette) les rejouent depuis la carte
+        // d'accueil ; rien en tests ni avec -useFakeData sans l'argument de la visite.
+        for tour in TourID.allCases { GuidedTour.instance(for: tour).configureAtLaunch() }
     }
 
     var body: some Scene {

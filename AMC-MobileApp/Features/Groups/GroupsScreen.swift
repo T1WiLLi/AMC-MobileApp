@@ -90,6 +90,7 @@ struct GroupsScreen: View {
                         }
                         .accessibilityHint("Ton ménage en devient le premier membre")
                     }
+                    .guidedTourAnchor(.groupsActions, cornerRadius: 22, padding: 4)
                 }
                 ToolbarItem(placement: .topBarTrailing) {
                     NavigationLink {
@@ -188,7 +189,6 @@ private struct GroupList: View {
                     nearbyCount: others.count,
                     familyCount: items.reduce(0) { $0 + $1.group.householdCount }
                 )
-                .guidedTourAnchor(.groups)
 
                 VStack(alignment: .leading, spacing: 12) {
                     GroupsSectionHeader(
@@ -201,7 +201,7 @@ private struct GroupList: View {
                         NoGroupYetCard()
                             .grenierTransition(.cardAppear)
                     }
-                    rows(mine)
+                    rows(mine, tourAnchorOnFirst: true)
                 }
 
                 CreateGroupCard(hasGroup: !mine.isEmpty, action: onCreateGroup)
@@ -222,11 +222,12 @@ private struct GroupList: View {
             .padding(.horizontal, 16)
             .padding(.bottom, 24)
         }
+        .guidedTourScroll(.noisette)
         .grenierScrollEdge()
         .grenierAnimation(.smooth, value: mine.map(\.id))
     }
 
-    private func rows(_ items: [GroupsViewModel.Item]) -> some View {
+    private func rows(_ items: [GroupsViewModel.Item], tourAnchorOnFirst: Bool = false) -> some View {
         ForEach(Array(items.enumerated()), id: \.element.id) { index, item in
             GroupRow(
                 item: item,
@@ -240,6 +241,7 @@ private struct GroupList: View {
             )
             .grenierTransition(.cardAppear)
             .grenierAppear(index: index)
+            .guidedTourAnchor(.groups, if: tourAnchorOnFirst && index == 0)
         }
     }
 }

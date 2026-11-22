@@ -141,6 +141,7 @@ private struct ImpactContentView: View {
             .padding(.horizontal, 16)
             .padding(.bottom, 24)
         }
+        .guidedTourScroll(.noisette)
         .grenierScrollEdge()
         .symbolEffectsRemoved(reduceMotion)
     }

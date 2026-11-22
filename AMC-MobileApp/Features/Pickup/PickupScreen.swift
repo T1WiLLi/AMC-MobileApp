@@ -122,11 +122,11 @@ private struct PickupContentView: View {
         ScrollView {
             VStack(alignment: .leading, spacing: 16) {
                 PickupHeroCard(content: content)
-                    .guidedTourAnchor(.pickup)
                 if content.isAllPickedUp {
                     PickupAllDoneCard(hostFirstName: content.hostFirstName)
                 }
                 PickupCodeCard(content: content)
+                    .guidedTourAnchor(.pickup)
                 PickupItemsCard(items: content.items)
                 PickupRateVendorsCard(items: content.items) // T-157 : noter le producteur après la cueillette
                 if let point = content.pickupPoint {
@@ -141,6 +141,7 @@ private struct PickupContentView: View {
             .padding(.horizontal, 16)
             .padding(.bottom, 24)
         }
+        .guidedTourScroll(.noisette)
         .grenierScrollEdge()
         .onAppear { brightness.raise() }
         .onDisappear { brightness.restore() }

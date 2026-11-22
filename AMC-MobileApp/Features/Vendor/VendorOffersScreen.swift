@@ -20,6 +20,8 @@ struct VendorOffersScreen: View {
     private let vendorId: String
     @State private var model: VendorDashboardViewModel
     @State private var path: [Route] = []
+    /// L'éditeur ouvert l'a été par la visite de Racoonette.
+    @State private var tourPushed = false
     @State private var publishedTrigger = 0
     @State private var showsPublishedBanner = false
     @Namespace private var transition
@@ -52,6 +54,7 @@ struct VendorOffersScreen: View {
                         Button("Créer un lot", systemImage: "plus") {
                             path.append(.create)
                         }
+                        .guidedTourAnchor(.vendorCreate, cornerRadius: 22, padding: 4)
                         .symbolEffect(.bounce, value: reduceMotion ? 0 : publishedTrigger)
                         .accessibilityHint("Ouvre l'éditeur de paliers pour un nouveau lot.")
                     }
@@ -63,7 +66,21 @@ struct VendorOffersScreen: View {
                 .task {
                     if case .idle = model.state { await model.load() }
                 }
+                // FB-19 : l'étape « paliers » de Racoonette ouvre l'éditeur d'un nouveau lot, puis le referme.
+                .onChange(of: GuidedTour.racoonette.currentStep, initial: true) { syncTourNavigation() }
                 .sensoryFeedback(.success, trigger: publishedTrigger)
+        }
+    }
+
+    /// Pousse l'éditeur de paliers pendant son étape, le retire dès qu'on en sort (ou que la visite s'arrête).
+    private func syncTourNavigation() {
+        if GuidedTour.racoonette.currentStep?.screen == .vendorTierEditor {
+            guard path.isEmpty else { return }
+            path.append(.create)
+            tourPushed = true
+        } else if tourPushed {
+            tourPushed = false
+            path.removeAll()
         }
     }
 
@@ -130,6 +147,7 @@ struct VendorOffersScreen: View {
             .padding(.vertical, 8)
         }
         .scrollContentBackground(.hidden)
+        .guidedTourScroll(.racoonette)
         .refreshable { await model.refresh() }
     }
 

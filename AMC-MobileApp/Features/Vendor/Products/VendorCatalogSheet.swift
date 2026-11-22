@@ -213,6 +213,7 @@ private struct MyProductsToolbarModifier: ViewModifier {
                     Button("Mes produits", systemImage: "basket.fill") {
                         isPresented = true
                     }
+                    .guidedTourAnchor(.vendorProducts, cornerRadius: 22, padding: 4)
                     .accessibilityHint("Ajoute, modifie ou retire tes produits, réutilisables pour tes lots.")
                 }
             }

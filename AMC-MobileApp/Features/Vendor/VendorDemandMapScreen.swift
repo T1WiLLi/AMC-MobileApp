@@ -231,6 +231,7 @@ struct VendorDemandMapScreen: View {
                 }
             }
         }
+        .guidedTourAnchor(.vendorDemand, padding: 6)
         .padding(.horizontal, 16)
         .padding(.top, 4)
         .padding(.bottom, 8)

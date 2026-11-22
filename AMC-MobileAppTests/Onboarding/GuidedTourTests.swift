@@ -2,8 +2,8 @@ import Foundation
 import Testing
 @testable import AMC_MobileApp
 
-/// Visite guidée avec Noisette (FB-19) : ordre des étapes, machine à états (suivant, précédent, passer, rejouer),
-/// persistance, activation en tests et en démo.
+/// Visites guidées (FB-19) : Noisette (Familles) et Racoonette (Vendeurs). Étapes de chaque visite, machine à états
+/// (suivant, précédent, passer, rejouer), persistance séparée par visite, activation en tests et en démo.
 @MainActor
 struct GuidedTourTests {
     private func makeDefaults() -> UserDefaults {
@@ -14,19 +14,60 @@ struct GuidedTourTests {
         GuidedTourStore(defaults: defaults ?? makeDefaults())
     }
 
-    // MARK: Étapes
-
-    @Test func stepsFollowTheTourOrder() {
-        #expect(TourStep.allCases == [.nearbyOffers, .reserveShare, .pickup, .groups, .impact])
-        #expect(TourStep.allCases.map(\.screen) == [.home, .home, .pickup, .groups, .impact])
-        #expect(GuidedTourMachine().steps == TourStep.allCases)
+    private func makeTour(_ tour: TourID = .noisette, _ defaults: UserDefaults? = nil, enabled: Bool = true) -> GuidedTour {
+        GuidedTour(tour: tour, store: makeStore(defaults), isEnabled: enabled)
     }
 
-    @Test func everyScreenHasAStepAndATab() {
-        for screen in TourScreen.allCases {
-            #expect(TourStep.allCases.contains { $0.screen == screen })
+    // MARK: Étapes
+
+    @Test func noisetteStepsFollowTheTourOrder() {
+        #expect(TourID.noisette.steps == [
+            .intro, .homeGroup, .homeSavings, .homeOrders, .homeOffers, .offerTiers, .offerShare,
+            .groups, .groupsActions, .pickup, .impact, .profile
+        ])
+        #expect(GuidedTourMachine().steps == TourID.noisette.steps)
+    }
+
+    @Test func racoonetteStepsFollowTheTourOrder() {
+        #expect(TourID.racoonette.steps == [
+            .vendorIntro, .vendorStats, .vendorRisk, .vendorShop, .vendorCreate, .vendorTiers,
+            .vendorProducts, .vendorDemand, .vendorRevenue, .vendorProfile
+        ])
+        #expect(GuidedTourMachine(tour: .racoonette).steps == TourID.racoonette.steps)
+    }
+
+    @Test func everyStepBelongsToExactlyOneTourAndTheToursPartitionTheSteps() {
+        let all = TourID.allCases.flatMap(\.steps)
+        #expect(all.count == TourStep.allCases.count)
+        #expect(Set(all) == Set(TourStep.allCases))
+        for tour in TourID.allCases {
+            #expect(tour.steps.allSatisfy { $0.tour == tour })
+            #expect((8...12).contains(tour.steps.count))
         }
-        #expect(TourScreen.allCases.map(FamilyTabView.tab(for:)) == [.home, .pickup, .groups, .impact])
+    }
+
+    @Test func familyScreensMapToFamilyTabsAndVendorScreensToVendorTabs() {
+        let family: [TourScreen] = [.home, .offerDetail, .groups, .pickup, .impact]
+        #expect(family.map(FamilyTabView.tab(for:)) == [.home, .home, .groups, .pickup, .impact])
+        let vendor: [TourScreen] = [.vendorDashboard, .vendorOffers, .vendorTierEditor, .vendorDemand, .vendorRevenue]
+        #expect(vendor.map(VendorTabView.tab(for:)) == [.dashboard, .offers, .offers, .demand, .revenue])
+        // Chaque écran de chaque visite est montré par au moins une étape de sa visite.
+        for screen in family { #expect(TourID.noisette.steps.contains { $0.screen == screen }) }
+        for screen in vendor { #expect(TourID.racoonette.steps.contains { $0.screen == screen }) }
+    }
+
+    @Test func pushedScreensAreFlaggedAndOnlyPushedInsideTheirTab() {
+        #expect(TourScreen.allCases.filter(\.isPushed) == [.offerDetail, .vendorTierEditor])
+        #expect(TourStep.offerTiers.screen.isPushed && TourStep.offerShare.screen.isPushed)
+        #expect(TourStep.vendorTiers.screen.isPushed)
+    }
+
+    @Test func introStepsHaveNoElementAndOthersExpectOne() {
+        #expect(TourStep.allCases.filter { !$0.expectsAnchor } == [.intro, .vendorIntro])
+        // Un remplaçant existe pour les éléments qui peuvent manquer, dans la même visite.
+        for step in TourStep.allCases {
+            if let fallback = step.fallback { #expect(fallback.tour == step.tour) }
+        }
     }
 
     // MARK: Machine à états
@@ -38,15 +79,16 @@ struct GuidedTourTests {
         #expect(!machine.isTouring)
     }
 
-    @Test func nextWalksEveryStepThenFinishes() {
-        var machine = GuidedTourMachine()
+    @Test(arguments: TourID.allCases)
+    func nextWalksEveryStepThenFinishes(tour: TourID) {
+        var machine = GuidedTourMachine(tour: tour)
         machine.start()
         var seen: [TourStep] = []
         while let step = machine.currentStep {
             seen.append(step)
             machine.next()
         }
-        #expect(seen == TourStep.allCases)
+        #expect(seen == tour.steps)
         #expect(machine.phase == .finished)
         #expect(machine.isDone)
         // Plus rien ne bouge une fois terminée.
@@ -63,27 +105,29 @@ struct GuidedTourTests {
         #expect(machine.phase == .touring(index: 0))
         machine.next()
         machine.next()
-        #expect(machine.currentStep == .pickup)
+        #expect(machine.currentStep == .homeSavings)
         machine.back()
-        #expect(machine.currentStep == .reserveShare)
+        #expect(machine.currentStep == .homeGroup)
     }
 
-    @Test func lastStepIsFlagged() {
-        var machine = GuidedTourMachine(phase: .touring(index: TourStep.allCases.count - 1))
+    @Test(arguments: TourID.allCases)
+    func lastStepIsFlagged(tour: TourID) {
+        var machine = GuidedTourMachine(tour: tour, phase: .touring(index: tour.steps.count - 1))
         #expect(machine.isLastStep)
-        #expect(machine.currentStep == .impact)
+        #expect(machine.currentStep == tour.steps.last)
         machine.next()
         #expect(machine.phase == .finished)
     }
 
-    @Test func skipStopsTheTourFromAnyStep() {
-        for index in TourStep.allCases.indices {
-            var machine = GuidedTourMachine(phase: .touring(index: index))
+    @Test(arguments: TourID.allCases)
+    func skipStopsTheTourFromAnyStep(tour: TourID) {
+        for index in tour.steps.indices {
+            var machine = GuidedTourMachine(tour: tour, phase: .touring(index: index))
             machine.skip()
             #expect(machine.phase == .skipped)
             #expect(machine.currentStep == nil)
         }
-        var fromWelcome = GuidedTourMachine()
+        var fromWelcome = GuidedTourMachine(tour: tour)
         fromWelcome.skip()
         #expect(fromWelcome.phase == .skipped)
     }
@@ -97,20 +141,22 @@ struct GuidedTourTests {
         #expect(machine.phase == .skipped)
     }
 
-    @Test func replayBringsTheWelcomeBackAfterFinishOrSkip() {
-        var finished = GuidedTourMachine(phase: .finished)
+    @Test(arguments: TourID.allCases)
+    func replayBringsTheWelcomeBackAfterFinishOrSkip(tour: TourID) {
+        var finished = GuidedTourMachine(tour: tour, phase: .finished)
         finished.replay()
         #expect(finished.phase == .welcome)
         finished.start()
-        #expect(finished.currentStep == .nearbyOffers)
+        #expect(finished.currentStep == tour.steps.first)
 
-        var skipped = GuidedTourMachine(phase: .skipped)
+        var skipped = GuidedTourMachine(tour: tour, phase: .skipped)
         skipped.replay()
         #expect(skipped.phase == .welcome)
     }
 
     @Test func outOfRangeSavedStepRestartsAtTheFirst() {
         #expect(GuidedTourMachine(phase: .touring(index: 42)).phase == .touring(index: 0))
+        #expect(GuidedTourMachine(tour: .racoonette, phase: .touring(index: 11)).phase == .touring(index: 0))
         #expect(GuidedTourMachine(steps: [], phase: .touring(index: 0)).phase == .finished)
     }
 
@@ -127,74 +173,186 @@ struct GuidedTourTests {
 
     @Test func everyMoveIsSavedAndSurvivesARelaunch() {
         let defaults = makeDefaults()
-        let tour = GuidedTour(store: makeStore(defaults), isEnabled: true)
+        let tour = makeTour(.noisette, defaults)
         #expect(tour.showsWelcome)
         tour.start()
         tour.next()
         tour.next()
-        #expect(tour.currentStep == .pickup)
+        tour.next()
+        #expect(tour.currentStep == .homeOrders)
 
         // Nouveau lancement (ou nouveau rendu) : la visite reprend à la même étape.
-        let relaunched = GuidedTour(store: makeStore(defaults), isEnabled: true)
-        #expect(relaunched.currentStep == .pickup)
+        let relaunched = makeTour(.noisette, defaults)
+        #expect(relaunched.currentStep == .homeOrders)
         relaunched.back()
-        #expect(GuidedTour(store: makeStore(defaults), isEnabled: true).currentStep == .reserveShare)
+        #expect(makeTour(.noisette, defaults).currentStep == .homeSavings)
     }
 
-    @Test func completionIsPersistedAndNeverShownAgain() {
+    @Test(arguments: TourID.allCases)
+    func completionIsPersistedAndNeverShownAgain(tourID: TourID) {
         let defaults = makeDefaults()
-        let tour = GuidedTour(store: makeStore(defaults), isEnabled: true)
+        let tour = makeTour(tourID, defaults)
         tour.start()
-        for _ in TourStep.allCases { tour.next() }
+        for _ in tourID.steps { tour.next() }
         #expect(tour.machine.phase == .finished)
         #expect(tour.currentStep == nil)
 
-        let relaunched = GuidedTour(store: makeStore(defaults), isEnabled: true)
+        let relaunched = makeTour(tourID, defaults)
         #expect(!relaunched.showsWelcome)
         #expect(relaunched.currentStep == nil)
     }
 
-    @Test func skipIsPersistedAndReplayRestartsFromTheWelcome() {
+    @Test(arguments: TourID.allCases)
+    func skipIsPersistedAndReplayRestartsFromTheWelcome(tourID: TourID) {
         let defaults = makeDefaults()
-        let tour = GuidedTour(store: makeStore(defaults), isEnabled: true)
+        let tour = makeTour(tourID, defaults)
         tour.start()
         tour.next()
         tour.skip()
-        #expect(GuidedTour(store: makeStore(defaults), isEnabled: true).machine.phase == .skipped)
+        #expect(makeTour(tourID, defaults).machine.phase == .skipped)
 
         tour.replay()
         #expect(tour.showsWelcome)
-        #expect(GuidedTour(store: makeStore(defaults), isEnabled: true).showsWelcome)
+        #expect(makeTour(tourID, defaults).showsWelcome)
         tour.start()
-        #expect(tour.currentStep == .nearbyOffers)
+        #expect(tour.currentStep == tourID.steps.first)
     }
 
-    @Test func tourAlreadySeenWithTheOldVersionDoesNotComeBack() {
+    @Test func tourAlreadySeenWithTheOldVersionDoesNotComeBackForNoisetteOnly() {
         let defaults = makeDefaults()
         defaults.set(true, forKey: GuidedTourStore.legacyWelcomeSeenKey)
-        #expect(makeStore(defaults).load().phase == .finished)
+        #expect(makeStore(defaults).load(tour: .noisette).phase == .finished)
+        // Racoonette n'existait pas : sa première fois reste à faire.
+        #expect(makeStore(defaults).load(tour: .racoonette).phase == .welcome)
     }
 
-    @Test func demoTourReplaysAtLaunch() {
+    // MARK: Plusieurs visites
+
+    @Test func eachTourKeepsItsOwnProgress() {
         let defaults = makeDefaults()
-        let tour = GuidedTour(store: makeStore(defaults), isEnabled: true)
-        tour.postpone()
-        tour.configureAtLaunch(arguments: ["-useFakeData"])
-        #expect(!tour.showsWelcome)
-        tour.configureAtLaunch(arguments: ["-useFakeData", "-demoTour"])
-        #expect(tour.showsWelcome)
+        let noisette = makeTour(.noisette, defaults)
+        let racoonette = makeTour(.racoonette, defaults)
+        noisette.start()
+        noisette.next()
+        noisette.next()
+        racoonette.start()
+        racoonette.next()
+        #expect(noisette.currentStep == .homeSavings)
+        #expect(racoonette.currentStep == .vendorStats)
+
+        // Terminer ou passer l'une ne touche pas l'autre, même après un relancement.
+        racoonette.skip()
+        let relaunchedNoisette = makeTour(.noisette, defaults)
+        let relaunchedRacoonette = makeTour(.racoonette, defaults)
+        #expect(relaunchedNoisette.currentStep == .homeSavings)
+        #expect(relaunchedRacoonette.machine.phase == .skipped)
+        #expect(!relaunchedRacoonette.showsWelcome)
     }
 
-    @Test func anchorsAreRememberedForTheBubble() {
-        let tour = GuidedTour(store: makeStore(), isEnabled: true)
-        let frame = CGRect(x: 16, y: 300, width: 360, height: 80)
-        tour.updateAnchor(frame, for: .pickup)
-        #expect(tour.anchorFrames[.pickup] == frame)
+    @Test func storageKeysAreDistinctAndNoisetteKeepsItsFirstVersionKey() {
+        #expect(TourID.noisette.storageKey == "guidedTour.phase")
+        #expect(GuidedTourStore.phaseKey == TourID.noisette.storageKey)
+        #expect(Set(TourID.allCases.map(\.storageKey)).count == TourID.allCases.count)
+    }
+
+    @Test func replayOfOneTourLeavesTheOtherAlone() {
+        let defaults = makeDefaults()
+        let noisette = makeTour(.noisette, defaults)
+        let racoonette = makeTour(.racoonette, defaults)
+        noisette.postpone()
+        racoonette.postpone()
+        racoonette.replay()
+        #expect(racoonette.showsWelcome)
+        #expect(!noisette.showsWelcome)
+        #expect(makeTour(.noisette, defaults).machine.phase == .skipped)
+    }
+
+    @Test func firstEntryToTheVendorPortalShowsTheWelcomeThenNeverAgain() {
+        let defaults = makeDefaults()
+        // Première fois dans le portail Vendeurs : la carte d'accueil de Racoonette se présente.
+        let first = makeTour(.racoonette, defaults)
+        #expect(first.showsWelcome)
+        first.start()
+        #expect(first.currentStep == .vendorIntro)
+        for _ in TourID.racoonette.steps { first.next() }
+        // Retour dans le portail plus tard : rien ne s'affiche.
+        let later = makeTour(.racoonette, defaults)
+        #expect(!later.showsWelcome)
+        #expect(later.currentStep == nil)
+    }
+
+    @Test func replayEntryIsInTheProfileOfTheMascotsPortal() {
+        #expect(TourID.noisette.portal == .family)
+        #expect(TourID.racoonette.portal == .vendor)
+        #expect(TourID.allCases.map(\.portal).count == Set(TourID.allCases.map(\.portal)).count)
+    }
+
+    @Test func mascotsHaveTheirOwnNames() {
+        #expect(TourID.noisette.mascotName == MascotView.name)
+        #expect(TourID.racoonette.mascotName == RacoonetteView.name)
+        #expect(MascotView.name != RacoonetteView.name)
+    }
+
+    // MARK: Démo
+
+    @Test func demoTourReplaysAtLaunchOnlyForItsOwnArgument() {
+        let defaults = makeDefaults()
+        let noisette = makeTour(.noisette, defaults)
+        let racoonette = makeTour(.racoonette, defaults)
+        noisette.postpone()
+        racoonette.postpone()
+        noisette.configureAtLaunch(arguments: ["-useFakeData"])
+        #expect(!noisette.showsWelcome)
+
+        noisette.configureAtLaunch(arguments: ["-useFakeData", "-demoTour"])
+        racoonette.configureAtLaunch(arguments: ["-useFakeData", "-demoTour"])
+        #expect(noisette.showsWelcome)
+        #expect(!racoonette.showsWelcome)
+
+        racoonette.configureAtLaunch(arguments: ["-useFakeData", "-demoVendorTour"])
+        #expect(racoonette.showsWelcome)
+    }
+
+    // MARK: Ancres
+
+    @Test func anchorsAreRememberedForTheBubbleAndForgottenWhenTheirScreenGoes() {
+        let tour = makeTour()
+        let anchor = TourAnchor(frame: CGRect(x: 16, y: 300, width: 360, height: 80), cornerRadius: 24, padding: 6)
+        tour.updateAnchor(anchor, for: .pickup)
+        #expect(tour.anchor(for: .pickup) == anchor)
+        tour.removeAnchor(for: .pickup)
+        #expect(tour.anchor(for: .pickup) == nil)
+    }
+
+    @Test func newAnchorOfTheCurrentStepAsksForAScroll() {
+        let tour = makeTour()
+        tour.start()
+        let before = tour.scrollTick
+        let anchor = TourAnchor(frame: CGRect(x: 0, y: 900, width: 300, height: 60), cornerRadius: 24, padding: 6)
+        // Ancre d'une autre étape : pas de défilement.
+        tour.updateAnchor(anchor, for: .pickup)
+        #expect(tour.scrollTick == before)
+        // Ancre de l'étape en cours (l'étape 1 est sans élément : on avance jusqu'à « Ton groupe »).
+        tour.next()
+        tour.updateAnchor(anchor, for: .homeGroup)
+        #expect(tour.scrollTick == before + 1)
+        // Un simple déplacement de cette ancre ne redemande rien.
+        tour.updateAnchor(TourAnchor(frame: anchor.frame.offsetBy(dx: 0, dy: -40), cornerRadius: 24, padding: 6), for: .homeGroup)
+        #expect(tour.scrollTick == before + 1)
+    }
+
+    @Test func anchorsOfEachTourStayInTheirOwnTour() {
+        let noisette = makeTour(.noisette)
+        let racoonette = makeTour(.racoonette)
+        let anchor = TourAnchor(frame: CGRect(x: 0, y: 100, width: 100, height: 100), cornerRadius: 24, padding: 6)
+        noisette.updateAnchor(anchor, for: .homeGroup)
+        #expect(racoonette.anchor(for: .homeGroup) == nil)
+        #expect(racoonette.anchor(for: .vendorStats) == nil)
     }
 
     // MARK: Activation
 
-    @Test func tourIsOffInTestsPreviewsAndFakeDataUnlessDemoTour() {
+    @Test func tourIsOffInTestsPreviewsAndFakeDataUnlessItsDemoArgument() {
         let xcTest = [BackendLaunchOptions.xcTestVariable: "/tmp/x.xctestconfiguration"]
         #expect(GuidedTourPolicy.isEnabled(arguments: [], environment: [:]))
         #expect(!GuidedTourPolicy.isEnabled(arguments: [], environment: xcTest))
@@ -204,17 +362,25 @@ struct GuidedTourTests {
         #expect(GuidedTourPolicy.isEnabled(arguments: ["-useFakeData", "-demoTour"], environment: [:]))
         #expect(GuidedTourPolicy.replaysAtLaunch(arguments: ["-demoTour"]))
         #expect(!GuidedTourPolicy.replaysAtLaunch(arguments: ["-useFakeData"]))
+        // Racoonette a son propre argument.
+        #expect(!GuidedTourPolicy.isEnabled(tour: .racoonette, arguments: ["-useFakeData", "-demoTour"], environment: [:]))
+        #expect(GuidedTourPolicy.isEnabled(tour: .racoonette, arguments: ["-useFakeData", "-demoVendorTour"], environment: [:]))
+        #expect(GuidedTourPolicy.replaysAtLaunch(tour: .racoonette, arguments: ["-demoVendorTour"]))
+        #expect(!GuidedTourPolicy.replaysAtLaunch(tour: .racoonette, arguments: ["-demoTour"]))
     }
 
     @Test func disabledTourShowsNothingAndIgnoresReplay() {
-        let tour = GuidedTour(store: makeStore(), isEnabled: false)
+        let tour = makeTour(.racoonette, enabled: false)
         #expect(!tour.showsWelcome)
         #expect(tour.currentStep == nil)
         tour.replay()
         #expect(!tour.showsWelcome)
     }
 
-    @Test func sharedTourIsOffWhileUnitTestsRun() {
-        #expect(!GuidedTour.shared.isEnabled)
+    @Test func sharedToursAreOffWhileUnitTestsRun() {
+        #expect(!GuidedTour.noisette.isEnabled)
+        #expect(!GuidedTour.racoonette.isEnabled)
+        #expect(GuidedTour.instance(for: .noisette) === GuidedTour.noisette)
+        #expect(GuidedTour.instance(for: .racoonette) === GuidedTour.racoonette)
     }
 }

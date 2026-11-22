@@ -13,11 +13,15 @@ struct FamilyHomeScreen: View {
     @State private var loadedIdentity: String?
     @AppStorage(HomeSection.storageKey) private var rawLayout = ""
     @State private var isEditingLayout = false
+    /// Pile de l'Accueil : la visite de Noisette y pousse la fiche d'un lot (`syncTourNavigation`).
+    @State private var path = NavigationPath()
+    /// La fiche ouverte l'a été par la visite, qui la retire en passant à l'étape suivante.
+    @State private var tourPushed = false
     /// T-181 : en mode aîné, l'Accueil est fixe et réduit à l'essentiel (pas d'édition des sections).
     @Environment(\.isSeniorMode) private var isSeniorMode
 
     var body: some View {
-        NavigationStack {
+        NavigationStack(path: $path) {
             Group {
                 if context.isResolved && !context.hasGroup {
                     // Dans un ScrollView pour que le tirer-pour-rafraîchir marche aussi sans groupe.
@@ -71,6 +75,9 @@ struct FamilyHomeScreen: View {
             // Une part réservée depuis la fiche (poussée sur cette pile ou ouverte d'un autre onglet) : on recharge
             // tout de suite, sans attendre le retour. Le zoom de la fiche ne relance pas toujours `onAppear`.
             .onChange(of: ShareActivity.shared.generation) { reloadIfAlreadyLoaded() }
+            // FB-19 : les étapes « fiche du lot » de la visite ouvrent le premier lot, puis le referment.
+            .onChange(of: GuidedTour.noisette.currentStep, initial: true) { syncTourNavigation() }
+            .onChange(of: firstOfferId) { syncTourNavigation() }
         }
         // Bascule de portail : le voile attend que l'accueil ait son contenu.
         .portalContentReady(.family, when: isContentReady)
@@ -94,6 +101,21 @@ struct FamilyHomeScreen: View {
             viewModel = model
             loadedIdentity = identity
             await model.load()
+        }
+    }
+
+    /// Premier des nouveaux lots : celui que la visite ouvre.
+    private var firstOfferId: String? { viewModel?.state.value?.newOffers.first?.offer.id }
+
+    /// Pousse la fiche du premier lot pendant ses étapes, la retire dès qu'on en sort (ou que la visite s'arrête).
+    private func syncTourNavigation() {
+        if GuidedTour.noisette.currentStep?.screen == .offerDetail {
+            guard path.isEmpty, let offerId = firstOfferId else { return }
+            path.append(OfferRoute(offerId: offerId))
+            tourPushed = true
+        } else if tourPushed {
+            tourPushed = false
+            path.removeLast(path.count)
         }
     }
 
@@ -179,37 +201,30 @@ private struct FamilyHomeContent: View {
     }
 
     var body: some View {
-        ScrollViewReader { scroller in
-            ScrollView {
-                VStack(alignment: .leading, spacing: 24) {
-                    if let largeGreeting {
-                        Text(largeGreeting)
-                            .font(.largeTitle.bold())
-                            .foregroundStyle(Color.texte)
-                            .fixedSize(horizontal: false, vertical: true)
-                            .accessibilityAddTraits(.isHeader)
-                    }
+        ScrollView {
+            VStack(alignment: .leading, spacing: 24) {
+                if let largeGreeting {
+                    Text(largeGreeting)
+                        .font(.largeTitle.bold())
+                        .foregroundStyle(Color.texte)
+                        .fixedSize(horizontal: false, vertical: true)
+                        .accessibilityAddTraits(.isHeader)
+                }
 
-                    ForEach(Array(sections.enumerated()), id: \.element) { index, section in
-                        view(for: section)
-                            .id(section)
-                            .cascadeAppear(index)
-                            .sectionArrangeTilt(isArrangingSections)
-                            .transition(.opacity.combined(with: .scale(scale: 0.96)))
-                    }
-                }
-                .animation(reduceMotion ? nil : .smooth, value: sections)
-                .padding(.horizontal, 16)
-                .padding(.bottom, 24)
-            }
-            // FB-19 : les deux étapes de l'Accueil montrent les nouveaux lots ; on les amène à l'écran.
-            .onChange(of: GuidedTour.shared.currentStep, initial: true) { _, step in
-                guard step?.screen == .home, sections.contains(.offers) else { return }
-                withAnimation(reduceMotion ? nil : .smooth) {
-                    scroller.scrollTo(HomeSection.offers, anchor: UnitPoint(x: 0.5, y: 0.25))
+                ForEach(Array(sections.enumerated()), id: \.element) { index, section in
+                    view(for: section)
+                        .id(section)
+                        .cascadeAppear(index)
+                        .sectionArrangeTilt(isArrangingSections)
+                        .transition(.opacity.combined(with: .scale(scale: 0.96)))
                 }
             }
+            .animation(reduceMotion ? nil : .smooth, value: sections)
+            .padding(.horizontal, 16)
+            .padding(.bottom, 24)
         }
+        // FB-19 : chaque étape de l'Accueil amène son élément à l'écran.
+        .guidedTourScroll(.noisette)
         // Pendant le réarrangement, l'Accueil n'est qu'un aperçu : pas de toucher par erreur sur une carte inclinée.
         .allowsHitTesting(!isArrangingSections)
         .grenierScrollEdge()
@@ -233,6 +248,7 @@ private struct FamilyHomeContent: View {
                     orderCount: content.currentOrders.count,
                     newOfferCount: content.newOffers.count
                 )
+                .guidedTourAnchor(.homeGroup)
                 if householdGroups.count > 1 {
                     ActiveGroupMenu(groups: householdGroups, activeGroupId: content.group.id) { groupId in
                         contextStore?.selectGroup(groupId)
@@ -241,6 +257,7 @@ private struct FamilyHomeContent: View {
             }
         case .savings:
             SavingsCard(savedCents: content.savedCents, orderCount: content.myOrders.count)
+                .guidedTourAnchor(.homeSavings)
         case .orders:
             currentOrdersSection
         case .offers:
@@ -270,6 +287,7 @@ private struct FamilyHomeContent: View {
                     }
                 }
             }
+            .guidedTourAnchor(.homeOrders, padding: 8)
 
             if !others.isEmpty, !isSeniorMode {
                 VStack(alignment: .leading, spacing: 12) {
@@ -293,7 +311,6 @@ private struct FamilyHomeContent: View {
         let visibleCount = HomeOfferFilter.visibleCount(total: filtered.count, isExpanded: showsAllOffers)
         return VStack(alignment: .leading, spacing: 12) {
             GrenierSectionHeader(String(localized: "Nouveaux lots près de toi"), systemImage: "sparkles", info: .offers)
-                .guidedTourAnchor(.nearbyOffers)
             if content.newOffers.isEmpty {
                 NoNewOfferCard()
             } else {
@@ -845,7 +862,7 @@ private struct TourAnchorIfFirst: ViewModifier {
 
     func body(content: Content) -> some View {
         if isFirst {
-            content.guidedTourAnchor(.reserveShare)
+            content.guidedTourAnchor(.homeOffers, cornerRadius: 20, padding: 2)
         } else {
             content
         }

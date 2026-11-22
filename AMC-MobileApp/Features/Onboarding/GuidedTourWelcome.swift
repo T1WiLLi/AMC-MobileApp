@@ -1,7 +1,8 @@
 import SwiftUI
 
-/// Carte d'accueil de Noisette (FB-19), avant les bulles de la visite guidée (`GuidedTourOverlay`).
+/// Carte d'accueil de la mascotte d'une visite (Noisette, FB-19 ; Racoonette), avant les bulles de la visite guidée (`GuidedTourOverlay`).
 struct GuidedTourWelcomeCard: View {
+    var tour: TourID = .noisette
     /// true : « C'est parti ! », false : « Plus tard ».
     let decide: (Bool) -> Void
 
@@ -10,16 +11,16 @@ struct GuidedTourWelcomeCard: View {
     var body: some View {
         ScrollView {
             VStack(spacing: 20) {
-                MascotView(size: 132)
+                TourMascotView(tour: tour, size: 132)
                     .padding(.top, 8)
 
                 VStack(spacing: 8) {
-                    Text("Salut, moi c'est \(MascotView.name) !")
+                    Text("Salut, moi c'est \(tour.mascotName) !")
                         .font(.title2.bold())
                         .fontDesign(.rounded)
                         .foregroundStyle(Color.texte)
                         .accessibilityAddTraits(.isHeader)
-                    Text("Je suis l'écureuil du quartier. En \(TourStep.allCases.count) petites bulles, je te montre comment payer moins cher en achetant avec tes voisins.")
+                    Text(tour.welcome)
                         .font(.body)
                         .foregroundStyle(Color.texteSecondaire)
                 }
@@ -62,9 +63,10 @@ struct GuidedTourWelcomeCard: View {
 }
 
 private struct GuidedTourWelcomeModifier: ViewModifier {
+    let tourID: TourID
     let isReady: Bool
 
-    @State private var tour = GuidedTour.shared
+    private var tour: GuidedTour { GuidedTour.instance(for: tourID) }
     /// Choix fait sur la carte (ou feuille glissée vers le bas) : la feuille se ferme, et le choix n'est appliqué
     /// qu'une fois la feuille partie, pour que la première bulle ne se présente pas pendant qu'elle se retire.
     @State private var hasDecided = false
@@ -82,7 +84,7 @@ private struct GuidedTourWelcomeModifier: ViewModifier {
                     if accepted { tour.start() } else { tour.postpone() }
                 }
             ) {
-                GuidedTourWelcomeCard { decision in
+                GuidedTourWelcomeCard(tour: tourID) { decision in
                     accepted = decision
                     hasDecided = true
                 }
@@ -101,8 +103,8 @@ private struct GuidedTourWelcomeModifier: ViewModifier {
 extension View {
     /// Montre la carte d'accueil de Noisette une fois l'écran prêt (`isReady`), si la visite n'a pas encore été vue.
     /// Glisser la feuille vers le bas vaut « Plus tard ».
-    func guidedTourWelcome(isReady: Bool) -> some View {
-        modifier(GuidedTourWelcomeModifier(isReady: isReady))
+    func guidedTourWelcome(_ tour: TourID = .noisette, isReady: Bool) -> some View {
+        modifier(GuidedTourWelcomeModifier(tourID: tour, isReady: isReady))
     }
 }
 
@@ -113,6 +115,11 @@ extension View {
             GuidedTourWelcomeCard { _ in }
                 .presentationDetents([.medium, .large])
         }
+}
+
+#Preview("Racoonette") {
+    GuidedTourWelcomeCard(tour: .racoonette) { _ in }
+        .grenierBackground()
 }
 
 #Preview("Sombre") {

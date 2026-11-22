@@ -19,15 +19,20 @@ struct SectionInfo: Identifiable {
 /// Réglages de la vue isométrique : les mêmes pour toutes les sections.
 enum IsoLayoutStyle {
     /// Inclinaison autour d'un axe diagonal du plan : un coin vers nous, comme une carte posée sur la table.
-    static let angle: Double = 38
+    static let angle: Double = 30
     static let axis: (x: CGFloat, y: CGFloat, z: CGFloat) = (x: 0.82, y: -0.58, z: 0)
     /// Perspective faible : le texte reste lisible, la profondeur se lit surtout par l'ombre.
     static let perspective: CGFloat = 0.28
-    static let scale: CGFloat = 0.8
-    /// Décalage vers la droite : l'empilement reste visible à côté du panneau.
-    static let shift: CGFloat = 36
+    static let scale: CGFloat = 0.74
+    /// Décalage vers la droite : l'empilement dégage le rail sans sortir de l'écran.
+    static let shift: CGFloat = 26
     /// Léger zigzag : une carte sur deux est décalée de ± `stagger`.
-    static let stagger: CGFloat = 12
+    static let stagger: CGFloat = 8
+    /// Hauteur de l'aperçu d'une section pendant l'édition : toutes les cartes ont la même taille,
+    /// une longue liste ne s'étire plus hors de l'écran sous la perspective.
+    static let previewHeight: CGFloat = 168
+    /// Rattrape la place libérée par la réduction : les cartes restent serrées les unes contre les autres.
+    static var overlap: CGFloat { -previewHeight * (1 - scale) / 2 }
     static func staggerOffset(index: Int) -> CGFloat { index.isMultiple(of: 2) ? -stagger : stagger }
     static let dimmedOpacity: Double = 0.38
 
@@ -47,6 +52,18 @@ private struct IsoLayoutEditingModifier: ViewModifier {
         content
             // Pas de toucher sur la section (carte inclinée) ; le défilement du parent reste actif.
             .allowsHitTesting(!isActive)
+            // Aperçu de hauteur fixe, fondu en bas : chaque section devient une carte de même taille.
+            .frame(maxHeight: isActive ? IsoLayoutStyle.previewHeight : nil, alignment: .top)
+            .mask {
+                if isActive {
+                    LinearGradient(
+                        stops: [.init(color: .black, location: 0.72), .init(color: .clear, location: 1)],
+                        startPoint: .top, endPoint: .bottom
+                    )
+                } else {
+                    Rectangle()
+                }
+            }
             .scaleEffect(IsoLayoutStyle.scale(isActive: isActive, reduceMotion: reduceMotion))
             .rotation3DEffect(
                 .degrees(IsoLayoutStyle.angle(isActive: isActive, reduceMotion: reduceMotion)),
@@ -65,7 +82,7 @@ private struct IsoLayoutEditingModifier: ViewModifier {
             .offset(x: isActive && !reduceMotion ? IsoLayoutStyle.shift + IsoLayoutStyle.staggerOffset(index: index) : 0)
             .shadow(color: .black.opacity(isActive && !reduceMotion ? 0.22 : 0), radius: 12, x: -10, y: 16)
             .opacity(IsoLayoutStyle.opacity(isActive: isActive, isDimmed: isDimmed))
-            .padding(.vertical, isActive && !reduceMotion ? 6 : 0)
+            .padding(.vertical, isActive && !reduceMotion ? IsoLayoutStyle.overlap : 0)
             .animation(reduceMotion ? nil : .spring(duration: 0.6, bounce: 0.22), value: isActive)
             .animation(reduceMotion ? nil : .smooth, value: isDimmed)
     }
@@ -240,45 +257,34 @@ struct LayoutEditorRail: View {
         let isLast = !isHidden && layout.visible.count <= 1
         return HStack(spacing: 4) {
             Capsule().fill(Color.texteSecondaire.opacity(0.6)).frame(width: 8, height: 2).accessibilityHidden(true)
-            Button {
-                update { $0.toggle(info.id) }
-            } label: {
-                Image(systemName: info.systemImage)
-                    .font(.body.weight(.semibold))
-                    .foregroundStyle(isHidden ? Color.texteSecondaire : info.tint)
-                    .overlay {
-                        if isHidden {
-                            Capsule().fill(Color.texteSecondaire).frame(width: 24, height: 2).rotationEffect(.degrees(-45))
-                        }
+            Image(systemName: info.systemImage)
+                .font(.body.weight(.semibold))
+                .foregroundStyle(isHidden ? Color.texteSecondaire : info.tint)
+                .overlay {
+                    if isHidden {
+                        Capsule().fill(Color.texteSecondaire).frame(width: 24, height: 2).rotationEffect(.degrees(-45))
                     }
-                    .frame(width: 40, height: 40)
-                    .glassEffect(isDragged ? .regular.tint(info.tint.opacity(0.35)).interactive() : .regular, in: .circle)
-                    .opacity(isHidden ? 0.6 : 1)
-                    .scaleEffect(isDragged ? 1.12 : 1)
-                    .frame(minWidth: 44, minHeight: 44)
-            }
-            .buttonStyle(.plain)
-            .disabled(isLast)
-            .overlay(alignment: .leading) {
-                if showLabel {
-                    Text(info.title)
-                        .font(.caption.weight(.semibold))
-                        .padding(.horizontal, 10).padding(.vertical, 5)
-                        .glassEffect(.regular, in: .capsule)
-                        .fixedSize()
-                        .offset(x: 52)
-                        .allowsHitTesting(false)
                 }
-            }
-            .contextMenu {
-                Button(isHidden ? "Afficher" : "Masquer", systemImage: isHidden ? "eye" : "eye.slash") { update { $0.toggle(info.id) } }
-                    .disabled(isLast)
-                Button("Monter", systemImage: "arrow.up") { update { $0.shift(info.id, by: -1) } }
-                    .disabled(index == 0)
-                Button("Descendre", systemImage: "arrow.down") { update { $0.shift(info.id, by: 1) } }
-                    .disabled(index == layout.order.count - 1)
-            }
-            .simultaneousGesture(reorderGesture(id: info.id, index: index))
+                .frame(width: 40, height: 40)
+                .glassEffect(isDragged ? .regular.tint(info.tint.opacity(0.35)).interactive() : .regular, in: .circle)
+                .opacity(isHidden ? 0.6 : 1)
+                .scaleEffect(isDragged ? 1.12 : 1)
+                .frame(minWidth: 44, minHeight: 44)
+                .contentShape(.circle)
+                .overlay(alignment: .leading) {
+                    if showLabel {
+                        Text(info.title)
+                            .font(.caption.weight(.semibold))
+                            .padding(.horizontal, 10).padding(.vertical, 5)
+                            .glassEffect(.regular, in: .capsule)
+                            .fixedSize()
+                            .offset(x: 52)
+                            .allowsHitTesting(false)
+                    }
+                }
+                // Toucher : masquer / afficher. Glisser : réordonner (prioritaire, rien ne l'intercepte).
+                .onTapGesture { if !isLast { update { $0.toggle(info.id) } } }
+                .highPriorityGesture(reorderGesture(id: info.id, index: index))
         }
         .frame(height: pitch)
         .offset(y: lift)
@@ -293,7 +299,7 @@ struct LayoutEditorRail: View {
     }
 
     private func reorderGesture(id: String, index: Int) -> some Gesture {
-        DragGesture(minimumDistance: 8, coordinateSpace: .global)
+        DragGesture(minimumDistance: 4, coordinateSpace: .global)
             .onChanged { value in
                 if dragId != id { dragId = id; dragStart = index }
                 let current = layout.order.firstIndex(of: id) ?? index

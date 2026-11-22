@@ -55,6 +55,13 @@ struct AddressField: View {
                     .fixedSize(horizontal: false, vertical: true)
                     .grenierTransition(.banner)
             }
+            if status == .unverified {
+                Label("Vérification impossible pour l'instant. L'adresse est gardée telle quelle.", systemImage: "wifi.exclamationmark")
+                    .font(.footnote)
+                    .foregroundStyle(Color.texteSecondaire)
+                    .fixedSize(horizontal: false, vertical: true)
+                    .grenierTransition(.banner)
+            }
         }
         .grenierAnimation(.smooth, value: model.suggestions)
         .grenierAnimation(.smooth, value: status)
@@ -108,8 +115,8 @@ struct AddressField: View {
                 .foregroundStyle(Color.economie)
                 .symbolEffect(.bounce, value: reduceMotion ? false : status == .valid)
                 .accessibilityLabel("Adresse vérifiée")
-        case .empty, .saved, .edited, .notFound:
-            // Introuvable : le message rouge sous le champ suffit (pas de deuxième icône).
+        case .empty, .saved, .edited, .notFound, .unverified:
+            // Introuvable ou non vérifiée : le message rouge sous le champ suffit (pas de deuxième icône).
             EmptyView()
         }
     }
@@ -161,6 +168,7 @@ struct AddressField: View {
         case .validating: String(localized: "Vérification de l'adresse")
         case .valid: String(localized: "Adresse vérifiée")
         case .notFound: String(localized: "Adresse introuvable. Vérifie le numéro et la rue.")
+        case .unverified: String(localized: "Vérification impossible pour l'instant. L'adresse est gardée telle quelle.")
         case .empty, .saved, .edited: ""
         }
     }

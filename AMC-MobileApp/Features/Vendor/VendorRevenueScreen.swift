@@ -201,7 +201,7 @@ private struct KeyFigures: View {
             ? AnyLayout(VStackLayout(spacing: 12))
             : AnyLayout(HStackLayout(alignment: .top, spacing: 12))
         layout {
-            FigureTile(
+            figureTile(
                 title: String(localized: "Familles servies"),
                 value: revenue.familiesServed,
                 detail: neighborhoodsDetail,
@@ -209,7 +209,7 @@ private struct KeyFigures: View {
                 systemImage: GrenierSymbol.groups,
                 tint: .solidarite
             )
-            FigureTile(
+            figureTile(
                 title: String(localized: "Parts engagées"),
                 value: revenue.committedShares,
                 detail: String(localized: "sur \(revenue.totalShares.formatted(.number.locale(AppLanguage.formattingLocale))) offertes"),
@@ -218,6 +218,23 @@ private struct KeyFigures: View {
                 tint: .grenier
             )
         }
+        .fixedSize(horizontal: false, vertical: true)
+    }
+
+    private func figureTile(title: String, value: Int, detail: String, detailImage: String,
+                            systemImage: String, tint: Color) -> some View {
+        GrenierStatTile(
+            value.formatted(.number.locale(AppLanguage.formattingLocale)),
+            systemImage: systemImage,
+            tint: tint,
+            style: .card,
+            icon: .title,
+            title: Text(title),
+            detail: Text(detail),
+            detailSystemImage: detailImage,
+            numericValue: Double(value),
+            accessibilityLabel: Text("\(title) : \(value.formatted(.number.locale(AppLanguage.formattingLocale))), \(detail)")
+        )
     }
 
     private var neighborhoodsDetail: String {
@@ -226,45 +243,6 @@ private struct KeyFigures: View {
         case 1: String(localized: "dans 1 quartier")
         case let count: String(localized: "dans \(count) quartiers")
         }
-    }
-}
-
-private struct FigureTile: View {
-    let title: String
-    let value: Int
-    let detail: String
-    let detailImage: String
-    let systemImage: String
-    let tint: Color
-
-    @Environment(\.accessibilityReduceMotion) private var reduceMotion
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 6) {
-            Label {
-                Text(title)
-            } icon: {
-                Image(systemName: systemImage)
-                    .foregroundStyle(tint)
-                    .symbolEffect(.bounce, value: reduceMotion ? 0 : value)
-            }
-            .font(.subheadline)
-            .foregroundStyle(.texteSecondaire)
-            .symbolRenderingMode(.hierarchical)
-            Text(value.formatted(.number.locale(AppLanguage.formattingLocale)))
-                .priceStyle()
-                .foregroundStyle(.texte)
-                .contentTransition(.numericText(value: Double(value)))
-                .grenierAnimation(.smooth, value: value)
-            Label(detail, systemImage: detailImage)
-                .font(.subheadline)
-                .foregroundStyle(.texteSecondaire)
-                .symbolRenderingMode(.hierarchical)
-        }
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .grenierCard()
-        .accessibilityElement(children: .ignore)
-        .accessibilityLabel("\(title) : \(value.formatted(.number.locale(AppLanguage.formattingLocale))), \(detail)")
     }
 }
 

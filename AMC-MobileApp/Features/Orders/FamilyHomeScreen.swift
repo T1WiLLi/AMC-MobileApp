@@ -495,63 +495,32 @@ private struct GroupBanner: View {
             ? AnyLayout(VStackLayout(alignment: .leading, spacing: 8))
             : AnyLayout(HStackLayout(alignment: .top, spacing: 8))
         return layout {
-            StatChip(
-                value: group.householdCount,
-                label: FrenchPlural.word(group.householdCount, "famille"),
+            GrenierStatTile(
+                group.householdCount.formatted(.number.locale(AppLanguage.formattingLocale)),
                 systemImage: "house.fill",
-                tint: .solidarite
+                tint: .solidarite,
+                style: .compact,
+                caption: Text(FrenchPlural.word(group.householdCount, "famille")),
+                numericValue: Double(group.householdCount)
             )
-            StatChip(
-                value: orderCount,
-                label: FrenchPlural.word(orderCount, "commande"),
+            GrenierStatTile(
+                orderCount.formatted(.number.locale(AppLanguage.formattingLocale)),
                 systemImage: "cart.fill",
-                tint: .grenier
+                tint: .grenier,
+                style: .compact,
+                caption: Text(FrenchPlural.word(orderCount, "commande")),
+                numericValue: Double(orderCount)
             )
-            StatChip(
-                value: newOfferCount,
-                label: FrenchPlural.word(newOfferCount, String(localized: "nouveau lot"), plural: String(localized: "nouveaux lots")),
+            GrenierStatTile(
+                newOfferCount.formatted(.number.locale(AppLanguage.formattingLocale)),
                 systemImage: "shippingbox.fill",
-                tint: .economie
+                tint: .economie,
+                style: .compact,
+                caption: Text(FrenchPlural.word(newOfferCount, String(localized: "nouveau lot"), plural: String(localized: "nouveaux lots"))),
+                numericValue: Double(newOfferCount)
             )
         }
         .fixedSize(horizontal: false, vertical: true)
-    }
-}
-
-/// Pastille « 24 familles » : icône teintée, chiffre arrondi, mot.
-private struct StatChip: View {
-    let value: Int
-    let label: String
-    let systemImage: String
-    let tint: Color
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 2) {
-            HStack(spacing: 5) {
-                Image(systemName: systemImage)
-                    .symbolRenderingMode(.hierarchical)
-                    .foregroundStyle(tint)
-                    .accessibilityHidden(true)
-                Text(value, format: .number)
-                    .font(.headline)
-                    .fontDesign(.rounded)
-                    .monospacedDigit()
-                    .contentTransition(.numericText(value: Double(value)))
-                    .foregroundStyle(Color.texte)
-            }
-            Text(label)
-                .font(.caption)
-                .foregroundStyle(Color.texteSecondaire)
-                .lineLimit(2)
-                .fixedSize(horizontal: false, vertical: true)
-        }
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(.horizontal, 10)
-        .padding(.vertical, 8)
-        // Même hauteur pour les trois tuiles, même si un libellé passe sur deux lignes.
-        .frame(maxHeight: .infinity, alignment: .topLeading)
-        .background(tint.opacity(0.1), in: .rect(cornerRadius: 14))
-        .accessibilityElement(children: .combine)
     }
 }
 

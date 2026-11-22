@@ -535,7 +535,7 @@ private struct StatTiles: View {
     }
 
     private var revenueTile: some View {
-        StatTile(
+        statTile(
             title: String(localized: "Revenus prévus"),
             systemImage: "dollarsign.circle.fill",
             value: Money.formatRounded(dashboard.projectedRevenueCents),
@@ -545,7 +545,7 @@ private struct StatTiles: View {
     }
 
     private var sharesTile: some View {
-        StatTile(
+        statTile(
             title: String(localized: "Parts engagées"),
             systemImage: "square.stack.3d.up.fill",
             value: "\(dashboard.totalCommittedShares) / \(dashboard.totalShares)",
@@ -558,7 +558,7 @@ private struct StatTiles: View {
     }
 
     private var householdsTile: some View {
-        StatTile(
+        statTile(
             title: String(localized: "Familles servies"),
             systemImage: "person.3.fill",
             value: "\(dashboard.committedHouseholds)",
@@ -568,13 +568,28 @@ private struct StatTiles: View {
     }
 
     private var offersTile: some View {
-        StatTile(
+        statTile(
             title: String(localized: "Lots actifs"),
             systemImage: "shippingbox.fill",
             value: "\(dashboard.offers.count)",
             numericValue: Double(dashboard.offers.count),
             caption: dashboard.closingSoon.isEmpty ? nil : closingSoonText,
             accessibilityText: String(localized: "\(dashboard.offers.count) lots actifs, \(closingSoonText).")
+        )
+    }
+
+    private func statTile(title: String, systemImage: String, value: String, numericValue: Double,
+                          progress: Double? = nil, caption: String? = nil, accessibilityText: String) -> some View {
+        GrenierStatTile(
+            value,
+            systemImage: systemImage,
+            style: .card,
+            icon: .badge,
+            title: Text(title),
+            caption: caption.map { Text($0) },
+            numericValue: numericValue,
+            progress: progress,
+            accessibilityLabel: Text(accessibilityText)
         )
     }
 
@@ -590,55 +605,6 @@ private struct StatTiles: View {
         let count = dashboard.closingSoon.count
         if count == 0 { return String(localized: "aucun ne ferme bientôt") }
         return String(localized: "\(count) ferme bientôt")
-    }
-}
-
-private struct StatTile: View {
-    let title: String
-    let systemImage: String
-    let value: String
-    let numericValue: Double
-    var caption: String?
-    var progress: Double?
-    let accessibilityText: String
-
-    @ScaledMetric(relativeTo: .title3) private var iconSize: CGFloat = 36
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 6) {
-            Image(systemName: systemImage)
-                .font(.title3.weight(.semibold))
-                .symbolRenderingMode(.hierarchical)
-                .foregroundStyle(Color.grenier)
-                .frame(width: iconSize, height: iconSize)
-                .background(Color.grenier.opacity(0.12), in: .rect(cornerRadius: 12))
-                .symbolEffect(.bounce, value: numericValue)
-                .padding(.bottom, 2)
-            Text(title)
-                .font(.subheadline)
-                .foregroundStyle(.texteSecondaire)
-            Text(value)
-                .priceStyle()
-                .foregroundStyle(.texte)
-                .lineLimit(1)
-                .minimumScaleFactor(0.7)
-                .contentTransition(.numericText(value: numericValue))
-            if let progress {
-                ProgressView(value: progress)
-                    .tint(.grenier)
-            }
-            if let caption {
-                Text(caption)
-                    .font(.subheadline)
-                    .foregroundStyle(.texteSecondaire)
-                    .monospacedDigit()
-            }
-            Spacer(minLength: 0)
-        }
-        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
-        .grenierCard()
-        .accessibilityElement(children: .ignore)
-        .accessibilityLabel(accessibilityText)
     }
 }
 

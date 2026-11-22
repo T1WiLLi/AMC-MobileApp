@@ -28049,6 +28049,16 @@
           }
         }
       }
+    },
+    "Vérification impossible pour l'instant. L'adresse est gardée telle quelle." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Can't check right now. The address is kept as typed."
+          }
+        }
+      }
     }
   },
   "version" : "1.0"

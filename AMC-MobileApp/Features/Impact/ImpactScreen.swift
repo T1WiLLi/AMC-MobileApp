@@ -107,16 +107,18 @@ private struct ImpactContentView: View {
 
                 ImpactSectionTitle("Ton quartier", systemImage: "mappin.and.ellipse", tint: .grenier)
                 LazyVGrid(columns: columns, spacing: 12) {
-                    ImpactStatTile(symbol: "scalemass.fill", tint: .grenier,
-                                   value: AnimatedCounter(value: snapshot.kilogramsBought, format: .integer(unit: "kg")),
-                                   caption: String(localized: "achetés en direct par \(ImpactFormat.plural(snapshot.households, "famille"))"),
-                                   captionSymbol: "person.2.fill",
-                                   trigger: snapshot.kilogramsBought)
-                    ImpactStatTile(symbol: "storefront.fill", tint: .economie,
-                                   value: AnimatedCounter(value: snapshot.paidToProducersCents, format: .money),
-                                   caption: String(localized: "versés à \(ImpactFormat.plural(snapshot.producers, "producteur")) d'ici"),
-                                   captionSymbol: "tractor.fill",
-                                   trigger: Double(snapshot.paidToProducersCents))
+                    GrenierStatTile(systemImage: "scalemass.fill", tint: .grenier, style: .card, icon: .badge,
+                                    detail: Text(String(localized: "achetés en direct par \(ImpactFormat.plural(snapshot.households, "famille"))")),
+                                    detailSystemImage: "person.2.fill",
+                                    numericValue: snapshot.kilogramsBought) {
+                        AnimatedCounter(value: snapshot.kilogramsBought, format: .integer(unit: "kg"))
+                    }
+                    GrenierStatTile(systemImage: "storefront.fill", tint: .economie, style: .card, icon: .badge,
+                                    detail: Text(String(localized: "versés à \(ImpactFormat.plural(snapshot.producers, "producteur")) d'ici")),
+                                    detailSystemImage: "tractor.fill",
+                                    numericValue: Double(snapshot.paidToProducersCents)) {
+                        AnimatedCounter(value: snapshot.paidToProducersCents, format: .money)
+                    }
                 }
 
                 ImpactSectionTitle("Les 7 sphères de Montréal", systemImage: "building.2.fill", tint: .grenier)
@@ -172,46 +174,6 @@ private struct ImpactSectionTitle: View {
         .padding(.top, 12)
         .padding(.horizontal, 4)
         .accessibilityAddTraits(.isHeader)
-    }
-}
-
-private struct ImpactStatTile: View {
-    let symbol: String
-    let tint: Color
-    let value: AnimatedCounter
-    let caption: String
-    let captionSymbol: String
-    /// Valeur affichée : le symbole rebondit quand elle change.
-    let trigger: Double
-
-    @ScaledMetric(relativeTo: .title3) private var iconSide: CGFloat = 40
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            Image(systemName: symbol)
-                .font(.title3)
-                .symbolRenderingMode(.hierarchical)
-                .foregroundStyle(tint)
-                .symbolEffect(.bounce, value: trigger)
-                .grenierIconTile(tint, side: iconSide, cornerRadius: 12)
-                .accessibilityHidden(true)
-            value
-                .priceStyle(.title.bold())
-                .foregroundStyle(.texte)
-            Label {
-                Text(caption)
-                    .fixedSize(horizontal: false, vertical: true)
-            } icon: {
-                Image(systemName: captionSymbol)
-                    .symbolRenderingMode(.hierarchical)
-                    .foregroundStyle(tint)
-            }
-            .font(.subheadline)
-            .foregroundStyle(.texteSecondaire)
-        }
-        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
-        .grenierCard()
-        .accessibilityElement(children: .combine)
     }
 }
 

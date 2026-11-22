@@ -49,8 +49,10 @@ nonisolated struct ValidatedAddress: Sendable, Hashable {
 protocol AddressValidating: Sendable {
     /// Suggestions d'adresses pour un début de saisie ; vide si rien ou en cas d'erreur.
     func suggestions(for query: String) async -> [AddressSuggestion]
-    /// Adresse normalisée si elle existe (numéro civique compris), sinon `nil`.
-    func validate(_ text: String) async -> ValidatedAddress?
+    /// Adresse normalisée si elle existe (numéro civique compris), `nil` si Apple ne la trouve pas.
+    /// Lève une erreur quand la vérification est impossible (réseau, service Apple) : ce n'est pas
+    /// « introuvable », l'adresse tapée est alors gardée sans vérification.
+    func validate(_ text: String) async throws -> ValidatedAddress?
 }
 
 // MARK: - Règles pures
@@ -137,6 +139,8 @@ nonisolated struct FakeAddressValidator: AddressValidating {
     /// Adresses connues (texte normalisé renvoyé), cherchées par numéro et rue.
     var known: [ValidatedAddress]
     var latency: Duration
+    /// Simule une vérification impossible (hors ligne) : `validate` lève `AppError.offline`.
+    var isOffline = false
 
     /// Saint-Michel, Montréal : position par défaut des adresses acceptées.
     static let defaultCoordinate = Geohash.Coordinate(latitude: 45.5600, longitude: -73.6100)
@@ -150,9 +154,10 @@ nonisolated struct FakeAddressValidator: AddressValidating {
                          postalCode: "H2R 1A1", coordinate: .init(latitude: 45.5490, longitude: -73.6229)),
     ]
 
-    init(known: [ValidatedAddress] = Self.montreal, latency: Duration = .zero) {
+    init(known: [ValidatedAddress] = Self.montreal, latency: Duration = .zero, isOffline: Bool = false) {
         self.known = known
         self.latency = latency
+        self.isOffline = isOffline
     }
 
     func suggestions(for query: String) async -> [AddressSuggestion] {
@@ -171,8 +176,9 @@ nonisolated struct FakeAddressValidator: AddressValidating {
             .map { AddressSuggestion(title: $0.streetLine, subtitle: "Montréal, QC, Canada") }
     }
 
-    func validate(_ text: String) async -> ValidatedAddress? {
+    func validate(_ text: String) async throws -> ValidatedAddress? {
         await wait()
+        if isOffline { throw AppError.offline }
         if let found = known.first(where: { AddressMatching.matches(input: text, candidateStreetLine: $0.streetLine) }) {
             return found
         }

@@ -654,31 +654,35 @@ struct DemandPointSheet: View {
             ? AnyLayout(VStackLayout(spacing: 8))
             : AnyLayout(HStackLayout(alignment: .top, spacing: 8))
         return layout {
-            DemandStatTile(
-                value: point.committedHouseholds,
-                label: FrenchPlural.word(point.committedHouseholds, String(localized: "famille engagée"), plural: String(localized: "familles engagées")),
+            GrenierStatTile(
+                point.committedHouseholds.formatted(.number.locale(AppLanguage.formattingLocale)),
                 systemImage: "person.2.fill",
-                tint: .grenier
+                tint: .grenier,
+                caption: Text(FrenchPlural.word(point.committedHouseholds, String(localized: "famille engagée"), plural: String(localized: "familles engagées"))),
+                numericValue: Double(point.committedHouseholds)
             )
-            DemandStatTile(
-                value: point.committedShares,
-                label: FrenchPlural.word(point.committedShares, "part"),
+            GrenierStatTile(
+                point.committedShares.formatted(.number.locale(AppLanguage.formattingLocale)),
                 systemImage: "shippingbox.fill",
-                tint: .economie
+                tint: .economie,
+                caption: Text(FrenchPlural.word(point.committedShares, "part")),
+                numericValue: Double(point.committedShares)
             )
             if point.wishingHouseholds > 0 {
-                DemandStatTile(
-                    value: point.wishingHouseholds,
-                    label: FrenchPlural.word(point.wishingHouseholds, "famille intéressée", plural: "familles intéressées"),
+                GrenierStatTile(
+                    point.wishingHouseholds.formatted(.number.locale(AppLanguage.formattingLocale)),
                     systemImage: "heart.fill",
-                    tint: .solidarite
+                    tint: .solidarite,
+                    caption: Text(FrenchPlural.word(point.wishingHouseholds, "famille intéressée", plural: "familles intéressées")),
+                    numericValue: Double(point.wishingHouseholds)
                 )
             } else {
-                DemandStatTile(
-                    value: point.householdCount,
-                    label: FrenchPlural.word(point.householdCount, "membre"),
+                GrenierStatTile(
+                    point.householdCount.formatted(.number.locale(AppLanguage.formattingLocale)),
                     systemImage: "house.fill",
-                    tint: .solidarite
+                    tint: .solidarite,
+                    caption: Text(FrenchPlural.word(point.householdCount, "membre")),
+                    numericValue: Double(point.householdCount)
                 )
             }
         }
@@ -803,38 +807,6 @@ private struct HighDemandBadge: View {
             .padding(.horizontal, 12)
             .background(Color.grenier, in: .capsule)
             .fixedSize()
-    }
-}
-
-/// Tuile de chiffre de la feuille : icône teintée, nombre arrondi, libellé.
-private struct DemandStatTile: View {
-    let value: Int
-    let label: String
-    let systemImage: String
-    let tint: Color
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 4) {
-            Image(systemName: systemImage)
-                .font(.title3)
-                .symbolRenderingMode(.hierarchical)
-                .foregroundStyle(tint)
-                .accessibilityHidden(true)
-            Text(value, format: .number)
-                .font(.title2.bold())
-                .fontDesign(.rounded)
-                .monospacedDigit()
-                .contentTransition(.numericText(value: Double(value)))
-                .foregroundStyle(Color.texte)
-            Text(label)
-                .font(.footnote)
-                .foregroundStyle(Color.texteSecondaire)
-                .fixedSize(horizontal: false, vertical: true)
-        }
-        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
-        .padding(12)
-        .background(tint.opacity(0.1), in: .rect(cornerRadius: 18))
-        .accessibilityElement(children: .combine)
     }
 }
 

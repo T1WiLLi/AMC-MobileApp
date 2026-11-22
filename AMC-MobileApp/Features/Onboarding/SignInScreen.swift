@@ -1,69 +1,98 @@
 import SwiftUI
 
-/// Écran de connexion et d'inscription (T-124, revu en FB-01) : une seule colonne sur le fond crème,
-/// dans l'ordre de lecture — marque LeGrenier, titre, champs, action principale, « ou », Google —
-/// et le lien qui bascule connexion ↔ inscription juste sous Google, dans le défilement : il ne chevauche
-/// jamais les boutons ni les champs, même sur petit écran, clavier ouvert ou en Dynamic Type AX.
+/// Écran de connexion et d'inscription (T-124, refondu) : une colonne sur le fond crème avec un halo chaud
+/// en haut — marque LeGrenier, sélecteur Connexion / Inscription, carte de champs, action principale, « ou »,
+/// Google. Tout est dans le défilement : rien ne se chevauche, même sur petit écran, clavier ouvert ou en AX.
 struct SignInScreen: View {
     let session: SessionViewModel
     @State private var mode: EmailAuthForm.Mode = .signIn
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
 
     private var isSigningIn: Bool { session.state == .signingIn }
 
     var body: some View {
         ScrollView {
-            VStack(spacing: 28) {
+            VStack(spacing: 24) {
                 SignInBrandHeader(isCompact: mode == .signUp)
 
-                VStack(spacing: 16) {
-                    title
+                modePicker
 
-                    if let message = session.errorMessage {
-                        SignInErrorBanner(message: message)
-                            .transition(.opacity.combined(with: .scale(scale: 0.95)))
-                    }
-
-                    EmailAuthForm(session: session, mode: $mode)
+                if let message = session.errorMessage {
+                    SignInErrorBanner(message: message)
+                        .transition(.opacity.combined(with: .scale(scale: 0.95)))
                 }
+
+                EmailAuthForm(session: session, mode: $mode)
 
                 OrSeparator(title: "ou")
 
-                VStack(spacing: 8) {
-                    googleButton
-                    modeSwitch
-                }
+                googleButton
+
+                Label("Gratuit, sans engagement", systemImage: "gift.fill")
+                    .font(.footnote)
+                    .foregroundStyle(Color.texteSecondaire)
+                    .symbolRenderingMode(.hierarchical)
+                    .multilineTextAlignment(.center)
             }
             .padding(.horizontal, 24)
-            .padding(.top, 16)
+            .padding(.top, 12)
             .padding(.bottom, 24)
             .frame(maxWidth: 520)
             .frame(maxWidth: .infinity)
         }
         .scrollDismissesKeyboard(.interactively)
         .scrollBounceBehavior(.basedOnSize)
+        .background(alignment: .top) { heroGlow }
         .grenierBackground()
         .tint(.grenier)
         .animation(reduceMotion ? nil : .smooth, value: session.errorMessage)
         .animation(reduceMotion ? nil : .smooth, value: mode)
         .sensoryFeedback(.error, trigger: session.errorMessage) { _, new in new != nil }
+        .sensoryFeedback(.selection, trigger: mode)
     }
 
-    private var title: some View {
-        VStack(spacing: 4) {
-            Text(mode == .signIn ? String(localized: "Connecte-toi") : String(localized: "Crée ton compte"))
-                .font(.title2.bold())
-                .fontDesign(.rounded)
-                .foregroundStyle(Color.texte)
-                .contentTransition(.opacity)
-                .accessibilityAddTraits(.isHeader)
-            Label("Gratuit, sans engagement", systemImage: "gift.fill")
+    /// Halo chaud derrière la marque, qui se fond dans le crème.
+    private var heroGlow: some View {
+        RadialGradient(
+            colors: [Color.grenier.opacity(0.22), Color.grenier.opacity(0)],
+            center: .top,
+            startRadius: 0,
+            endRadius: 420
+        )
+        .frame(height: 520)
+        .ignoresSafeArea()
+        .accessibilityHidden(true)
+    }
+
+    /// Connexion / Inscription : segments natifs ; en très grand texte, un lien sur deux lignes (jamais tronqué).
+    @ViewBuilder
+    private var modePicker: some View {
+        if dynamicTypeSize.isAccessibilitySize {
+            Button {
+                mode = mode == .signIn ? .signUp : .signIn
+            } label: {
+                VStack(spacing: 2) {
+                    Text(mode == .signIn ? String(localized: "Nouveau ici ?") : String(localized: "Déjà membre ?"))
+                        .foregroundStyle(Color.texteSecondaire)
+                    Text(mode == .signIn ? String(localized: "Créer un compte") : String(localized: "Se connecter"))
+                        .fontWeight(.bold)
+                        .foregroundStyle(Color.grenier)
+                }
                 .font(.subheadline)
-                .foregroundStyle(Color.texteSecondaire)
-                .symbolRenderingMode(.hierarchical)
+                .multilineTextAlignment(.center)
+                .frame(maxWidth: .infinity, minHeight: 44)
+                .contentShape(.rect)
+            }
+            .buttonStyle(.plain)
+        } else {
+            Picker("Mode", selection: $mode) {
+                Text("Connexion").tag(EmailAuthForm.Mode.signIn)
+                Text("Inscription").tag(EmailAuthForm.Mode.signUp)
+            }
+            .pickerStyle(.segmented)
+            .controlSize(.large)
         }
-        .multilineTextAlignment(.center)
-        .frame(maxWidth: .infinity)
     }
 
     private var googleButton: some View {
@@ -82,39 +111,11 @@ struct SignInScreen: View {
                     .foregroundStyle(Color.texte)
                     .contentTransition(.opacity)
             }
-            .frame(maxWidth: .infinity, minHeight: 44)
+            .frame(maxWidth: .infinity, minHeight: 48)
         }
         .buttonStyle(.glass)
         .disabled(isSigningIn)
         .accessibilityHint("Ouvre la connexion Google")
-    }
-
-    private var modeSwitch: some View {
-        Button {
-            mode = mode == .signIn ? .signUp : .signIn
-        } label: {
-            // Sur une ligne si elle tient, sinon sur deux (petit écran, Dynamic Type AX) : jamais tronqué.
-            ViewThatFits(in: .horizontal) {
-                HStack(spacing: 4) { modeSwitchTexts }
-                VStack(spacing: 2) { modeSwitchTexts }
-            }
-            .font(.subheadline)
-            .multilineTextAlignment(.center)
-            .frame(maxWidth: .infinity, minHeight: 44)
-            .contentTransition(.opacity)
-            .contentShape(.rect)
-        }
-        .buttonStyle(.plain)
-        .sensoryFeedback(.selection, trigger: mode)
-    }
-
-    @ViewBuilder
-    private var modeSwitchTexts: some View {
-        Text(mode == .signIn ? String(localized: "Nouveau ici ?") : String(localized: "Déjà membre ?"))
-            .foregroundStyle(Color.texteSecondaire)
-        Text(mode == .signIn ? String(localized: "Créer un compte") : String(localized: "Se connecter"))
-            .fontWeight(.bold)
-            .foregroundStyle(Color.grenier)
     }
 }
 
@@ -141,7 +142,7 @@ private struct SignInBrandHeader: View {
     private var side: CGFloat { min(emblemSide, 104) * (isCompact ? 0.78 : 1) }
 
     var body: some View {
-        VStack(spacing: 12) {
+        VStack(spacing: 14) {
             Image(systemName: brand.logo.symbol)
                 .font(.system(size: side * 0.46, weight: .semibold))
                 .foregroundStyle(.white)
@@ -157,12 +158,20 @@ private struct SignInBrandHeader: View {
                         .shadow(color: .black.opacity(0.12), radius: 3, y: 1)
                         .offset(x: side * 0.12, y: -side * 0.12)
                 }
-                .shadow(color: Color.grenier.opacity(0.3), radius: 12, y: 6)
+                .shadow(color: Color.grenier.opacity(0.35), radius: 18, y: 8)
+                .background {
+                    Circle()
+                        .fill(Color.surface.opacity(0.55))
+                        .frame(width: side * 1.7, height: side * 1.7)
+                        .overlay(Circle().strokeBorder(Color.grenier.opacity(0.12), lineWidth: 1))
+                }
+                .padding(.vertical, side * 0.18)
                 .accessibilityHidden(true)
 
             VStack(spacing: 4) {
                 Text(brand.name)
                     .font(.largeTitle.weight(.heavy))
+                    .kerning(-0.5)
                     .fontDesign(.rounded)
                     .foregroundStyle(Color.texte)
                 if !isCompact {

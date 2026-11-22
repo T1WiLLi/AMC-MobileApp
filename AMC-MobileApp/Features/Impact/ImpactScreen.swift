@@ -192,8 +192,7 @@ private struct ImpactStatTile: View {
                 .symbolRenderingMode(.hierarchical)
                 .foregroundStyle(tint)
                 .symbolEffect(.bounce, value: trigger)
-                .frame(width: iconSide, height: iconSide)
-                .background(tint.opacity(0.12), in: .rect(cornerRadius: 12))
+                .grenierIconTile(tint, side: iconSide, cornerRadius: 12)
                 .accessibilityHidden(true)
             value
                 .priceStyle(.title.bold())
@@ -218,16 +217,21 @@ private struct ImpactStatTile: View {
 // MARK: - En-tête et illustrations
 
 /// Petite scène de symboles : un symbole central qui respire, entouré de satellites qui rebondissent à l'apparition.
+/// Un satellite (ou le centre) peut montrer une photo ronde à la place du symbole (T-186, crédits dans `docs/credits.md`).
 /// Décorative (cachée à VoiceOver), immobile sous Reduce Motion et dans les captures.
 private struct ImpactSymbolScene: View {
     struct Satellite: Hashable {
         let symbol: String
         let tint: Color
+        /// Nom d'un asset photo ; sans photo, le symbole s'affiche.
+        var photo: String? = nil
     }
 
     let center: String
     let tint: Color
     let satellites: [Satellite]
+    /// Photo du centre, à la place du symbole `center`.
+    var centerPhoto: String? = nil
 
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Environment(\.impactAnimatesOnAppear) private var animatesOnAppear
@@ -245,11 +249,21 @@ private struct ImpactSymbolScene: View {
             Circle()
                 .strokeBorder(tint.opacity(0.25), style: StrokeStyle(lineWidth: 1.5, dash: [4, 6]))
                 .padding(side * 0.12)
-            Image(systemName: center)
-                .font(.system(size: side * 0.32, weight: .semibold))
-                .symbolRenderingMode(.hierarchical)
-                .foregroundStyle(tint)
-                .symbolEffect(.breathe, isActive: animates)
+            if let centerPhoto {
+                Image(centerPhoto)
+                    .resizable()
+                    .scaledToFill()
+                    .frame(width: side * 0.46, height: side * 0.46)
+                    .clipShape(.circle)
+                    .overlay(Circle().strokeBorder(Color.surface, lineWidth: 3))
+                    .shadow(color: tint.opacity(0.25), radius: 6, y: 2)
+            } else {
+                Image(systemName: center)
+                    .font(.system(size: side * 0.32, weight: .semibold))
+                    .symbolRenderingMode(.hierarchical)
+                    .foregroundStyle(tint)
+                    .symbolEffect(.breathe, isActive: animates)
+            }
             ForEach(Array(satellites.enumerated()), id: \.offset) { index, satellite in
                 satelliteView(satellite, index: index)
             }
@@ -266,15 +280,33 @@ private struct ImpactSymbolScene: View {
     private func satelliteView(_ satellite: Satellite, index: Int) -> some View {
         let angle = Angle.degrees(-90 + Double(index) * 360 / Double(max(satellites.count, 1)))
         let radius = side * 0.44
-        return Image(systemName: satellite.symbol)
-            .font(.system(size: side * 0.12, weight: .semibold))
-            .symbolRenderingMode(.hierarchical)
-            .foregroundStyle(satellite.tint)
-            .symbolEffect(.bounce, options: .speed(0.8), value: appeared)
-            .frame(width: side * 0.24, height: side * 0.24)
-            .background(Color.surface, in: .circle)
-            .overlay(Circle().strokeBorder(satellite.tint.opacity(0.25)))
+        return satelliteContent(satellite)
             .offset(x: cos(angle.radians) * radius, y: sin(angle.radians) * radius)
+    }
+
+    @ViewBuilder private func satelliteContent(_ satellite: Satellite) -> some View {
+        if let photo = satellite.photo {
+            // Une photo ne rebondit pas comme un symbole : elle grossit doucement à l'apparition.
+            Image(photo)
+                .resizable()
+                .scaledToFill()
+                .frame(width: side * 0.26, height: side * 0.26)
+                .clipShape(.circle)
+                .overlay(Circle().strokeBorder(Color.surface, lineWidth: 2))
+                .overlay(Circle().strokeBorder(satellite.tint.opacity(0.35)).padding(-1))
+                .shadow(color: .black.opacity(0.12), radius: 3, y: 1)
+                .scaleEffect(animates && !appeared ? 0.7 : 1)
+                .animation(.spring(duration: 0.5, bounce: 0.4), value: appeared)
+        } else {
+            Image(systemName: satellite.symbol)
+                .font(.system(size: side * 0.12, weight: .semibold))
+                .symbolRenderingMode(.hierarchical)
+                .foregroundStyle(satellite.tint)
+                .symbolEffect(.bounce, options: .speed(0.8), value: appeared)
+                .frame(width: side * 0.24, height: side * 0.24)
+                .background(Color.surface, in: .circle)
+                .overlay(Circle().strokeBorder(satellite.tint.opacity(0.25)))
+        }
     }
 }
 
@@ -298,13 +330,14 @@ private struct ImpactHeroHeader: View {
                 center: GrenierSymbol.impact,
                 tint: .economie,
                 satellites: [
-                    .init(symbol: "basket.fill", tint: .economie),
-                    .init(symbol: "storefront.fill", tint: .grenier),
-                    .init(symbol: GrenierSymbol.solidarity, tint: .solidarite),
-                    .init(symbol: GrenierSymbol.groups, tint: .grenier),
-                    .init(symbol: "figure.walk", tint: .grenier),
-                    .init(symbol: "carrot.fill", tint: .economie)
-                ]
+                    .init(symbol: "basket.fill", tint: .economie, photo: "ImpactPanier"),
+                    .init(symbol: "storefront.fill", tint: .grenier, photo: "IntroSolution"),
+                    .init(symbol: GrenierSymbol.solidarity, tint: .solidarite, photo: "ImpactPartage"),
+                    .init(symbol: GrenierSymbol.groups, tint: .grenier, photo: "ImpactBasilic"),
+                    .init(symbol: "figure.walk", tint: .grenier, photo: "ImpactFilet"),
+                    .init(symbol: "carrot.fill", tint: .economie, photo: "ImpactCarottes")
+                ],
+                centerPhoto: "ImpactSacs"
             )
             .padding(.top, 8)
 

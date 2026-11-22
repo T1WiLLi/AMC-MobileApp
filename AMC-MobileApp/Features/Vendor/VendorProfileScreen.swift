@@ -131,10 +131,23 @@ struct VendorProfileScreen: View {
                 Task { await addPhoto(from: item) }
             }
         } header: {
-            Label("Vitrine", systemImage: "photo.on.rectangle.angled")
-        } footer: {
-            Text("La première photo sert de couverture sur tes lots. Touche longuement une photo pour la gérer · \(viewModel.photoURLs.count) sur \(VendorProfileViewModel.maxPhotos).")
+            sectionHeader("Photos", systemImage: "photo.on.rectangle.angled",
+                          count: viewModel.photoURLs.count, max: VendorProfileViewModel.maxPhotos)
         }
+    }
+
+    /// Titre de section avec son compteur à droite (« 3 / 6 »), à la place des longs pieds de section.
+    private func sectionHeader(_ title: LocalizedStringKey, systemImage: String, count: Int, max: Int) -> some View {
+        HStack {
+            Label(title, systemImage: systemImage)
+            Spacer()
+            Text("\(count) / \(max)")
+                .monospacedDigit()
+                .contentTransition(.numericText())
+                .foregroundStyle(count >= max ? Color.grenier : .secondary)
+                .accessibilityLabel("\(count) sur \(max)")
+        }
+        .symbolRenderingMode(.hierarchical)
     }
 
     private func addPhoto(from item: PhotosPickerItem) async {
@@ -166,7 +179,6 @@ struct VendorProfileScreen: View {
         } footer: {
             let count = viewModel.description.trimmingCharacters(in: .whitespacesAndNewlines).count
             HStack {
-                Text("Les familles la lisent sur chaque lot.")
                 Spacer()
                 Text("\(count) / \(VendorProfileViewModel.descriptionMaxLength)")
                     .monospacedDigit()
@@ -183,7 +195,7 @@ struct VendorProfileScreen: View {
     private var featuredSection: some View {
         Section {
             if viewModel.products.isEmpty {
-                Label("Ajoute des produits à ton catalogue pour les mettre en avant.", systemImage: "basket")
+                Label("Aucun produit pour l'instant", systemImage: "basket")
                     .foregroundStyle(.secondary)
             } else {
                 ForEach(viewModel.products) { product in
@@ -220,9 +232,8 @@ struct VendorProfileScreen: View {
                 }
             }
         } header: {
-            Label("Coups de cœur", systemImage: "heart.text.square")
-        } footer: {
-            Text("Jusqu'à \(VendorProfileViewModel.maxFeatured) produits, en tête de ta page producteur · \(viewModel.featuredProductIds.count) sur \(VendorProfileViewModel.maxFeatured).")
+            sectionHeader("Coups de cœur", systemImage: "heart.text.square",
+                          count: viewModel.featuredProductIds.count, max: VendorProfileViewModel.maxFeatured)
         }
         .sensoryFeedback(.selection, trigger: viewModel.featuredProductIds)
     }
@@ -232,7 +243,7 @@ struct VendorProfileScreen: View {
     private var zonesSection: some View {
         Section {
             if viewModel.servedZones.isEmpty {
-                Label("Aucune zone : tes lots n'apparaissent nulle part.", systemImage: "mappin.slash")
+                Label("Aucune zone", systemImage: "mappin.slash")
                     .foregroundStyle(.secondary)
             } else {
                 ChipFlow {
@@ -247,7 +258,7 @@ struct VendorProfileScreen: View {
 
             if !viewModel.zoneSuggestions.isEmpty {
                 VStack(alignment: .leading, spacing: 8) {
-                    Text("Quartiers des groupes")
+                    Text("Suggestions")
                         .font(.subheadline.weight(.semibold))
                         .foregroundStyle(.secondary)
                     ChipFlow {
@@ -264,7 +275,7 @@ struct VendorProfileScreen: View {
             // QA T-094 n° 17b : le vendeur choisit un quartier par son nom ou sur la carte ;
             // le geohash est calculé et enregistré sans jamais être montré.
             Label {
-                TextField("Chercher un quartier (ex. Villeray)", text: $zoneDraft)
+                TextField("Chercher un quartier", text: $zoneDraft)
                     .textInputAutocapitalization(.words)
                     .autocorrectionDisabled()
                     .submitLabel(.done)
@@ -278,7 +289,7 @@ struct VendorProfileScreen: View {
 
             if !zoneDraft.trimmingCharacters(in: .whitespaces).isEmpty {
                 if neighborhoodMatches.isEmpty {
-                    Label("Aucun quartier de ce nom. Essaie la carte.", systemImage: "map")
+                    Label("Aucun résultat", systemImage: "map")
                         .font(.subheadline)
                         .foregroundStyle(.secondary)
                 } else {
@@ -325,9 +336,8 @@ struct VendorProfileScreen: View {
                     .foregroundStyle(.red)
             }
         } header: {
-            Label("Zones desservies", systemImage: "map.fill")
-        } footer: {
-            Text("Tes nouveaux lots sont proposés aux familles de ces quartiers. \(viewModel.servedZones.count) sur \(VendorProfileViewModel.maxZones).")
+            sectionHeader("Zones desservies", systemImage: "map.fill",
+                          count: viewModel.servedZones.count, max: VendorProfileViewModel.maxZones)
         }
     }
 
@@ -395,53 +405,60 @@ private struct VendorIdentityHeader: View {
     let vendor: Vendor
     let coverURL: URL?
 
-    @ScaledMetric(relativeTo: .largeTitle) private var coverHeight: CGFloat = 160
+    @ScaledMetric(relativeTo: .largeTitle) private var coverHeight: CGFloat = 200
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            cover
-                .frame(height: coverHeight)
-                .frame(maxWidth: .infinity)
-                .clipShape(.rect(cornerRadius: 24))
-                .accessibilityHidden(true)
-
-            VStack(alignment: .leading, spacing: 6) {
-                Text(vendor.legalName)
-                    .font(.title2.bold())
-                ViewThatFits(in: .horizontal) {
-                    HStack(spacing: 8) { badges }
-                    VStack(alignment: .leading, spacing: 6) { badges }
-                }
-                Label("Raison sociale et type : modifiables par l'équipe LeGrenier.", systemImage: "lock.fill")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-                    .symbolRenderingMode(.hierarchical)
+        cover
+            .frame(minHeight: coverHeight)
+            .frame(maxWidth: .infinity)
+            .overlay {
+                LinearGradient(colors: [.clear, .black.opacity(0.65)], startPoint: .center, endPoint: .bottom)
+                    .accessibilityHidden(true)
             }
-            .padding(.horizontal, 4)
-        }
-        .padding(.vertical, 8)
-        .accessibilityElement(children: .combine)
+            .overlay(alignment: .bottomLeading) {
+                VStack(alignment: .leading, spacing: 8) {
+                    Text(vendor.legalName)
+                        .font(.title.bold())
+                        .fontDesign(.rounded)
+                        .foregroundStyle(.white)
+                        .shadow(color: .black.opacity(0.3), radius: 4, y: 1)
+                    ViewThatFits(in: .horizontal) {
+                        HStack(spacing: 6) { badges }
+                        VStack(alignment: .leading, spacing: 6) { badges }
+                    }
+                }
+                .padding(16)
+            }
+            .clipShape(.rect(cornerRadius: 24))
+            .padding(.vertical, 8)
+            .accessibilityElement(children: .combine)
     }
 
     @ViewBuilder
     private var badges: some View {
-        Label(vendor.kind.title, systemImage: vendor.kind.systemImage)
-            .font(.subheadline.weight(.semibold))
-            .padding(.vertical, 4)
-            .padding(.horizontal, 10)
-            .background(Color.grenier.opacity(0.12), in: .capsule)
-            .foregroundStyle(Color.grenier)
+        badge(Text(vendor.kind.title), systemImage: vendor.kind.systemImage)
         if vendor.isVerified {
-            Label("Vérifié", systemImage: "checkmark.seal.fill")
-                .font(.subheadline.weight(.semibold))
-                .foregroundStyle(Color.economie)
+            badge(Text("Vérifié"), systemImage: "checkmark.seal.fill")
         }
         if let rating = vendor.averageRating {
-            Label(rating.formatted(.number.precision(.fractionLength(1)).locale(AppLanguage.formattingLocale)) + " / 5", systemImage: "star.fill")
-                .font(.subheadline)
-                .foregroundStyle(.secondary)
-                .accessibilityLabel("Note moyenne \(rating.formatted(.number.precision(.fractionLength(1)).locale(AppLanguage.formattingLocale))) sur 5")
+            let value = rating.formatted(.number.precision(.fractionLength(1)).locale(AppLanguage.formattingLocale))
+            badge(Text(value), systemImage: "star.fill")
+                .accessibilityElement(children: .ignore)
+                .accessibilityLabel("Note moyenne \(value) sur 5")
         }
+    }
+
+    private func badge(_ text: Text, systemImage: String) -> some View {
+        HStack(spacing: 4) {
+            Image(systemName: systemImage).accessibilityHidden(true)
+            text
+        }
+            .font(.caption.weight(.semibold))
+            .foregroundStyle(.white)
+            .padding(.vertical, 5)
+            .padding(.horizontal, 10)
+            .background(.ultraThinMaterial.opacity(0.9), in: .capsule)
+            .environment(\.colorScheme, .dark)
     }
 
     @ViewBuilder
@@ -455,12 +472,13 @@ private struct VendorIdentityHeader: View {
 
     private var placeholder: some View {
         ZStack {
-            LinearGradient(colors: [Color.grenier.opacity(0.25), Color.grenier.opacity(0.08)],
+            LinearGradient(colors: [Color.grenier, Color.grenier.opacity(0.7)],
                            startPoint: .topLeading, endPoint: .bottomTrailing)
             Image(systemName: vendor.kind.systemImage)
                 .font(.largeTitle)
                 .imageScale(.large)
-                .foregroundStyle(Color.grenier)
+                .foregroundStyle(Color.onAccent.opacity(0.5))
+                .padding(.bottom, 56)
                 .symbolRenderingMode(.hierarchical)
         }
     }

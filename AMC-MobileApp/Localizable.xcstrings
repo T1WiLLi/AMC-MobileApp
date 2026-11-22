@@ -6666,6 +6666,16 @@
         }
       }
     },
+    "Aucune zone" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No areas"
+          }
+        }
+      }
+    },
     "Aucune zone : tes lots n'apparaissent nulle part." : {
       "localizations" : {
         "en" : {
@@ -11556,6 +11566,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Savings by product"
+          }
+        }
+      }
+    },
+    "Tu économiseras avec ton groupe" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "You will save with your group"
           }
         }
       }
@@ -27189,6 +27209,106 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Zoom in here"
+          }
+        }
+      }
+    },
+    "Il manque %@ pour commander" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ missing to order"
+          }
+        }
+      }
+    },
+    "plus que %@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ left"
+          }
+        }
+      }
+    },
+    "moins d'une heure" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "under an hour left"
+          }
+        }
+      }
+    },
+    "1234 rue Jarry Est" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "1234 Jarry Street East"
+          }
+        }
+      }
+    },
+    "Adresse introuvable. Vérifie le numéro et la rue." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Address not found. Check the number and street."
+          }
+        }
+      }
+    },
+    "Adresse vérifiée" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Address verified"
+          }
+        }
+      }
+    },
+    "Choisir cette adresse" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Choose this address"
+          }
+        }
+      }
+    },
+    "Numéro et rue" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Number and street"
+          }
+        }
+      }
+    },
+    "Suggestions d'adresses" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Address suggestions"
+          }
+        }
+      }
+    },
+    "Vérification de l'adresse" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Checking the address"
           }
         }
       }

@@ -73,6 +73,8 @@ final class VolunteerDeliveryViewModel {
         var instructions = ""
         var note = ""
         var reducedMobility = false
+        /// T-185 : geohash de l'adresse vérifiée par Apple ; nil : celui du ménage.
+        var addressGeohash: String?
 
         init(start: Date) { self.start = start }
     }
@@ -204,7 +206,7 @@ final class VolunteerDeliveryViewModel {
         let id = "delivery-\(UUID().uuidString.lowercased())"
         let input = VolunteerDelivery.NewRequest(
             id: id, groupId: groupId, order: option.order, share: option.share,
-            householdName: content.householdName, householdGeohash: content.householdGeohash,
+            householdName: content.householdName, householdGeohash: draft.addressGeohash ?? content.householdGeohash,
             window: .init(start: draft.start, end: draft.start.addingTimeInterval(draft.duration)),
             seniorMode: content.seniorMode, reducedMobility: draft.reducedMobility,
             address: draft.address, instructions: draft.instructions, note: draft.note

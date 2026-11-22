@@ -28,8 +28,9 @@ private struct HostSetupForm: View {
     @State private var photoItem: PhotosPickerItem?
     @State private var showsValidation = false
     @FocusState private var focusedField: Field?
+    @FocusState private var addressFocused: Bool
 
-    private enum Field { case name, address }
+    private enum Field { case name }
 
     var body: some View {
         Form {
@@ -52,11 +53,9 @@ private struct HostSetupForm: View {
                     .textContentType(.organizationName)
                     .focused($focusedField, equals: .name)
                     .submitLabel(.next)
-                    .onSubmit { focusedField = .address }
-                TextField("Adresse", text: $viewModel.address, prompt: Text("7420 rue Ogilvy, Montréal"), axis: .vertical)
-                    .textContentType(.fullStreetAddress)
-                    .focused($focusedField, equals: .address)
-                    .lineLimit(1...3)
+                    .onSubmit { addressFocused = true }
+                AddressField("Adresse", text: $viewModel.address, model: viewModel.addressCheck,
+                             prompt: "7420 rue Ogilvy, Montréal", isFocused: $addressFocused)
             } header: {
                 Label("Lieu", systemImage: "mappin.and.ellipse")
             } footer: {
@@ -118,6 +117,7 @@ private struct HostSetupForm: View {
             }
             Button {
                 focusedField = nil
+                addressFocused = false
                 guard viewModel.validationError == nil else {
                     showsValidation = true
                     return
@@ -136,7 +136,7 @@ private struct HostSetupForm: View {
             }
             .buttonStyle(.glassProminent)
             .tint(.grenier)
-            .disabled(viewModel.isSaving)
+            .disabled(viewModel.isSaving || viewModel.addressCheck.blocksSaving(viewModel.address))
             .accessibilityHint(viewModel.validationError?.message ?? "")
         }
         .padding(.horizontal, 16)

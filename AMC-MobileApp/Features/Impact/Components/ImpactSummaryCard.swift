@@ -20,8 +20,7 @@ struct ImpactSummaryCard: View {
                     .symbolRenderingMode(.hierarchical)
                     .foregroundStyle(.economie)
                     .symbolEffect(.bounce, value: snapshot.currentMonthSavedCents)
-                    .frame(width: iconSize, height: iconSize)
-                    .background(Color.economie.opacity(0.12), in: .rect(cornerRadius: 14))
+                    .grenierIconTile(Color.economie, side: iconSize, cornerRadius: 14)
                 VStack(alignment: .leading, spacing: 2) {
                     Text(greeting)
                         .font(.headline)

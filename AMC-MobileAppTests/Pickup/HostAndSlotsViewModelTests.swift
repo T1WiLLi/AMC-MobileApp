@@ -20,7 +20,7 @@ struct HostAndSlotsViewModelTests {
     @Test func newHostCreatesPoint() async throws {
         let repos = AppRepositories.fake(behavior: .instant)
         let viewModel = HostSetupViewModel(repositories: repos, userId: "user-karim-2", photoStore: StubPhotoStore(),
-                                           makeId: { "pickup-nouveau" })
+                                           addressValidator: FakeAddressValidator(), makeId: { "pickup-nouveau" })
         await viewModel.load()
         #expect(!viewModel.isEditing)
         #expect(viewModel.validationError != nil)
@@ -42,11 +42,14 @@ struct HostAndSlotsViewModelTests {
         let stored = try await repos.pickupPoints.pickupPoint(id: "pickup-nouveau")
         #expect(stored.hostUserId == "user-karim-2")
         #expect(stored.capacity == 12)
+        // T-185 : adresse vérifiée (fake), position enregistrée en geohash de 7 caractères.
+        #expect(stored.geohash?.count == 7)
     }
 
     @Test func existingHostEditsOwnPoint() async throws {
         let repos = AppRepositories.fake(behavior: .instant)
-        let viewModel = HostSetupViewModel(repositories: repos, userId: ID.amina, photoStore: StubPhotoStore())
+        let viewModel = HostSetupViewModel(repositories: repos, userId: ID.amina, photoStore: StubPhotoStore(),
+                                           addressValidator: FakeAddressValidator())
         await viewModel.load()
         #expect(viewModel.isEditing)
         #expect(viewModel.name == "Chez Amina, rue Jarry")
@@ -70,9 +73,9 @@ struct HostAndSlotsViewModelTests {
 
     @Test func offlineSaveShowsError() async {
         let repos = AppRepositories.fake(behavior: .failing(.offline))
-        let viewModel = HostSetupViewModel(repositories: repos, userId: "u")
+        let viewModel = HostSetupViewModel(repositories: repos, userId: "u", addressValidator: FakeAddressValidator())
         viewModel.name = "Chez moi"
-        viewModel.address = "1 rue"
+        viewModel.address = "8200 boul. Pie-IX"
         #expect(await viewModel.save() == nil)
         #expect(viewModel.saveError == .offline)
     }

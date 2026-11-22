@@ -240,7 +240,7 @@ private struct FamilyHomeContent: View {
                 }
             }
         case .savings:
-            SavingsCard(savedCents: content.savedCents, orderCount: content.myOrders.count)
+            SavingsCard(savedCents: content.savedCents, isLaunched: content.launchedSavedCents > 0, orderCount: content.myOrders.count)
         case .orders:
             currentOrdersSection
         case .offers:
@@ -447,13 +447,11 @@ private struct GroupBanner: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 14) {
-            HStack(alignment: .center, spacing: 12) {
-                Image(systemName: GrenierSymbol.groups)
-                    .font(.title2)
-                    .symbolRenderingMode(.hierarchical)
-                    .foregroundStyle(Color.grenier)
-                    .frame(width: min(tileSide, 80), height: min(tileSide, 80))
-                    .background(Color.grenier.opacity(0.12), in: .rect(cornerRadius: 14))
+            let headerLayout = dynamicTypeSize.isAccessibilitySize
+                ? AnyLayout(VStackLayout(alignment: .leading, spacing: 8))
+                : AnyLayout(HStackLayout(alignment: .center, spacing: 12))
+            headerLayout {
+                GrenierIconTile(systemImage: GrenierSymbol.groups, side: min(tileSide, 80), font: .title2)
                     .symbolEffect(.bounce, options: .nonRepeating, value: reduceMotion ? false : hasAppeared)
                     .accessibilityHidden(true)
                 VStack(alignment: .leading, spacing: 2) {
@@ -621,6 +619,8 @@ private struct NewOfferRow: View {
 /// Carte Economie : « 48 $ économisés » (maquette F1).
 private struct SavingsCard: View {
     let savedCents: Cents
+    /// Faux tant qu'aucune commande n'est lancée : le montant est une estimation, pas une économie réalisée.
+    let isLaunched: Bool
     let orderCount: Int
 
     @ScaledMetric(relativeTo: .title) private var iconSize: CGFloat = 56
@@ -631,7 +631,7 @@ private struct SavingsCard: View {
     var body: some View {
         HStack(spacing: 16) {
             VStack(alignment: .leading, spacing: 4) {
-                Label("Économisé avec ton groupe", systemImage: "banknote.fill")
+                Label(title, systemImage: "banknote.fill")
                     .font(.subheadline.weight(.semibold))
                     .symbolRenderingMode(.hierarchical)
                 Text(Money.formatRounded(savedCents))
@@ -649,8 +649,7 @@ private struct SavingsCard: View {
                 Image(systemName: GrenierSymbol.savings)
                     .font(.title2.bold())
                     .symbolRenderingMode(.hierarchical)
-                    .frame(width: iconSize, height: iconSize)
-                    .background(Color.onAccent.opacity(0.18), in: .circle)
+                    .grenierIconCircle(Color.onAccent, side: iconSize, opacity: 0.18)
                     .symbolEffect(.bounce, options: .nonRepeating, value: reduceMotion ? false : hasAppeared)
                     .symbolEffect(.bounce, options: .nonRepeating, value: savedCents)
                     .accessibilityHidden(true)
@@ -660,8 +659,12 @@ private struct SavingsCard: View {
         .padding(20)
         .background(Color.economie, in: .rect(cornerRadius: 24))
         .accessibilityElement(children: .ignore)
-        .accessibilityLabel("\(Money.formatRounded(savedCents)) économisés avec ton groupe, \(detail)")
+        .accessibilityLabel("\(title) : \(Money.formatRounded(savedCents)), \(detail)")
         .onAppear { hasAppeared = true }
+    }
+
+    private var title: String {
+        isLaunched ? String(localized: "Économisé avec ton groupe") : String(localized: "Tu économiseras avec ton groupe")
     }
 
     private var detail: String {

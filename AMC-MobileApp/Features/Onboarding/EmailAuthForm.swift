@@ -292,7 +292,7 @@ struct EmailAuthForm: View {
             ZStack(alignment: .leading) {
                 if text.isEmpty {
                     Text(placeholder)
-                        .foregroundStyle(Color.texteSecondaire.opacity(0.75))
+                        .foregroundStyle(Color.texteSecondaire)
                         // AX5 : « Mot de passe » passe sur autant de lignes qu'il faut au lieu d'être coupé en « Mot de… ».
                         .lineLimit(dynamicTypeSize.isAccessibilitySize ? nil : 1)
                         .fixedSize(horizontal: false, vertical: dynamicTypeSize.isAccessibilitySize)
@@ -390,7 +390,7 @@ private struct PasswordRules: View {
             ForEach(rules, id: \.label) { rule in
                 HStack(alignment: .firstTextBaseline, spacing: 8) {
                     Image(systemName: rule.isMet ? "checkmark.circle.fill" : "circle")
-                        .foregroundStyle(rule.isMet ? Color.economie : Color.texteSecondaire.opacity(0.6))
+                        .foregroundStyle(rule.isMet ? Color.economie : Color.texteSecondaire)
                         .contentTransition(.symbolEffect(.replace))
                         .symbolEffect(.bounce, options: .nonRepeating, value: reduceMotion ? false : rule.isMet)
                     Text(rule.label)
@@ -463,7 +463,7 @@ private struct PasswordResetSheet: View {
                             ZStack(alignment: .leading) {
                                 if email.isEmpty {
                                     Text("nom@exemple.ca")
-                                        .foregroundStyle(Color.texteSecondaire.opacity(0.75))
+                                        .foregroundStyle(Color.texteSecondaire)
                                         .allowsHitTesting(false)
                                         .accessibilityHidden(true)
                                 }

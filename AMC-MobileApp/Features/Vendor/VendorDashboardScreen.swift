@@ -36,7 +36,7 @@ struct VendorDashboardScreen: View {
         NavigationStack {
             ScrollView {
                 VStack(alignment: .leading, spacing: 20) {
-                    DashboardHeader(vendor: vendor, openOffers: viewModel.state.value?.offers.count)
+                    DashboardHeader(vendor: vendor)
                     stateContent
                 }
                 .padding(.horizontal, 16)
@@ -277,7 +277,6 @@ private struct DashboardEmptyState: View {
 
 private struct DashboardHeader: View {
     let vendor: Vendor?
-    let openOffers: Int?
 
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
@@ -352,9 +351,7 @@ private struct DashboardHeader: View {
     }
 
     private var subtitle: String {
-        let kind = vendor.map { VendorKindText.title(for: $0.kind) } ?? String(localized: "Vendeur")
-        guard let openOffers else { return kind }
-        return String(localized: "\(kind) · \(openOffers) \(FrenchPlural.word(openOffers, "lot ouvert", plural: "lots ouverts"))")
+        vendor.map { VendorKindText.title(for: $0.kind) } ?? String(localized: "Vendeur")
     }
 }
 
@@ -535,7 +532,6 @@ private struct StatTiles: View {
             systemImage: "dollarsign.circle.fill",
             value: Money.formatRounded(dashboard.projectedRevenueCents),
             numericValue: Double(dashboard.projectedRevenueCents),
-            caption: String(localized: "selon les parts engagées"),
             accessibilityText: String(localized: "Revenus prévus : \(Money.formatRounded(dashboard.projectedRevenueCents)), selon les parts engagées.")
         )
     }
@@ -544,9 +540,8 @@ private struct StatTiles: View {
         StatTile(
             title: String(localized: "Parts engagées"),
             systemImage: "square.stack.3d.up.fill",
-            value: "\(dashboard.totalCommittedShares)",
+            value: "\(dashboard.totalCommittedShares) / \(dashboard.totalShares)",
             numericValue: Double(dashboard.totalCommittedShares),
-            caption: String(localized: "sur \(FrenchPlural.count(dashboard.totalShares, "part"))"),
             progress: dashboard.totalShares > 0
                 ? min(Double(dashboard.totalCommittedShares) / Double(dashboard.totalShares), 1)
                 : nil,
@@ -560,7 +555,6 @@ private struct StatTiles: View {
             systemImage: "person.3.fill",
             value: "\(dashboard.committedHouseholds)",
             numericValue: Double(dashboard.committedHouseholds),
-            caption: neighborhoodsText,
             accessibilityText: String(localized: "\(dashboard.committedHouseholds) familles servies, \(neighborhoodsText).")
         )
     }
@@ -571,7 +565,7 @@ private struct StatTiles: View {
             systemImage: "shippingbox.fill",
             value: "\(dashboard.offers.count)",
             numericValue: Double(dashboard.offers.count),
-            caption: closingSoonText,
+            caption: dashboard.closingSoon.isEmpty ? nil : closingSoonText,
             accessibilityText: String(localized: "\(dashboard.offers.count) lots actifs, \(closingSoonText).")
         )
     }
@@ -596,7 +590,7 @@ private struct StatTile: View {
     let systemImage: String
     let value: String
     let numericValue: Double
-    let caption: String
+    var caption: String?
     var progress: Double?
     let accessibilityText: String
 
@@ -625,10 +619,12 @@ private struct StatTile: View {
                 ProgressView(value: progress)
                     .tint(.grenier)
             }
-            Text(caption)
-                .font(.subheadline)
-                .foregroundStyle(.texteSecondaire)
-                .monospacedDigit()
+            if let caption {
+                Text(caption)
+                    .font(.subheadline)
+                    .foregroundStyle(.texteSecondaire)
+                    .monospacedDigit()
+            }
             Spacer(minLength: 0)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
@@ -696,7 +692,7 @@ private struct HighlightBanner: View {
     private var message: AttributedString {
         var bold = AttributedString(String(localized: "Palier \(highlight.tierNumber) atteint"))
         bold.inlinePresentationIntent = .stronglyEmphasized
-        return bold + AttributedString(String(localized: " à \(highlight.groupName) : \(detail)"))
+        return bold + AttributedString(" · \(highlight.offer.title)")
     }
 
     private var plainMessage: String {
@@ -925,7 +921,7 @@ private struct VendorOfferCard: View {
     private var progressText: String {
         let households = summary.committedHouseholds
         if households == 0 { return String(localized: "Aucune famille encore · \(summary.totalShares) parts") }
-        return String(localized: "\(households) \(FrenchPlural.word(households, "famille", plural: "familles")) · \(summary.committedShares) parts sur \(summary.totalShares)")
+        return FrenchPlural.count(households, "famille")
     }
 
     /// Pire risque parmi les commandes du lot (niveau, puis parts manquantes) ; nil sans commande.
@@ -942,7 +938,10 @@ private struct VendorOfferCard: View {
         } else {
             parts.append(String(localized: "aucun palier atteint"))
         }
-        parts.append(progressText)
+        let households = summary.committedHouseholds
+        parts.append(households == 0
+            ? progressText
+            : String(localized: "\(households) \(FrenchPlural.word(households, "famille", plural: "familles")) · \(summary.committedShares) parts sur \(summary.totalShares)"))
         if let message = minimumRisk?.message { parts.append(message) }
         parts.append(String(localized: "\(Money.formatRounded(summary.projectedRevenueCents)) prévus"))
         parts.append(String(localized: "\(placeText), ferme \(VendorDeadline.weekday(summary.offer.deadline))"))

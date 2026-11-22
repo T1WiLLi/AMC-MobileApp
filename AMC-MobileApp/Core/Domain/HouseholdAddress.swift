@@ -28,6 +28,8 @@ nonisolated struct HouseholdAddress: Sendable, Hashable {
         "av": "avenue", "ave": "avenue",
         "boul": "boulevard", "bd": "boulevard", "blvd": "boulevard",
         "ch": "chemin", "rte": "route", "pl": "place", "rd": "road", "str": "street",
+        // T-185 : Apple Maps abrège les directions (« Rue Jarry E »).
+        "e": "est", "o": "ouest", "w": "ouest", "n": "nord", "s": "sud",
     ]
 
     /// Mots retirés : ils changent selon qui écrit l'adresse (« rue Jarry » ou « Jarry »).

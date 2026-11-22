@@ -71,8 +71,10 @@ struct SuspendedBasketPicker: View {
                     .foregroundStyle(.texteSecondaire)
                     .fixedSize(horizontal: false, vertical: true)
             }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .accessibilityElement(children: .combine)
+            InfoButton(topic: .suspendedBasket)
         }
-        .accessibilityElement(children: .combine)
     }
 
     private var chips: some View {

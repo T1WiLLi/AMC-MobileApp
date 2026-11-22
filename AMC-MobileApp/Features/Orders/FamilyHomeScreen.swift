@@ -27,7 +27,7 @@ struct FamilyHomeScreen: View {
                     StateView(
                         state: viewModel.state,
                         empty: .init(title: "Rien pour l'instant", systemImage: "basket",
-                                     message: "Aucune commande ni aucun lot dans ton quartier. Reviens un peu plus tard."),
+                                     message: "L'Accueil réunit les commandes de ton groupe et les lots près de chez toi. Les producteurs en ajoutent chaque semaine : actualise pour voir les nouveautés."),
                         retry: { await viewModel.load() }
                     ) { content in
                         FamilyHomeContent(
@@ -237,7 +237,8 @@ private struct FamilyHomeContent: View {
             VStack(alignment: .leading, spacing: 12) {
                 GrenierSectionHeader(
                     mine.count > 1 ? String(localized: "Tes commandes en cours") : String(localized: "Ta commande en cours"),
-                    systemImage: "cart.fill"
+                    systemImage: "cart.fill",
+                    info: .tiers
                 )
                 if mine.isEmpty {
                     NoOrderCard(hasOffersBelow: !content.newOffers.isEmpty)
@@ -270,7 +271,7 @@ private struct FamilyHomeContent: View {
         let filtered = HomeOfferFilter.filter(content.newOffers, category: category)
         let visibleCount = HomeOfferFilter.visibleCount(total: filtered.count, isExpanded: showsAllOffers)
         return VStack(alignment: .leading, spacing: 12) {
-            GrenierSectionHeader(String(localized: "Nouveaux lots près de toi"), systemImage: "sparkles")
+            GrenierSectionHeader(String(localized: "Nouveaux lots près de toi"), systemImage: "sparkles", info: .offers)
             if content.newOffers.isEmpty {
                 NoNewOfferCard()
             } else {
@@ -518,7 +519,7 @@ private struct StatChip: View {
     }
 }
 
-/// Une commande en cours : `OfferCard` + incitation au prochain palier, poussée vers la fiche du lot.
+/// Une commande en cours : `OfferCard` (qui porte déjà l'incitation au prochain palier) + ta part, poussée vers la fiche du lot.
 private struct OrderLink: View {
     let summary: OfferSummary
 
@@ -544,26 +545,10 @@ private struct OrderLink: View {
                     .symbolRenderingMode(.hierarchical)
                     .padding(.horizontal, 16)
                 }
-                if let nudge {
-                    Label(nudge, systemImage: GrenierSymbol.savings)
-                        .font(.subheadline.weight(.semibold))
-                        .foregroundStyle(Color.grenier)
-                        .symbolRenderingMode(.hierarchical)
-                        .padding(.horizontal, 16)
-                }
             }
         }
         .pressable()
         .accessibilityHint("Ouvre la fiche du lot.")
-    }
-
-    /// « Encore 2 parts pour débloquer −19 % » (les paliers comptent des parts).
-    private var nudge: String? {
-        let pricing = summary.pricing
-        guard let missing = pricing.sharesToNextTier, let percent = pricing.nextTierDiscountPercent, percent > 0 else {
-            return nil
-        }
-        return String(localized: "Encore \(missing) \(missing > 1 ? "parts" : "part") pour débloquer −\(percent) %")
     }
 }
 
@@ -573,7 +558,7 @@ private struct NewOfferRow: View {
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
 
     var body: some View {
-        let layout = dynamicTypeSize.isAccessibilitySize
+        let layout = isStacked
             ? AnyLayout(VStackLayout(alignment: .leading, spacing: 8))
             : AnyLayout(HStackLayout(alignment: .center, spacing: 12))
         layout {
@@ -591,8 +576,8 @@ private struct NewOfferRow: View {
                     .foregroundStyle(.texteSecondaire)
                     .symbolRenderingMode(.hierarchical)
             }
-            if !dynamicTypeSize.isAccessibilitySize { Spacer(minLength: 8) }
-            VStack(alignment: dynamicTypeSize.isAccessibilitySize ? .leading : .trailing, spacing: 4) {
+            if !isStacked { Spacer(minLength: 8) }
+            VStack(alignment: isStacked ? .leading : .trailing, spacing: 4) {
                 Text(Money.format(summary.pricing.currentPriceCents))
                     .priceStyle(.headline)
                     .foregroundStyle(.texte)
@@ -600,7 +585,7 @@ private struct NewOfferRow: View {
                     SavingsBadge(kind: .percent(summary.pricing.savingsPercent), compact: true)
                 }
             }
-            if !dynamicTypeSize.isAccessibilitySize {
+            if !isStacked {
                 Image(systemName: "chevron.right")
                     .font(.footnote.weight(.semibold))
                     .foregroundStyle(Color.texteSecondaire)
@@ -613,6 +598,9 @@ private struct NewOfferRow: View {
         .accessibilityElement(children: .combine)
         .accessibilityHint("Ouvre la fiche du lot.")
     }
+
+    /// Dès xxxLarge, le prix passe sous le texte : côte à côte, le nom et le vendeur se coupaient mot par mot.
+    private var isStacked: Bool { dynamicTypeSize >= .xxxLarge }
 }
 
 /// Carte Economie : « 48 $ économisés » (maquette F1).

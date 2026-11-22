@@ -20,7 +20,7 @@ struct ImpactScreen: View {
                     case .empty:
                         ImpactIllustratedEmptyView(
                             title: "Pas encore d'impact",
-                            message: "Réserve ta première part : tes économies apparaîtront ici.",
+                            message: "Cette page montre l'argent que tu économises et ce que ton groupe change dans le quartier. Réserve ta première part pour voir tes premiers chiffres.",
                             scene: .firstShare,
                             action: .browseOffers
                         )
@@ -49,6 +49,7 @@ struct ImpactScreen: View {
             .grenierBackground()
             .navigationTitle("Impact")
             .profileToolbar()
+            .infoToolbarButton(.impact)
         }
         .task(id: context.groupId) {
             guard viewModel == nil, context.hasGroup, let groupId = context.groupId else { return }

@@ -106,22 +106,34 @@ extension GrenierSymbolScene where Trigger == Bool {
 }
 
 /// Titre de section avec icône : symbole teinté hiérarchique + titre gras, trait d'en-tête pour VoiceOver.
+/// `info` ajoute un bouton « i » qui explique le concept (FB-08).
 ///
-///     GrenierSectionHeader("Nouveaux lots près de toi", systemImage: "sparkles", tint: .grenier)
+///     GrenierSectionHeader("Nouveaux lots près de toi", systemImage: "sparkles", info: .offers)
 struct GrenierSectionHeader: View {
     let title: String
     let systemImage: String
     var tint: Color = .grenier
     var font: Font = .title3.bold()
+    var info: InfoTopic?
 
-    init(_ title: String, systemImage: String, tint: Color = .grenier, font: Font = .title3.bold()) {
+    init(_ title: String, systemImage: String, tint: Color = .grenier, font: Font = .title3.bold(), info: InfoTopic? = nil) {
         self.title = title
         self.systemImage = systemImage
         self.tint = tint
         self.font = font
+        self.info = info
     }
 
     var body: some View {
+        HStack(spacing: 2) {
+            label
+            if let info {
+                InfoButton(topic: info)
+            }
+        }
+    }
+
+    private var label: some View {
         Label {
             Text(title)
                 .foregroundStyle(Color.texte)
@@ -148,7 +160,7 @@ struct GrenierSectionHeader: View {
                 tint: .solidarite,
                 satellites: [.init("person.3.fill"), .init("magnifyingglass", tint: .texteSecondaire)]
             )
-            GrenierSectionHeader("Nouveaux lots près de toi", systemImage: "sparkles")
+            GrenierSectionHeader("Nouveaux lots près de toi", systemImage: "sparkles", info: .offers)
                 .frame(maxWidth: .infinity, alignment: .leading)
         }
         .padding()

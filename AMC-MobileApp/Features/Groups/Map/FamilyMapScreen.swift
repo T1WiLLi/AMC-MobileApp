@@ -337,6 +337,7 @@ private struct FamilyMapControlBar: View {
             ScrollView(.horizontal) {
                 HStack(spacing: 8) {
                     FamilyMapRadiusPill(viewModel: viewModel, reduceMotion: reduceMotion)
+                    InfoButton(topic: .mapRadius).glassEffect(.regular.interactive(), in: .circle)
                     ForEach(FamilyMapViewModel.Kind.allCases) { kind in
                         FamilyMapKindChip(
                             kind: kind,

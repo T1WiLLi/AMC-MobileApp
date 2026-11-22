@@ -204,8 +204,11 @@ private struct GroupList: View {
                     rows(mine, tourAnchorOnFirst: true)
                 }
 
-                CreateGroupCard(hasGroup: !mine.isEmpty, action: onCreateGroup)
-                    .grenierTransition(.cardAppear)
+                // Déjà dans un groupe : pas de grande carte, « Créer un groupe » reste dans le menu + de la barre.
+                if mine.isEmpty {
+                    CreateGroupCard(action: onCreateGroup)
+                        .grenierTransition(.cardAppear)
+                }
 
                 if !others.isEmpty {
                     VStack(alignment: .leading, spacing: 12) {
@@ -337,7 +340,6 @@ private struct NoGroupYetCard: View {
 /// FB-10 : créer son propre groupe doit se trouver sans chercher. Carte visible dans la liste,
 /// en plus de l'entrée du menu + de la barre.
 private struct CreateGroupCard: View {
-    let hasGroup: Bool
     let action: () -> Void
 
     var body: some View {
@@ -351,7 +353,7 @@ private struct CreateGroupCard: View {
                     .background(Color.grenier.opacity(0.12), in: .circle)
                     .accessibilityHidden(true)
                 VStack(alignment: .leading, spacing: 2) {
-                    Text(hasGroup ? "Un autre quartier ?" : "Pas de groupe qui te convient ?")
+                    Text("Pas de groupe qui te convient ?")
                         .font(.headline)
                         .foregroundStyle(.texte)
                     Text("Crée ton groupe : ton ménage en devient le premier membre, puis invite tes voisins.")

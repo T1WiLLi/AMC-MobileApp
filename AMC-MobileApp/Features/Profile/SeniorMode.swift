@@ -10,6 +10,31 @@ enum SeniorMode {
     static let storageKey = "grenier.seniorMode"
     /// Texte très grand : jamais plus petit que AX1, jusqu'à AX5.
     static let textSizes: ClosedRange<DynamicTypeSize> = .accessibility1 ... .accessibility5
+    /// T-181 : sections de l'Accueil gardées en mode aîné, dans cet ordre : la commande, puis le groupe.
+    static let homeSections: [HomeSection] = [.orders, .group]
+    /// T-181 : hauteur minimale d'une rangée de liste (zone de toucher confortable, 44 pt minimum pour tous).
+    static let minRowHeight: CGFloat = 60
+    /// Taps depuis un écran racine pour l'activer : bouton Profil (1), puis l'interrupteur « Mode aîné » (2).
+    static let tapsToEnable = 2
+
+    /// Sections de l'Accueil à montrer : en mode aîné, seulement `homeSections` (fixes, sans masquage possible).
+    static func visibleHomeSections(_ chosen: [HomeSection], isSenior: Bool) -> [HomeSection] {
+        isSenior ? homeSections : chosen
+    }
+
+    /// Titre en langage simple d'une section de l'Accueil, ou nil pour garder le titre habituel.
+    static func plainTitle(for section: HomeSection) -> String? {
+        switch section {
+        case .orders: String(localized: "Ma commande")
+        case .group: String(localized: "Mon groupe")
+        case .savings, .offers: nil
+        }
+    }
+}
+
+extension EnvironmentValues {
+    /// T-181 : le mode aîné est actif ; les écrans s'en servent pour se simplifier.
+    @Entry var isSeniorMode: Bool = false
 }
 
 /// Texte très grand et cibles plus grandes (`controlSize(.large)`) quand le mode aîné est actif.
@@ -21,6 +46,10 @@ private struct SeniorModeModifier: ViewModifier {
             content
                 .dynamicTypeSize(SeniorMode.textSizes)
                 .controlSize(.large)
+                // T-181 : meilleur contraste (texte en gras), rangées de liste plus hautes, écrans simplifiés.
+                .environment(\.legibilityWeight, .bold)
+                .environment(\.defaultMinListRowHeight, SeniorMode.minRowHeight)
+                .environment(\.isSeniorMode, true)
         } else {
             content
         }

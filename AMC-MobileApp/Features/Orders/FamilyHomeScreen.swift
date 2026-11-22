@@ -13,6 +13,8 @@ struct FamilyHomeScreen: View {
     @State private var loadedIdentity: String?
     @AppStorage(HomeSection.storageKey) private var rawLayout = ""
     @State private var isEditingLayout = false
+    /// T-181 : en mode aîné, l'Accueil est fixe et réduit à l'essentiel (pas d'édition des sections).
+    @Environment(\.isSeniorMode) private var isSeniorMode
 
     var body: some View {
         NavigationStack {
@@ -46,7 +48,7 @@ struct FamilyHomeScreen: View {
             .profileToolbar()
             .toolbar {
                 // B-037 : sections réorganisables (ordre, masquage, Réinitialiser).
-                if viewModel?.state.value != nil {
+                if viewModel?.state.value != nil, !isSeniorMode {
                     ToolbarItem(placement: .topBarLeading) {
                         Button("Modifier l'accueil", systemImage: "square.3.layers.3d.down.right") {
                             isEditingLayout = true
@@ -154,6 +156,7 @@ private struct FamilyHomeContent: View {
 
     @AppStorage(HomeSection.storageKey) private var rawLayout = ""
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Environment(\.isSeniorMode) private var isSeniorMode
     @Environment(\.appContext) private var context
     @Environment(SessionContextStore.self) private var contextStore: SessionContextStore?
     /// Groupes du ménage : à partir de deux, l'Accueil propose de changer de groupe actif.
@@ -164,8 +167,10 @@ private struct FamilyHomeContent: View {
     @State private var showsAllOffers = false
 
     private var sections: [HomeSection] {
-        SectionLayout(raw: rawLayout, defaults: HomeSection.allCases.map(\.rawValue))
+        let chosen = SectionLayout(raw: rawLayout, defaults: HomeSection.allCases.map(\.rawValue))
             .visible.compactMap(HomeSection.init(rawValue:))
+        // T-181 : mode aîné = ma commande et mon groupe seulement.
+        return SeniorMode.visibleHomeSections(chosen, isSenior: isSeniorMode)
     }
 
     var body: some View {
@@ -236,7 +241,8 @@ private struct FamilyHomeContent: View {
         return VStack(alignment: .leading, spacing: 24) {
             VStack(alignment: .leading, spacing: 12) {
                 GrenierSectionHeader(
-                    mine.count > 1 ? String(localized: "Tes commandes en cours") : String(localized: "Ta commande en cours"),
+                    isSeniorMode ? (SeniorMode.plainTitle(for: .orders) ?? "")
+                        : mine.count > 1 ? String(localized: "Tes commandes en cours") : String(localized: "Ta commande en cours"),
                     systemImage: "cart.fill",
                     info: .tiers
                 )
@@ -250,7 +256,7 @@ private struct FamilyHomeContent: View {
                 }
             }
 
-            if !others.isEmpty {
+            if !others.isEmpty, !isSeniorMode {
                 VStack(alignment: .leading, spacing: 12) {
                     GrenierSectionHeader(String(localized: "Commandes ouvertes de \(content.group.name)"), systemImage: GrenierSymbol.groups)
                     ForEach(Array(others.enumerated()), id: \.element.id) { index, summary in

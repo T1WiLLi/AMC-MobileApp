@@ -7,6 +7,20 @@ Repères : scheme `AMC-MobileApp`, bundle ID attendu **`ca.amc2026.mobileapp`** 
 
 ---
 
+
+## 0. Pipeline automatique (recommandé)
+
+```bash
+scripts/release/build-ipa.sh --team <TEAM_ID>              # archive + export ad hoc + vérifications
+scripts/release/build-ipa.sh --team <TEAM_ID> --release    # + release GitHub vX.Y-<build> avec l'IPA et son SHA-256
+```
+
+- Méthode par défaut : `release-testing` (ad hoc, équipe payante). `--method debugging` pour une signature développement.
+- Numéro de build = nombre de commits (toujours croissant) ; version = `MARKETING_VERSION` (ou `--version`).
+- Vérifie : bundle `ca.amc2026.mobileapp`, version et build, `GoogleService-Info.plist` embarqué, signature, profil (nombre d'appareils, expiration).
+- Tout sort dans `build/release/<tag>/` (ignoré par git), journaux compris.
+- **Équipe** : il faut l'équipe Apple qui possède déjà les identifiants `ca.amc2026.mobileapp`, `ca.amc2026.mobileapp.widgets` et le groupe `group.ca.amc2026.mobileapp` (App Group du widget, #305). Avec une autre équipe, Xcode refuse : « cannot be registered to your development team because it is not available ».
+
 ## 1. Prérequis (à vérifier samedi, pas dimanche)
 
 | Quoi | Détail |

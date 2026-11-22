@@ -214,6 +214,32 @@ nonisolated final class FirestoreGroupOrderRepository: GroupOrderRepository, @un
         }
     }
 
+    /// T-181 : panier suspendu de ma part, fixé à `amountCents`. Seuls `suspendedAmountCents` et `updatedAt` changent
+    /// (firestore.rules : le ménage peut modifier ces champs d'une part tant que la commande est ouverte).
+    @discardableResult
+    func setSuspendedBasket(_ amountCents: Cents, householdId: String, groupOrderId: String) async throws -> Share {
+        let order = try await groupOrder(id: groupOrderId)
+        let shareRef = sharesRef(groupOrderId).document(householdId)
+        let current: Share
+        do {
+            let snapshot = try await shareRef.getDocument()
+            guard snapshot.exists else { throw AppError.notFound }
+            current = try Self.decodeShare(snapshot)
+        } catch let error as AppError {
+            throw error
+        } catch {
+            throw Self.appError(from: error)
+        }
+        var updated = try SolidarityLedger.settingSuspendedBasket(amountCents, on: current, in: order)
+        updated.updatedAt = now()
+        do {
+            try await shareRef.updateData(["suspendedAmountCents": amountCents, "updatedAt": Timestamp(date: now())])
+        } catch {
+            throw Self.appError(from: error)
+        }
+        return updated
+    }
+
     /// RQ-053, RQ-054 : clôture la commande après la date limite (coordonnateur du groupe ou vendeur du lot).
     /// Palier figé par `TierEngine.closed`, puis prix final, subvention et code QR de chaque part
     /// par `ShareAllocator`. Lève `.orderClosed` si elle est déjà fermée, `.invalidInput` avant la date limite.

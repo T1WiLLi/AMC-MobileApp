@@ -10,6 +10,10 @@ struct OfferCard: View {
     var committedHouseholds = 0
     /// Parts déjà réservées par ma famille : une pastille « ✓ 1 part » sur la ligne du prix (0 = pas de pastille).
     var myShareQuantity = 0
+    /// E21-4 : commande du groupe fermée : prix figé, plus d'incitation au palier suivant.
+    var isClosed = false
+    /// E21-4 : la part du ménage est payée au pot du groupe : la pastille dit « Payé ».
+    var isPaid = false
 
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
 
@@ -57,7 +61,8 @@ struct OfferCard: View {
             committedShares: committedShares,
             totalShares: offer.totalShares,
             compact: true,
-            minimumToLaunch: offer.minimumSharesToLaunch
+            minimumToLaunch: offer.minimumSharesToLaunch,
+            isClosed: isClosed
         )
     }
 
@@ -83,13 +88,15 @@ struct OfferCard: View {
         if savingsPercent > 0 { parts.append(String(localized: "\(savingsPercent) pour cent moins cher qu'en épicerie")) }
         parts.append(progressText)
         if myShareQuantity > 0 { parts.append(myShareText) }
+        if isClosed { parts.append(String(localized: "Commande fermée, prix final figé")) }
         if let nudge = progressBar.shortNudge { parts.append(Self.spokenPercent(nudge)) }
         return parts.joined(separator: ", ")
     }
 
     /// « Ta part : 2 parts », lu par VoiceOver ; la pastille n'affiche que « 2 parts ».
     var myShareText: String {
-        String(localized: "Ta part : \(FrenchPlural.count(myShareQuantity, "part"))")
+        if isPaid { return String(localized: "Ta part : \(FrenchPlural.count(myShareQuantity, "part")), payée") }
+        return String(localized: "Ta part : \(FrenchPlural.count(myShareQuantity, "part"))")
     }
 
     /// « −19 % » se lit « tiret 19 pour cent » : on écrit le mot.
@@ -100,7 +107,12 @@ struct OfferCard: View {
     /// Incitation au prochain palier, ou l'avancement du groupe quand le dernier palier est atteint.
     @ViewBuilder
     private var statusLabel: some View {
-        if let nudge = progressBar.shortNudge {
+        if isClosed {
+            Label("Commande fermée · prix final figé", systemImage: "lock.fill")
+                .font(.subheadline)
+                .foregroundStyle(.texteSecondaire)
+                .symbolRenderingMode(.hierarchical)
+        } else if let nudge = progressBar.shortNudge {
             Label(nudge, systemImage: "arrow.up.forward.circle.fill")
                 .font(.subheadline.weight(.semibold))
                 .foregroundStyle(Color.grenier)
@@ -150,10 +162,10 @@ struct OfferCard: View {
     private var shareChip: some View {
         if myShareQuantity > 0 {
             HStack(alignment: .firstTextBaseline, spacing: 3) {
-                Image(systemName: "checkmark.circle.fill")
+                Image(systemName: isPaid ? "checkmark.seal.fill" : "checkmark.circle.fill")
                     .imageScale(.small)
                     .accessibilityHidden(true)
-                Text(FrenchPlural.count(myShareQuantity, "part"))
+                Text(isPaid ? String(localized: "Payé · \(FrenchPlural.count(myShareQuantity, "part"))") : FrenchPlural.count(myShareQuantity, "part"))
                     .contentTransition(.numericText(value: Double(myShareQuantity)))
             }
             .font(.caption.bold())

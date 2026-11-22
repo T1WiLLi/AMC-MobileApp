@@ -17,6 +17,9 @@ struct TierProgressBar: View {
     /// Parts minimales pour que la commande parte (`Offer.minimumSharesToLaunch`).
     /// nil : le seuil du premier palier fait foi.
     var minimumToLaunch: Int?
+    /// E21-4 : commande fermée (ou annulée) : les parts ne bougent plus, aucune incitation à « débloquer »
+    /// ni « Meilleur prix atteint » ; l'écran dit lui-même où en est la commande.
+    var isClosed = false
 
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
@@ -63,7 +66,7 @@ struct TierProgressBar: View {
                         .symbolRenderingMode(.hierarchical)
                         .contentTransition(reduceMotion ? .opacity : .numericText())
                         .fixedSize(horizontal: false, vertical: true)
-                } else if !sorted.isEmpty {
+                } else if !sorted.isEmpty, !isClosed {
                     Label("Meilleur prix atteint", systemImage: "checkmark.seal.fill")
                         .font(.subheadline.weight(.semibold))
                         .foregroundStyle(Color.economie)
@@ -109,6 +112,7 @@ struct TierProgressBar: View {
     var shortNudge: String? { nudge(short: true) }
 
     private func nudge(short: Bool) -> String? {
+        guard !isClosed else { return nil }
         if committedShares < launchThreshold {
             return String(localized: "Encore \(count(launchThreshold - committedShares)) pour lancer la commande")
         }

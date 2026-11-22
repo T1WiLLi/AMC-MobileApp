@@ -28329,6 +28329,276 @@
           }
         }
       }
+    },
+    "Commande annulée : le minimum de parts n'a pas été atteint." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Order cancelled: the minimum number of shares wasn't reached."
+          }
+        }
+      }
+    },
+    "La commande est fermée : prix final figé, les parts ne bougent plus." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The order is closed: final price locked, shares can no longer change."
+          }
+        }
+      }
+    },
+    "Les parts sont figées au prix final. Ton groupe lancera d'autres commandes bientôt." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Shares are locked at the final price. Your group will start other orders soon."
+          }
+        }
+      }
+    },
+    "Payé au pot du groupe" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Paid into the group pot"
+          }
+        }
+      }
+    },
+    "Paiement refusé" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Payment declined"
+          }
+        }
+      }
+    },
+    "Rien n'a été débité" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nothing was charged"
+          }
+        }
+      }
+    },
+    "Voir le reçu" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "View receipt"
+          }
+        }
+      }
+    },
+    "Commande fermée, prix final figé" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Order closed, final price locked"
+          }
+        }
+      }
+    },
+    "Ta part : %@, payée" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Your share: %@, paid"
+          }
+        }
+      }
+    },
+    "Commande fermée · prix final figé" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Order closed · final price locked"
+          }
+        }
+      }
+    },
+    "Payé · %@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Paid · %@"
+          }
+        }
+      }
+    },
+    "Payé %@ · économisé %@ grâce au groupe" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Paid %1$@ · saved %2$@ thanks to the group"
+          }
+        }
+      }
+    },
+    "Payé %@ au pot du groupe" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Paid %@ into the group pot"
+          }
+        }
+      }
+    },
+    "Commande annulée · rien n'a été débité" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Order cancelled · nothing was charged"
+          }
+        }
+      }
+    },
+    "Prix final figé à la clôture pour %@, payé au pot du groupe avec %@. Rendez-vous à la cueillette avec ton code QR." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Final price locked at closing for %1$@, paid into the group pot with %2$@. See you at pickup with your QR code."
+          }
+        }
+      }
+    },
+    "Le paiement de %@ pour %@ n'est pas passé. Ta part reste réservée au prix final : la coordination du groupe te recontactera pour régler." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The %1$@ payment for %2$@ didn't go through. Your share stays reserved at the final price: the group coordinators will contact you to settle it."
+          }
+        }
+      }
+    },
+    "Le minimum de parts n'a pas été atteint. Ta carte n'a pas été débitée et ta part est libérée." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The minimum number of shares wasn't reached. Your card wasn't charged and your share is released."
+          }
+        }
+      }
+    },
+    "Total payé" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Total paid"
+          }
+        }
+      }
+    },
+    "Prix par part (palier final)" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Price per share (final tier)"
+          }
+        }
+      }
+    },
+    "Prix final" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Final price"
+          }
+        }
+      }
+    },
+    "Paiement" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Payment"
+          }
+        }
+      }
+    },
+    "Fonds de solidarité" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Solidarity fund"
+          }
+        }
+      }
+    },
+    "Panier suspendu offert" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Suspended basket given"
+          }
+        }
+      }
+    },
+    "Moyen de paiement" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Payment method"
+          }
+        }
+      }
+    },
+    "Date" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Date"
+          }
+        }
+      }
+    },
+    "Reçu" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Receipt"
+          }
+        }
+      }
+    },
+    "Partager le reçu" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Share receipt"
+          }
+        }
+      }
     }
   },
   "version" : "1.0"

@@ -175,6 +175,25 @@ final class OfferDetailViewModel {
                                   committedShares: content.committedShares) + content.mySuspendedCents
     }
 
+    /// E21-4 : part du ménage après la clôture (payée, refusée, commande annulée) ; nil tant que c'est ouvert.
+    var settlement: ShareSettlement? {
+        guard let content = state.value else { return nil }
+        return ShareSettlement.make(order: content.groupOrder, share: content.myShare,
+                                    groceryPricePerShareCents: content.product.referenceGroceryPriceCents)
+    }
+
+    /// E21-4 : reçu de la part payée (lot, quantité, prix unitaire final, subvention, don, total, commande) ;
+    /// nil si la part n'est pas payée. Le paiement de la dernière clôture faite ici ajoute sa date.
+    var receipt: Receipt? {
+        guard let content = state.value, settlement?.isPaid == true, let share = content.myShare,
+              let order = content.groupOrder else { return nil }
+        let payment = lastClosure?.payments.first { $0.householdId == share.householdId && $0.status == .succeeded }
+        return try? Receipt.make(
+            share: share, order: order, offer: content.offer, productName: content.product.name,
+            referencePricePerShareCents: content.product.referenceGroceryPriceCents, payment: payment
+        )
+    }
+
     /// La feuille de la carte s'ouvre au prochain « Réserver » : première part du ménage sur cette commande
     /// et carte pas encore enregistrée pendant cette visite.
     var needsCardRegistration: Bool {
@@ -380,8 +399,13 @@ final class OfferDetailViewModel {
         var isFirst = true
         do {
             for try await order in updates {
+                let wasOpen = state.value?.isOpen ?? false
                 apply(order, celebrate: !isFirst)
                 isFirst = false
+                // E21-4 : fermée ailleurs (autre appareil, date limite) : on relit la part (prix final, paiement).
+                if wasOpen, state.value?.groupOrder?.id == order.id, !TierEngine.isOpen(order) {
+                    await fetch()
+                }
             }
         } catch {
             // Écoute coupée : on garde les dernières données ; `isLive` repasse à false.

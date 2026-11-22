@@ -26,3 +26,20 @@ Photos sous [licence Unsplash](https://unsplash.com/license) (usage gratuit, com
 | `ImpactFilet` | Impact, anneau : mobilité | Mary Skrynnikova | https://unsplash.com/photos/zcaLASRz44k |
 
 Ajoute une ligne ici pour chaque nouvelle photo (1200 px de large max, JPEG ~70 %).
+
+## Organismes du seed (T-205)
+
+Photo de profil (`-logo.jpg`, 400 × 400) et bannière (`-banner.jpg`, 1200 × 450) de chaque organisme fictif, dans `scripts/seed/media/organizations/`. `seed:org` les écrit dans `organizations/{id}/media/{logo|banner}`. Licence Unsplash.
+
+| Fichier | Organisme | Photographe | Source |
+|---|---|---|---|
+| `banque-alimentaire-cdn-logo.jpg` | Banque alimentaire de Côte-des-Neiges | Joel Muniz | https://unsplash.com/photos/3k3l2brxmwQ |
+| `banque-alimentaire-cdn-banner.jpg` | Banque alimentaire de Côte-des-Neiges | Joel Muniz | https://unsplash.com/photos/A4Ax1ApccfA |
+| `epicerie-la-marmite-logo.jpg` | Épicerie solidaire La Marmite (Hochelaga) | Aaron Doucett | https://unsplash.com/photos/HkbeLxOJlqk |
+| `epicerie-la-marmite-banner.jpg` | Épicerie solidaire La Marmite (Hochelaga) | Aaron Doucett | https://unsplash.com/photos/liOAS02GnfY |
+| `centre-les-pommiers-logo.jpg` | Centre communautaire Les Pommiers (Saint-Michel) | Ismael Paramo | https://unsplash.com/photos/Cns0h4ypRyA |
+| `centre-les-pommiers-banner.jpg` | Centre communautaire Les Pommiers (Saint-Michel) | Nico Smit | https://unsplash.com/photos/NFoerQuvzrs |
+| `fondation-rives-verdun-logo.jpg` | Fondation Rives de Verdun | Elaine Casap | https://unsplash.com/photos/qgHGDbbSNm8 |
+| `fondation-rives-verdun-banner.jpg` | Fondation Rives de Verdun | Megan Thomas | https://unsplash.com/photos/xMh_ww8HN_Q |
+| `panier-de-villeray-logo.jpg` | Épicerie Le Panier de Villeray | Melissa Askew | https://unsplash.com/photos/7YVJFSxTF0A |
+| `panier-de-villeray-banner.jpg` | Épicerie Le Panier de Villeray | Jakub Kapusnak | https://unsplash.com/photos/vnNFWKY7Tj4 |

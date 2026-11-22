@@ -81,8 +81,9 @@ final class PickupViewModel {
     ) async throws -> Content? {
         // Noms des membres (« Récupéré par Amina ») : un détail, jamais bloquant.
         let household = try? await repositories.users.household(id: householdId)
-        let orders = try await repositories.groupOrders.groupOrders(ofGroup: groupId)
-            .filter { $0.status != .cancelled && $0.status != .delivered }
+        // Toutes les parts du ménage, dans tous ses groupes : une part réservée dans un autre groupe que le groupe
+        // actif apparaît aussi. Le groupe actif d'abord (son point de cueillette passe en premier).
+        let orders = try await activeOrders(householdId: householdId, activeGroupId: groupId, repositories: repositories)
         var items: [Item] = []
         var qrCodes: [String] = []
         var pickupPointId: String?
@@ -124,6 +125,24 @@ final class PickupViewModel {
                 ?? "grenier://cueillette/\(groupId)/\(householdId)",
             orderCode: code
         )
+    }
+
+    /// Commandes non annulées ni livrées des groupes du ménage, celles du groupe actif d'abord.
+    /// La liste des groupes est un détail : si elle échoue, on garde au moins le groupe actif.
+    nonisolated static func activeOrders(
+        householdId: String, activeGroupId: String, repositories: AppRepositories
+    ) async throws -> [GroupOrder] {
+        let memberGroupIds = (try? await repositories.groups.groups(ofHousehold: householdId).map(\.id)) ?? []
+        let groupIds = [activeGroupId] + memberGroupIds.filter { $0 != activeGroupId }
+        var orders: [GroupOrder] = []
+        var seen = Set<String>()
+        for groupId in groupIds {
+            for order in try await repositories.groupOrders.groupOrders(ofGroup: groupId)
+            where order.status != .cancelled && order.status != .delivered && seen.insert(order.id).inserted {
+                orders.append(order)
+            }
+        }
+        return orders
     }
 
     /// Code stable « GRN-1234 » dérivé des ids (pas `hashValue`, qui change à chaque lancement).

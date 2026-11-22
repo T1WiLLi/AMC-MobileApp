@@ -19,6 +19,10 @@ final class PickupViewModel {
         var isPickedUp: Bool
         /// T-159 : prénom du membre du ménage qui a récupéré la part (« Récupéré par Amina »).
         var pickedUpByName: String? = nil
+        /// T-173 : qui, dans le ménage, s'est engagé à récupérer cette part.
+        var claim: PickupClaim.State = .open
+        /// T-173 : prénom du membre engagé (« Amina »), nil s'il est inconnu ou si c'est la personne connectée.
+        var claimerName: String? = nil
 
         var id: String { groupOrderId }
     }
@@ -35,6 +39,8 @@ final class PickupViewModel {
         var qrPayload: String
         /// Code lisible de la commande (« GRN-4821 »).
         var orderCode: String
+        /// T-173 : le ménage compte plusieurs comptes : on montre qui s'occupe de la cueillette.
+        var isSharedHousehold: Bool = false
 
         var totalCents: Cents { items.reduce(0) { $0 + $1.totalCents } }
 
@@ -46,6 +52,10 @@ final class PickupViewModel {
 
     /// `.empty` quand le ménage n'a aucune part à récupérer.
     private(set) var state: LoadState<Content> = .idle
+    /// T-173 : commande dont l'engagement est en cours d'écriture (bouton désactivé).
+    private(set) var claimingOrderId: String?
+    /// T-173 : retour du dernier « Je m'en occupe » perdu ou échoué (« Ta famille récupère déjà… »).
+    private(set) var claimMessage: String?
 
     private let repositories: AppRepositories
     private let householdId: String
@@ -76,6 +86,57 @@ final class PickupViewModel {
         }
     }
 
+    // MARK: - T-173 : un seul membre récupère la part
+
+    /// « Je m'en occupe » : le premier membre l'emporte. Perdu : message « Ta famille récupère déjà… » et liste relue.
+    func claim(_ item: Item) async {
+        guard claimingOrderId == nil, !userId.isEmpty else { return }
+        claimingOrderId = item.groupOrderId
+        claimMessage = nil
+        defer { claimingOrderId = nil }
+        do {
+            let outcome = try await repositories.groupOrders.claimPickup(
+                householdId: householdId, groupOrderId: item.groupOrderId, userId: userId, at: .now
+            )
+            switch outcome {
+            case .claimed(let share):
+                update(item.groupOrderId) { $0.claim = PickupClaim.state(of: share, for: self.userId); $0.claimerName = nil }
+            case .takenBy(let other):
+                let household = try? await repositories.users.household(id: householdId)
+                let name = HouseholdMembership.firstName(of: other, in: household)
+                claimMessage = PickupClaim.takenMessage(claimerName: name)
+                update(item.groupOrderId) { $0.claim = .takenBy(other); $0.claimerName = name }
+            case .alreadyPickedUp:
+                await load()
+            }
+        } catch {
+            claimMessage = AppError(error).message
+        }
+    }
+
+    /// « Je ne peux plus » : la part redevient libre pour les autres membres.
+    func release(_ item: Item) async {
+        guard claimingOrderId == nil, !userId.isEmpty else { return }
+        claimingOrderId = item.groupOrderId
+        claimMessage = nil
+        defer { claimingOrderId = nil }
+        do {
+            try await repositories.groupOrders.releasePickup(householdId: householdId, groupOrderId: item.groupOrderId,
+                                                             userId: userId)
+            update(item.groupOrderId) { $0.claim = .open; $0.claimerName = nil }
+        } catch {
+            claimMessage = AppError(error).message
+            await load()
+        }
+    }
+
+    private func update(_ groupOrderId: String, _ change: (inout Item) -> Void) {
+        guard case .loaded(var content) = state,
+              let index = content.items.firstIndex(where: { $0.groupOrderId == groupOrderId }) else { return }
+        change(&content.items[index])
+        state = .loaded(content)
+    }
+
     nonisolated private static func content(
         householdId: String, groupId: String, userId: String, repositories: AppRepositories
     ) async throws -> Content? {
@@ -95,9 +156,13 @@ final class PickupViewModel {
             let product = try await repositories.vendors.product(id: offer.productId)
             let price = share.finalUnitPriceCents
                 ?? OfferPricing(offer: offer, product: product, committedShares: order.committedShares).currentPriceCents
+            let claim = PickupClaim.state(of: share, for: userId)
+            var claimerName: String?
+            if case .takenBy(let other) = claim { claimerName = HouseholdMembership.firstName(of: other, in: household) }
             items.append(Item(groupOrderId: order.id, product: product, offer: offer, quantity: share.quantity,
                               totalCents: price * share.quantity, isPickedUp: share.isPickedUp,
-                              pickedUpByName: share.pickedUpBy.flatMap { HouseholdMembership.firstName(of: $0, in: household) }))
+                              pickedUpByName: share.pickedUpBy.flatMap { HouseholdMembership.firstName(of: $0, in: household) },
+                              claim: claim, claimerName: claimerName))
             if let code = share.qrCode { qrCodes.append(code) }
             pickupPointId = pickupPointId ?? order.pickupPointId
             slots += order.pickupSlots
@@ -123,7 +188,8 @@ final class PickupViewModel {
             // Le QR est celui de la part du ménage (le même pour tous ses membres), suivi du membre qui le montre.
             qrPayload: qrCodes.first.map { PickupDesk.memberCode($0, memberId: userId) }
                 ?? "grenier://cueillette/\(groupId)/\(householdId)",
-            orderCode: code
+            orderCode: code,
+            isSharedHousehold: (household?.userIds.count ?? 1) > 1 && !userId.isEmpty
         )
     }
 

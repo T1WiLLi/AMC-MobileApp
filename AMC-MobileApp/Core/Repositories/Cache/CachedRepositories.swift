@@ -72,6 +72,21 @@ nonisolated struct CachedGroupOrderRepository: GroupOrderRepository {
         return result
     }
 
+    @discardableResult
+    func claimPickup(householdId: String, groupOrderId: String, userId: String, at date: Date) async throws -> PickupClaim.Outcome {
+        // Gagné ou perdu, la part a pu changer (un autre membre est passé avant) : on la relit.
+        let outcome = try await base.claimPickup(householdId: householdId, groupOrderId: groupOrderId, userId: userId, at: date)
+        await cache.invalidate(.shares(ofGroupOrder: groupOrderId))
+        return outcome
+    }
+
+    @discardableResult
+    func releasePickup(householdId: String, groupOrderId: String, userId: String) async throws -> Share {
+        let share = try await base.releasePickup(householdId: householdId, groupOrderId: groupOrderId, userId: userId)
+        await cache.invalidate(.shares(ofGroupOrder: groupOrderId))
+        return share
+    }
+
     func observeGroupOrder(id: String) async -> AsyncThrowingStream<GroupOrder, any Error> {
         let cache = cache
         return relayingSnapshots(
@@ -184,6 +199,16 @@ nonisolated struct CachedGroupRepository: GroupRepository {
             default: false
             }
         }
+    }
+
+    /// T-173 : chaque changement des groupes du ménage (un autre membre a rejoint ou quitté) fait relire la liste.
+    func observeGroupIds(ofHousehold householdId: String) async -> AsyncThrowingStream<[String], any Error> {
+        let cache = cache
+        return relayingSnapshots(
+            of: await base.observeGroupIds(ofHousehold: householdId),
+            apply: { _ in await cache.invalidate(.groupsOfHousehold(householdId)) },
+            onFailure: { await cache.invalidate(.groupsOfHousehold(householdId)) }
+        )
     }
 
     func observeGroup(id: String) async -> AsyncThrowingStream<NeighborhoodGroup, any Error> {

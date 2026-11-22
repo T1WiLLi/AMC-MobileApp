@@ -46,6 +46,10 @@ nonisolated struct Share: Identifiable, Codable, Sendable, Hashable {
     var pickedUpBy: String? = nil
     /// T-159 : moment de la remise.
     var pickedUpAt: Date? = nil
+    /// T-173 : membre du ménage (uid) qui s'est engagé à récupérer la part ; un seul à la fois (`PickupClaim`).
+    var pickupClaimedBy: String? = nil
+    /// T-173 : moment de cet engagement.
+    var pickupClaimedAt: Date? = nil
 
     var id: String { householdId }
 

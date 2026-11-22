@@ -379,6 +379,93 @@ describe('cueillette unique par ménage (T-159)', () => {
   })
 })
 
+describe('un seul membre récupère la cueillette (T-173)', () => {
+  const karim = () => env.authenticatedContext('karim').firestore()
+  const nadia = () => env.authenticatedContext('nadia').firestore()
+  const sharePath = 'groupOrders/order-claim/shares/household-voisins'
+  const claim = (by: string) => ({ pickupClaimedBy: by, pickupClaimedAt: Timestamp.now() })
+  const release = () => ({ pickupClaimedBy: null, pickupClaimedAt: null })
+
+  beforeEach(async () => {
+    await env.withSecurityRulesDisabled(async (c) => {
+      const db = c.firestore()
+      await setDoc(doc(db, 'users/karim'), { ...aminaUser, id: 'karim', displayName: 'Karim', householdId: 'household-voisins' })
+      await setDoc(doc(db, 'users/nadia'), { ...aminaUser, id: 'nadia', displayName: 'Nadia', householdId: 'household-voisins' })
+      await setDoc(doc(db, 'households/household-voisins'), { id: 'household-voisins', name: 'Voisins', size: 3, geohash: '', userIds: ['karim', 'nadia'], ownerId: 'karim' })
+      await setDoc(doc(db, 'groups/group-parc-extension/members/household-voisins'), { householdId: 'household-voisins', joinedAt: Timestamp.now() })
+      await setDoc(doc(db, 'groupOrders/order-claim'), { id: 'order-claim', groupId: 'group-parc-extension', offerId: 'offer-carottes', status: 'closed', committedShares: 2, committedHouseholds: 1, pickupPointId: 'pickup-1', pickupSlots: [] })
+      await setDoc(doc(db, sharePath), { ...share, householdId: 'household-voisins', qrCode: 'GRENIER:order-claim:household-voisins:0a1b2c3d' })
+    })
+  })
+
+  test('un membre du ménage s’engage à récupérer la part', async () => {
+    await assertSucceeds(updateDoc(doc(nadia(), sharePath), claim('nadia')))
+  })
+  test('le deuxième membre ne remplace pas l’engagement du premier', async () => {
+    await updateDoc(doc(nadia(), sharePath), claim('nadia'))
+    await assertFails(updateDoc(doc(karim(), sharePath), claim('karim')))
+    await assertFails(updateDoc(doc(karim(), sharePath), release()))
+  })
+  test('le membre engagé se retire, puis un autre peut s’engager', async () => {
+    await updateDoc(doc(nadia(), sharePath), claim('nadia'))
+    await assertSucceeds(updateDoc(doc(nadia(), sharePath), release()))
+    await assertSucceeds(updateDoc(doc(karim(), sharePath), claim('karim')))
+  })
+  test('on ne s’engage qu’en son propre nom', async () => {
+    await assertFails(updateDoc(doc(karim(), sharePath), claim('nadia')))
+  })
+  test('un compte hors du ménage ne s’engage pas, même en se déclarant du ménage', async () => {
+    await env.withSecurityRulesDisabled(async (c) => {
+      await setDoc(doc(c.firestore(), 'users/intrus'), { ...aminaUser, id: 'intrus', householdId: 'household-voisins' })
+    })
+    await assertFails(updateDoc(doc(intruder(), sharePath), claim('intrus')))
+  })
+  test('rien d’autre ne bouge avec l’engagement', async () => {
+    await assertFails(updateDoc(doc(nadia(), sharePath), { ...claim('nadia'), quantity: 9 }))
+    await assertFails(updateDoc(doc(nadia(), sharePath), { ...claim('nadia'), isPickedUp: true }))
+  })
+  test('plus d’engagement une fois la part récupérée ou la commande annulée', async () => {
+    await env.withSecurityRulesDisabled(async (c) => {
+      await updateDoc(doc(c.firestore(), sharePath), { isPickedUp: true })
+    })
+    await assertFails(updateDoc(doc(nadia(), sharePath), claim('nadia')))
+    await env.withSecurityRulesDisabled(async (c) => {
+      await updateDoc(doc(c.firestore(), sharePath), { isPickedUp: false })
+      await updateDoc(doc(c.firestore(), 'groupOrders/order-claim'), { status: 'cancelled' })
+    })
+    await assertFails(updateDoc(doc(nadia(), sharePath), claim('nadia')))
+  })
+  test('l’engagement ne gêne pas la remise par l’hôte', async () => {
+    await updateDoc(doc(nadia(), sharePath), claim('nadia'))
+    await assertSucceeds(updateDoc(doc(amina(), sharePath),
+      { isPickedUp: true, pickedUpBy: 'nadia', pickedUpAt: Timestamp.now(), updatedAt: Timestamp.now() }))
+  })
+})
+
+describe('ménage partagé en temps réel (T-173)', () => {
+  const karim = () => env.authenticatedContext('karim').firestore()
+  beforeEach(async () => {
+    await env.withSecurityRulesDisabled(async (c) => {
+      const db = c.firestore()
+      await setDoc(doc(db, 'users/karim'), { ...aminaUser, id: 'karim', displayName: 'Karim', householdId: 'household-karim' })
+      await setDoc(doc(db, 'households/household-karim'), { id: 'household-karim', name: 'Karim', size: 1, geohash: '', userIds: ['karim'], ownerId: 'karim' })
+      await setDoc(doc(db, 'households/household-amina'), { id: 'household-amina', name: 'Famille Benali', size: 5, geohash: 'f25du', userIds: ['amina'], ownerId: 'amina' })
+      await setDoc(doc(db, 'households/household-amina/joinRequests/karim'),
+        { householdId: 'household-amina', userId: 'karim', displayName: 'Karim', createdAt: Timestamp.now(), status: 'pending' })
+    })
+  })
+
+  test('le propriétaire écoute les demandes en attente de son ménage', async () => {
+    await assertSucceeds(getDocs(query(collection(amina(), 'households/household-amina/joinRequests'), where('status', '==', 'pending'))))
+  })
+  test('un autre compte n’écoute pas les demandes du ménage', async () => {
+    await assertFails(getDocs(query(collection(intruder(), 'households/household-amina/joinRequests'), where('status', '==', 'pending'))))
+  })
+  test('un membre écoute les adhésions de groupe de son ménage', async () => {
+    await assertSucceeds(getDocs(query(collectionGroup(amina(), 'members'), where('householdId', '==', 'household-amina'))))
+  })
+})
+
 describe('groups/members', () => {
   const groupPath = 'groups/group-parc-extension'
   const memberPath = `${groupPath}/members/household-amina`

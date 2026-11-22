@@ -41,7 +41,10 @@ struct AMCMobileApp: App {
             repositories: demo.context.repositories,
             store: lastKnownState,
             // Ménage de la session résolue ; nil tant que personne n'est connecté (aucun id de démo).
-            householdId: { sessionContext.householdId }
+            householdId: { sessionContext.householdId },
+            // T-173 : le propriétaire du ménage apprend qu'un compte veut le rejoindre.
+            userId: { sessionContext.context.isResolved ? sessionContext.context.userId : nil },
+            joinNotifier: HouseholdJoinNotifier()
         )
         backgroundRefresh.register()
         backgroundRefresh.schedule()

@@ -96,6 +96,28 @@ nonisolated final class FirestoreUserRepository: UserRepository, @unchecked Send
             .sorted { $0.createdAt < $1.createdAt }
     }
 
+    /// T-173 : la même requête que `joinRequests(ofHousehold:byUserId:)`, écoutée (propriétaire seulement).
+    func observeJoinRequests(ofHousehold householdId: String, byUserId userId: String) async
+        -> AsyncThrowingStream<[HouseholdJoinRequest], any Error> {
+        let (stream, continuation) = AsyncThrowingStream<[HouseholdJoinRequest], any Error>.makeStream()
+        let registration = db.collection(FirestoreCollection.joinRequests(ofHousehold: householdId))
+            .whereField("status", isEqualTo: HouseholdJoinRequest.Status.pending.rawValue)
+            .addSnapshotListener { snapshot, error in
+                if let error {
+                    continuation.finish(throwing: FirestoreGroupOrderRepository.appError(from: error))
+                    return
+                }
+                // Une demande illisible (ancienne forme) est ignorée plutôt que de couper l'écoute.
+                let requests = (snapshot?.documents ?? []).compactMap {
+                    try? FirestoreDocument.decode(HouseholdJoinRequest.self, $0, idKey: "userId")
+                }
+                continuation.yield(requests.sorted { $0.createdAt < $1.createdAt })
+            }
+        let box = JoinRequestListenerBox(registration: registration)
+        continuation.onTermination = { _ in box.registration.remove() }
+        return stream
+    }
+
     func deleteJoinRequest(householdId: String, userId: String) async throws {
         do {
             try await joinRequestRef(householdId: householdId, userId: userId).delete()
@@ -141,6 +163,11 @@ nonisolated final class FirestoreUserRepository: UserRepository, @unchecked Send
 }
 
 /// Lecture, écriture et décodage communs aux dépôts Firestore de B-017 et B-018.
+/// Listener Firestore à retirer quand le flux se termine (T-173).
+private nonisolated struct JoinRequestListenerBox: @unchecked Sendable {
+    let registration: any ListenerRegistration
+}
+
 nonisolated enum FirestoreDocument {
     /// Lit un document ; `.notFound` s'il n'existe pas. L'id du document fait foi.
     static func fetch<T: Decodable>(_ type: T.Type, _ ref: DocumentReference, idKey: String) async throws -> T {

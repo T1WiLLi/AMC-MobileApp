@@ -106,6 +106,24 @@ nonisolated final class FirestoreGroupRepository: GroupRepository, @unchecked Se
         return stream
     }
 
+    /// T-173 : même requête que `groups(ofHousehold:)`, écoutée. N'émet que les ids (pas de lecture des groupes).
+    func observeGroupIds(ofHousehold householdId: String) async -> AsyncThrowingStream<[String], any Error> {
+        let (stream, continuation) = AsyncThrowingStream<[String], any Error>.makeStream()
+        let registration = db.collectionGroup("members")
+            .whereField("householdId", isEqualTo: householdId)
+            .addSnapshotListener { snapshot, error in
+                if let error {
+                    continuation.finish(throwing: FirestoreGroupOrderRepository.appError(from: error))
+                    return
+                }
+                let ids = Set(snapshot?.documents.compactMap { $0.reference.parent.parent?.documentID } ?? [])
+                continuation.yield(ids.sorted())
+            }
+        let box = GroupListenerBox(registration: registration)
+        continuation.onTermination = { _ in box.registration.remove() }
+        return stream
+    }
+
     // MARK: - Écritures
 
     /// Ajoute le ménage au groupe et incrémente `householdCount` ; sans effet s'il en fait déjà partie.

@@ -945,7 +945,8 @@ service cloud.firestore {
       // Champs : householdId (string, = id du doc), quantity (int 1..totalShares),
       //   finalPriceCents (int, optionnel, figé à la clôture), isPaid (bool),
       //   suspendedAmountCents (int 0..20 000, SolidarityLedger.maxSuspendedAmountCents),
-      //   subsidyCents (int ≥ 0), qrCode (string, optionnel), isPickedUp (bool), updatedAt (timestamp, optionnel).
+      //   subsidyCents (int ≥ 0), qrCode (string, optionnel), isPickedUp (bool), updatedAt (timestamp, optionnel),
+      //   pickupClaimedBy / pickupClaimedAt (T-173 : membre qui s'engage à récupérer la part, optionnels).
       // Lisible par les membres du groupe (la transaction relit toutes les parts) et le vendeur du lot.
       // Un ménage n'écrit que SA part, avant la date limite, commande ouverte, et en mettant à jour
       // la commande dans la même transaction. Prix, subvention et QR : seulement à la clôture, et vérifiés.
@@ -954,7 +955,8 @@ service cloud.firestore {
       function isValidShare(data, householdId) {
         return data.keys().hasOnly(['householdId', 'quantity', 'finalPriceCents', 'isPaid',
                                     'suspendedAmountCents', 'subsidyCents', 'qrCode', 'isPickedUp', 'updatedAt',
-                                    'pickupSlotStart', 'pickedUpBy', 'pickedUpAt'])
+                                    'pickupSlotStart', 'pickedUpBy', 'pickedUpAt',
+                                    'pickupClaimedBy', 'pickupClaimedAt'])
           && data.keys().hasAll(['householdId', 'quantity', 'isPaid', 'suspendedAmountCents',
                                  'subsidyCents', 'isPickedUp'])
           && data.householdId == householdId
@@ -1006,6 +1008,28 @@ service cloud.firestore {
               || (after.pickedUpBy is string
                   && after.pickedUpBy in get(/databases/$(database)/documents/households/$(householdId)).data.userIds))
           && (isPickupHost(order) || isGroupCoordinator(order.groupId));
+      }
+
+      // T-173 : un seul membre du ménage récupère la part. Un membre (uid dans userIds du ménage, et c'est son
+      // ménage) s'engage quand personne ne l'a fait (premier arrivé, l'app écrit en transaction), ou retire SON
+      // engagement ; jamais celui d'un autre, jamais après la remise. Rien d'autre ne bouge dans la part.
+      function isPickupClaim(householdId) {
+        let before = resource.data;
+        let after = request.resource.data;
+        return isAuthenticated()
+          // myHouseholdId() vérifie déjà que l'uid figure dans households/{id}.userIds.
+          && householdId == myHouseholdId()
+          && orderDoc().status in ['open', 'reached', 'closed', 'delivered']
+          && before.isPickedUp == false
+          && after.diff(before).affectedKeys().hasOnly(['pickupClaimedBy', 'pickupClaimedAt'])
+          && (
+            (before.get('pickupClaimedBy', null) == null
+              && after.get('pickupClaimedBy', null) == request.auth.uid
+              && after.get('pickupClaimedAt', null) is timestamp)
+            || (before.get('pickupClaimedBy', null) == request.auth.uid
+              && after.get('pickupClaimedBy', null) == null
+              && after.get('pickupClaimedAt', null) == null)
+          );
       }
 
       function orderDoc() {
@@ -1073,6 +1097,7 @@ service cloud.firestore {
         // un par un. Les règles ont un budget de 1000 expressions pour TOUTE la transaction de clôture :
         // revalider chaque part en entier le dépassait vers 20 ménages (test « grosse commande »).
         allow update: if isPickupConfirmation(householdId)
+          || isPickupClaim(householdId)
           || (orderAfter().status == 'closed'
             && isOpenStatus(orderDoc().status)
             && request.resource.data.diff(resource.data).affectedKeys()

@@ -421,6 +421,44 @@ nonisolated final class FirestoreGroupOrderRepository: GroupOrderRepository, @un
         }
     }
 
+    // MARK: - T-173 : un seul membre du ménage récupère la part
+
+    @discardableResult
+    func claimPickup(householdId: String, groupOrderId: String, userId: String, at date: Date) async throws -> PickupClaim.Outcome {
+        let shareRef = sharesRef(groupOrderId).document(householdId)
+        // Transaction : deux membres qui touchent « Je m'en occupe » en même temps, un seul l'emporte.
+        return try await runTransaction { transaction in
+            let snapshot = try transaction.getDocument(shareRef)
+            guard snapshot.exists else { throw AppError.notFound }
+            let share = try Self.decodeShare(snapshot)
+            let outcome = PickupClaim.claim(share, by: userId, at: date)
+            if case .claimed(let claimed) = outcome, share.pickupClaimedBy != userId {
+                transaction.updateData([
+                    "pickupClaimedBy": userId,
+                    "pickupClaimedAt": Timestamp(date: claimed.pickupClaimedAt ?? date),
+                ], forDocument: shareRef)
+            }
+            return outcome
+        }
+    }
+
+    @discardableResult
+    func releasePickup(householdId: String, groupOrderId: String, userId: String) async throws -> Share {
+        let shareRef = sharesRef(groupOrderId).document(householdId)
+        return try await runTransaction { transaction in
+            let snapshot = try transaction.getDocument(shareRef)
+            guard snapshot.exists else { throw AppError.notFound }
+            guard let released = PickupClaim.releasing(try Self.decodeShare(snapshot), by: userId) else {
+                throw AppError.permissionDenied
+            }
+            transaction.updateData([
+                "pickupClaimedBy": FieldValue.delete(),
+                "pickupClaimedAt": FieldValue.delete(),
+            ], forDocument: shareRef)
+            return released
+        }
+    }
+
     // MARK: - Requêtes et décodage
 
     private func query(_ query: Query) async throws -> [GroupOrder] {

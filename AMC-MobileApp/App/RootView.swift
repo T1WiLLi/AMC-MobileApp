@@ -12,11 +12,15 @@ struct RootView: View {
     @State private var portalSwitch = PortalSwitchCoordinator()
     /// T-159 : l'app est passée en arrière-plan ; le contexte sera relu au retour.
     @State private var wasInBackground = false
+    /// T-173 : notification locale « X veut rejoindre ton ménage » (propriétaire), app ouverte.
+    @State private var joinNotifier = HouseholdJoinNotifier()
     /// Contexte de la session (T-127) : un portail ne s'ouvre que si le compte a ce qu'il lui faut.
     @Environment(\.appContext) private var context
     @Environment(SessionContextStore.self) private var contextStore: SessionContextStore?
 
     private var isOffline: Bool { network?.isOnline == false }
+    /// Compte et ménage suivis en temps réel : un changement relance l'écoute.
+    private var liveSyncKey: String { "\(context.isResolved)|\(context.userId)|\(context.householdId)" }
 
     var body: some View {
         Group {
@@ -94,6 +98,15 @@ struct RootView: View {
                 wasInBackground = false
                 Task { await contextStore?.reload() }
             }
+        }
+        // T-173 : ménage partagé en temps réel. Un autre membre rejoint ou quitte un groupe : le contexte est relu ;
+        // une nouvelle demande d'adhésion : le propriétaire reçoit une notification locale.
+        .task(id: liveSyncKey) {
+            guard context.isResolved, context.hasHousehold else { return }
+            await HouseholdLiveSync.run(
+                repositories: context.repositories, householdId: context.householdId, userId: context.userId,
+                notifier: joinNotifier, onGroupsChanged: { await contextStore?.reload() }
+            )
         }
         .onChange(of: isOffline) { _, offline in
             AccessibilityNotification.Announcement(offline ? String(localized: "Hors ligne") : String(localized: "De retour en ligne")).post()

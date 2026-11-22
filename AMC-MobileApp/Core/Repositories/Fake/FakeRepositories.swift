@@ -556,6 +556,31 @@ actor FakeGroupOrderRepository: GroupOrderRepository {
         return share
     }
 
+    @discardableResult
+    func claimPickup(householdId: String, groupOrderId: String, userId: String, at date: Date) async throws -> PickupClaim.Outcome {
+        try await behavior.simulate()
+        guard groupOrders[groupOrderId] != nil else { throw AppError.notFound }
+        var orderShares = shares[groupOrderId, default: []]
+        guard let index = orderShares.firstIndex(where: { $0.householdId == householdId }) else { throw AppError.notFound }
+        let outcome = PickupClaim.claim(orderShares[index], by: userId, at: date)
+        if case .claimed(let share) = outcome {
+            orderShares[index] = share
+            shares[groupOrderId] = orderShares
+        }
+        return outcome
+    }
+
+    @discardableResult
+    func releasePickup(householdId: String, groupOrderId: String, userId: String) async throws -> Share {
+        try await behavior.simulate()
+        var orderShares = shares[groupOrderId, default: []]
+        guard let index = orderShares.firstIndex(where: { $0.householdId == householdId }) else { throw AppError.notFound }
+        guard let share = PickupClaim.releasing(orderShares[index], by: userId) else { throw AppError.permissionDenied }
+        orderShares[index] = share
+        shares[groupOrderId] = orderShares
+        return share
+    }
+
     func confirmPickup(code: String, groupOrderId: String, at date: Date) async throws -> PickupDesk.ScanResult {
         try await behavior.simulate()
         guard let order = groupOrders[groupOrderId] else { throw AppError.notFound }

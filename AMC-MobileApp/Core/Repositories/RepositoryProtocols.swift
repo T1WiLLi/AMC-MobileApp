@@ -32,6 +32,10 @@ nonisolated protocol UserRepository: Sendable {
     func acceptJoinRequest(householdId: String, userId: String, byUserId ownerId: String) async throws -> Household
     /// Retire `userId` du ménage : le propriétaire retire un membre, ou un membre se retire lui-même.
     func removeMember(_ userId: String, fromHousehold householdId: String, byUserId callerId: String) async throws -> Household
+    /// T-173 : demandes en attente du ménage en temps réel (propriétaire seulement) : l'état courant, puis chaque
+    /// changement. Sert à la pastille et à la notification locale « X veut rejoindre ton ménage ».
+    func observeJoinRequests(ofHousehold householdId: String, byUserId userId: String) async
+        -> AsyncThrowingStream<[HouseholdJoinRequest], any Error>
 }
 
 /// Doublures de test d'avant T-159 : pas de ménage partagé.
@@ -48,6 +52,29 @@ extension UserRepository {
     func removeMember(_ userId: String, fromHousehold householdId: String, byUserId callerId: String) async throws -> Household {
         throw AppError.permissionDenied
     }
+
+    /// Sans écoute en temps réel : une seule lecture, puis le flux se termine.
+    func observeJoinRequests(ofHousehold householdId: String, byUserId userId: String) async
+        -> AsyncThrowingStream<[HouseholdJoinRequest], any Error> {
+        AsyncThrowingStream.once { try await self.joinRequests(ofHousehold: householdId, byUserId: userId) }
+    }
+}
+
+extension AsyncThrowingStream where Failure == any Error {
+    /// Flux d'une seule valeur (dépôts sans temps réel) : la valeur lue, puis la fin (ou l'erreur).
+    nonisolated static func once(_ read: @escaping @Sendable () async throws -> Element) -> Self where Element: Sendable {
+        let (stream, continuation) = Self.makeStream()
+        let task = Task {
+            do {
+                continuation.yield(try await read())
+                continuation.finish()
+            } catch {
+                continuation.finish(throwing: error)
+            }
+        }
+        continuation.onTermination = { _ in task.cancel() }
+        return stream
+    }
 }
 
 /// Groupes de quartier (`groups`) et leurs membres.
@@ -63,6 +90,9 @@ nonisolated protocol GroupRepository: Sendable {
     func leave(groupId: String, householdId: String) async throws
     /// Écoute en temps réel : émet l'état courant, puis chaque changement.
     func observeGroup(id: String) async -> AsyncThrowingStream<NeighborhoodGroup, any Error>
+    /// T-173 : ids des groupes du ménage en temps réel (triés) : quand un membre du ménage rejoint ou quitte
+    /// un groupe, les autres membres le voient sans relancer l'app.
+    func observeGroupIds(ofHousehold householdId: String) async -> AsyncThrowingStream<[String], any Error>
     /// T-122 : pose (ou retire, `url` nil) la photo ou la bannière du groupe. Seul un coordinateur
     /// (`coordinatorIds`) le peut : `.permissionDenied` sinon, `.notFound` si le groupe n'existe pas.
     /// L'image elle-même est dans `AppRepositories.images` ; `url` est son URL versionnée.
@@ -102,6 +132,11 @@ extension GroupRepository {
     /// Par défaut (dépôt qui ne l'implémente pas encore) : refus explicite plutôt qu'un succès silencieux.
     func updateImage(_ kind: GroupImageKind, url: URL?, ofGroup groupId: String, byUserId userId: String) async throws {
         throw AppError.unknown("updateImage n'est pas encore branché sur ce dépôt.")
+    }
+
+    /// Sans écoute en temps réel : une seule lecture, puis le flux se termine.
+    func observeGroupIds(ofHousehold householdId: String) async -> AsyncThrowingStream<[String], any Error> {
+        AsyncThrowingStream.once { try await self.groups(ofHousehold: householdId).map(\.id).sorted() }
     }
 }
 
@@ -178,11 +213,27 @@ nonisolated protocol GroupOrderRepository: Sendable {
     /// Une part par ménage, remise une seule fois : un deuxième scan renvoie `.alreadyPickedUp` sans rien écrire.
     @discardableResult
     func confirmPickup(code: String, groupOrderId: String, at date: Date) async throws -> PickupDesk.ScanResult
+    /// T-173 : `userId` (membre du ménage) s'engage à récupérer la part, en transaction : le premier l'emporte
+    /// (`PickupClaim.claim`). Lève `.notFound` sans part.
+    @discardableResult
+    func claimPickup(householdId: String, groupOrderId: String, userId: String, at date: Date) async throws -> PickupClaim.Outcome
+    /// T-173 : le membre engagé se retire (`PickupClaim.releasing`). Renvoie la part à jour ; `.permissionDenied`
+    /// si quelqu'un d'autre s'en occupe ou si elle est déjà récupérée, `.notFound` sans part.
+    @discardableResult
+    func releasePickup(householdId: String, groupOrderId: String, userId: String) async throws -> Share
 }
 
-/// Doublures de test d'avant T-159 : pas de remise de part.
+/// Doublures de test d'avant T-159 / T-173 : pas de remise de part ni d'engagement.
 extension GroupOrderRepository {
     func confirmPickup(code: String, groupOrderId: String, at date: Date) async throws -> PickupDesk.ScanResult {
+        throw AppError.permissionDenied
+    }
+
+    func claimPickup(householdId: String, groupOrderId: String, userId: String, at date: Date) async throws -> PickupClaim.Outcome {
+        throw AppError.permissionDenied
+    }
+
+    func releasePickup(householdId: String, groupOrderId: String, userId: String) async throws -> Share {
         throw AppError.permissionDenied
     }
 }

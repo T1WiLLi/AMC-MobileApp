@@ -84,6 +84,9 @@ final class BackgroundRefresh {
     private let repositories: () -> AppRepositories
     private let store: any LastKnownStateStore
     private let householdId: () -> String?
+    /// T-173 : compte connecté et notifications de demandes d'adhésion (propriétaire du ménage).
+    private let userId: () -> String?
+    private let joinNotifier: HouseholdJoinNotifier?
     private let now: () -> Date
 
     init(
@@ -92,6 +95,8 @@ final class BackgroundRefresh {
         repositories: @autoclosure @escaping () -> AppRepositories,
         store: any LastKnownStateStore,
         householdId: @escaping () -> String?,
+        userId: @escaping () -> String? = { nil },
+        joinNotifier: HouseholdJoinNotifier? = nil,
         now: @escaping () -> Date = { .now }
     ) {
         self.taskScheduler = taskScheduler
@@ -99,6 +104,8 @@ final class BackgroundRefresh {
         self.repositories = repositories
         self.store = store
         self.householdId = householdId
+        self.userId = userId
+        self.joinNotifier = joinNotifier
         self.now = now
     }
 
@@ -133,6 +140,7 @@ final class BackgroundRefresh {
     func refresh() async -> Bool {
         let repositories = repositories()
         guard let householdId = householdId() else { return true }
+        await refreshJoinRequests(householdId: householdId, repositories: repositories)
         do {
             let offers = try await repositories.offers.activeOffers(inZone: nil)
             let groups = try await repositories.groups.groups(ofHousehold: householdId)
@@ -152,5 +160,15 @@ final class BackgroundRefresh {
         } catch {
             return false
         }
+    }
+
+    /// T-173 : demandes d'adhésion en attente, propriétaire seulement. Un échec n'empêche pas le reste.
+    private func refreshJoinRequests(householdId: String, repositories: AppRepositories) async {
+        guard let joinNotifier, let userId = userId(), !userId.isEmpty,
+              let household = try? await repositories.users.household(id: householdId),
+              HouseholdMembership.isOwner(userId, of: household),
+              let pending = try? await repositories.users.joinRequests(ofHousehold: householdId, byUserId: userId)
+        else { return }
+        await joinNotifier.handle(pending: pending, householdId: householdId)
     }
 }

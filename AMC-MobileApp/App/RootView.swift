@@ -18,9 +18,12 @@ struct RootView: View {
 
     private var isOffline: Bool { network?.isOnline == false }
 
+    /// Un compte d'organisme n'a accès qu'au portail Organismes, quel que soit le portail enregistré.
+    private var shownPortal: Portal { context.hasOrganization ? .organization : portal }
+
     var body: some View {
         Group {
-            switch portal {
+            switch shownPortal {
             case .family:
                 if context.hasHousehold {
                     FamilyTabView()

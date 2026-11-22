@@ -229,8 +229,9 @@ struct ClosureSettlementTests {
         #expect(settlement.closedOrderCount == 2)
         #expect(settlement.grossCents == 15_000)
         #expect(settlement.solidarityCents == 1_000)
-        #expect(settlement.commissionCents == 900)
-        #expect(settlement.netCents == 14_100)
+        // Commission de 1 % (#329) : 100 + 50 cents.
+        #expect(settlement.commissionCents == 150)
+        #expect(settlement.netCents == 14_850)
     }
 
     static func record(order: String, gross: Cents, subsidy: Cents) -> VendorPayoutRecord {

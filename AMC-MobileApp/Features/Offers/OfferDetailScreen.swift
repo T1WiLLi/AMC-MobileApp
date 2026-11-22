@@ -255,6 +255,7 @@ private struct OfferDetailContent: View {
                 .padding(.top, -32)
             }
         }
+        .guidedTourScroll(.noisette)
         .ignoresSafeArea(edges: .top)
         .scrollEdgeEffectStyle(.soft, for: .top)
         // B-042 : barre de contrôle iOS 26. Le contenu s'arrête au-dessus d'elle (« Ton groupe » reste visible
@@ -572,6 +573,7 @@ private struct OfferDetailContent: View {
                 tierHint(content)
             }
             .grenierCard()
+            .guidedTourAnchor(.offerTiers)
             .grenierAnimation(.smooth, value: content.committedShares)
         }
     }
@@ -669,10 +671,14 @@ private struct OfferDetailContent: View {
                     message: String(localized: "Il ne reste plus de parts dans ce lot. Jette un œil aux autres lots de ton quartier.")
                 )
             } else {
-                sharePicker(content)
+                // FB-19 : la visite montre la quantité et le panier suspendu d'un seul cadre.
+                VStack(alignment: .leading, spacing: 14) {
+                    sharePicker(content)
 
-                // T-181 : panier suspendu en un geste, enregistré avec la part.
-                SuspendedBasketChips(amountCents: $viewModel.suspendedCents, choices: OfferDetailViewModel.suspendedChoices)
+                    // T-181 : panier suspendu en un geste, enregistré avec la part.
+                    SuspendedBasketChips(amountCents: $viewModel.suspendedCents, choices: OfferDetailViewModel.suspendedChoices)
+                }
+                .guidedTourAnchor(.offerShare, padding: 10)
 
                 if viewModel.selectedSavingsCents > 0 {
                     Label {

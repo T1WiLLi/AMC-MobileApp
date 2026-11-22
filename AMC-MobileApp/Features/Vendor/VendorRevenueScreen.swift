@@ -38,6 +38,7 @@ struct VendorRevenueScreen: View {
                 ScrollView {
                     VendorRevenueContent(revenue: revenue)
                 }
+                .guidedTourScroll(.racoonette)
                 .refreshable { await model.refresh() }
             }
         }
@@ -51,8 +52,11 @@ struct VendorRevenueContent: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
-            TotalCard(revenue: revenue)
-            KeyFigures(revenue: revenue)
+            VStack(alignment: .leading, spacing: 12) {
+                TotalCard(revenue: revenue)
+                KeyFigures(revenue: revenue)
+            }
+            .guidedTourAnchor(.vendorRevenue, padding: 4)
             ProductStatsLink() // T-119 : statistiques de ventes par produit
 
             SectionTitle("Par lot", systemImage: "chart.bar.xaxis", tint: .grenier)

@@ -9,7 +9,7 @@ struct FamilyTabView: View {
     /// Lien d'invitation reçu (B-058) : bascule sur l'onglet Groupes, qui ouvre la feuille « Rejoindre ».
     @Environment(InviteLinkRouter.self) private var inviteLinks: InviteLinkRouter?
     /// Visite guidée de Noisette (FB-19) : chaque étape ouvre son onglet, la bulle passe au-dessus des onglets.
-    @State private var tour = GuidedTour.shared
+    @State private var tour = GuidedTour.noisette
 
     var body: some View {
         TabView(selection: $selection) {
@@ -38,7 +38,7 @@ struct FamilyTabView: View {
         .onChange(of: inviteLinks?.pendingCode, initial: true) { _, code in
             if code != nil { selection = .groups }
         }
-        .overlay { GuidedTourOverlay() }
+        .overlay { GuidedTourOverlay(.noisette) }
         .onChange(of: tour.currentStep, initial: true) { _, step in
             if let step { selection = Self.tab(for: step.screen) }
         }
@@ -50,10 +50,12 @@ struct FamilyTabView: View {
 
     static func tab(for screen: TourScreen) -> TabID {
         switch screen {
-        case .home: .home
+        case .home, .offerDetail: .home
         case .pickup: .pickup
         case .groups: .groups
         case .impact: .impact
+        // Écrans du portail Vendeurs : jamais demandés par la visite de Noisette.
+        case .vendorDashboard, .vendorOffers, .vendorTierEditor, .vendorDemand, .vendorRevenue: .home
         }
     }
 }

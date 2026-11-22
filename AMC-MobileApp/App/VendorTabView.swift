@@ -11,6 +11,8 @@ struct VendorTabView: View {
 
     @Environment(\.appContext) private var context
     @State private var selection: TabID = .dashboard
+    /// Visite guidée de Racoonette : chaque étape ouvre son onglet, la bulle passe au-dessus des onglets.
+    @State private var tour = GuidedTour.racoonette
 
     private var vendorId: String { context.vendorId.trimmingCharacters(in: .whitespacesAndNewlines) }
     private var hasVendorProfile: Bool { !vendorId.isEmpty }
@@ -49,6 +51,25 @@ struct VendorTabView: View {
         }
         // Bord net sous la barre de navigation pour tous les onglets et leurs fiches (T-140).
         .grenierScrollEdge()
+        .overlay { GuidedTourOverlay(.racoonette) }
+        .onChange(of: tour.currentStep, initial: true) { _, step in
+            if let step { selection = Self.tab(for: step.screen) }
+        }
+        // « Revoir le tutoriel » : la carte d'accueil de Racoonette se présente sur le Tableau.
+        .onChange(of: tour.showsWelcome, initial: true) { _, showsWelcome in
+            if showsWelcome { selection = .dashboard }
+        }
+    }
+
+    static func tab(for screen: TourScreen) -> TabID {
+        switch screen {
+        case .vendorDashboard: .dashboard
+        case .vendorOffers, .vendorTierEditor: .offers
+        case .vendorDemand: .demand
+        case .vendorRevenue: .revenue
+        // Écrans du portail Familles : jamais demandés par la visite de Racoonette.
+        case .home, .offerDetail, .groups, .pickup, .impact: .dashboard
+        }
     }
 
     @ViewBuilder

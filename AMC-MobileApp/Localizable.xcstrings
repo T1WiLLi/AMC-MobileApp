@@ -44,6 +44,16 @@
         }
       }
     },
+    "%@, le raton laveur du Grenier" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@, the Grenier raccoon"
+          }
+        }
+      }
+    },
     "- %@ (%@) : %@, %@" : {
       "localizations" : {
         "en" : {
@@ -86,6 +96,426 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : ", current price %@"
+          }
+        }
+      }
+    },
+    "Avec le bouton +, rejoins un groupe avec un code ou crée le tien. Tout près, la carte montre les groupes, les points de cueillette et les producteurs autour de toi." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "With the + button, join a group with a code or create your own. Right next to it, the map shows the groups, pickup points and producers around you."
+          }
+        }
+      }
+    },
+    "Bienvenue au Grenier" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Welcome to Grenier"
+          }
+        }
+      }
+    },
+    "Bienvenue côté producteurs" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Welcome to the vendor side"
+          }
+        }
+      }
+    },
+    "Ce portail te permet de vendre à des quartiers entiers : tu publies un lot avec des paliers de prix, les familles se regroupent pour les atteindre, et tu livres une seule fois par groupe." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "This portal lets you sell to whole neighbourhoods: you publish a bundle with price tiers, families band together to reach them, and you deliver once per group."
+          }
+        }
+      }
+    },
+    "Chaque carte montre où en est un lot. Si le minimum de commande risque de ne pas être atteint, un badge t'indique combien de parts manquent." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Each card shows how a bundle is doing. If the order minimum is at risk of not being reached, a badge tells you how many shares are missing."
+          }
+        }
+      }
+    },
+    "Chaque groupe a sa page publique : membres, commandes et producteurs. Touche le tien pour la voir." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Every group has a public page: members, orders and producers. Tap yours to see it."
+          }
+        }
+      }
+    },
+    "Chaque palier baisse ton prix quand assez de parts sont réservées. La courbe montre l'effet : les familles ont tout intérêt à inviter leurs voisins !" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Each tier lowers your price once enough shares are reserved. The curve shows the effect: families have every reason to invite their neighbours!"
+          }
+        }
+      }
+    },
+    "Choisis ta quantité, puis touche Réserver : tu paies seulement à la cueillette. Tu peux aussi ajouter un panier suspendu, un petit montant qui offre un panier à une famille qui en a besoin." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pick your quantity, then tap Reserve: you only pay at pickup. You can also add a suspended basket, a small amount that gives a basket to a family in need."
+          }
+        }
+      }
+    },
+    "Ici : tes préférences, la langue, le mode aîné (plus gros et plus simple) et « Revoir le tutoriel avec Noisette » pour me retrouver. Bonne cueillette !" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Here: your preferences, the language, senior mode (bigger and simpler) and “Replay the tutorial with Noisette” to find me again. Happy pickup!"
+          }
+        }
+      }
+    },
+    "Ici : tes préférences, la langue, le mode aîné et « Revoir le tutoriel avec Racoonette » pour me retrouver. Bonne vente !" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Here: your preferences, the language, senior mode and “Replay the tutorial with Racoonette” to find me again. Happy selling!"
+          }
+        }
+      }
+    },
+    "Ici, tu vois combien tu as déjà économisé par rapport à l'épicerie. Ça grimpe à chaque commande !" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Here you can see how much you've already saved compared with the grocery store. It grows with every order!"
+          }
+        }
+      }
+    },
+    "Je suis le raton laveur du Grenier. En %lld petites bulles, je te montre comment vendre à tout un quartier, sans courir après chaque famille." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "I'm the Grenier raccoon. In %lld little bubbles, I'll show you how to sell to a whole neighbourhood, without chasing after every family."
+          }
+        }
+      }
+    },
+    "La carte montre où les familles commandent et ce qu'elles souhaitent acheter. Touche une bulle pour lire leurs souhaits et « Proposer un lot ici »." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The map shows where families order and what they'd like to buy. Tap a bubble to read their wishes and “Propose a bundle here”."
+          }
+        }
+      }
+    },
+    "Le jour de la cueillette, montre ce code QR à l'hôte, un voisin qui reçoit les lots. Juste au-dessus : ton créneau et le lieu." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "On pickup day, show this QR code to the host, a neighbour who receives the bundles. Just above: your time slot and the place."
+          }
+        }
+      }
+    },
+    "Le prix baisse avec les familles" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The price drops as families join"
+          }
+        }
+      }
+    },
+    "LeGrenier, c'est l'achat en gros entre voisins : des producteurs d'ici vendent par lots, et plus ton groupe réserve de parts, plus le prix baisse pour tout le monde. Je te fais faire le tour !" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "LeGrenier is neighbours buying in bulk together: local producers sell by the bundle, and the more shares your group reserves, the more the price drops for everyone. Let me show you around!"
+          }
+        }
+      }
+    },
+    "Les paliers, ta force" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tiers are your strength"
+          }
+        }
+      }
+    },
+    "Les producteurs d'ici publient de nouveaux lots chaque semaine. Touche un lot pour voir son prix et ses paliers : j'en ouvre un pour toi." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Local producers publish new bundles every week. Tap a bundle to see its price and tiers: I'll open one for you."
+          }
+        }
+      }
+    },
+    "Noisette te remontre l'app, étape par étape, en commençant par l'Accueil" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Noisette shows you the app again, step by step, starting with Home"
+          }
+        }
+      }
+    },
+    "Où est la demande" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Where the demand is"
+          }
+        }
+      }
+    },
+    "Publie un lot" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Publish a bundle"
+          }
+        }
+      }
+    },
+    "Racoonette te remontre le portail Vendeurs, étape par étape, en commençant par le Tableau" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Racoonette shows you the Vendors portal again, step by step, starting with the Dashboard"
+          }
+        }
+      }
+    },
+    "Rejoindre ou créer un groupe" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Join or create a group"
+          }
+        }
+      }
+    },
+    "Rien à montrer ici pour l'instant : l'élément apparaîtra dès que cet écran sera rempli." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nothing to show here yet: it will appear once this screen has content."
+          }
+        }
+      }
+    },
+    "Ta page de groupe" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Your group page"
+          }
+        }
+      }
+    },
+    "Ta part et le panier suspendu" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Your share and the suspended basket"
+          }
+        }
+      }
+    },
+    "Ta vitrine publique" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Your public storefront"
+          }
+        }
+      }
+    },
+    "Tes chiffres clés d'un coup d'œil : revenus prévus, parts réservées, familles servies et lots ouverts." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Your key figures at a glance: expected revenue, reserved shares, households served and open bundles."
+          }
+        }
+      }
+    },
+    "Tes commandes ouvertes et celles de ton groupe. Touche-en une pour suivre les paliers et ta part." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Your open orders and your group's. Tap one to follow the tiers and your share."
+          }
+        }
+      }
+    },
+    "Tes lots ouverts" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Your open bundles"
+          }
+        }
+      }
+    },
+    "Tes produits" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Your products"
+          }
+        }
+      }
+    },
+    "Tes revenus" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Your revenue"
+          }
+        }
+      }
+    },
+    "Tes ventes dans le temps et produit par produit : tu vois tout de suite ce qui marche le mieux." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Your sales over time and product by product: you can see right away what sells best."
+          }
+        }
+      }
+    },
+    "Tes économies, ce que ton quartier change ensemble, et plus bas le classement solidaire des arrondissements." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Your savings, what your neighbourhood changes together, and further down the solidarity ranking of the boroughs."
+          }
+        }
+      }
+    },
+    "Ton catalogue : crée tes produits une seule fois et réutilise-les à chaque lot. Tu y retrouves aussi les statistiques de chaque produit." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Your catalogue: create your products once and reuse them in every bundle. You'll also find each product's statistics there."
+          }
+        }
+      }
+    },
+    "Ton groupe de quartier" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Your neighbourhood group"
+          }
+        }
+      }
+    },
+    "Ton profil" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Your profile"
+          }
+        }
+      }
+    },
+    "Ton tableau de bord" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Your dashboard"
+          }
+        }
+      }
+    },
+    "Touche le + dans l'onglet Lots pour publier un nouveau lot : produit, quantité, prix à l'épicerie et paliers de prix." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tap + in the Bundles tab to publish a new bundle: product, quantity, grocery price and price tiers."
+          }
+        }
+      }
+    },
+    "Voici les paliers : plus de familles réservent, plus le prix par part descend. La barre montre où en est ton groupe et ce qu'il manque pour le prochain palier." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "These are the tiers: the more families reserve, the lower the price per share goes. The bar shows where your group stands and what's missing for the next tier."
+          }
+        }
+      }
+    },
+    "Voici ton groupe : tes voisins, ton quartier et ce qui s'y passe. C'est avec eux que tu achètes en gros." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "This is your group: your neighbours, your neighbourhood and what's happening there. They're the people you buy in bulk with."
+          }
+        }
+      }
+    },
+    "« Ma vitrine » est la page que les familles voient : photos, description, produits mis en avant. Tu y choisis aussi les zones desservies, les quartiers où tu livres." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "“My storefront” is the page families see: photos, description, featured products. You also choose your served zones there, the neighbourhoods where you deliver."
           }
         }
       }

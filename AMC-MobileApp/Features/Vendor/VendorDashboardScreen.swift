@@ -43,6 +43,7 @@ struct VendorDashboardScreen: View {
                 .padding(.bottom, 24)
                 .frame(maxWidth: .infinity, alignment: .leading)
             }
+            .guidedTourScroll(.racoonette)
             .grenierScrollEdge()
             .onScrollGeometryChange(for: Bool.self) { geometry in
                 geometry.contentOffset.y + geometry.contentInsets.top > 90
@@ -57,6 +58,7 @@ struct VendorDashboardScreen: View {
                     Button("Ma vitrine", systemImage: "storefront") {
                         showsVendorProfile = true
                     }
+                    .guidedTourAnchor(.vendorShop, cornerRadius: 22, padding: 4)
                     .accessibilityHint("Modifie ta description, tes photos, tes produits mis en avant et tes zones desservies, comme les familles les voient.")
                 }
                 // B-037 : sections réorganisables du tableau (ordre, masquage, Réinitialiser).
@@ -74,6 +76,8 @@ struct VendorDashboardScreen: View {
                 }
             }
             .profileToolbar()
+            // Racoonette : la carte d'accueil de la visite, une fois le tableau affiché.
+            .guidedTourWelcome(.racoonette, isReady: { if case .idle = viewModel.state { return false }; return !viewModel.state.isLoading }())
             .portalContentReady(.vendor, when: { if case .idle = viewModel.state { return false }; return !viewModel.state.isLoading }())
             .safeAreaInset(edge: .bottom, alignment: .trailing) {
                 if let onCreateOffer {
@@ -446,6 +450,7 @@ private struct DashboardContent: View {
         switch section {
         case .stats:
             StatTiles(dashboard: dashboard)
+                .guidedTourAnchor(.vendorStats, padding: 8)
         case .highlight:
             if let highlight = dashboard.highlight {
                 HighlightBanner(highlight: highlight, animates: animatesHighlight)
@@ -462,8 +467,9 @@ private struct DashboardContent: View {
             VStack(alignment: .leading, spacing: 20) {
                 SectionTitle(String(localized: "Lots ouverts"), systemImage: "shippingbox.fill")
                 VStack(spacing: 12) {
-                    ForEach(dashboard.offers) { summary in
+                    ForEach(Array(dashboard.offers.enumerated()), id: \.element.id) { index, summary in
                         VendorOfferCard(summary: summary)
+                            .guidedTourAnchor(.vendorRisk, if: index == 0)
                             .grenierTransition(.cardAppear)
                     }
                 }

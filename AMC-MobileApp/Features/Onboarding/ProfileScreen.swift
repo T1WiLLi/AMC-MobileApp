@@ -186,24 +186,24 @@ struct ProfileScreen: View {
                 }
 
                 Section {
-                    // FB-19 : rejoue le tutoriel de Noisette sans redémarrer (voir `GuidedTour`).
-                    if portal == .family && GuidedTour.shared.isEnabled {
+                    // FB-19 : rejoue le tutoriel de la mascotte du portail actif sans redémarrer (voir `GuidedTour`).
+                    if let tour = TourID.allCases.first(where: { $0.portal == portal }), GuidedTour.instance(for: tour).isEnabled {
                         Button {
                             dismiss()
                             // La carte d'accueil se présente une fois la feuille du Profil fermée.
                             Task {
                                 try? await Task.sleep(for: .milliseconds(450))
-                                GuidedTour.shared.replay()
+                                GuidedTour.instance(for: tour).replay()
                             }
                         } label: {
                             Label {
-                                Text("Revoir le tutoriel avec \(MascotView.name)")
+                                Text("Revoir le tutoriel avec \(tour.mascotName)")
                                     .foregroundStyle(Color.texte)
                             } icon: {
-                                RowIcon(systemImage: "figure.wave", tint: .grenier)
+                                RowIcon(systemImage: tour == .noisette ? "figure.wave" : "pawprint.fill", tint: .grenier)
                             }
                         }
-                        .accessibilityHint("\(MascotView.name) te remontre l'app, étape par étape, en commençant par l'Accueil")
+                        .accessibilityHint(tour.replayHint)
                     }
                     // Geste caché (RQ-114) : 5 taps ou appui long ouvrent les outils de démo.
                     AppVersionLabel()

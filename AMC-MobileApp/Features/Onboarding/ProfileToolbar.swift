@@ -35,6 +35,8 @@ struct ProfileToolbarModifier: ViewModifier {
                     } primaryAction: {
                         isPresented = true
                     }
+                    // FB-19 : dernière étape des visites (Noisette, Racoonette) : le bouton Profil.
+                    .guidedTourAnchor(portal == .vendor ? .vendorProfile : .profile, cornerRadius: 22, padding: 4)
                     .accessibilityHint("Ouvre ton profil. Maintiens le doigt pour changer de portail.")
                 }
             }

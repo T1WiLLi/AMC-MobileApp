@@ -1,58 +1,158 @@
 import SwiftUI
 
-/// Bulle de Noisette pendant la visite guidée (FB-19), posée au-dessus des onglets du portail Familles.
+/// Bulle de la mascotte pendant une visite guidée (Noisette, FB-19 ; Racoonette), posée au-dessus des onglets du portail.
 ///
 /// Comportement :
-/// - un voile assombrit l'app et découpe l'élément de l'étape (`.guidedTourAnchor(_:)`) ; sans ancre visible
-///   (écran vide, mode aîné, chargement), la bulle se pose au centre, sans découpe : la visite n'est jamais bloquée ;
+/// - un voile assombrit l'app et découpe l'élément de l'étape (`.guidedTourAnchor(_:)`), aux coins de l'élément ;
+/// - la bulle se pose sous l'élément, sinon au-dessus, selon la place qu'elle mesure : elle ne le couvre jamais.
+///   Quand aucun côté n'a assez de place (très grand texte), elle prend le côté le plus grand et son texte défile ;
+/// - le temps que l'écran s'affiche et que l'élément vienne à l'écran, la bulle attend ; si l'élément n'existe pas
+///   (écran vide, section masquée), elle se pose au centre avec une note : la visite n'est jamais bloquée ;
 /// - « Précédent » / « Suivant » (« Terminer » à la fin), « Passer » et le bouton Fermer (les deux arrêtent la visite) ;
 /// - glisser la bulle vers la gauche = Suivant, vers la droite = Précédent ;
 /// - toucher le voile, à côté de la bulle, ne fait rien : pas de visite perdue par un toucher de travers ;
 /// - VoiceOver : chaque étape est annoncée (« Étape 2 sur 5 ») et le focus va sur la bulle ; geste « Z » = Passer ;
 /// - Reduce Motion : changements d'étape en fondu, sans ressort ni glissement.
 struct GuidedTourOverlay: View {
-    @State private var tour = GuidedTour.shared
+    let tour: GuidedTour
+
+    init(_ tour: TourID) {
+        self.tour = GuidedTour.instance(for: tour)
+    }
+
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    /// Élément montré : le dernier cadre resté en place (il ne bouge plus), pour ne pas suivre un défilement image par image.
+    @State private var settled: TourAnchor?
+    /// L'élément ne s'est pas montré à temps : la bulle passe au centre.
+    @State private var waitedOut = false
+    @State private var scrollAttempts = 0
+    @State private var lastScreen: TourScreen?
+    /// Marges de sécurité de l'écran (le voile les ignore pour couvrir toute la fenêtre, mais la bulle les respecte).
+    @State private var safeInsets = EdgeInsets()
 
     var body: some View {
         ZStack {
             if let step = tour.currentStep, let index = tour.machine.index {
                 GeometryReader { proxy in
-                    let spot = spotlight(for: step, in: proxy)
+                    let shown = step.toolbarSlot.map { toolbarAnchor($0, in: proxy) } ?? settled
+                    let spot = spotlight(shown, in: proxy)
+                    let showsBubble = !step.expectsAnchor || shown != nil || waitedOut
                     ZStack {
-                        TourScrim(spotlight: spot)
-                        TourBubblePlacement(spotlight: spot, size: proxy.size, safeArea: proxy.safeAreaInsets) {
-                            TourBubble(step: step, index: index, count: tour.machine.steps.count, tour: tour)
+                        TourScrim(spotlight: spot, cornerRadius: shown?.cornerRadius ?? 22)
+                        TourBubbleLayout(spot: spot, insets: safeInsets) {
+                            TourBubble(
+                                step: step, index: index, count: tour.machine.steps.count, tour: tour,
+                                isEmpty: step.expectsAnchor && spot == nil
+                            )
+                            .opacity(showsBubble ? 1 : 0)
+                            .allowsHitTesting(showsBubble)
                         }
                     }
                     .animation(reduceMotion ? .easeInOut(duration: 0.2) : .smooth(duration: 0.35), value: spot)
+                    .animation(.easeInOut(duration: 0.2), value: showsBubble)
+                    .task(id: LiveAnchor(step: step, anchor: liveAnchor(for: step))) {
+                        await settle(step: step, in: proxy)
+                    }
                 }
                 .ignoresSafeArea()
                 .transition(.opacity)
+                .task(id: step) {
+                    waitedOut = false
+                    scrollAttempts = 0
+                    try? await Task.sleep(for: .milliseconds(1500))
+                    waitedOut = true
+                }
+                .onChange(of: step, initial: true) { _, step in
+                    // Autre écran : l'ancien cadre ne vaut plus rien ; même écran : on le garde jusqu'au nouveau.
+                    if lastScreen != step.screen { settled = nil }
+                    lastScreen = step.screen
+                }
             }
         }
         .animation(reduceMotion ? nil : .smooth, value: tour.currentStep)
+        .onGeometryChange(for: EdgeInsets.self) { $0.safeAreaInsets } action: { safeInsets = $0 }
+        .onChange(of: tour.currentStep == nil) { _, isOver in
+            if isOver { settled = nil; lastScreen = nil }
+        }
     }
 
-    /// Cadre de l'élément à mettre en valeur, dans le repère du voile ; nil s'il n'est pas (assez) à l'écran.
-    private func spotlight(for step: TourStep, in proxy: GeometryProxy) -> CGRect? {
-        guard let global = tour.anchorFrames[step] else { return nil }
+    private struct LiveAnchor: Equatable {
+        let step: TourStep
+        let anchor: TourAnchor?
+    }
+
+    /// Cadre de l'élément de l'étape, ou de son remplaçant quand l'écran n'a pas l'élément.
+    private func liveAnchor(for step: TourStep) -> TourAnchor? {
+        tour.anchor(for: step) ?? step.fallback.flatMap { tour.anchor(for: $0) }
+    }
+
+    /// Attend que l'élément ne bouge plus, puis le retient ; s'il n'est pas bien visible, redemande le défilement.
+    private func settle(step: TourStep, in proxy: GeometryProxy) async {
+        let live = liveAnchor(for: step)
+        try? await Task.sleep(for: .milliseconds(200))
+        guard !Task.isCancelled else { return }
+        settled = live
+        guard step.expectsAnchor, step.isInContent, let live, scrollAttempts < 3 else { return }
+        let area = proxy.size
+        let rect = live.frame.insetBy(dx: -live.padding, dy: -live.padding)
+        let isComfortable = rect.minY >= safeInsets.top + 44 && rect.maxY <= area.height - safeInsets.bottom - 100
+        if !isComfortable {
+            scrollAttempts += 1
+            tour.requestScroll()
+        }
+    }
+
+    /// Cadre d'un bouton de la barre d'outils à sa place habituelle (44 pt, sous l'encoche).
+    private func toolbarAnchor(_ slot: TourStep.ToolbarSlot, in proxy: GeometryProxy) -> TourAnchor {
+        let side: CGFloat = 44
+        let centerX = slot.isTrailing ? proxy.size.width - slot.fromEdge : slot.fromEdge
+        let frame = CGRect(x: centerX - side / 2, y: safeInsets.top + 22 - side / 2, width: side, height: side)
+        return TourAnchor(frame: frame, cornerRadius: side / 2, padding: 2)
+    }
+
+    /// Cadre à découper, dans le repère du voile ; nil s'il n'est pas (assez) à l'écran.
+    private func spotlight(_ anchor: TourAnchor?, in proxy: GeometryProxy) -> CGRect? {
+        guard let anchor else { return nil }
         let origin = proxy.frame(in: .global).origin
-        let local = global.offsetBy(dx: -origin.x, dy: -origin.y).insetBy(dx: -8, dy: -8)
+        let local = anchor.frame.offsetBy(dx: -origin.x, dy: -origin.y).insetBy(dx: -anchor.padding, dy: -anchor.padding)
         let screen = CGRect(origin: .zero, size: proxy.size)
-            .inset(by: UIEdgeInsets(top: proxy.safeAreaInsets.top, left: 0, bottom: proxy.safeAreaInsets.bottom + 56, right: 0))
+            .inset(by: UIEdgeInsets(top: safeInsets.top, left: 0, bottom: safeInsets.bottom, right: 0))
         let visible = local.intersection(screen)
-        // Trop peu visible (écran pas encore chargé, élément sous la barre d'onglets) ou presque tout l'écran.
-        guard !visible.isNull, visible.height >= 44,
-              visible.height < screen.height * 0.6 else { return nil }
+        // Trop peu visible, ou presque tout l'écran (une découpe qui ne montre plus rien).
+        guard !visible.isNull, visible.height >= 30, visible.width >= 30,
+              visible.height < screen.height * 0.85 else { return nil }
         return visible
     }
+}
+
+extension TourStep {
+    /// Bouton de la barre d'outils : SwiftUI ne donne pas son cadre à l'écran (il est mesuré dans la barre), la
+    /// découpe est donc posée à sa place habituelle, à `fromEdge` pt du bord de l'écran (centre du bouton).
+    struct ToolbarSlot {
+        let isTrailing: Bool
+        let fromEdge: CGFloat
+    }
+
+    var toolbarSlot: ToolbarSlot? {
+        switch self {
+        case .profile, .vendorProfile: ToolbarSlot(isTrailing: true, fromEdge: 39)
+        case .groupsActions: ToolbarSlot(isTrailing: true, fromEdge: 153)
+        case .vendorShop: ToolbarSlot(isTrailing: false, fromEdge: 38)
+        case .vendorCreate: ToolbarSlot(isTrailing: true, fromEdge: 97)
+        case .vendorProducts: ToolbarSlot(isTrailing: false, fromEdge: 103)
+        default: nil
+        }
+    }
+
+    /// L'élément est dans un contenu qui défile (et non dans la barre de navigation).
+    var isInContent: Bool { toolbarSlot == nil }
 }
 
 // MARK: - Voile
 
 private struct TourScrim: View {
     let spotlight: CGRect?
+    let cornerRadius: CGFloat
 
     var body: some View {
         ZStack {
@@ -60,7 +160,7 @@ private struct TourScrim: View {
                 .fill(.black.opacity(0.5))
                 .overlay {
                     if let spotlight {
-                        RoundedRectangle(cornerRadius: 22, style: .continuous)
+                        RoundedRectangle(cornerRadius: min(cornerRadius, spotlight.height / 2), style: .continuous)
                             .frame(width: spotlight.width, height: spotlight.height)
                             .position(x: spotlight.midX, y: spotlight.midY)
                             .blendMode(.destinationOut)
@@ -68,7 +168,7 @@ private struct TourScrim: View {
                 }
                 .compositingGroup()
             if let spotlight {
-                RoundedRectangle(cornerRadius: 22, style: .continuous)
+                RoundedRectangle(cornerRadius: min(cornerRadius, spotlight.height / 2), style: .continuous)
                     .strokeBorder(Color.grenier, lineWidth: 3)
                     .frame(width: spotlight.width, height: spotlight.height)
                     .position(x: spotlight.midX, y: spotlight.midY)
@@ -83,41 +183,54 @@ private struct TourScrim: View {
 
 // MARK: - Placement
 
-/// Pose la bulle sous l'élément s'il y a la place, sinon au-dessus, sinon en bas de l'écran.
-private struct TourBubblePlacement<Bubble: View>: View {
-    let spotlight: CGRect?
-    let size: CGSize
-    let safeArea: EdgeInsets
-    @ViewBuilder let bubble: Bubble
+/// Pose la bulle sous l'élément s'il y a la place, sinon au-dessus, sinon du côté le plus grand (le texte défile).
+/// Sans élément, elle est au centre. La place est mesurée avec la vraie hauteur de la bulle.
+private struct TourBubbleLayout: Layout {
+    var spot: CGRect?
+    var insets: EdgeInsets
 
-    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
+    private let gap: CGFloat = 14
 
-    /// Place minimale pour la bulle ; aux tailles d'accessibilité, elle prend le bas de l'écran.
-    private var minimumRoom: CGFloat { dynamicTypeSize.isAccessibilitySize ? .infinity : 280 }
+    func sizeThatFits(proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) -> CGSize {
+        proposal.replacingUnspecifiedDimensions()
+    }
 
-    var body: some View {
-        let top = safeArea.top + 8
-        let bottom = safeArea.bottom + 8
-        Group {
-            if let spotlight, size.height - spotlight.maxY - bottom >= minimumRoom {
-                bubble.frame(maxHeight: .infinity, alignment: .top)
-                    .padding(.top, spotlight.maxY + 12)
-                    .padding(.bottom, bottom)
-            } else if let spotlight, spotlight.minY - top >= minimumRoom {
-                bubble.frame(maxHeight: .infinity, alignment: .bottom)
-                    .padding(.top, top)
-                    .padding(.bottom, size.height - spotlight.minY + 12)
-            } else if spotlight != nil {
-                bubble.frame(maxHeight: .infinity, alignment: .bottom)
-                    .padding(.top, top)
-                    .padding(.bottom, bottom)
+    func placeSubviews(in bounds: CGRect, proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) {
+        guard let bubble = subviews.first else { return }
+        let width = min(bounds.width - 32, 520)
+        let ideal = bubble.sizeThatFits(ProposedViewSize(width: width, height: nil)).height
+        let top = insets.top + 8
+        let bottom = bounds.height - insets.bottom - 8
+        let height: CGFloat
+        let originY: CGFloat
+        var anchorPoint = UnitPoint.top
+        if let spot {
+            let below = bottom - (spot.maxY + gap)
+            let above = (spot.minY - gap) - top
+            if ideal <= below {
+                height = ideal
+                originY = spot.maxY + gap
+            } else if ideal <= above {
+                height = ideal
+                originY = spot.minY - gap
+                anchorPoint = .bottom
+            } else if below >= above {
+                height = max(below, 160)
+                originY = spot.maxY + gap
             } else {
-                bubble.frame(maxHeight: .infinity, alignment: .center)
-                    .padding(.top, top)
-                    .padding(.bottom, bottom)
+                height = max(above, 160)
+                originY = spot.minY - gap
+                anchorPoint = .bottom
             }
+        } else {
+            height = min(ideal, bottom - top)
+            originY = top + (bottom - top - height) / 2
         }
-        .padding(.horizontal, 16)
+        bubble.place(
+            at: CGPoint(x: bounds.midX, y: bounds.minY + originY),
+            anchor: anchorPoint,
+            proposal: ProposedViewSize(width: width, height: height)
+        )
     }
 }
 
@@ -128,6 +241,8 @@ private struct TourBubble: View {
     let index: Int
     let count: Int
     let tour: GuidedTour
+    /// L'élément de l'étape n'est pas à l'écran (écran vide) : une note l'explique.
+    var isEmpty = false
 
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @AccessibilityFocusState private var isFocused: Bool
@@ -137,9 +252,9 @@ private struct TourBubble: View {
     private var progress: String { String(localized: "Étape \(index + 1) sur \(count)") }
 
     var body: some View {
-        ScrollView {
-            VStack(alignment: .leading, spacing: 14) {
-                header
+        VStack(alignment: .leading, spacing: 12) {
+            header
+            ScrollView {
                 VStack(alignment: .leading, spacing: 6) {
                     Label {
                         Text(step.title)
@@ -156,17 +271,22 @@ private struct TourBubble: View {
                         .font(.subheadline)
                         .foregroundStyle(Color.texteSecondaire)
                         .fixedSize(horizontal: false, vertical: true)
+                    if isEmpty {
+                        Label("Rien à montrer ici pour l'instant : l'élément apparaîtra dès que cet écran sera rempli.", systemImage: "info.circle")
+                            .font(.footnote)
+                            .foregroundStyle(Color.texteSecondaire)
+                            .padding(.top, 2)
+                    }
                 }
+                .frame(maxWidth: .infinity, alignment: .leading)
                 .id(step)
                 .transition(reduceMotion ? .opacity : .opacity.combined(with: .move(edge: .trailing)))
-                dots
-                controls
             }
-            .padding(18)
+            .scrollBounceBehavior(.basedOnSize)
+            dots
+            controls
         }
-        .scrollBounceBehavior(.basedOnSize)
-        .fixedSize(horizontal: false, vertical: true)
-        .frame(maxWidth: 520)
+        .padding(18)
         .background(Color.surface, in: .rect(cornerRadius: 28, style: .continuous))
         .overlay {
             RoundedRectangle(cornerRadius: 28, style: .continuous)
@@ -183,10 +303,10 @@ private struct TourBubble: View {
 
     private var header: some View {
         HStack(alignment: .center, spacing: 12) {
-            MascotView(size: mascotSize)
+            TourMascotView(tour: tour.tour, size: mascotSize)
                 .accessibilityHidden(true)
             VStack(alignment: .leading, spacing: 2) {
-                Text(MascotView.name)
+                Text(verbatim: tour.tour.mascotName)
                     .font(.subheadline.weight(.semibold))
                     .foregroundStyle(Color.texte)
                 Text(progress)
@@ -288,7 +408,7 @@ private struct TourBubble: View {
 
     /// VoiceOver : annonce l'étape, puis met le focus sur son titre.
     private func announce() {
-        let title = String(localized: step.title)
+        let title = step.title
         AccessibilityNotification.Announcement("\(progress). \(title)").post()
         Task {
             try? await Task.sleep(for: .milliseconds(350))
@@ -310,16 +430,30 @@ private struct TrailingIconLabelStyle: LabelStyle {
     }
 }
 
-#Preview("Visite, étape 1") {
-    let tour = GuidedTour(store: GuidedTourStore(defaults: UserDefaults(suiteName: "preview.tour")!), isEnabled: true)
-    TourBubble(step: .nearbyOffers, index: 0, count: TourStep.allCases.count, tour: tour)
+/// La mascotte de la visite : Noisette (écureuil) ou Racoonette (raton laveur).
+struct TourMascotView: View {
+    let tour: TourID
+    var size: CGFloat = 120
+    var isAnimated = true
+
+    var body: some View {
+        switch tour {
+        case .noisette: MascotView(size: size, isAnimated: isAnimated)
+        case .racoonette: RacoonetteView(size: size, isAnimated: isAnimated)
+        }
+    }
+}
+
+#Preview("Noisette, étape 1") {
+    let tour = GuidedTour(tour: .noisette, store: GuidedTourStore(defaults: UserDefaults(suiteName: "preview.tour")!), isEnabled: true)
+    TourBubble(step: .intro, index: 0, count: TourID.noisette.steps.count, tour: tour)
         .padding()
         .grenierBackground()
 }
 
-#Preview("Dernière étape, sombre") {
-    let tour = GuidedTour(store: GuidedTourStore(defaults: UserDefaults(suiteName: "preview.tour")!), isEnabled: true)
-    TourBubble(step: .impact, index: 4, count: TourStep.allCases.count, tour: tour)
+#Preview("Racoonette, sombre") {
+    let tour = GuidedTour(tour: .racoonette, store: GuidedTourStore(defaults: UserDefaults(suiteName: "preview.tour")!), isEnabled: true)
+    TourBubble(step: .vendorProfile, index: 9, count: TourID.racoonette.steps.count, tour: tour, isEmpty: true)
         .padding()
         .grenierBackground()
         .preferredColorScheme(.dark)

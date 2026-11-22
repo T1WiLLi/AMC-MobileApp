@@ -19,6 +19,14 @@ nonisolated enum InfoTopic: String, CaseIterable, Identifiable, Sendable {
     case vendorDemand
     case vendorOffers
     case lockedTerms
+    /// Vendeur : « Groupes intéressés » (T-209).
+    case interestedGroups
+    /// Vendeur : lots qui ferment bientôt (T-209).
+    case closingSoon
+    /// Vendeur : argent encaissé sur les commandes fermées (T-209).
+    case closedOrders
+    /// Vendeur : livraisons à venir (T-209).
+    case deliveries
 
     var id: String { rawValue }
 
@@ -38,6 +46,10 @@ nonisolated enum InfoTopic: String, CaseIterable, Identifiable, Sendable {
         case .vendorDemand: String(localized: "La demande")
         case .vendorOffers: String(localized: "Tes lots")
         case .lockedTerms: String(localized: "Conditions figées")
+        case .interestedGroups: String(localized: "Les groupes intéressés")
+        case .closingSoon: String(localized: "Les lots qui ferment bientôt")
+        case .closedOrders: String(localized: "Les commandes fermées")
+        case .deliveries: String(localized: "Les prochaines livraisons")
         }
     }
 
@@ -72,6 +84,14 @@ nonisolated enum InfoTopic: String, CaseIterable, Identifiable, Sendable {
             String(localized: "Un lot, c'est un produit que tu vends en grande quantité à un groupe. Tu fixes des paliers : plus les familles prennent de parts, plus le prix baisse.")
         case .lockedTerms:
             String(localized: "Ce lot est publié : les paliers, le nombre de parts et la part ne changent plus, pour protéger les familles qui ont réservé. Tu peux encore repousser la date limite. Pour d'autres prix, duplique le lot.")
+        case .interestedGroups:
+            String(localized: "Ce sont les groupes de quartier qui veulent ce que tu as en disponibilité. Tu vois combien de ménages et quelles quantités, jamais qui. Crée un lot ciblé pour leur répondre.")
+        case .closingSoon:
+            String(localized: "Ces lots ferment dans peu de temps. Après la date limite, plus personne ne peut réserver de part. Partage-les pour atteindre le prochain palier.")
+        case .closedOrders:
+            String(localized: "Une commande fermée ne prend plus de parts. Les familles sont alors débitées au prix du dernier palier atteint. Tu vois ici ce que tu as vraiment encaissé.")
+        case .deliveries:
+            String(localized: "Ce sont les lots fermés que tu dois livrer au point de cueillette du groupe. Prépare-les avant la date prévue : un bénévole les remet ensuite aux familles.")
         }
     }
 
@@ -89,6 +109,10 @@ nonisolated enum InfoTopic: String, CaseIterable, Identifiable, Sendable {
         case .impact: "leaf.fill"
         case .vendorDemand: "map.fill"
         case .lockedTerms: "lock.fill"
+        case .interestedGroups: "person.3.sequence.fill"
+        case .closingSoon: "hourglass"
+        case .closedOrders: "checkmark.seal.fill"
+        case .deliveries: "truck.box.fill"
         }
     }
 

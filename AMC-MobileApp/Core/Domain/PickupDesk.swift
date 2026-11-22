@@ -71,10 +71,32 @@ nonisolated enum PickupDesk {
         }
     }
 
-    /// RQ-066 : valide le code scanné et renvoie la part à marquer comme cueillie.
-    static func scan(_ code: String, order: GroupOrder, shares: [Share]) -> ScanResult {
-        guard canPickUp(order.status) else { return .orderNotReady(order.status) }
+    // MARK: Code d'un membre (T-159)
+
+    /// Séparateur entre le QR de la part (le même pour tout le ménage) et l'uid du membre qui le montre.
+    static let memberSeparator: Character = "#"
+
+    /// Code affiché par un membre : `GRENIER:…#uid`. Le QR identifie la part du ménage ; l'uid dit qui la récupère.
+    static func memberCode(_ qrCode: String, memberId: String) -> String {
+        let memberId = memberId.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !memberId.isEmpty, !memberId.contains(memberSeparator) else { return qrCode }
+        return "\(qrCode)\(memberSeparator)\(memberId)"
+    }
+
+    /// Sépare un code scanné en QR de la part et uid du membre (nil pour un ancien code sans membre).
+    static func splitMemberCode(_ code: String) -> (qrCode: String, memberId: String?) {
         let code = code.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard let index = code.lastIndex(of: memberSeparator) else { return (code, nil) }
+        let memberId = String(code[code.index(after: index)...])
+        return (String(code[..<index]), memberId.isEmpty ? nil : memberId)
+    }
+
+    /// RQ-066 : valide le code scanné et renvoie la part à marquer comme cueillie.
+    /// T-159 : une part par ménage, remise une seule fois, à n'importe quel membre ; un deuxième membre qui se
+    /// présente reçoit `.alreadyPickedUp`. Le membre du code est noté dans `pickedUpBy`.
+    static func scan(_ code: String, order: GroupOrder, shares: [Share], at date: Date = .now) -> ScanResult {
+        guard canPickUp(order.status) else { return .orderNotReady(order.status) }
+        let (code, memberId) = splitMemberCode(code)
         guard let householdId = ShareAllocator.householdId(fromQRCode: code, orderId: order.id) else {
             return isValidCodeOfAnotherOrder(code, orderId: order.id) ? .wrongOrder : .unknownCode
         }
@@ -83,6 +105,8 @@ nonisolated enum PickupDesk {
         }
         if share.isPickedUp { return .alreadyPickedUp(share) }
         share.isPickedUp = true
+        share.pickedUpBy = memberId
+        share.pickedUpAt = date
         return .pickedUp(share)
     }
 

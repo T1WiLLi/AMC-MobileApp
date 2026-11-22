@@ -124,4 +124,50 @@ struct PickupDeskTests {
         #expect(checklist.progress == 0.5)
         #expect(checklist.missing.map(\.householdId) == ["h1"])
     }
+
+    // MARK: - T-159 : une seule cueillette par ménage
+
+    @Test func memberCodeRecordsWhoPicksUpAndSecondMemberIsRefused() {
+        let qr = ShareAllocator.qrCode(orderId: "go1", householdId: "h1")
+        let when = Date(timeIntervalSince1970: 5_000)
+        let first = PickupDesk.scan(PickupDesk.memberCode(qr, memberId: "amina"), order: order(), shares: shares, at: when)
+        #expect(first.isSuccess)
+        #expect(first.share?.pickedUpBy == "amina")
+        #expect(first.share?.pickedUpAt == when)
+
+        // Le deuxième membre montre le même QR (avec son uid) : refusé, la part reste à Amina.
+        var after = shares
+        after[0] = first.share!
+        let second = PickupDesk.scan(PickupDesk.memberCode(qr, memberId: "karim"), order: order(), shares: after)
+        #expect(second == .alreadyPickedUp(first.share!))
+        #expect(second.share?.pickedUpBy == "amina")
+    }
+
+    @Test func memberCodeSplitsAndOldCodesStillWork() {
+        let qr = ShareAllocator.qrCode(orderId: "go1", householdId: "h1")
+        #expect(PickupDesk.splitMemberCode("\(qr)#karim") == (qr, "karim"))
+        #expect(PickupDesk.splitMemberCode(qr) == (qr, nil))
+        #expect(PickupDesk.memberCode(qr, memberId: "") == qr)
+        let old = PickupDesk.scan(qr, order: order(), shares: shares)
+        #expect(old.isSuccess)
+        #expect(old.share?.pickedUpBy == nil)
+    }
+
+    @Test func tamperedMemberCodeIsStillUnknown() {
+        let qr = ShareAllocator.qrCode(orderId: "go1", householdId: "h1")
+        let tampered = qr.replacingOccurrences(of: "h1", with: "h9") + "#karim"
+        #expect(PickupDesk.scan(tampered, order: order(), shares: shares) == .unknownCode)
+    }
+
+    @Test func fakeRepositoryHandsTheShareOverOnce() async throws {
+        let repository = FakeGroupOrderRepository(groupOrders: [order()], shares: ["go1": shares])
+        let qr = ShareAllocator.qrCode(orderId: "go1", householdId: "h1")
+        let first = try await repository.confirmPickup(code: PickupDesk.memberCode(qr, memberId: "amina"), groupOrderId: "go1", at: .now)
+        #expect(first.isSuccess)
+        let second = try await repository.confirmPickup(code: PickupDesk.memberCode(qr, memberId: "karim"), groupOrderId: "go1", at: .now)
+        #expect(!second.isSuccess)
+        let stored = try await repository.shares(ofGroupOrder: "go1").first { $0.householdId == "h1" }
+        #expect(stored?.isPickedUp == true)
+        #expect(stored?.pickedUpBy == "amina")
+    }
 }

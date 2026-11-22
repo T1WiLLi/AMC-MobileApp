@@ -339,6 +339,46 @@ describe('ménage partagé (T-159)', () => {
   })
 })
 
+describe('cueillette unique par ménage (T-159)', () => {
+  const karim = () => env.authenticatedContext('karim').firestore()
+  const sharePath = 'groupOrders/order-pickup/shares/household-voisins'
+  const pickedUp = (by = 'karim') => ({ isPickedUp: true, pickedUpBy: by, pickedUpAt: Timestamp.now(), updatedAt: Timestamp.now() })
+
+  beforeEach(async () => {
+    await env.withSecurityRulesDisabled(async (c) => {
+      const db = c.firestore()
+      await setDoc(doc(db, 'users/karim'), { ...aminaUser, id: 'karim', displayName: 'Karim', householdId: 'household-voisins' })
+      await setDoc(doc(db, 'households/household-voisins'), { id: 'household-voisins', name: 'Voisins', size: 3, geohash: '', userIds: ['karim', 'nadia'], ownerId: 'karim' })
+      await setDoc(doc(db, 'groupOrders/order-pickup'), { id: 'order-pickup', groupId: 'group-parc-extension', offerId: 'offer-carottes', status: 'delivered', committedShares: 2, committedHouseholds: 1, pickupPointId: 'pickup-1', pickupSlots: [] })
+      await setDoc(doc(db, sharePath), { ...share, householdId: 'household-voisins', qrCode: 'GRENIER:order-pickup:household-voisins:0a1b2c3d' })
+    })
+  })
+
+  test('l’hôte remet la part à un membre et note qui la prend', async () => {
+    await assertSucceeds(getDoc(doc(amina(), sharePath)))
+    await assertSucceeds(updateDoc(doc(amina(), sharePath), pickedUp('nadia')))
+  })
+  test('une part déjà récupérée ne se remet pas une deuxième fois', async () => {
+    await updateDoc(doc(amina(), sharePath), pickedUp('karim'))
+    await assertFails(updateDoc(doc(amina(), sharePath), pickedUp('nadia')))
+  })
+  test('le ménage ne se marque pas récupéré lui-même', async () => {
+    await assertFails(updateDoc(doc(karim(), sharePath), pickedUp('karim')))
+  })
+  test('pickedUpBy doit être un membre du ménage', async () => {
+    await assertFails(updateDoc(doc(amina(), sharePath), pickedUp('intrus')))
+  })
+  test('pas avant la fermeture de la commande', async () => {
+    await env.withSecurityRulesDisabled(async (c) => {
+      await updateDoc(doc(c.firestore(), 'groupOrders/order-pickup'), { status: 'open' })
+    })
+    await assertFails(updateDoc(doc(amina(), sharePath), pickedUp('karim')))
+  })
+  test('rien d’autre ne bouge avec la remise', async () => {
+    await assertFails(updateDoc(doc(amina(), sharePath), { ...pickedUp('karim'), quantity: 9 }))
+  })
+})
+
 describe('groups/members', () => {
   const groupPath = 'groups/group-parc-extension'
   const memberPath = `${groupPath}/members/household-amina`

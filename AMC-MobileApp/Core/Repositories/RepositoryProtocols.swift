@@ -174,6 +174,17 @@ nonisolated protocol GroupOrderRepository: Sendable {
     /// Lève `.notFound` sans part, `.invalidInput` si le créneau est inconnu ou complet.
     @discardableResult
     func reservePickupSlot(start: Date?, householdId: String, groupOrderId: String) async throws -> Share
+    /// T-159 : l'hôte (ou un coordonnateur) scanne le code d'un membre (`PickupDesk.memberCode`) et remet la part.
+    /// Une part par ménage, remise une seule fois : un deuxième scan renvoie `.alreadyPickedUp` sans rien écrire.
+    @discardableResult
+    func confirmPickup(code: String, groupOrderId: String, at date: Date) async throws -> PickupDesk.ScanResult
+}
+
+/// Doublures de test d'avant T-159 : pas de remise de part.
+extension GroupOrderRepository {
+    func confirmPickup(code: String, groupOrderId: String, at date: Date) async throws -> PickupDesk.ScanResult {
+        throw AppError.permissionDenied
+    }
 }
 
 /// Points de cueillette (`pickupPoints`).

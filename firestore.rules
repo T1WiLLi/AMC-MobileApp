@@ -954,7 +954,7 @@ service cloud.firestore {
       function isValidShare(data, householdId) {
         return data.keys().hasOnly(['householdId', 'quantity', 'finalPriceCents', 'isPaid',
                                     'suspendedAmountCents', 'subsidyCents', 'qrCode', 'isPickedUp', 'updatedAt',
-                                    'pickupSlotStart'])
+                                    'pickupSlotStart', 'pickedUpBy', 'pickedUpAt'])
           && data.keys().hasAll(['householdId', 'quantity', 'isPaid', 'suspendedAmountCents',
                                  'subsidyCents', 'isPickedUp'])
           && data.householdId == householdId
@@ -983,6 +983,29 @@ service cloud.firestore {
             (householdId == myHouseholdId() && isGroupMember(order.groupId))
             || (isGroupCoordinator(order.groupId) && after.get('pickupSlotStart', null) == null)
           );
+      }
+
+      // T-159 : hôte du point de cueillette choisi pour la commande.
+      function isPickupHost(order) {
+        let pointId = order.get('pickupPointId', '');
+        return isAuthenticated() && pointId is string && pointId != ''
+          && get(/databases/$(database)/documents/pickupPoints/$(pointId)).data.get('hostUserId', '') == request.auth.uid;
+      }
+
+      // T-159 : une part par ménage, remise UNE fois (isPickedUp false → true), par l'hôte ou un coordonnateur,
+      // commande fermée ou livrée. pickedUpBy = le membre du ménage qui s'est présenté (s'il est connu).
+      function isPickupConfirmation(householdId) {
+        let order = orderDoc();
+        let after = request.resource.data;
+        return order.status in ['closed', 'delivered']
+          && resource.data.isPickedUp == false
+          && after.isPickedUp == true
+          && after.diff(resource.data).affectedKeys().hasOnly(['isPickedUp', 'pickedUpBy', 'pickedUpAt', 'updatedAt'])
+          && after.get('pickedUpAt', null) is timestamp
+          && (after.get('pickedUpBy', null) == null
+              || (after.pickedUpBy is string
+                  && after.pickedUpBy in get(/databases/$(database)/documents/households/$(householdId)).data.userIds))
+          && (isPickupHost(order) || isGroupCoordinator(order.groupId));
       }
 
       function orderDoc() {
@@ -1038,7 +1061,7 @@ service cloud.firestore {
 
       match /shares/{householdId} {
         allow read: if isAuthenticated()
-          && (isGroupMember(orderDoc().groupId) || isOfferVendor(offerOf(orderDoc())));
+          && (isGroupMember(orderDoc().groupId) || isOfferVendor(offerOf(orderDoc())) || isPickupHost(orderDoc()));
 
         allow create: if isValidShare(request.resource.data, householdId)
           && isFamilyShape(request.resource.data)
@@ -1049,7 +1072,8 @@ service cloud.firestore {
         // Clôture en premier, et sans isValidShare : seuls prix, subvention, QR (et updatedAt) bougent, vérifiés
         // un par un. Les règles ont un budget de 1000 expressions pour TOUTE la transaction de clôture :
         // revalider chaque part en entier le dépassait vers 20 ménages (test « grosse commande »).
-        allow update: if (orderAfter().status == 'closed'
+        allow update: if isPickupConfirmation(householdId)
+          || (orderAfter().status == 'closed'
             && isOpenStatus(orderDoc().status)
             && request.resource.data.diff(resource.data).affectedKeys()
                  .hasOnly(['finalPriceCents', 'subsidyCents', 'qrCode', 'updatedAt'])

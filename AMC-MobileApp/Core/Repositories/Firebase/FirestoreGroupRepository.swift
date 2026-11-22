@@ -137,6 +137,47 @@ nonisolated final class FirestoreGroupRepository: GroupRepository, @unchecked Se
         try await changeMembership(groupId: groupId, householdId: householdId, joining: false)
     }
 
+    /// T-193 : le créateur quitte et confie le groupe. Une transaction relit le groupe et les deux adhésions, puis
+    /// écrit ensemble : adhésion supprimée, `householdCount` −1 (`lastMembershipChange` = le partant), `createdBy` = le
+    /// compte héritier, `coordinatorIds` mis à jour, `handoverHouseholdId` = le ménage héritier (c'est lui que
+    /// `isCreatorHandover` contrôle) et adhésion de l'héritier passée `coordinator` (members/update).
+    func leave(groupId: String, householdId: String, byUserId userId: String,
+               handingOverTo heir: GroupRules.Handover?) async throws {
+        let current = try await group(id: groupId)
+        try GroupRules.requireCreator(userId, of: current)
+        guard let heir else {
+            try await changeMembership(groupId: groupId, householdId: householdId, joining: false)
+            return
+        }
+        guard heir.householdId != householdId else { throw AppError.notFound }
+        let groupRef = groupRef(groupId)
+        let leaverRef = membersRef(groupId).document(householdId)
+        let heirRef = membersRef(groupId).document(heir.householdId)
+        _ = try await FirestoreTransactions.run(db) { transaction -> Bool in
+            let groupSnapshot = try transaction.getDocument(groupRef)
+            guard groupSnapshot.exists else { throw AppError.notFound }
+            let group = try FirestoreTransactions.decode(NeighborhoodGroup.self, groupSnapshot)
+            try GroupRules.requireCreator(userId, of: group)
+            // Déjà sorti (autre téléphone) : rien à faire.
+            guard try transaction.getDocument(leaverRef).exists else { return false }
+            let heirSnapshot = try transaction.getDocument(heirRef)
+            guard heirSnapshot.exists else { throw AppError.notFound }
+            let handedOver = GroupRules.handingOver(group, from: userId, to: heir.userId)
+            transaction.deleteDocument(leaverRef)
+            if (heirSnapshot.data()?["role"] as? String) != GroupMember.Role.coordinator.rawValue {
+                transaction.updateData(["role": GroupMember.Role.coordinator.rawValue], forDocument: heirRef)
+            }
+            transaction.updateData([
+                "householdCount": FieldValue.increment(Int64(-1)),
+                "lastMembershipChange": householdId,
+                "createdBy": heir.userId,
+                "coordinatorIds": handedOver.coordinatorIds,
+                "handoverHouseholdId": heir.householdId,
+            ], forDocument: groupRef)
+            return true
+        }
+    }
+
     /// T-191 : retrait par le créateur. Même batch que `leave` (adhésion supprimée, `householdCount` −1,
     /// `lastMembershipChange` = la famille retirée) ; les règles n'acceptent ce chemin que du créateur du groupe
     /// et jamais pour son propre ménage.

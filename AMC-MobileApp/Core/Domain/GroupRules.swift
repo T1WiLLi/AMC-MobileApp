@@ -214,6 +214,38 @@ nonisolated enum GroupRules {
         else { throw AppError.permissionDenied }
     }
 
+    // MARK: - T-193 Le créateur quitte son groupe
+
+    /// La famille à qui le groupe est confié : son ménage et un compte de ce ménage (le futur `createdBy`).
+    struct Handover: Sendable, Equatable, Hashable {
+        var householdId: String
+        var userId: String
+    }
+
+    /// T-193 : ménage héritier quand le créateur (ménage `leavingHouseholdId`) part. Le coordonnateur le plus ancien
+    /// (plus petit `joinedAt` parmi `role == .coordinator`), sinon le membre le plus ancien, sinon nil (plus personne).
+    /// À date égale, l'identifiant de ménage tranche : le résultat ne dépend pas de l'ordre de la liste.
+    static func heir(among members: [GroupMember], leaving leavingHouseholdId: String) -> GroupMember? {
+        let remaining = members.filter { $0.householdId != leavingHouseholdId }
+        func oldest(_ candidates: [GroupMember]) -> GroupMember? {
+            candidates.min { lhs, rhs in
+                lhs.joinedAt != rhs.joinedAt ? lhs.joinedAt < rhs.joinedAt : lhs.householdId < rhs.householdId
+            }
+        }
+        return oldest(remaining.filter { $0.role == .coordinator }) ?? oldest(remaining)
+    }
+
+    /// Le groupe après la passation : `createdBy` = l'héritier, il rejoint `coordinatorIds` (sans doublon) et
+    /// l'ancien créateur en sort. Même résultat que l'écriture Firestore et que `firestore.rules` (isCreatorHandover).
+    static func handingOver(_ group: NeighborhoodGroup, from leavingUserId: String, to heirUserId: String) -> NeighborhoodGroup {
+        var updated = group
+        updated.createdBy = heirUserId
+        var coordinators = group.coordinatorIds.filter { $0 != leavingUserId && $0 != heirUserId }
+        coordinators.append(heirUserId)
+        updated.coordinatorIds = coordinators
+        return updated
+    }
+
     /// Lève `.permissionDenied` si `userId` n'a pas créé le groupe.
     static func requireCreator(_ userId: String?, of group: NeighborhoodGroup) throws {
         guard isCreator(userId, of: group) else { throw AppError.permissionDenied }

@@ -211,6 +211,52 @@ final class GroupDetailViewModel {
     func join() async { await changeMembership(join: true) }
     func leave() async { await changeMembership(join: false) }
 
+    // MARK: - T-193 Le créateur quitte son groupe
+
+    /// À qui le groupe passe quand le créateur part.
+    nonisolated enum Succession: Sendable, Equatable {
+        /// Une famille hérite : `handover` porte son compte (futur `createdBy`) ; `familyName` est son nom, nil s'il est illisible.
+        case heir(familyName: String?, handover: GroupRules.Handover)
+        /// Des familles restent, mais aucun compte n'a pu être trouvé (ménage illisible) : sortie ordinaire.
+        case unresolved
+        /// Plus personne : le groupe se retrouve sans membre.
+        case nobody
+    }
+
+    /// Succession calculée pour la confirmation « Quitter le groupe » ; nil tant que `prepareLeave()` n'a pas tourné
+    /// et pour quelqu'un qui n'est pas le créateur.
+    private(set) var succession: Succession?
+
+    /// Calcule la succession avant d'afficher la confirmation (créateur seulement).
+    func prepareLeave() async {
+        guard isCreator else { succession = nil; return }
+        succession = await resolveSuccession()
+    }
+
+    /// Phrase de la confirmation qui dit qui devient propriétaire (créateur seulement).
+    var successionMessage: String? {
+        switch succession {
+        case nil: nil
+        case .heir(let familyName?, _):
+            String(localized: "Tu es le créateur du groupe : il sera confié à \(familyName), la famille la plus ancienne. Tes parts déjà réservées restent valides.")
+        case .heir(nil, _):
+            String(localized: "Tu es le créateur du groupe : il sera confié à la famille la plus ancienne du groupe. Tes parts déjà réservées restent valides.")
+        case .unresolved:
+            String(localized: "Tu es le créateur du groupe, mais nous n'avons pas pu trouver à qui le confier : il restera sans propriétaire. Tes parts déjà réservées restent valides.")
+        case .nobody:
+            String(localized: "Tu es la dernière famille du groupe : il n'aura plus aucun membre. Tes parts déjà réservées restent valides.")
+        }
+    }
+
+    /// Héritier (`GroupRules.heir`) et un compte de son ménage : le propriétaire du ménage (`households/{id}`).
+    private func resolveSuccession() async -> Succession {
+        guard let members = try? await repositories.groups.members(ofGroup: groupId) else { return .unresolved }
+        guard let heir = GroupRules.heir(among: members, leaving: householdId) else { return .nobody }
+        guard let household = try? await repositories.users.household(id: heir.householdId),
+              let ownerId = HouseholdMembership.ownerId(of: household) else { return .unresolved }
+        return .heir(familyName: household.name, handover: GroupRules.Handover(householdId: heir.householdId, userId: ownerId))
+    }
+
     private func changeMembership(join: Bool) async {
         guard !isUpdatingMembership else { return }
         isUpdatingMembership = true
@@ -218,6 +264,12 @@ final class GroupDetailViewModel {
         do {
             if join {
                 try await repositories.groups.join(groupId: groupId, householdId: householdId)
+            } else if isCreator, let userId {
+                // T-193 : le groupe est confié à l'héritier, recalculé à l'instant (il a pu partir depuis la confirmation).
+                var handover: GroupRules.Handover?
+                if case .heir(_, let resolved) = await resolveSuccession() { handover = resolved }
+                try await repositories.groups.leave(groupId: groupId, householdId: householdId,
+                                                    byUserId: userId, handingOverTo: handover)
             } else {
                 try await repositories.groups.leave(groupId: groupId, householdId: householdId)
             }

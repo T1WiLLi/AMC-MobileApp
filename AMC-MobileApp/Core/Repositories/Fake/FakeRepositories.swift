@@ -417,6 +417,33 @@ actor FakeGroupRepository: GroupRepository {
         sendGroupIds(of: householdId)
     }
 
+    func leave(groupId: String, householdId: String, byUserId userId: String,
+               handingOverTo heir: GroupRules.Handover?) async throws {
+        try await behavior.simulate()
+        guard let group = groups[groupId] else { throw AppError.notFound }
+        try GroupRules.requireCreator(userId, of: group)
+        guard isMember(householdId, of: groupId) else { return }
+        guard let heir else {
+            // Plus personne : sortie ordinaire, le groupe reste sans membre.
+            members[groupId]?.removeAll { $0.householdId == householdId }
+            var updated = group
+            updated.householdCount = max(0, group.householdCount - 1)
+            update(updated)
+            sendGroupIds(of: householdId)
+            return
+        }
+        // Mêmes garde-fous que firestore.rules (isCreatorHandover) : l'héritier est un autre ménage encore membre.
+        guard heir.householdId != householdId, isMember(heir.householdId, of: groupId) else { throw AppError.notFound }
+        members[groupId]?.removeAll { $0.householdId == householdId }
+        if let index = members[groupId]?.firstIndex(where: { $0.householdId == heir.householdId }) {
+            members[groupId]?[index].role = .coordinator
+        }
+        var updated = GroupRules.handingOver(group, from: userId, to: heir.userId)
+        updated.householdCount = max(0, group.householdCount - 1)
+        update(updated)
+        sendGroupIds(of: householdId)
+    }
+
     func removeHousehold(_ householdId: String, fromGroup groupId: String, byUserId userId: String,
                          creatorHouseholdId: String?) async throws {
         try await behavior.simulate()

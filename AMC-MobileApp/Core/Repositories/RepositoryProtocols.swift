@@ -96,6 +96,14 @@ nonisolated protocol GroupRepository: Sendable {
     /// Ajoute le ménage au groupe ; sans effet s'il en fait déjà partie.
     func join(groupId: String, householdId: String) async throws
     func leave(groupId: String, householdId: String) async throws
+    /// T-193 : le créateur (`userId`, `GroupRules.isCreator`) quitte son groupe et le confie à `heir`
+    /// (`GroupRules.heir`). Dans une seule écriture : adhésion supprimée, `householdCount` −1, `createdBy` = le compte
+    /// héritier, ajouté à `coordinatorIds` (l'ancien créateur en sort) et adhésion de l'héritier passée `coordinator`.
+    /// `heir` nil (plus personne dans le groupe) : sortie ordinaire, le groupe reste sans membre.
+    /// `.permissionDenied` si `userId` n'est pas le créateur ; `.notFound` si le groupe n'existe pas ou si l'héritier
+    /// n'en est plus membre ; sans effet si le ménage n'en fait pas partie.
+    func leave(groupId: String, householdId: String, byUserId userId: String,
+               handingOverTo heir: GroupRules.Handover?) async throws
     /// T-191 : le créateur du groupe (`GroupRules.isCreator`) retire une famille : l'inverse exact de `join`
     /// (adhésion supprimée et `householdCount` −1). `.permissionDenied` si `userId` n'est pas le créateur ou si
     /// la famille est la sienne (`creatorHouseholdId`) ; `.notFound` si le groupe n'existe pas ; sans effet si

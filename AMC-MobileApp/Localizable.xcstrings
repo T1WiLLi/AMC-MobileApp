@@ -28809,6 +28809,46 @@
           }
         }
       }
+    },
+    "Tu es le créateur du groupe : il sera confié à %@, la famille la plus ancienne. Tes parts déjà réservées restent valides." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "You created this group: it will be handed over to %@, the longest-standing family. Your reserved shares stay valid."
+          }
+        }
+      }
+    },
+    "Tu es le créateur du groupe : il sera confié à la famille la plus ancienne du groupe. Tes parts déjà réservées restent valides." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "You created this group: it will be handed over to its longest-standing family. Your reserved shares stay valid."
+          }
+        }
+      }
+    },
+    "Tu es le créateur du groupe, mais nous n'avons pas pu trouver à qui le confier : il restera sans propriétaire. Tes parts déjà réservées restent valides." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "You created this group, but we couldn't find who to hand it to: it will be left without an owner. Your reserved shares stay valid."
+          }
+        }
+      }
+    },
+    "Tu es la dernière famille du groupe : il n'aura plus aucun membre. Tes parts déjà réservées restent valides." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "You are the last family in this group: it will have no members left. Your reserved shares stay valid."
+          }
+        }
+      }
     }
   },
   "version" : "1.0"

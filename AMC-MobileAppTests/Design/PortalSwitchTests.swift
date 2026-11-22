@@ -33,7 +33,8 @@ struct PortalSwitchTests {
 
         await coordinator.waitUntilIdle()
 
-        #expect(recorder.phases == [.covering(.vendor), .presenting(.vendor), .revealing(.vendor)])
+        // Le portail change pendant la pause `settle`, voile encore en `.covering`.
+        #expect(recorder.phases == [.covering(.vendor), .covering(.vendor), .presenting(.vendor), .revealing(.vendor)])
         #expect(coordinator.phase == .idle)
         #expect(coordinator.completedSwitches == 1)
         #expect(recorder.announcements == [Portal.vendor.switchAnnouncement])
@@ -44,7 +45,7 @@ struct PortalSwitchTests {
         coordinator.switchPortal(from: .vendor, to: .family, reduceMotion: true)
         await coordinator.waitUntilIdle()
         let timeline = PortalTransitionTimeline.standard(reduceMotion: true)
-        #expect(recorder.sleeps == [timeline.presentAt, timeline.hold, timeline.reveal])
+        #expect(recorder.sleeps == [timeline.presentAt, timeline.settle, timeline.hold, timeline.reveal])
     }
 
     @Test func waitsForTheDestinationContentBeforeRevealing() async {
@@ -53,7 +54,7 @@ struct PortalSwitchTests {
         coordinator.switchPortal(from: .family, to: .vendor, reduceMotion: false)
         await coordinator.waitUntilIdle()
         let timeline = PortalTransitionTimeline.standard(reduceMotion: false)
-        let polls = recorder.sleeps.dropFirst(2).dropLast()
+        let polls = recorder.sleeps.dropFirst(3).dropLast()
         // Jamais prêt : le voile attend au plus `maxContentWait`, puis se lève quand même.
         #expect(!polls.isEmpty && polls.allSatisfy { $0 == PortalTransitionTimeline.contentPollStep })
         #expect(polls.reduce(0, +) <= PortalTransitionTimeline.maxContentWait + 0.0001)
@@ -67,7 +68,35 @@ struct PortalSwitchTests {
         coordinator.switchPortal(from: .family, to: .vendor, reduceMotion: false)
         await coordinator.waitUntilIdle()
         let timeline = PortalTransitionTimeline.standard(reduceMotion: false)
-        #expect(recorder.sleeps == [timeline.presentAt, timeline.hold, timeline.reveal])
+        #expect(recorder.sleeps == [timeline.presentAt, timeline.settle, timeline.hold, timeline.reveal])
+    }
+
+    /// FB-17 : le portail change voile immobile, avant l'animation `.presenting`, et l'écran
+    /// derrière ne s'anime qu'au lever du voile.
+    @Test func appliesThePortalUnderAStillVeilBeforePresenting() async {
+        let (coordinator, recorder) = makeCoordinator()
+        var applied: [(Portal, PortalTransitionPhase)] = []
+        coordinator.applyPortal = { [weak coordinator] portal in
+            applied.append((portal, coordinator?.phase ?? .idle))
+        }
+        #expect(coordinator.contentScale == 1)
+        coordinator.switchPortal(from: .family, to: .vendor, reduceMotion: false)
+        await coordinator.waitUntilIdle()
+        #expect(applied.count == 1)
+        #expect(applied.first?.0 == .vendor)
+        #expect(applied.first?.1 == .covering(.vendor))
+        #expect(recorder.phases.first == .covering(.vendor))
+        #expect(coordinator.contentScale == 1)
+    }
+
+    @Test func reduceMotionNeverScalesTheContent() async {
+        let (coordinator, _) = makeCoordinator()
+        var scales: [CGFloat] = []
+        coordinator.switchPortal(from: .family, to: .vendor, reduceMotion: true)
+        scales.append(coordinator.contentScale)
+        await coordinator.waitUntilIdle()
+        scales.append(coordinator.contentScale)
+        #expect(scales.allSatisfy { $0 == 1 })
     }
 
     @Test func ignoresSamePortal() {
@@ -118,12 +147,10 @@ struct PortalSwitchTests {
         let phases: [PortalTransitionPhase] = [.idle, .covering(.vendor), .presenting(.vendor), .revealing(.vendor)]
         for phase in phases {
             #expect(phase.coverScale(reduceMotion: true) == 1)
-            #expect(phase.contentScale(reduceMotion: true) == 1)
             #expect(phase.badgeScale(reduceMotion: true) == 1)
         }
         // Sans Reduce Motion, le voile part d'un point et l'écran recule.
         #expect(PortalTransitionPhase.idle.coverScale(reduceMotion: false) < 0.01)
-        #expect(PortalTransitionPhase.covering(.vendor).contentScale(reduceMotion: false) < 1)
     }
 
     @Test func coveringRadiusReachesTheFarthestCorner() {

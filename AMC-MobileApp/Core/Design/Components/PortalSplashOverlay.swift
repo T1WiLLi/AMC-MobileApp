@@ -37,18 +37,24 @@ struct PortalSplashOverlay: View {
             let origin = CGPoint(x: size.width - Self.originInset.width, y: Self.originInset.height)
             let radius = Self.coveringRadius(from: origin, in: size)
             ZStack {
-                Circle()
+                // FB-17 : le dégradé reste fixe, à la taille de l'écran ; seul le masque (un disque plein)
+                // grandit. Avant, un disque en dégradé d'environ deux écrans de large était redessiné
+                // à chaque frame de son agrandissement.
+                Rectangle()
                     .fill(
                         RadialGradient(
                             colors: [Color.grenier.mix(with: .white, by: 0.14), Color.grenier],
-                            center: .center,
+                            center: UnitPoint(x: origin.x / max(size.width, 1), y: origin.y / max(size.height, 1)),
                             startRadius: 0,
                             endRadius: radius
                         )
                     )
-                    .frame(width: radius * 2, height: radius * 2)
-                    .scaleEffect(phase.coverScale(reduceMotion: reduceMotion))
-                    .position(origin)
+                    .mask {
+                        Circle()
+                            .frame(width: radius * 2, height: radius * 2)
+                            .scaleEffect(phase.coverScale(reduceMotion: reduceMotion))
+                            .position(origin)
+                    }
 
                 content
                     .frame(width: size.width, height: size.height)
@@ -121,11 +127,9 @@ private struct PortalSplashDemo: View {
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .grenierBackground()
-        .scaleEffect(coordinator.phase.contentScale(reduceMotion: reduceMotion))
+        .scaleEffect(coordinator.contentScale)
         .overlay { PortalSplashOverlay(phase: coordinator.phase) }
-        .onChange(of: coordinator.phase) { _, phase in
-            if case .presenting(let destination) = phase { portal = destination }
-        }
+        .onAppear { coordinator.applyPortal = { destination in portal = destination } }
     }
 }
 

@@ -2,12 +2,12 @@ import Foundation
 import Testing
 @testable import AMC_MobileApp
 
-/// T-181 : l'hôte (Amina, « Chez Amina, rue Jarry ») remet les parts d'une commande fermée.
+/// T-181 : l'hôte (Amina, « Chez Amina, rue Jarry ») remet les parts d'une commande arrivée (livrée).
 @MainActor
 struct HostPickupViewModelTests {
     private typealias ID = FakeData.ID
 
-    private func makeModel(status: GroupOrder.Status = .closed, userId: String = ID.amina) -> HostPickupViewModel {
+    private func makeModel(status: GroupOrder.Status = .delivered, userId: String = ID.amina) -> HostPickupViewModel {
         var data = FakeData.montreal
         data.groupOrders[0].status = status
         let repos = AppRepositories.fake(behavior: .instant, data: data)
@@ -16,7 +16,7 @@ struct HostPickupViewModelTests {
     }
 
     @Test func listsSharesOfClosedOrderAtHostPoint() async throws {
-        let model = makeModel()
+        let model = makeModel(status: .closed)
         await model.load()
         let station = try #require(model.selectedStation)
         #expect(station.order.id == ID.potatoOrder)

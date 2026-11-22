@@ -71,7 +71,7 @@ struct PickupPlacesTests {
             ],
             points: ["a": Self.point("a"), "b": Self.point("b")], hostFirstNames: ["a": "Amina", "b": "Karim"]
         )
-        let content = PickupViewModel.Content(places: places, qrPayload: "qr", orderCode: "GRN-1000")
+        let content = PickupViewModel.Content(places: places)
         #expect(content.items.count == 2)
         #expect(content.totalCents == 1_500)
         #expect(content.pointCount == 2)

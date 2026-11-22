@@ -29,6 +29,10 @@ final class GroupDetailViewModel {
         /// T-172 : nom du ménage qui coordonne le groupe (« Famille Benali »), nil s'il est illisible
         /// (les règles ne laissent lire un ménage qu'à ses membres) ou si le groupe n'a pas de coordonnateur.
         var coordinatorName: String? = nil
+        /// Commandes fermées pas encore arrivées (« Marquer comme arrivée », coordonnateur).
+        var ordersOnTheWay: Int = 0
+        /// Commandes arrivées au point (remise des parts).
+        var ordersArrived: Int = 0
 
         /// T-172 : qui regarde la fiche.
         var audience: Audience { Audience(isMember: isMember, isPublic: group.isPublic) }
@@ -122,7 +126,9 @@ final class GroupDetailViewModel {
             let nextSlot = orders.flatMap(\.pickupSlots).filter { $0.end > now }.min { $0.start < $1.start }
             return Content(group: group, members: members, isMember: isMember,
                            pickupPoint: pickupPoint, nextSlot: nextSlot, openOrders: summaries,
-                           memberInitials: await initials, coordinatorName: await coordinator)
+                           memberInitials: await initials, coordinatorName: await coordinator,
+                           ordersOnTheWay: allOrders.filter { $0.status == .closed }.count,
+                           ordersArrived: allOrders.filter { $0.status == .delivered }.count)
         }
     }
 

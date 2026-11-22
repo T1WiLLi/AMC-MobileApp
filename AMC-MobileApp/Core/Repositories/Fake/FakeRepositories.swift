@@ -763,6 +763,16 @@ actor FakeGroupOrderRepository: GroupOrderRepository {
         return share
     }
 
+    @discardableResult
+    func markArrived(groupOrderId: String, at date: Date) async throws -> GroupOrder {
+        try await behavior.simulate()
+        guard let order = groupOrders[groupOrderId] else { throw AppError.notFound }
+        let delivered = try OrderArrival.markArrived(order, at: date)
+        groupOrders[groupOrderId] = delivered
+        broadcaster.send(delivered, for: groupOrderId)
+        return delivered
+    }
+
     func confirmPickup(code: String, groupOrderId: String, at date: Date) async throws -> PickupDesk.ScanResult {
         try await behavior.simulate()
         guard let order = groupOrders[groupOrderId] else { throw AppError.notFound }

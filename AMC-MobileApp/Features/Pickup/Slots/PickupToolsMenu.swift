@@ -9,6 +9,10 @@ private struct PickupToolsModifier: ViewModifier {
     @State private var route: Route?
     /// T-181 : l'utilisateur est hôte d'un point de cueillette ; le bouton « Remettre les parts » apparaît.
     @State private var isHost = false
+    /// L'utilisateur coordonne un de ses groupes : il marque les livraisons arrivées et peut remettre les parts.
+    @State private var isCoordinator = false
+
+    private var handsOut: Bool { isHost || isCoordinator }
 
     enum Route: Hashable, Identifiable {
         case slots(String)
@@ -22,7 +26,7 @@ private struct PickupToolsModifier: ViewModifier {
     func body(content: Content) -> some View {
         content
             .toolbar {
-                if isHost {
+                if handsOut {
                     ToolbarItem(placement: .topBarTrailing) {
                         Button { route = .hostPickup } label: {
                             Label("Remettre les parts", systemImage: "qrcode.viewfinder")
@@ -37,7 +41,7 @@ private struct PickupToolsModifier: ViewModifier {
                                 route = .pointPicker(groupOrderId)
                             }
                         }
-                        if isHost {
+                        if handsOut {
                             Button("Remettre les parts", systemImage: "qrcode.viewfinder") { route = .hostPickup }
                         }
                         Button(isHost ? String(localized: "Mon point de cueillette") : String(localized: "Devenir hôte"), systemImage: "house.and.flag.fill") {
@@ -51,6 +55,8 @@ private struct PickupToolsModifier: ViewModifier {
             .task(id: context.userId) {
                 let points = (try? await context.repositories.pickupPoints.pickupPoints()) ?? []
                 isHost = points.contains { $0.hostUserId == context.userId }
+                let groups = (try? await context.repositories.groups.groups(ofHousehold: context.householdId)) ?? []
+                isCoordinator = groups.contains { $0.coordinatorIds.contains(context.userId) }
             }
             .navigationDestination(item: $route) { route in
                 switch route {

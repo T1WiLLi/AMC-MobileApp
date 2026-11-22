@@ -78,6 +78,13 @@ nonisolated struct CachedGroupOrderRepository: GroupOrderRepository {
     }
 
     @discardableResult
+    func markArrived(groupOrderId: String, at date: Date) async throws -> GroupOrder {
+        let order = try await base.markArrived(groupOrderId: groupOrderId, at: date)
+        await Self.apply(order, to: cache)
+        return order
+    }
+
+    @discardableResult
     func confirmPickup(code: String, groupOrderId: String, at date: Date) async throws -> PickupDesk.ScanResult {
         let result = try await base.confirmPickup(code: code, groupOrderId: groupOrderId, at: date)
         await cache.invalidate(.shares(ofGroupOrder: groupOrderId))

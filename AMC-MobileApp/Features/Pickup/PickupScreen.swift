@@ -110,23 +110,46 @@ private struct PickupIllustratedEmptyView: View {
 
 // MARK: - Contenu
 
+/// Plusieurs lieux : un sélecteur en haut choisit le lieu, et l'écran ne montre que lui (ses articles, SES codes,
+/// son point, son créneau et son total).
 private struct PickupContentView: View {
-    let content: PickupViewModel.Content
+    let allContent: PickupViewModel.Content
+
+    init(content: PickupViewModel.Content) {
+        allContent = content
+    }
 
     @Environment(\.openURL) private var openURL
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var brightness = MaxBrightness()
     @State private var directionsTaps = 0
+    /// Lieu choisi dans le sélecteur ; le premier par défaut.
+    @State private var selectedPlaceId: String?
+
+    /// Le contenu du lieu choisi.
+    private var content: PickupViewModel.Content { allContent.scoped(to: selectedPlaceId) }
 
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 16) {
+                if allContent.places.count > 1 {
+                    PickupPlacePicker(places: allContent.places,
+                                      selection: Binding(get: { content.places.first?.id ?? "" },
+                                                         set: { selectedPlaceId = $0 }))
+                }
                 PickupHeroCard(content: content)
+                // La livraison : en route (commande fermée) ou arrivée chez l'hôte (on peut venir la chercher).
+                if let arrival = content.arrival {
+                    PickupArrivalBanner(arrival: arrival)
+                        .transition(.opacity.combined(with: .move(edge: .top)))
+                }
                 if content.isAllPickedUp {
                     PickupAllDoneCard(hostFirstName: content.hostFirstName)
                 }
-                PickupCodeCard(content: content)
-                    .guidedTourAnchor(.pickup)
+                if let place = content.places.first {
+                    PickupCodeCard(place: place)
+                        .guidedTourAnchor(.pickup)
+                }
                 // Une section par lieu : ses articles, son point (ou « Lieu à confirmer ») et son montant.
                 ForEach(Array(content.places.enumerated()), id: \.element.id) { index, place in
                     placeSection(place, index: index)
@@ -138,6 +161,7 @@ private struct PickupContentView: View {
             }
             .padding(.horizontal, 16)
             .padding(.bottom, 24)
+            .animation(reduceMotion ? nil : .smooth, value: content)
         }
         .guidedTourScroll(.noisette)
         .grenierScrollEdge()
@@ -280,6 +304,66 @@ private struct HeroRowLabelStyle: LabelStyle {
     }
 }
 
+/// État de la livraison : « En route — on te prévient dès l'arrivée » (commande fermée) ou
+/// « Arrivée ! Viens la chercher », avec le lieu et le créneau (commande marquée arrivée par l'hôte ou la coordination).
+private struct PickupArrivalBanner: View {
+    let arrival: PickupViewModel.Arrival
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
+    @ScaledMetric(relativeTo: .title3) private var badgeSize: CGFloat = 44
+
+    private var isArrived: Bool {
+        if case .arrived = arrival { true } else { false }
+    }
+
+    private var tint: Color { isArrived ? .economie : .grenier }
+
+    var body: some View {
+        HStack(alignment: .top, spacing: 14) {
+            if !dynamicTypeSize.isAccessibilitySize {
+                Image(systemName: isArrived ? "shippingbox.and.arrow.backward.fill" : "box.truck.fill")
+                    .font(.title3)
+                    .symbolRenderingMode(.hierarchical)
+                    .foregroundStyle(tint)
+                    .symbolEffect(.pulse, options: .repeating, isActive: !reduceMotion && !isArrived)
+                    .symbolEffect(.bounce, value: reduceMotion ? false : isArrived)
+                    .frame(width: min(badgeSize, 64), height: min(badgeSize, 64))
+                    .background(tint.opacity(0.16), in: .circle)
+                    .accessibilityHidden(true)
+            }
+            VStack(alignment: .leading, spacing: 4) {
+                Text(isArrived ? String(localized: "Arrivée ! Viens la chercher") : String(localized: "En route"))
+                    .font(.headline)
+                    .foregroundStyle(.texte)
+                ForEach(lines, id: \.self) { line in
+                    Text(line)
+                        .font(.subheadline)
+                        .foregroundStyle(.texteSecondaire)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+        }
+        .padding(16)
+        .background(tint.opacity(0.12), in: .rect(cornerRadius: 20))
+        .overlay(RoundedRectangle(cornerRadius: 20).stroke(tint.opacity(0.35), lineWidth: 1))
+        .accessibilityElement(children: .combine)
+    }
+
+    private var lines: [String] {
+        switch arrival {
+        case .onTheWay:
+            return [String(localized: "On te prévient dès l'arrivée chez l'hôte.")]
+        case .arrived(let place):
+            var lines: [String] = []
+            if let point = place.pickupPoint { lines.append("\(point.name) · \(point.address)") }
+            if let slot = place.slot { lines.append(PickupFormat.slot(slot)) }
+            lines.append(String(localized: "Montre ton code QR à l'hôte."))
+            return lines
+        }
+    }
+}
+
 /// Succès : toutes les parts sont récupérées.
 private struct PickupAllDoneCard: View {
     let hostFirstName: String?
@@ -307,60 +391,144 @@ private struct PickupAllDoneCard: View {
     }
 }
 
-/// Grande carte du QR : « Montre ce code à Amina », « Commande GRN-1234 · 2 articles ».
+/// Sélecteur du lieu de cueillette : segments pour deux lieux, menu au-delà (ou en très grand texte).
+private struct PickupPlacePicker: View {
+    let places: [PickupViewModel.Place]
+    @Binding var selection: String
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            PickupSectionHeader(title: "Où cueillir ?", systemImage: "mappin.and.ellipse")
+            if places.count == 2 && !dynamicTypeSize.isAccessibilitySize {
+                Picker("Lieu de cueillette", selection: $selection) {
+                    ForEach(places) { place in Text(Self.title(of: place)).tag(place.id) }
+                }
+                .pickerStyle(.segmented)
+            } else {
+                Menu {
+                    Picker("Lieu de cueillette", selection: $selection) {
+                        ForEach(places) { place in
+                            Label(Self.title(of: place), systemImage: place.pickupPoint == nil ? "questionmark.circle" : "house.fill")
+                                .tag(place.id)
+                        }
+                    }
+                } label: {
+                    HStack(spacing: 8) {
+                        Image(systemName: "house.fill").symbolRenderingMode(.hierarchical)
+                        Text(places.first { $0.id == selection }.map(Self.title(of:)) ?? "")
+                            .multilineTextAlignment(.leading)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                        Image(systemName: "chevron.up.chevron.down").font(.footnote.weight(.semibold))
+                    }
+                    .font(.headline)
+                    .padding(.horizontal, 14)
+                    .frame(maxWidth: .infinity, minHeight: 44)
+                }
+                .buttonStyle(.glass)
+                .tint(.grenier)
+            }
+        }
+        .grenierHaptic(.selection, trigger: selection)
+    }
+
+    static func title(of place: PickupViewModel.Place) -> String {
+        place.pickupPoint?.name ?? String(localized: "Lieu à confirmer")
+    }
+}
+
+/// Carte du code du lieu choisi : un QR par commande (« Pommes de terre jaunes · 2 parts »), car l'hôte scanne une
+/// commande à la fois. Sans commande fermée, pas de faux QR : « Ton code apparaîtra à la clôture ».
 private struct PickupCodeCard: View {
-    let content: PickupViewModel.Content
+    let place: PickupViewModel.Place
     @ScaledMetric(relativeTo: .largeTitle) private var qrSize: CGFloat = 220
 
     var body: some View {
         VStack(spacing: 14) {
-            PickupSectionHeader(title: "Ton code de cueillette", systemImage: "qrcode.viewfinder", info: .pickup)
+            PickupSectionHeader(title: codeCount > 1 ? "Tes codes de cueillette" : "Ton code de cueillette",
+                                systemImage: "qrcode.viewfinder", info: .pickup)
                 .frame(maxWidth: .infinity, alignment: .leading)
-            PickupQRImage(payload: content.qrPayload)
-                .frame(width: min(qrSize, 300), height: min(qrSize, 300))
-                .padding(16)
-                // Le QR reste noir sur blanc, même en sombre, pour que tous les lecteurs le scannent.
-                .background(Color.white, in: .rect(cornerRadius: 20))
-                .overlay(RoundedRectangle(cornerRadius: 20).stroke(Color.piste))
-                .accessibilityLabel("Code QR de la commande \(content.orderCode)")
-
-            Label {
-                Text(hostInstruction)
-                    .font(.title3.bold())
-                    .foregroundStyle(.texte)
-                    .multilineTextAlignment(.center)
-            } icon: {
-                Image(systemName: "person.crop.circle.badge.checkmark")
-                    .font(.title3)
-                    .symbolRenderingMode(.hierarchical)
-                    .foregroundStyle(Color.grenier)
+            switch place.codeState {
+            case .codes(let items, let waiting):
+                Label {
+                    Text(hostInstruction)
+                        .font(.title3.bold())
+                        .foregroundStyle(.texte)
+                        .multilineTextAlignment(.center)
+                } icon: {
+                    Image(systemName: "person.crop.circle.badge.checkmark")
+                        .font(.title3)
+                        .symbolRenderingMode(.hierarchical)
+                        .foregroundStyle(Color.grenier)
+                }
+                ForEach(Array(items.enumerated()), id: \.element.id) { index, item in
+                    if index > 0 { Divider().overlay(Color.piste) }
+                    code(for: item, index: index, count: items.count)
+                }
+                if waiting > 0 {
+                    PickupInfoLabel(text: waiting == 1 ? String(localized: "Le code de l'autre article apparaîtra à sa clôture")
+                                        : String(localized: "Les codes des \(waiting) autres articles apparaîtront à leur clôture"),
+                                    systemImage: "clock.fill", font: .caption)
+                }
+                PickupInfoLabel(text: String(localized: "Luminosité au maximum pour le scan"), systemImage: "sun.max.fill", font: .caption)
+            case .awaitingClosure:
+                PickupCodePendingState()
+            case .allPickedUp:
+                PickupInfoLabel(text: String(localized: "Tout est récupéré à ce lieu : plus de code à montrer."),
+                                systemImage: "checkmark.seal.fill")
             }
-            ViewThatFits(in: .horizontal) {
-                HStack(spacing: 16) { orderLabel; articlesLabel }
-                VStack(spacing: 6) { orderLabel; articlesLabel }
-            }
-            PickupInfoLabel(text: String(localized: "Luminosité au maximum pour le scan"), systemImage: "sun.max.fill", font: .caption)
         }
         .frame(maxWidth: .infinity)
         .grenierCard(padding: 20)
     }
 
-    private var orderLabel: some View {
-        PickupInfoLabel(text: String(localized: "Commande \(content.orderCode)"), systemImage: "number.circle.fill")
-            .monospacedDigit()
-            .textSelection(.enabled)
+    private var codeCount: Int {
+        if case .codes(let items, _) = place.codeState { items.count } else { 0 }
     }
 
-    private var articlesLabel: some View {
-        PickupInfoLabel(text: articles, systemImage: "shippingbox.fill")
+    private func code(for item: PickupViewModel.Item, index: Int, count: Int) -> some View {
+        VStack(spacing: 10) {
+            PickupInfoLabel(text: count > 1
+                                ? String(localized: "Code \(index + 1) sur \(count) · \(item.product.name)")
+                                : item.product.name,
+                            systemImage: "shippingbox.fill")
+                .fontWeight(.semibold)
+            if let payload = item.pickupCode {
+                PickupQRImage(payload: payload)
+                    .frame(width: min(qrSize, 300), height: min(qrSize, 300))
+                    .padding(16)
+                    // Le QR reste noir sur blanc, même en sombre, pour que tous les lecteurs le scannent.
+                    .background(Color.white, in: .rect(cornerRadius: 20))
+                    .overlay(RoundedRectangle(cornerRadius: 20).stroke(Color.piste))
+                    .accessibilityLabel("Code QR de cueillette pour \(item.product.name)")
+            }
+            PickupInfoLabel(text: String(localized: "\(item.quantity) × \(item.offer.displayShareUnit)"),
+                            systemImage: "basket.fill", font: .caption)
+        }
     }
 
     private var hostInstruction: String {
-        content.hostFirstName.map { String(localized: "Montre ce code à \($0)") } ?? String(localized: "Montre ce code à l'hôte")
+        place.hostFirstName.map { String(localized: "Montre ce code à \($0)") } ?? String(localized: "Montre ce code à l'hôte")
     }
+}
 
-    private var articles: String {
-        content.items.count == 1 ? String(localized: "1 article") : String(localized: "\(content.items.count) articles")
+/// Commande encore ouverte : le code n'existe pas encore.
+private struct PickupCodePendingState: View {
+    var body: some View {
+        VStack(spacing: 10) {
+            PickupSymbolScene(main: "qrcode", satellites: ["lock.fill", "clock.fill"], diameter: 72)
+            Text("Ton code apparaîtra à la clôture")
+                .font(.headline)
+                .foregroundStyle(.texte)
+                .multilineTextAlignment(.center)
+            Text("Quand la commande ferme, ton code de cueillette s'affiche ici. On te prévient ensuite dès que la livraison arrive.")
+                .font(.subheadline)
+                .foregroundStyle(.texteSecondaire)
+                .multilineTextAlignment(.center)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+        .frame(maxWidth: .infinity)
+        .accessibilityElement(children: .combine)
     }
 }
 
@@ -443,16 +611,27 @@ private struct PickupItemsCard: View {
                 .monospacedDigit()
             Text(statusText(item))
                 .font(.caption.weight(.semibold))
-                .foregroundStyle(item.isPickedUp ? Color.economie : Color.grenier)
+                .foregroundStyle(statusColor(item))
                 .padding(.top, 2)
         }
     }
 
     /// T-159 : la part du ménage n'est récupérée qu'une fois ; tous les membres voient qui l'a prise.
     private func statusText(_ item: PickupViewModel.Item) -> String {
-        guard item.isPickedUp else { return String(localized: "Prêt à récupérer") }
+        guard item.isPickedUp else {
+            switch item.orderStatus {
+            case .delivered: return String(localized: "Arrivée ! Viens la chercher")
+            case .closed: return String(localized: "En route — on te prévient dès l'arrivée")
+            case .open, .reached, .cancelled: return String(localized: "Commande en cours")
+            }
+        }
         if let name = item.pickedUpByName { return String(localized: "Récupéré par \(name)") }
         return String(localized: "Récupéré")
+    }
+
+    private func statusColor(_ item: PickupViewModel.Item) -> Color {
+        if item.isPickedUp { return .economie }
+        return item.isReadyToPickUp ? .grenier : .texteSecondaire
     }
 
     /// Coche de la liste : cercle vide tant que la part attend, coche verte une fois récupérée.

@@ -56,18 +56,21 @@ nonisolated enum PickupDesk {
                     String(localized: "La commande est encore ouverte : attends qu'elle soit fermée et livrée chez toi.")
                 case .cancelled:
                     String(localized: "Cette commande a été annulée : il n'y a rien à remettre.")
-                case .closed, .delivered:
+                case .closed:
+                    String(localized: "La livraison n'est pas encore arrivée. Marque-la comme arrivée avant de remettre les parts.")
+                case .delivered:
                     String(localized: "La commande n'est pas prête.")
                 }
             }
         }
     }
 
-    /// Seules les commandes fermées (en route ou chez l'hôte) ou livrées peuvent être cueillies.
+    /// Seule une commande livrée (arrivée au point, `OrderArrival.markArrived`) peut être cueillie : fermée, elle est
+    /// encore en route.
     static func canPickUp(_ status: GroupOrder.Status) -> Bool {
         switch status {
-        case .closed, .delivered: true
-        case .open, .reached, .cancelled: false
+        case .delivered: true
+        case .open, .reached, .closed, .cancelled: false
         }
     }
 

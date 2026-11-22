@@ -14,7 +14,9 @@ nonisolated extension FakeData {
 
     /// `demo`, plus les parts d'Amina à deux lieux si l'app est lancée avec `-demoPickupPlaces`.
     static func demo(arguments: [String]) -> FakeData {
-        arguments.contains(PickupPlacesDemoID.launchArgument) ? demo.withPickupPlacesDemo() : demo
+        var data = arguments.contains(PickupPlacesDemoID.launchArgument) ? demo.withPickupPlacesDemo() : demo
+        if arguments.contains(HostDemoID.arrivalLaunchArgument) { data = data.withArrivalDemo() }
+        return data
     }
 
     func withPickupPlacesDemo() -> FakeData {

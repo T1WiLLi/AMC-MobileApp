@@ -5,7 +5,7 @@
 
 **Équipe :** Zachari Lavallée, William Beaudin, Yann Cedrick Kouekam, Samuel Courchesne · **Sphère principale :** sécurité alimentaire (la faim à Montréal) · **Plateforme :** iOS 26 natif (SwiftUI, Liquid Glass) · **Backend :** Firebase (Auth, Firestore), sans serveur
 
-État au 2026-11-22, d'après le code de `main` (`8ac38b7`, `AMC-MobileApp/Features/`) et environ 310 PR mergées. Chaque ligne se teste dans l'app installée.
+État au 2026-11-22, d'après le code de `main` (`ec7079b`, `AMC-MobileApp/Features/`) et environ 325 PR mergées. Chaque ligne se teste dans l'app installée.
 
 **Légende :** ✅ fonctionne dans l'app · 🟡 présente mais partielle · 🧪 simulée (aucun argent réel, aucune livraison réelle).
 
@@ -27,7 +27,6 @@
 | Modifier son compte, se déconnecter, supprimer son compte | ✅ |
 | Verrouiller l'app avec Face ID | ✅ |
 | Thèmes de couleurs interchangeables dans le Profil | ✅ |
-| Mode aîné : texte plus grand, contraste renforcé, rangées plus hautes et Accueil simplifié, dans toute l'app | ✅ |
 | Signaler un contenu ou un membre | ✅ |
 | Données en cache : l'app s'ouvre hors ligne, avec un indicateur « hors ligne » et un rechargement automatique au retour du réseau | ✅ |
 | Adresses vérifiées avec Apple Plans (suggestions pendant la saisie, adresse introuvable refusée) | ✅ |
@@ -50,6 +49,7 @@ Onglets : **Accueil · Groupes · Cueillette · Impact · Recherche**.
 | Avertissement quand le minimum de lancement d'un lot risque de ne pas être atteint (« Il manque 7 parts pour commander · plus que 1 jour ») | ✅ |
 | Panier suspendu en un geste dans la réservation (+5, +10 ou +20 $) pour offrir la part d'une famille en difficulté | 🧪 montant simulé |
 | Paiement : la première réservation enregistre une carte (« Apple Pay (démo) »), rien n'est débité avant le prix final ; à la clôture, les parts sont payées au pot du groupe, avec reçu | 🧪 aucun argent réel |
+| Subventions appliquées à la clôture : le fonds solidaire du groupe paie tout ou partie de la part d'un ménage admissible | 🧪 fonds simulé |
 | Page publique d'un producteur : description, photos, coups de cœur, zones desservies, ses lots et les étoiles des familles | ✅ |
 | Noter un producteur après la cueillette | ✅ |
 | Groupes de quartier près de moi, sur une liste et sur une carte centrée sur Montréal ; les pins proches se regroupent selon le zoom | ✅ |
@@ -96,7 +96,7 @@ Onglets : **Tableau · Lots · Demande · Revenus**. Ouvert à tout producteur, 
 | Groupes intéressés et envies qui correspondent à mes produits | ✅ |
 | « Mes disponibilités » : déclarer ce que je peux fournir, et créer un lot à partir d'une disponibilité | ✅ |
 | Revenus : revenu encaissé et revenu prévu, par lot | 🧪 calculé sur les paiements simulés |
-| Commission de 6 %, versement au vendeur et revenus réels après la clôture | 🟡 calcul fait et testé dans le code ; affichage en cours (PR #307) |
+| Commandes fermées : encaissé, part payée par le fonds solidaire, commission de 6 %, net, acompte de 50 % versé à un vendeur vérifié, reste dû | 🧪 paiements simulés |
 | Statistiques de ventes par produit | ✅ |
 
 ## Portail Organismes

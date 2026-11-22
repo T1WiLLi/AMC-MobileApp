@@ -155,6 +155,7 @@ final class GroupDetailViewModel {
     /// Suit le groupe et ses lots ouverts en temps réel. À lancer dans `.task` après `load()` ; s'arrête avec la tâche.
     func observe() async {
         guard let content = state.value else { return }
+        let loadedGroup = content.group
         // Abonnements ouverts avant de rendre la main : aucun changement n'est perdu une fois `isLive` vrai.
         let groupUpdates = await repositories.groups.observeGroup(id: groupId)
         var orderUpdates: [AsyncThrowingStream<GroupOrder, any Error>] = []
@@ -168,8 +169,9 @@ final class GroupDetailViewModel {
                 var isFirst = true
                 do {
                     for try await group in groupUpdates {
-                        // La première émission est l'état déjà chargé.
-                        if !isFirst { await self?.groupChanged(group) }
+                        // La première émission est l'état déjà chargé, sauf si le groupe a changé pendant
+                        // que l'écran était caché (retour d'une page poussée par-dessus).
+                        if !isFirst || group != loadedGroup { await self?.groupChanged(group) }
                         isFirst = false
                     }
                 } catch {}

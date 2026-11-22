@@ -151,7 +151,8 @@ struct GroupsScreen: View {
     }
 
     /// Crée le modèle au premier passage, puis suit les groupes du ménage (FB-22) tant que l'onglet vit :
-    /// quand un autre membre rejoint ou quitte un groupe, la liste et l'Accueil suivent.
+    /// quand un autre membre rejoint ou quitte un groupe, la liste et l'Accueil suivent ; un groupe modifié
+    /// (nom, photo, bannière, membres…) change dans la liste sans recharger.
     private func startViewModel() async {
         let model: GroupsViewModel
         if let existing = viewModel {
@@ -162,7 +163,10 @@ struct GroupsScreen: View {
             await model.load()
         }
         let store = contextStore
+        // Chaque groupe affiché est suivi en direct, en même temps que les adhésions du ménage.
+        async let groups: Void = model.observeGroups()
         await model.observeHouseholdGroups { await store?.reload() }
+        await groups
     }
 }
 

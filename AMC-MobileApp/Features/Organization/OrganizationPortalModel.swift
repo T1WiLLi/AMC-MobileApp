@@ -144,9 +144,15 @@ final class OrganizationPortalModel {
         }
     }
 
-    /// Quartiers proposés sous le champ de recherche.
+    /// Quartiers proposés sous le champ de recherche : ceux qui contiennent le texte tapé, sauf celui déjà choisi.
+    /// T-202 : sans ce filtre, la liste complète restait affichée par-dessus les résultats (et l'état vide).
     var neighborhoodSuggestions: [String] {
-        Array(Set(snapshot?.profiles.map(\.neighborhood) ?? [])).sorted()
+        let query = searchText.trimmingCharacters(in: .whitespacesAndNewlines)
+        let all = Array(Set(snapshot?.profiles.map(\.neighborhood) ?? [])).sorted()
+        guard !query.isEmpty else { return all }
+        return all.filter {
+            $0.localizedStandardContains(query) && $0.compare(query, options: [.caseInsensitive, .diacriticInsensitive]) != .orderedSame
+        }
     }
 
     /// « 1,2 km » depuis le siège de l'organisme ; nil sans géolocalisation.

@@ -121,7 +121,8 @@ nonisolated final class FirestoreOrganizationRepository: OrganizationRepository,
                 ? try FirestoreVendorRepository.decode(Sponsorship.self, existing)
                 : Sponsorship(
                     id: groupId, organizationId: organizationId, groupName: group.name,
-                    neighborhood: group.neighborhood, monthlyBasketGoal: monthlyBasketGoal, startedAt: .now
+                    neighborhood: Sponsorship.storedNeighborhood(group.neighborhood),
+                    monthlyBasketGoal: monthlyBasketGoal, startedAt: .now
                 )
             sponsorship.monthlyBasketGoal = monthlyBasketGoal
             let batch = db.batch()

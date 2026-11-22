@@ -91,6 +91,15 @@ nonisolated struct Sponsorship: Identifiable, Codable, Sendable, Hashable {
     var startedAt: Date
 
     var groupId: String { id }
+
+    /// Longueur maximale du quartier d'un parrainage (firestore.rules, `isValidSponsorship`).
+    static let maxNeighborhoodLength = 60
+
+    /// T-202 : un groupe accepte un quartier de 80 caractères, un parrainage 60 ; sans troncature, parrainer un
+    /// groupe au long nom de quartier était refusé par les règles.
+    static func storedNeighborhood(_ neighborhood: String) -> String {
+        String(neighborhood.prefix(maxNeighborhoodLength))
+    }
 }
 
 /// Document `groups/{groupId}/solidarity/fund` : fonds de solidarité du groupe et besoin anonyme.

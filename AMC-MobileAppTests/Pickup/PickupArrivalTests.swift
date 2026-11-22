@@ -153,14 +153,16 @@ struct PickupArrivalTests {
     // MARK: Cueillette de la famille
 
     @Test func qrPayloadOnlyOnceTheOrderIsClosed() {
-        let code = ShareAllocator.qrCode(orderId: "o1", householdId: "h1")
-        let share = Self.share("h1", code: code)
-        #expect(PickupViewModel.qrPayload(for: Self.order(.open), share: share, memberId: "u1") == nil)
-        #expect(PickupViewModel.qrPayload(for: Self.order(.reached), share: share, memberId: "u1") == nil)
-        #expect(PickupViewModel.qrPayload(for: Self.order(.closed), share: Self.share("h1"), memberId: "u1") == nil)
-        #expect(PickupViewModel.qrPayload(for: Self.order(.closed), share: share, memberId: "u1")
+        let code = PickupDesk.pickupCode(orderId: "o1", householdId: "h1", token: PickupDesk.newPickupToken())
+        #expect(PickupViewModel.qrPayload(for: Self.order(.open), code: code, memberId: "u1") == nil)
+        #expect(PickupViewModel.qrPayload(for: Self.order(.reached), code: code, memberId: "u1") == nil)
+        #expect(PickupViewModel.qrPayload(for: Self.order(.closed), code: nil, memberId: "u1") == nil)
+        #expect(PickupViewModel.qrPayload(for: Self.order(.closed), code: code, memberId: "u1")
                 == PickupDesk.memberCode(code, memberId: "u1"))
-        #expect(PickupViewModel.qrPayload(for: Self.order(.delivered), share: share, memberId: "u1") != nil)
+        #expect(PickupViewModel.qrPayload(for: Self.order(.delivered), code: code, memberId: "u1") != nil)
+        // Sécurité : jamais l'ancien code dérivé des ids (refusé au scan), ni un texte qui n'est pas un code.
+        #expect(PickupViewModel.qrPayload(for: Self.order(.closed), code: "GRENIER:o1:h1:0a1b2c3d", memberId: "u1") == nil)
+        #expect(PickupViewModel.qrPayload(for: Self.order(.closed), code: "grenier://part/h1", memberId: "u1") == nil)
     }
 
     /// `-demoPickupPlaces -demoArrival` : deux lieux ; rue Jarry a deux commandes (une fermée avec SON code,
@@ -184,6 +186,8 @@ struct PickupArrivalTests {
         let payload = try #require(items.first?.pickupCode)
         #expect(payload.contains(FakeData.HostDemoID.onTheWayOrder))
         #expect(payload.hasSuffix("#\(ID.amina)"))
+        // Sécurité : le code porte le jeton privé du ménage, pas une somme recalculable.
+        #expect(PickupDesk.parse(payload).map { PickupDesk.isPickupToken($0.secret) } == true)
         #expect(content.places[1].codeState == .awaitingClosure)
 
         // Le sélecteur limite l'écran au lieu choisi.

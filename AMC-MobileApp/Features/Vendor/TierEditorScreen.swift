@@ -99,7 +99,9 @@ struct TierEditorScreen: View {
     private var editor: some View {
         ScrollViewReader { proxy in
             Form {
+                if model.areTermsLocked { lockedTermsSection }
                 productSection
+                    .disabled(model.areTermsLocked)
                 tiersSection
                 chartSection
                 deadlineSection
@@ -130,6 +132,30 @@ struct TierEditorScreen: View {
                 if oldValue != nil { showsErrors = true }
             }
         }
+    }
+
+    // MARK: Conditions figées (lot publié)
+
+    /// Sécurité : un lot publié garde ses prix. On le dit en haut plutôt que de laisser des champs refusés à l'envoi.
+    private var lockedTermsSection: some View {
+        Section {
+            Label {
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("Conditions figées")
+                        .font(.headline)
+                        .foregroundStyle(.texte)
+                    Text("Ce lot est publié : les paliers, le nombre de parts et la part ne changent plus, pour protéger les familles qui ont réservé. Tu peux encore repousser la date limite. Pour d'autres prix, duplique le lot.")
+                        .font(.subheadline)
+                        .foregroundStyle(.texteSecondaire)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+            } icon: {
+                Image(systemName: "lock.fill")
+                    .foregroundStyle(Color.grenier)
+            }
+            .accessibilityElement(children: .combine)
+        }
+        .listRowBackground(Color.surface)
     }
 
     // MARK: Produit, quantité, prix épicerie
@@ -256,10 +282,13 @@ struct TierEditorScreen: View {
                     focus: $focus
                 )
                 .id(ErrorAnchor.tier(tier.id))
+                .disabled(model.areTermsLocked)
                 .swipeActions(edge: .trailing, allowsFullSwipe: true) {
-                    Button("Supprimer", systemImage: "trash", role: .destructive) {
-                        withAnimation(motion) { model.removeTier(id: tier.id) }
-                        showsErrors = true
+                    if !model.areTermsLocked {
+                        Button("Supprimer", systemImage: "trash", role: .destructive) {
+                            withAnimation(motion) { model.removeTier(id: tier.id) }
+                            showsErrors = true
+                        }
                     }
                 }
             }
@@ -267,18 +296,21 @@ struct TierEditorScreen: View {
                 withAnimation(motion) { model.removeTiers(atOffsets: offsets) }
                 showsErrors = true
             }
+            .deleteDisabled(model.areTermsLocked)
 
-            Button {
-                withAnimation(motion) { model.addTier() }
-                showsErrors = true
-                if let last = model.tiers.last { focus = .price(last.id) }
-            } label: {
-                Label("Ajouter un palier", systemImage: "plus.circle.fill")
-                    .symbolEffect(.bounce, value: reduceMotion ? 0 : model.tiers.count)
-                    .font(.headline)
-                    .frame(minHeight: 44)
+            if !model.areTermsLocked {
+                Button {
+                    withAnimation(motion) { model.addTier() }
+                    showsErrors = true
+                    if let last = model.tiers.last { focus = .price(last.id) }
+                } label: {
+                    Label("Ajouter un palier", systemImage: "plus.circle.fill")
+                        .symbolEffect(.bounce, value: reduceMotion ? 0 : model.tiers.count)
+                        .font(.headline)
+                        .frame(minHeight: 44)
+                }
+                .id(ErrorAnchor.tiers)
             }
-            .id(ErrorAnchor.tiers)
         } header: {
             ViewThatFits(in: .horizontal) {
                 HStack(alignment: .firstTextBaseline) {
@@ -296,6 +328,10 @@ struct TierEditorScreen: View {
         } footer: {
             if let message = errorMessage(for: .tiers) {
                 InlineError(message: message)
+            } else if model.areTermsLocked {
+                Label("Paliers figés : des familles ont réservé à ces prix.", systemImage: "lock.fill")
+                    .font(.footnote)
+                    .foregroundStyle(.texteSecondaire)
             } else {
                 Label("Glisse un palier vers la gauche pour le supprimer.", systemImage: "hand.draw.fill")
                     .font(.footnote)

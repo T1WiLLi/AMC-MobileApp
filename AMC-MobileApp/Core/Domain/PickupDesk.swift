@@ -1,6 +1,11 @@
 // PickupDesk.swift
 // Cueillette chez l'hôte (E08 : RQ-066, RQ-067).
 // Lecture du code QR d'un ménage, part marquée comme cueillie, liste de distribution.
+//
+// Sécurité (vol de cueillette) : le code est `GRENIER:<commande>:<ménage>:<jeton>#<uid>`. Le jeton est aléatoire
+// (128 bits, `newPickupToken`) et vit dans un document privé de la part (`shares/{h}/private/pickup`, firestore.rules),
+// lisible par le ménage, l'hôte du point et les coordonnateurs, pas par les autres membres du groupe. L'ancien code
+// (somme de contrôle FNV calculable par tous à partir des ids) est refusé au scan (`.outdatedCode`).
 
 import Foundation
 
@@ -15,6 +20,8 @@ nonisolated enum PickupDesk {
         case unknownCode
         /// Code Grenier valide, mais pour une autre commande.
         case wrongOrder
+        /// Ancien code (d'avant le jeton secret) : il se recalcule à partir des ids, l'hôte ne peut plus s'y fier.
+        case outdatedCode
         /// La commande n'est pas encore (ou plus) prête à être cueillie.
         case orderNotReady(GroupOrder.Status)
 
@@ -26,7 +33,7 @@ nonisolated enum PickupDesk {
         var share: Share? {
             switch self {
             case .pickedUp(let share), .alreadyPickedUp(let share): share
-            case .unknownCode, .wrongOrder, .orderNotReady: nil
+            case .unknownCode, .wrongOrder, .outdatedCode, .orderNotReady: nil
             }
         }
 
@@ -36,6 +43,7 @@ nonisolated enum PickupDesk {
             case .alreadyPickedUp: String(localized: "Déjà cueillie")
             case .unknownCode: String(localized: "Code inconnu")
             case .wrongOrder: String(localized: "Mauvaise commande")
+            case .outdatedCode: String(localized: "Ancien code")
             case .orderNotReady: String(localized: "Commande pas prête")
             }
         }
@@ -50,6 +58,8 @@ nonisolated enum PickupDesk {
                 String(localized: "Ce code ne correspond à aucune part de cette commande. Demande au ménage d'ouvrir son code dans l'app.")
             case .wrongOrder:
                 String(localized: "Ce code est pour une autre commande. Vérifie que tu as ouvert la bonne cueillette.")
+            case .outdatedCode:
+                String(localized: "Ce code n'est plus valide. Demande au ménage de rouvrir son code dans l'app à jour, ou vérifie qui il est et touche « Récupéré » dans la liste.")
             case .orderNotReady(let status):
                 switch status {
                 case .open, .reached:
@@ -74,6 +84,49 @@ nonisolated enum PickupDesk {
         }
     }
 
+    // MARK: Jeton et code de la part
+
+    /// Jeton secret d'une part : 128 bits de `SystemRandomNumberGenerator`, en 32 caractères hexadécimaux.
+    static func newPickupToken() -> String {
+        var generator = SystemRandomNumberGenerator()
+        return (0..<2).map { _ in
+            let value = generator.next() as UInt64
+            let hex = String(value, radix: 16)
+            return String(repeating: "0", count: 16 - hex.count) + hex
+        }.joined()
+    }
+
+    /// Jeton bien formé (`newPickupToken`) : 32 caractères hexadécimaux minuscules, comme l'exige firestore.rules.
+    static func isPickupToken(_ token: String) -> Bool {
+        token.utf8.count == 32 && token.utf8.allSatisfy { (48...57).contains($0) || (97...102).contains($0) }
+    }
+
+    /// Code QR de la part d'un ménage, le même pour tous ses membres : `GRENIER:<commande>:<ménage>:<jeton>`.
+    static func pickupCode(orderId: String, householdId: String, token: String) -> String {
+        "\(ShareAllocator.qrCodePrefix)\(orderId):\(householdId):\(token)"
+    }
+
+    /// Code scanné, découpé. `secret` est le jeton (ou, pour un ancien code, sa somme de contrôle).
+    struct ParsedCode: Sendable, Equatable {
+        var orderId: String
+        var householdId: String
+        var secret: String
+        var memberId: String?
+
+        /// Ancien format (T-043) : somme de contrôle FNV de 8 caractères, recalculable par n'importe qui.
+        var isLegacy: Bool { secret.utf8.count == 8 && !PickupDesk.isPickupToken(secret) }
+    }
+
+    /// Découpe `GRENIER:<commande>:<ménage>:<secret>[#uid]`, nil si ce n'est pas un code Grenier.
+    static func parse(_ code: String) -> ParsedCode? {
+        let (qrCode, memberId) = splitMemberCode(code)
+        let parts = qrCode.split(separator: ":", omittingEmptySubsequences: false).map(String.init)
+        // Pas de « / » : l'id devient un chemin Firestore (`shares/<ménage>`).
+        guard parts.count == 4, parts[0] == "GRENIER",
+              parts[1...].allSatisfy({ !$0.isEmpty && !$0.contains("/") }) else { return nil }
+        return ParsedCode(orderId: parts[1], householdId: parts[2], secret: parts[3], memberId: memberId)
+    }
+
     // MARK: Code d'un membre (T-159)
 
     /// Séparateur entre le QR de la part (le même pour tout le ménage) et l'uid du membre qui le montre.
@@ -86,7 +139,7 @@ nonisolated enum PickupDesk {
         return "\(qrCode)\(memberSeparator)\(memberId)"
     }
 
-    /// Sépare un code scanné en QR de la part et uid du membre (nil pour un ancien code sans membre).
+    /// Sépare un code scanné en QR de la part et uid du membre (nil pour un code sans membre).
     static func splitMemberCode(_ code: String) -> (qrCode: String, memberId: String?) {
         let code = code.trimmingCharacters(in: .whitespacesAndNewlines)
         guard let index = code.lastIndex(of: memberSeparator) else { return (code, nil) }
@@ -94,30 +147,48 @@ nonisolated enum PickupDesk {
         return (String(code[..<index]), memberId.isEmpty ? nil : memberId)
     }
 
-    /// RQ-066 : valide le code scanné et renvoie la part à marquer comme cueillie.
+    /// RQ-066 : valide le code scanné contre le jeton privé du ménage et renvoie la part à marquer comme cueillie.
     /// T-159 : une part par ménage, remise une seule fois, à n'importe quel membre ; un deuxième membre qui se
     /// présente reçoit `.alreadyPickedUp`. Le membre du code est noté dans `pickedUpBy`.
-    static func scan(_ code: String, order: GroupOrder, shares: [Share], at date: Date = .now) -> ScanResult {
+    /// - Parameter pickupTokens: jeton de chaque ménage (`shares/{h}/private/pickup`), lu par l'hôte ; un ménage
+    ///   sans jeton n'a pas encore ouvert son code : son code est inconnu.
+    static func scan(
+        _ code: String, order: GroupOrder, shares: [Share], pickupTokens: [String: String], at date: Date = .now
+    ) -> ScanResult {
         guard canPickUp(order.status) else { return .orderNotReady(order.status) }
-        let (code, memberId) = splitMemberCode(code)
-        guard let householdId = ShareAllocator.householdId(fromQRCode: code, orderId: order.id) else {
-            return isValidCodeOfAnotherOrder(code, orderId: order.id) ? .wrongOrder : .unknownCode
+        guard let parsed = parse(code) else { return .unknownCode }
+        guard parsed.orderId == order.id else { return .wrongOrder }
+        if parsed.isLegacy { return .outdatedCode }
+        guard let token = pickupTokens[parsed.householdId], isPickupToken(token),
+              constantTimeEquals(token, parsed.secret) else {
+            return .unknownCode
         }
+        return handOver(householdId: parsed.householdId, order: order, shares: shares,
+                        pickedUpBy: parsed.memberId, at: date)
+    }
+
+    /// Remise à la main (« Récupéré ») : l'hôte a reconnu la famille, sans code. Aussi le chemin des parts dont le
+    /// ménage n'a pas encore de jeton (commandes fermées avant le jeton, famille sans l'app à jour).
+    /// `pickedUpBy` est l'uid de l'hôte ou du coordonnateur qui confirme.
+    static func handOver(
+        householdId: String, order: GroupOrder, shares: [Share], pickedUpBy: String?, at date: Date = .now
+    ) -> ScanResult {
+        guard canPickUp(order.status) else { return .orderNotReady(order.status) }
         guard var share = shares.first(where: { $0.householdId == householdId }), share.quantity > 0 else {
             return .unknownCode
         }
         if share.isPickedUp { return .alreadyPickedUp(share) }
         share.isPickedUp = true
-        share.pickedUpBy = memberId
+        share.pickedUpBy = pickedUpBy
         share.pickedUpAt = date
         return .pickedUp(share)
     }
 
-    /// Code bien formé et intact, mais émis pour une autre commande.
-    private static func isValidCodeOfAnotherOrder(_ code: String, orderId: String) -> Bool {
-        let parts = code.split(separator: ":", omittingEmptySubsequences: false).map(String.init)
-        guard parts.count == 4, parts[0] == "GRENIER", parts[1] != orderId else { return false }
-        return ShareAllocator.qrCode(orderId: parts[1], householdId: parts[2]) == code
+    /// Comparaison sans sortie anticipée : le temps de réponse ne dit pas combien de caractères étaient justes.
+    private static func constantTimeEquals(_ left: String, _ right: String) -> Bool {
+        let left = Array(left.utf8), right = Array(right.utf8)
+        guard left.count == right.count else { return false }
+        return zip(left, right).reduce(UInt8(0)) { $0 | ($1.0 ^ $1.1) } == 0
     }
 
     // MARK: - Liste de distribution (RQ-067)

@@ -30134,6 +30134,66 @@
           }
         }
       }
+    },
+    "Ancien code" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Outdated code"
+          }
+        }
+      }
+    },
+    "Ce code n'est plus valide. Demande au ménage de rouvrir son code dans l'app à jour, ou vérifie qui il est et touche « Récupéré » dans la liste." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "This code is no longer valid. Ask the household to reopen their code in the updated app, or check who they are and tap “Picked up” in the list."
+          }
+        }
+      }
+    },
+    "Ce lot est publié : ses paliers, son nombre de parts et sa part sont figés. Duplique-le pour changer ses prix." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "This lot is published: its tiers, number of shares and share are locked. Duplicate it to change its prices."
+          }
+        }
+      }
+    },
+    "Conditions figées" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Terms locked"
+          }
+        }
+      }
+    },
+    "Ce lot est publié : les paliers, le nombre de parts et la part ne changent plus, pour protéger les familles qui ont réservé. Tu peux encore repousser la date limite. Pour d'autres prix, duplique le lot." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "This lot is published: the tiers, number of shares and share can no longer change, to protect the families who reserved. You can still push back the deadline. For other prices, duplicate the lot."
+          }
+        }
+      }
+    },
+    "Paliers figés : des familles ont réservé à ces prix." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tiers locked: families reserved at these prices."
+          }
+        }
+      }
     }
   },
   "version" : "1.0"

@@ -28,8 +28,18 @@ struct TierEditorViewModelTests {
         #expect(!model.isValid)
     }
 
+    /// Le lot de pommes de terre en brouillon jamais publié : ses conditions restent modifiables.
+    private func draftRepositories() -> AppRepositories {
+        var data = FakeData.montreal
+        if let index = data.offers.firstIndex(where: { $0.id == ID.potatoOffer }) {
+            data.offers[index].status = .draft
+            data.offers[index].wasPublished = false
+        }
+        return .fake(behavior: .instant, data: data)
+    }
+
     @Test func totalCannotDropBelowSharesAlreadyReserved() async throws {
-        let model = TierEditorViewModel(repositories: .fake(behavior: .instant), vendorId: ID.fermeRive, offerId: ID.potatoOffer)
+        let model = TierEditorViewModel(repositories: draftRepositories(), vendorId: ID.fermeRive, offerId: ID.potatoOffer)
         await model.load()
         let committed = model.committedShares
         try #require(committed > 0)
@@ -116,7 +126,7 @@ struct TierEditorViewModelTests {
     }
 
     @Test func editSavesAndReadsBack() async throws {
-        let repos = AppRepositories.fake(behavior: .instant)
+        let repos = draftRepositories()
         let model = TierEditorViewModel(repositories: repos, vendorId: ID.fermeRive, offerId: ID.potatoOffer)
         await model.load()
         model.tiers[1].price = Decimal(string: "9.50")!
@@ -127,6 +137,57 @@ struct TierEditorViewModelTests {
         #expect(reread.sortedTiers.map(\.priceCents) == [1_150, 950, 850])
         #expect(reread.zones == ["f25d", "f25e"])
         #expect(try await repos.offers.offers(ofVendor: ID.fermeRive).count == 2)
+    }
+
+    // MARK: Sécurité : lot publié
+
+    /// Lot actif : paliers, parts et part sont figés ; seuls la date limite et les zones partent à l'enregistrement.
+    @Test func publishedOfferKeepsItsTermsWhenSaved() async throws {
+        let repos = AppRepositories.fake(behavior: .instant)
+        let before = try await repos.offers.offer(id: ID.potatoOffer)
+        let model = TierEditorViewModel(repositories: repos, vendorId: ID.fermeRive, offerId: ID.potatoOffer)
+        await model.load()
+        #expect(model.areTermsLocked)
+        model.tiers[0].priceCents = 99_999
+        model.totalShares = before.totalShares + 10
+        model.shareUnit = "sac de 1 kg"
+        let later = before.deadline.addingTimeInterval(86_400)
+        model.deadline = later
+        #expect(model.isValid)
+        _ = try #require(await model.save())
+
+        let reread = try await repos.offers.offer(id: ID.potatoOffer)
+        #expect(reread.hasSameTerms(as: before))
+        #expect(reread.tiers == before.tiers)
+        #expect(reread.deadline == later)
+    }
+
+    @Test func draftOfferTermsAreNotLocked() async {
+        let model = TierEditorViewModel(repositories: draftRepositories(), vendorId: ID.fermeRive, offerId: ID.potatoOffer)
+        await model.load()
+        #expect(!model.areTermsLocked)
+        let create = TierEditorViewModel(repositories: .fake(behavior: .instant), vendorId: ID.fermeRive)
+        #expect(!create.areTermsLocked)
+    }
+
+    /// Le dépôt fake refuse comme firestore.rules : prix changé sur un lot actif, ou pause sans la marque.
+    @Test func fakeRepositoryRefusesChangingAPublishedOffersTerms() async throws {
+        let repos = AppRepositories.fake(behavior: .instant)
+        let before = try await repos.offers.offer(id: ID.potatoOffer)
+        var pricier = before
+        pricier.tiers[0].priceCents += 500
+        await #expect(throws: AppError.permissionDenied) { try await repos.offers.saveOffer(pricier) }
+        var unmarked = before
+        unmarked.status = .draft
+        unmarked.wasPublished = false
+        await #expect(throws: AppError.permissionDenied) { try await repos.offers.saveOffer(unmarked) }
+        var paused = before
+        paused.status = .draft
+        try await repos.offers.saveOffer(paused)
+        var later = paused
+        later.deadline = before.deadline.addingTimeInterval(3_600)
+        try await repos.offers.saveOffer(later)
+        #expect(try await repos.offers.offer(id: ID.potatoOffer).areTermsLocked)
     }
 
     @Test func invalidSaveDoesNotWrite() async throws {

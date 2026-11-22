@@ -92,6 +92,22 @@ nonisolated struct CachedGroupOrderRepository: GroupOrderRepository {
     }
 
     @discardableResult
+    func confirmPickupByHand(
+        householdId: String, groupOrderId: String, confirmedBy: String, at date: Date
+    ) async throws -> PickupDesk.ScanResult {
+        let result = try await base.confirmPickupByHand(
+            householdId: householdId, groupOrderId: groupOrderId, confirmedBy: confirmedBy, at: date
+        )
+        await cache.invalidate(.shares(ofGroupOrder: groupOrderId))
+        return result
+    }
+
+    /// Pas de cache : le jeton est privé et se crée une seule fois côté dépôt.
+    func pickupCode(householdId: String, groupOrderId: String) async throws -> String {
+        try await base.pickupCode(householdId: householdId, groupOrderId: groupOrderId)
+    }
+
+    @discardableResult
     func closeGroupOrder(
         id groupOrderId: String,
         trigger: GroupOrderClosureTrigger,

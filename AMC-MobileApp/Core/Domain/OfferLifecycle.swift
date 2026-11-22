@@ -99,8 +99,13 @@ nonisolated enum OfferLifecycle {
               proposed.productId == original.productId else {
             throw .invalidInput(String(localized: "Tu ne peux pas changer le produit d'un lot. Crée plutôt un nouveau lot."))
         }
+        // Sécurité : un lot publié garde ses conditions (firestore.rules refuse l'écriture sinon).
+        if original.areTermsLocked, !proposed.hasSameTerms(as: original) {
+            throw .invalidInput(String(localized: "Ce lot est publié : ses paliers, son nombre de parts et sa part sont figés. Duplique-le pour changer ses prix."))
+        }
         var result = proposed
         result.status = original.status
+        result.wasPublished = original.wasPublished
 
         if committedShares > 0 {
             guard proposed.shareUnit == original.shareUnit else {
@@ -197,6 +202,7 @@ nonisolated enum OfferLifecycle {
         var copy = offer
         copy.id = makeId()
         copy.status = status
+        copy.wasPublished = false
         copy.deadline = now.addingTimeInterval(interval)
         guard copy.id != offer.id, !copy.id.isEmpty else {
             throw .invalidInput(String(localized: "Le lot dupliqué doit avoir un nouvel identifiant."))

@@ -1841,6 +1841,32 @@ describe('groups : passation du créateur qui quitte (T-193)', () => {
   })
 })
 
+describe('boroughStats : classement solidaire (T-197)', () => {
+  const path = 'boroughStats/verdun'
+  const stats = { id: 'verdun', name: 'Verdun', shortName: 'Verdun', neighborhoods: ['Verdun'], centerGeohash: 'f25dtf', households: 12,
+    activeHouseholds: 8, groupCount: 2, basketsOffered: 3, familiesHelped: 2, savingsCents: 45_000, updatedAt: Timestamp.now() }
+  beforeEach(async () => {
+    await env.withSecurityRulesDisabled(async (c) => { await setDoc(doc(c.firestore(), path), stats) })
+  })
+
+  test('un utilisateur connecté lit et liste les arrondissements', async () => {
+    await assertSucceeds(getDoc(doc(intruder(), path)))
+    await assertSucceeds(getDocs(collection(intruder(), 'boroughStats')))
+  })
+  test('un anonyme ne lit rien', async () => {
+    await assertFails(getDoc(doc(anonymous(), path)))
+    await assertFails(getDocs(collection(anonymous(), 'boroughStats')))
+  })
+  test('aucun client n’écrit : ni création, ni modification, ni suppression (même un vendeur ou un coordonnateur)', async () => {
+    for (const db of [amina(), lafleur(), intruder(), anonymous()]) {
+      await assertFails(setDoc(doc(db, 'boroughStats/nouveau'), stats))
+      await assertFails(setDoc(doc(db, path), { ...stats, basketsOffered: 9_999 }))
+      await assertFails(updateDoc(doc(db, path), { savingsCents: 99_999_999 }))
+      await assertFails(deleteDoc(doc(db, path)))
+    }
+  })
+})
+
 // ---------------------------------------------------------------------------
 // Portail Organismes (T-194) : rattachement, profil, dons, parrainages, fonds de solidarité
 // ---------------------------------------------------------------------------

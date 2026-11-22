@@ -336,6 +336,14 @@ export async function readDemoSeed(directory: URL, seedDay: number, { rich = tru
     }
   }
 
+  // T-203 : comme `FirestoreGroupOrderRepository.setShare`, la part d'un ménage subventionné d'une commande encore
+  // ouverte se déclare admissible (`solidarityEligible`, vérifié par firestore.rules). Sans ce champ, la clôture
+  // ne voit aucun ménage subventionné et n'applique aucune subvention du fonds (T-195).
+  // T-203 : nom du ménage sur sa part, comme le pose `setShare` : l'hôte cherche et remet par nom de famille
+  // (« Famille Singh ») au lieu de « Famille 003 ».
+  const householdNames = new Map(households.map(({ id, name }) => [String(id), String(name ?? '')]))
+  const subsidizedHouseholds = new Set(householdProfiles.filter(({ isSubsidized }) => isSubsidized === true)
+    .map(({ householdId }) => householdId))
   const shares: (Record<string, unknown> & { groupOrderId: string, householdId: string })[] = []
   const groupOrders = orderFixtures.map(({ pickupSlotsInDays, shares: orderShares, ...order }): Fixture & { pickupSlots: Slot[] } => {
     const owner = `groupOrders/${order.id}`
@@ -362,8 +370,11 @@ export async function readDemoSeed(directory: URL, seedDay: number, { rich = tru
       }
       seen.add(householdId)
       quantity += Number(share.quantity)
+      const isOpen = order.status === 'open' || order.status === 'reached'
       shares.push({
         ...share, householdId, groupOrderId: order.id,
+        ...(isOpen && subsidizedHouseholds.has(householdId) ? { solidarityEligible: true } : {}),
+        ...(householdNames.get(householdId) ? { householdName: householdNames.get(householdId)!.slice(0, 80) } : {}),
         ...(pickupSlotIndex === undefined ? {} : { pickupSlotStart: pickupSlots[Number(pickupSlotIndex)]!.start })
       })
     }

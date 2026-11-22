@@ -26,7 +26,7 @@ nonisolated enum MinimumRisk {
         var projectedShares: Int
         /// Temps restant avant la date limite (0 si passée).
         var timeRemaining: TimeInterval
-        /// « Encore 6 parts en 2 jours : partage la commande » ; nil quand le niveau est `.none`.
+        /// « Il manque 6 parts pour commander · plus que 2 jours » ; nil quand le niveau est `.none`.
         var message: String?
     }
 
@@ -79,16 +79,16 @@ nonisolated enum MinimumRisk {
             level = .high
         }
 
-        let lead = String(localized: "Encore \(FrenchPlural.count(missing, "part")) \(durationPhrase(remaining))")
-        let advice = level == .high ? String(localized: "partage la commande") : String(localized: "invite tes voisins")
-        return result(level, projected: projected, message: String(localized: "\(lead) : \(advice)"))
+        // Court et direct : ce qui manque, puis le temps qu'il reste (la couleur du badge dit l'urgence).
+        let lead = String(localized: "Il manque \(FrenchPlural.count(missing, "part")) pour commander")
+        return result(level, projected: projected, message: String(localized: "\(lead) · \(durationPhrase(remaining))"))
     }
 
-    /// « en 2 jours », « en 5 heures », « en moins d'une heure ».
+    /// « plus que 2 jours », « plus que 5 heures », « moins d'une heure ».
     static func durationPhrase(_ interval: TimeInterval) -> String {
         let hours = Int(interval / 3600)
-        if hours >= 24 { return String(localized: "en \(FrenchPlural.count(hours / 24, "jour"))") }
-        if hours >= 1 { return String(localized: "en \(FrenchPlural.count(hours, "heure"))") }
-        return String(localized: "en moins d'une heure")
+        if hours >= 24 { return String(localized: "plus que \(FrenchPlural.count(hours / 24, "jour"))") }
+        if hours >= 1 { return String(localized: "plus que \(FrenchPlural.count(hours, "heure"))") }
+        return String(localized: "moins d'une heure")
     }
 }

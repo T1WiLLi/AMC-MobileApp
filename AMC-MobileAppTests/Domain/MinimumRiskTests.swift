@@ -60,13 +60,13 @@ struct MinimumRiskTests {
         #expect(risk.level == .high)
         #expect(risk.missingShares == 10)
         #expect(risk.projectedShares == 0)
-        #expect(risk.message == "Encore 10 parts en 2 jours : partage la commande")
+        #expect(risk.message == "Il manque 10 parts pour commander · plus que 2 jours")
     }
 
     @Test func noSharesRightAfterOpeningIsOnlyLow() {
         let risk = Self.assess(committed: 0, daysLeft: 6.5)
         #expect(risk.level == .low)
-        #expect(risk.message == "Encore 10 parts en 6 jours : invite tes voisins")
+        #expect(risk.message == "Il manque 10 parts pour commander · plus que 6 jours")
     }
 
     @Test func closedOrCancelledOrdersShowNothing() {
@@ -82,7 +82,7 @@ struct MinimumRiskTests {
         let risk = Self.assess(committed: 4, daysLeft: 2)
         #expect(risk.level == .high)
         #expect(risk.projectedShares == 5)
-        #expect(risk.message == "Encore 6 parts en 2 jours : partage la commande")
+        #expect(risk.message == "Il manque 6 parts pour commander · plus que 2 jours")
     }
 
     @Test func justEnoughPaceIsLow() {
@@ -90,7 +90,7 @@ struct MinimumRiskTests {
         let risk = Self.assess(committed: 6, daysLeft: 3)
         #expect(risk.level == .low)
         #expect(risk.projectedShares == 10)
-        #expect(risk.message == "Encore 4 parts en 3 jours : invite tes voisins")
+        #expect(risk.message == "Il manque 4 parts pour commander · plus que 3 jours")
     }
 
     @Test func comfortablePaceShowsNothing() {
@@ -121,16 +121,16 @@ struct MinimumRiskTests {
     // MARK: Message
 
     @Test func durationPhrases() {
-        #expect(MinimumRisk.durationPhrase(2 * Self.day + 3600) == "en 2 jours")
-        #expect(MinimumRisk.durationPhrase(Self.day) == "en 1 jour")
-        #expect(MinimumRisk.durationPhrase(5 * 3600) == "en 5 heures")
-        #expect(MinimumRisk.durationPhrase(3600) == "en 1 heure")
-        #expect(MinimumRisk.durationPhrase(1_200) == "en moins d'une heure")
+        #expect(MinimumRisk.durationPhrase(2 * Self.day + 3600) == "plus que 2 jours")
+        #expect(MinimumRisk.durationPhrase(Self.day) == "plus que 1 jour")
+        #expect(MinimumRisk.durationPhrase(5 * 3600) == "plus que 5 heures")
+        #expect(MinimumRisk.durationPhrase(3600) == "plus que 1 heure")
+        #expect(MinimumRisk.durationPhrase(1_200) == "moins d'une heure")
     }
 
     @Test func oneMissingShareIsSingular() {
         let risk = Self.assess(committed: 9, daysLeft: 0.25)
         #expect(risk.missingShares == 1)
-        #expect(risk.message?.hasPrefix("Encore 1 part en 6 heures") == true)
+        #expect(risk.message?.hasPrefix("Il manque 1 part pour commander · plus que 6 heures") == true)
     }
 }

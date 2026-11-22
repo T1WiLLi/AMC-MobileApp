@@ -124,6 +124,23 @@ struct PortalChoice: RawRepresentable, Hashable, Sendable {
         defaults.string(forKey: OnboardingKeys.portalChoice).flatMap(PortalChoice.init(rawValue:))
     }
 
+    /// Choix déduit d'un compte qui a déjà fini son onboarding : Familles s'il a un ménage, Vendeurs s'il a un vendeur.
+    /// Nil pour un compte neuf (onboarding à faire) ou sans ménage ni vendeur : il voit l'écran de choix.
+    static func restored(from context: AppContext) -> PortalChoice? {
+        guard context.isResolved, !context.needsOnboarding else { return nil }
+        var portals: Set<Portal> = []
+        if !context.householdId.isEmpty { portals.insert(.family) }
+        if !context.vendorId.isEmpty { portals.insert(.vendor) }
+        return PortalChoice(selection: portals)
+    }
+
+    /// Enregistre ce choix comme si la personne l'avait fait à l'écran (portail ouvert + drapeau).
+    func save(in defaults: UserDefaults = .standard) {
+        defaults.set(initialPortal.rawValue, forKey: Portal.storageKey)
+        defaults.set(rawValue, forKey: OnboardingKeys.portalChoice)
+        defaults.set(true, forKey: OnboardingKeys.hasChosenPortal)
+    }
+
     /// Réécrit un ancien choix (« both ») au nouveau format. Sans effet si rien n'est enregistré.
     static func migrateStoredValue(in defaults: UserDefaults = .standard) {
         guard let raw = defaults.string(forKey: OnboardingKeys.portalChoice),

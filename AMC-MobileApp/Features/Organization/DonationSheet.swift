@@ -1,7 +1,7 @@
 import SwiftUI
 
 /// Feuille « Financer » (T-116, RQ-081) : N paniers suspendus ou un don libre au fonds de solidarité d'un groupe.
-/// Aperçu en direct (montant, paniers, familles couvertes), puis remerciement animé. Paiement simulé.
+/// Aperçu en direct (montant, paniers, familles couvertes), puis l'étape de paiement (T-207) et le reçu.
 struct DonationSheet: View {
     enum Mode: String, CaseIterable, Identifiable {
         case baskets
@@ -30,7 +30,8 @@ struct DonationSheet: View {
     @State private var mode: Mode = .baskets
     @State private var basketCount = 5
     @State private var amountCents: Cents = 5_000
-    @State private var isDone = false
+    /// T-207 : étape de paiement ouverte après le choix du montant (nil : on choisit encore).
+    @State private var checkout: OrganizationCheckoutModel?
 
     private var profile: GroupSolidarityProfile? { model.profile(id: groupId) }
 
@@ -45,11 +46,16 @@ struct DonationSheet: View {
         NavigationStack {
             Group {
                 if let profile {
-                    if isDone, let donation = model.lastDonation {
-                        DonationThanksView(donation: donation) { dismiss() }
-                            .grenierTransition(.celebration)
+                    if let checkout {
+                        OrganizationPaymentFlowView(
+                            checkout: checkout,
+                            coverage: coverage(for: checkout, profile: profile),
+                            onEdit: backToForm,
+                            onDone: { dismiss() }
+                        )
                     } else {
                         form(profile)
+                            .grenierTransition(.banner)
                     }
                 } else {
                     EmptyStateView(title: "Groupe introuvable", systemImage: "questionmark.folder",
@@ -58,19 +64,52 @@ struct DonationSheet: View {
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
             .grenierBackground()
-            .navigationTitle(isDone ? String(localized: "Merci !") : String(localized: "Financer"))
+            .navigationTitle(title)
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button(isDone ? String(localized: "Terminé") : String(localized: "Annuler"), systemImage: isDone ? "checkmark" : "xmark") { dismiss() }
+                    if isDone {
+                        Button(String(localized: "Terminé"), systemImage: "checkmark") { dismiss() }
+                    } else if checkout != nil {
+                        Button(String(localized: "Modifier le montant"), systemImage: "chevron.backward", action: backToForm)
+                            .disabled(checkout?.isBusy == true)
+                    } else {
+                        Button(String(localized: "Annuler"), systemImage: "xmark") { dismiss() }
+                    }
                 }
             }
         }
         .presentationDetents([.large])
-        .grenierHaptic(.success, trigger: model.completedActions)
-        .grenierHaptic(.error, trigger: model.actionError) { _, new in new != nil }
         .grenierHaptic(.selection, trigger: mode)
         .onAppear { model.resetAction() }
+    }
+
+    private var isDone: Bool { checkout?.receipt != nil }
+
+    private var title: String {
+        if isDone { return String(localized: "Merci !") }
+        return checkout == nil ? String(localized: "Financer") : String(localized: "Paiement")
+    }
+
+    private func backToForm() {
+        guard checkout?.isBusy != true, !isDone else { return }
+        model.resetAction()
+        withGrenierAnimation(.smooth, reduceMotion: reduceMotion) { checkout = nil }
+    }
+
+    /// Ce que le paiement couvre, repris de l'aperçu « Ce que ça change ».
+    private func coverage(for checkout: OrganizationCheckoutModel, profile: GroupSolidarityProfile) -> [PaymentCoverageLine] {
+        guard case .donation(let request, _) = checkout.purpose,
+              case .success(let plan) = model.plan(request, for: profile) else { return [] }
+        return [
+            PaymentCoverageLine(systemImage: "basket.fill", tint: .grenier, text: plan.basketSummary),
+            PaymentCoverageLine(
+                systemImage: "figure.2.and.child.holdinghands", tint: .solidarite,
+                text: plan.householdsReached > 0
+                    ? String(localized: "\(FrenchPlural.count(plan.householdsReached, "famille couverte", plural: "familles couvertes")) cette fois-ci")
+                    : String(localized: "En réserve pour les prochaines familles aidées")
+            ),
+        ]
     }
 
     private func form(_ profile: GroupSolidarityProfile) -> some View {
@@ -265,19 +304,17 @@ struct DonationSheet: View {
     private func confirmBar(_ profile: GroupSolidarityProfile) -> some View {
         let plan = try? OrganizationLedger.plan(request, for: profile)
         return Button {
-            Task {
-                let done = await model.donate(request, toGroup: groupId)
-                if done { withGrenierAnimation(.bouncy, reduceMotion: reduceMotion) { isDone = true } }
-            }
+            guard let plan else { return }
+            model.resetAction()
+            let next = OrganizationCheckoutModel(
+                portal: model, purpose: .donation(request, groupId: groupId),
+                amountCents: plan.amountCents, groupName: profile.groupName
+            )
+            withGrenierAnimation(.smooth, reduceMotion: reduceMotion) { checkout = next }
         } label: {
             HStack {
-                if model.isSubmitting {
-                    ProgressView()
-                        .tint(Color.onAccent)
-                } else {
-                    Image(systemName: "heart.fill")
-                }
-                Text(plan.map { String(localized: "Financer \(Money.formatRounded($0.amountCents))") } ?? String(localized: "Financer"))
+                Image(systemName: "creditcard.fill")
+                Text(plan.map { String(localized: "Continuer · \(Money.formatRounded($0.amountCents))") } ?? String(localized: "Continuer"))
                     .contentTransition(.numericText())
             }
             .font(.headline)
@@ -286,56 +323,9 @@ struct DonationSheet: View {
         }
         .buttonStyle(.glassProminent)
         .tint(.grenier)
-        .disabled(plan == nil || model.isSubmitting)
+        .disabled(plan == nil)
         .padding(.horizontal, 16)
         .padding(.vertical, 12)
-    }
-}
-
-/// Remerciement après un financement : sceau qui rebondit et résumé.
-struct DonationThanksView: View {
-    let donation: OrganizationDonation
-    let onDone: () -> Void
-    @Environment(\.accessibilityReduceMotion) private var reduceMotion
-    @State private var appeared = false
-
-    var body: some View {
-        ScrollView {
-            VStack(spacing: 20) {
-                GrenierSymbolScene(
-                    symbol: "checkmark.seal.fill",
-                    tint: .economie,
-                    satellites: [.init("basket.fill"), .init("heart.fill", tint: .solidarite), .init("house.fill", tint: .economie)],
-                    trigger: appeared
-                )
-                VStack(spacing: 8) {
-                    Text(donation.kind == .suspendedBaskets
-                         ? String(localized: "\(FrenchPlural.count(donation.basketCount, "panier suspendu", plural: "paniers suspendus")) pour \(donation.groupName)")
-                         : String(localized: "\(Money.formatRounded(donation.amountCents)) dans le fonds de \(donation.groupName)"))
-                        .font(.title2.bold())
-                        .multilineTextAlignment(.center)
-                        .foregroundStyle(Color.texte)
-                        .fixedSize(horizontal: false, vertical: true)
-                    Text(donation.householdsReached > 0
-                         ? String(localized: "\(FrenchPlural.count(donation.householdsReached, "famille")) recevront leur panier à la prochaine commande, sans que personne sache qui.")
-                         : String(localized: "Le fonds est prêt pour les prochaines familles qui en auront besoin."))
-                        .font(.body)
-                        .multilineTextAlignment(.center)
-                        .foregroundStyle(Color.texteSecondaire)
-                        .fixedSize(horizontal: false, vertical: true)
-                }
-                Button(action: onDone) {
-                    Label("Terminé", systemImage: "checkmark")
-                        .font(.headline)
-                        .frame(maxWidth: .infinity, minHeight: 44)
-                }
-                .buttonStyle(.glass)
-                .tint(.grenier)
-            }
-            .padding(24)
-        }
-        .onAppear { appeared = true }
-        .accessibilityElement(children: .contain)
     }
 }
 

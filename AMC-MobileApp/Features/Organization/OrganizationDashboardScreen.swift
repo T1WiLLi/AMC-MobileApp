@@ -11,6 +11,7 @@ struct OrganizationDashboardScreen: View {
     @State private var donationTarget: GroupSolidarityProfile?
     /// T-208 : carte des groupes et des organismes, en plein écran.
     @State private var showsMap = false
+    @State private var receiptTarget: OrganizationPaymentReceipt?
 
     var body: some View {
         NavigationStack {
@@ -61,6 +62,21 @@ struct OrganizationDashboardScreen: View {
                         }
                         .buttonStyle(.glass)
                         .tint(.grenier)
+
+                        // T-207 : chaque don ouvre son reçu.
+                        let donations = model.recentDonations()
+                        if !donations.isEmpty {
+                            OrganizationSectionTitle("Tes derniers dons", systemImage: "doc.text.fill", tint: .economie)
+                            ForEach(donations) { donation in
+                                Button {
+                                    receiptTarget = OrganizationPaymentReceipt.make(donation: donation)
+                                } label: {
+                                    DonationHistoryRow(donation: donation)
+                                }
+                                .buttonStyle(.plain)
+                                .accessibilityHint(String(localized: "Affiche le reçu."))
+                            }
+                        }
                     }
                     .padding(16)
                 }
@@ -72,6 +88,9 @@ struct OrganizationDashboardScreen: View {
                 }
                 .fullScreenCover(isPresented: $showsMap) {
                     OrganizationMapScreen(model: model)
+                }
+                .sheet(item: $receiptTarget) { receipt in
+                    OrganizationReceiptSheet(receipt: receipt)
                 }
             }
             .grenierBackground()

@@ -250,6 +250,16 @@ final class OrganizationPortalModel {
         }
     }
 
+    /// Derniers dons, du plus récent au plus ancien (historique du Tableau, T-207).
+    func recentDonations(limit: Int = 5) -> [OrganizationDonation] {
+        Array((snapshot?.donations ?? []).sorted { $0.date > $1.date }.prefix(max(0, limit)))
+    }
+
+    /// Reçu d'un don de l'historique ; nil pour un événement qui n'est pas un don (parrainage).
+    func receipt(forDonationId id: String) -> OrganizationPaymentReceipt? {
+        snapshot?.donations.first { $0.id == id }.map { OrganizationPaymentReceipt.make(donation: $0) }
+    }
+
     /// Fil d'impact : financements et débuts de parrainage, du plus récent au plus ancien.
     var timeline: [TimelineEvent] {
         guard let snapshot else { return [] }

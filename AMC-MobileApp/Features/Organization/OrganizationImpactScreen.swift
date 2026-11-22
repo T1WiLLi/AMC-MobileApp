@@ -4,6 +4,8 @@ import SwiftUI
 struct OrganizationImpactScreen: View {
     let model: OrganizationPortalModel?
 
+    @State private var receiptTarget: OrganizationPaymentReceipt?
+
     var body: some View {
         NavigationStack {
             OrganizationStateContainer(model: model) { model, _ in
@@ -37,13 +39,28 @@ struct OrganizationImpactScreen: View {
                                            message: "Chaque panier financé par ton organisme laisse une trace ici. Finance un premier panier pour commencer l'histoire.")
                         }
                         ForEach(Array(model.timeline.enumerated()), id: \.element.id) { index, event in
-                            TimelineRow(event: event)
+                            // T-207 : un don ouvre son reçu ; un parrainage reste une simple ligne.
+                            if let receipt = model.receipt(forDonationId: event.id) {
+                                Button {
+                                    receiptTarget = receipt
+                                } label: {
+                                    TimelineRow(event: event, showsDisclosure: true)
+                                }
+                                .buttonStyle(.plain)
+                                .accessibilityHint(String(localized: "Affiche le reçu."))
                                 .grenierAppear(index: 2 + index)
+                            } else {
+                                TimelineRow(event: event)
+                                    .grenierAppear(index: 2 + index)
+                            }
                         }
                     }
                     .padding(16)
                 }
                 .refreshable { await model.load() }
+                .sheet(item: $receiptTarget) { receipt in
+                    OrganizationReceiptSheet(receipt: receipt)
+                }
             }
             .grenierBackground()
             .navigationTitle("Impact")
@@ -55,6 +72,8 @@ struct OrganizationImpactScreen: View {
 /// Une ligne du fil d'impact.
 struct TimelineRow: View {
     let event: OrganizationPortalModel.TimelineEvent
+    /// Chevron : la ligne ouvre un reçu.
+    var showsDisclosure = false
 
     private var tint: Color {
         switch event.kind {
@@ -87,7 +106,15 @@ struct TimelineRow: View {
                     .foregroundStyle(Color.texteSecondaire)
             }
             Spacer(minLength: 0)
+            if showsDisclosure {
+                Image(systemName: "chevron.right")
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(Color.texteSecondaire)
+                    .frame(maxHeight: .infinity)
+                    .accessibilityHidden(true)
+            }
         }
+        .contentShape(.rect)
         .grenierCard()
         .accessibilityElement(children: .combine)
     }

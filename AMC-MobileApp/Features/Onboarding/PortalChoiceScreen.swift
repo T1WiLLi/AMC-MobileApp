@@ -22,7 +22,8 @@ struct PortalChoiceScreen: View {
                 header
 
                 VStack(spacing: 12) {
-                    ForEach(Array(Portal.allCases.enumerated()), id: \.element) { index, portal in
+                    // Organismes : comptes créés par l'équipe Grenier seulement, donc pas de carte ici.
+                    ForEach(Array(Portal.allCases.filter(\.isSelectableAtOnboarding).enumerated()), id: \.element) { index, portal in
                         PortalCard(portal: portal, isSelected: model.isSelected(portal), isAvailable: portal.isSelectableAtOnboarding) {
                             withAnimation(reduceMotion ? nil : .smooth) { model.toggle(portal) }
                         }

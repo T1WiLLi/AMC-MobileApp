@@ -9483,6 +9483,16 @@
         }
       }
     },
+    "Fermer la fiche du lieu" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Close place details"
+          }
+        }
+      }
+    },
     "Fermes du Québec" : {
       "localizations" : {
         "en" : {

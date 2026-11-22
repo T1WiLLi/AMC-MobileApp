@@ -16196,6 +16196,16 @@
         }
       }
     },
+    "Le quartier de ton groupe doit faire %lld caractères au maximum." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Your group’s neighbourhood can be at most %lld characters."
+          }
+        }
+      }
+    },
     "Le nom de ton groupe doit faire %lld caractères au maximum." : {
       "localizations" : {
         "en" : {

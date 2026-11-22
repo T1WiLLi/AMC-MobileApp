@@ -9,6 +9,8 @@ nonisolated enum GroupRules {
 
     static let nameLengthRange = 3...40
     static let radiusRangeMeters = 1_000...2_000
+    /// Longueur maximale du slug de quartier (même limite que `firestore.rules`, V5).
+    static let neighborhoodMaxLength = 80
 
     /// Ce que la personne saisit pour créer un groupe.
     struct Draft: Sendable, Equatable {
@@ -54,6 +56,9 @@ nonisolated enum GroupRules {
         }
         if clean.neighborhood.isEmpty {
             throw AppError.invalidInput(String(localized: "Choisis le quartier de ton groupe."))
+        }
+        if clean.neighborhood.count > neighborhoodMaxLength {
+            throw AppError.invalidInput(String(localized: "Le quartier de ton groupe doit faire \(neighborhoodMaxLength) caractères au maximum."))
         }
         if clean.centerGeohash.isEmpty {
             throw AppError.invalidInput(String(localized: "Indique le centre de ton groupe sur la carte."))

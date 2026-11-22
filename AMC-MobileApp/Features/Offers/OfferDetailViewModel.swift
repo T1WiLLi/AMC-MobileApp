@@ -61,6 +61,21 @@ final class OfferDetailViewModel {
         var isLastTier: Bool { tierNumber == tierCount }
     }
 
+    /// E21-3 : feuille « Réserver = enregistrer sa carte » montrée avant la première réservation.
+    /// Rien n'est débité : le montant est un plafond (prix du palier atteint avec la part, plus le don).
+    nonisolated struct CardRegistration: Sendable, Hashable, Identifiable {
+        /// Parts que le ménage s'apprête à réserver.
+        var quantity: Int
+        /// « Tu paieras au plus X $ » : `PaymentPot.maxPriceCents` avec la part, plus le panier suspendu.
+        var maxPriceCents: Cents
+        /// Panier suspendu choisi (0 = aucun), compris dans `maxPriceCents`.
+        var donationCents: Cents
+        /// `PaymentSimulator.methodLabel` (« Apple Pay (démo) »).
+        var methodLabel: String
+
+        var id: Self { self }
+    }
+
     private(set) var state: LoadState<Content> = .idle
     /// Quantité choisie (en parts), liée au `Picker` « Ta part ».
     var selectedQuantity: Int = 1
@@ -86,6 +101,11 @@ final class OfferDetailViewModel {
     private(set) var isClosing = false
     /// E21-2 : dernière clôture faite depuis cet écran (bouton ou automatique), pour l'haptique et le message.
     private(set) var lastClosure: GroupOrderClosure?
+    /// E21-3 : feuille d'enregistrement de la carte à présenter, nil sinon (`requestReserve()`).
+    private(set) var cardRegistration: CardRegistration?
+    /// E21-3 : la carte a été enregistrée pendant cette visite de la fiche (rien n'est persisté) :
+    /// les changements de quantité suivants ne remontrent pas la feuille.
+    private(set) var hasRegisteredCard = false
 
     private let repositories: AppRepositories
     private let offerId: String
@@ -135,8 +155,42 @@ final class OfferDetailViewModel {
     /// Total de la quantité choisie au prix projeté (« 26,00 $ »).
     var selectedTotalCents: Cents { projectedPricing?.totalCents(forShares: selectedQuantity) ?? 0 }
 
-    /// Part choisie + panier suspendu : ce que le ménage paie à la cueillette.
+    /// Part choisie + panier suspendu, au prix du palier qu'atteindrait le groupe avec cette part.
     var selectedTotalWithBasketCents: Cents { selectedTotalCents + suspendedCents }
+
+    /// E21-3 : « Tu paieras au plus X $ » pour la quantité choisie : `PaymentPot.maxPriceCents` au palier atteint
+    /// avec cette part (le prix ne fait que baisser ensuite), plus le panier suspendu choisi.
+    var selectedMaxPriceCents: Cents {
+        guard let content = state.value else { return 0 }
+        return Self.maxPriceCents(quantity: selectedQuantity, content: content,
+                                  committedShares: projectedCommittedShares(content)) + suspendedCents
+    }
+
+    /// E21-3 : plafond de la part déjà réservée tant que la commande est ouverte (nil sinon) :
+    /// « Tu paieras au plus X $ · prix final à la clôture ». Suit le palier en direct (`observe()`).
+    var reservedMaxPriceCents: Cents? {
+        guard let content = state.value, content.myShareQuantity > 0, content.isOpen,
+              content.groupOrder != nil else { return nil }
+        return Self.maxPriceCents(quantity: content.myShareQuantity, content: content,
+                                  committedShares: content.committedShares) + content.mySuspendedCents
+    }
+
+    /// La feuille de la carte s'ouvre au prochain « Réserver » : première part du ménage sur cette commande
+    /// et carte pas encore enregistrée pendant cette visite.
+    var needsCardRegistration: Bool {
+        guard let content = state.value else { return false }
+        return content.myShareQuantity == 0 && !hasRegisteredCard
+    }
+
+    /// `PaymentPot.maxPriceCents` sur la commande du groupe, ou sur une commande pas encore ouverte.
+    private static func maxPriceCents(quantity: Int, content: Content, committedShares: Int) -> Cents {
+        var order = content.groupOrder ?? GroupOrder(
+            id: "", groupId: "", offerId: content.offer.id, status: .open, currentTierIndex: nil,
+            committedShares: 0, committedHouseholds: 0, pickupPointId: nil, pickupSlots: []
+        )
+        order.committedShares = max(0, committedShares)
+        return PaymentPot.maxPriceCents(quantity: quantity, offer: content.offer, order: order)
+    }
 
     /// Touche une puce : la même puce une deuxième fois retire le panier suspendu.
     func toggleSuspended(_ cents: Cents) {
@@ -202,6 +256,8 @@ final class OfferDetailViewModel {
         }
         await loadCloser()
         if let content = state.value, content.myShareQuantity > 0 {
+            // E21-3 : une part existante veut dire que la carte a déjà été enregistrée à la réservation.
+            hasRegisteredCard = true
             selectedQuantity = content.myShareQuantity
             suspendedCents = content.mySuspendedCents
         }
@@ -258,6 +314,36 @@ final class OfferDetailViewModel {
             actionError = AppError(error)
         }
         await fetch()
+    }
+
+    /// Bouton « Réserver » : à la première part, montre d'abord la feuille de la carte (`cardRegistration`) ;
+    /// sinon réserve tout de suite.
+    func requestReserve() async {
+        guard canReserve else { return }
+        if needsCardRegistration {
+            cardRegistration = CardRegistration(
+                quantity: selectedQuantity,
+                maxPriceCents: selectedMaxPriceCents,
+                donationCents: suspendedCents,
+                methodLabel: PaymentSimulator.methodLabel
+            )
+            return
+        }
+        await reserve()
+    }
+
+    /// « Enregistrer et réserver » dans la feuille : la carte est retenue pour la visite, puis la part est réservée.
+    /// Aucun montant n'est retenu.
+    func confirmCardRegistration() async {
+        guard cardRegistration != nil else { return }
+        cardRegistration = nil
+        hasRegisteredCard = true
+        await reserve()
+    }
+
+    /// « Annuler » dans la feuille : rien n'est réservé ni enregistré.
+    func dismissCardRegistration() {
+        cardRegistration = nil
     }
 
     /// Réserve `selectedQuantity` parts (ou change la part). Si un palier tombe, remplit `celebration`.

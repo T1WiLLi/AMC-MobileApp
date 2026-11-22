@@ -186,6 +186,16 @@ private struct OfferDetailContent: View {
         .sheet(isPresented: celebrationPresented) {
             celebrationSheet
         }
+        // E21-3 : première réservation, la carte s'enregistre avant (rien n'est débité).
+        .sheet(item: cardRegistrationPresented) { registration in
+            CardRegistrationSheet(
+                registration: registration,
+                shareLabel: Self.quantityLabel(registration.quantity,
+                                               shareUnit: viewModel.state.value?.offer.displayShareUnit ?? ""),
+                onConfirm: { Task { await viewModel.confirmCardRegistration() } },
+                onCancel: { viewModel.dismissCardRegistration() }
+            )
+        }
         .onChange(of: viewModel.celebration) { _, newValue in
             if let newValue { shownCelebration = newValue }
         }
@@ -210,6 +220,13 @@ private struct OfferDetailContent: View {
         Binding(
             get: { viewModel.actionError != nil },
             set: { if !$0 { viewModel.actionError = nil } }
+        )
+    }
+
+    private var cardRegistrationPresented: Binding<OfferDetailViewModel.CardRegistration?> {
+        Binding(
+            get: { viewModel.cardRegistration },
+            set: { if $0 == nil { viewModel.dismissCardRegistration() } }
         )
     }
 
@@ -787,6 +804,9 @@ private struct OfferDetailContent: View {
                     trigger: content.myShareQuantity
                 )
                 .grenierTransition(.cardAppear)
+                if let maxPrice = viewModel.reservedMaxPriceCents {
+                    maxPriceLabel(maxPrice)
+                }
                 if content.isOpen {
                     Button(role: .destructive) {
                         Task { await viewModel.cancelShare() }
@@ -801,6 +821,23 @@ private struct OfferDetailContent: View {
         }
         .grenierAnimation(.smooth, value: viewModel.selectedQuantity)
         .grenierAnimation(.smooth, value: content.myShareQuantity)
+    }
+
+    /// E21-3 : « Tu paieras au plus X $ · prix final à la clôture », suit le palier en direct.
+    private func maxPriceLabel(_ cents: Cents) -> some View {
+        Label {
+            Text("Tu paieras au plus \(Text(Money.format(cents)).foregroundStyle(Color.texte).bold()) · prix final à la clôture")
+                .contentTransition(.numericText(value: Double(cents)))
+                .fixedSize(horizontal: false, vertical: true)
+        } icon: {
+            Image(systemName: "creditcard.fill")
+                .symbolRenderingMode(.hierarchical)
+                .foregroundStyle(Color.grenier)
+                .symbolEffect(.bounce, value: effectTrigger(cents))
+        }
+        .font(.subheadline)
+        .foregroundStyle(.texteSecondaire)
+        .grenierAnimation(.smooth, value: cents)
     }
 
     @ViewBuilder
@@ -830,26 +867,29 @@ private struct OfferDetailContent: View {
         let quantity = Self.quantityLabel(viewModel.selectedQuantity, shareUnit: content.offer.displayShareUnit)
         return layout {
             VStack(alignment: .leading, spacing: 2) {
-                Text(Money.format(viewModel.selectedTotalWithBasketCents))
+                Text("Au plus")
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(.texteSecondaire)
+                Text(Money.format(viewModel.selectedMaxPriceCents))
                     .priceStyle(.title2.bold())
                     .foregroundStyle(.texte)
-                    .contentTransition(.numericText(value: Double(viewModel.selectedTotalWithBasketCents)))
+                    .contentTransition(.numericText(value: Double(viewModel.selectedMaxPriceCents)))
                 Label(viewModel.suspendedCents > 0
                       ? String(localized: "\(quantity) + panier suspendu \(Money.formatRounded(viewModel.suspendedCents))")
-                      : String(localized: "\(quantity) · payé à la cueillette"), systemImage: OfferDetailSymbol.payment)
+                      : String(localized: "\(quantity) · prix final à la clôture"), systemImage: OfferDetailSymbol.payment)
                     .font(.footnote)
                     .symbolRenderingMode(.hierarchical)
                     .foregroundStyle(.texteSecondaire)
             }
             .accessibilityElement(children: .combine)
             .accessibilityLabel(viewModel.suspendedCents > 0
-                ? String(localized: "Total \(Money.format(viewModel.selectedTotalWithBasketCents)) pour \(quantity), dont \(Money.formatRounded(viewModel.suspendedCents)) de panier suspendu, payé à la cueillette")
-                : String(localized: "Total \(Money.format(viewModel.selectedTotalWithBasketCents)) pour \(quantity), payé à la cueillette"))
+                ? String(localized: "Au plus \(Money.format(viewModel.selectedMaxPriceCents)) pour \(quantity), dont \(Money.formatRounded(viewModel.suspendedCents)) de panier suspendu, prix final à la clôture")
+                : String(localized: "Au plus \(Money.format(viewModel.selectedMaxPriceCents)) pour \(quantity), prix final à la clôture"))
 
             if !dynamicTypeSize.isAccessibilitySize { Spacer(minLength: 0) }
 
             Button {
-                Task { await viewModel.reserve() }
+                Task { await viewModel.requestReserve() }
             } label: {
                 Group {
                     if viewModel.isSaving {
@@ -904,9 +944,9 @@ private struct OfferDetailContent: View {
     private func reservedMessage(_ content: OfferDetailViewModel.Content) -> String {
         let share = Self.quantityLabel(content.myShareQuantity, shareUnit: content.offer.displayShareUnit)
         if content.mySuspendedCents > 0 {
-            return String(localized: "Tu as réservé \(share) et offert un panier suspendu de \(Money.formatRounded(content.mySuspendedCents)). Merci ! Tu paies à la cueillette.")
+            return String(localized: "Tu as réservé \(share) et offert un panier suspendu de \(Money.formatRounded(content.mySuspendedCents)). Merci ! Rien n'est débité avant le prix final.")
         }
-        return String(localized: "Tu as réservé \(share). Tu paies à la cueillette.")
+        return String(localized: "Tu as réservé \(share). Rien n'est débité avant le prix final.")
     }
 
     /// Libellé court du bouton : la quantité choisie est affichée dans le résumé à côté.
@@ -1254,7 +1294,7 @@ private struct TierCelebrationView: View {
     ScrollView {
         VStack(spacing: 16) {
             OfferSymbolScene(symbol: OfferDetailSymbol.shareSection, badge: "checkmark.circle.fill", tint: .economie,
-                             title: "Part réservée !", message: "Tu as réservé 20 kg. Tu paies à la cueillette.")
+                             title: "Part réservée !", message: "Tu as réservé 20 kg. Rien n'est débité avant le prix final.")
             OfferSymbolScene(symbol: GrenierSymbol.offers, badge: "lock.circle.fill",
                              title: "Commande fermée", message: "Les parts sont figées.")
             OfferSymbolScene(symbol: GrenierSymbol.offers, badge: "xmark.circle.fill", tint: .texteSecondaire,

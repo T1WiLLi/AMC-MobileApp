@@ -28,11 +28,14 @@ nonisolated struct OfferSummary: Identifiable, Sendable, Hashable {
 /// Assemble des `OfferSummary` à partir des dépôts.
 nonisolated enum OfferSummaryLoader {
     /// Une entrée par lot de `offers`, reliée à la commande du groupe sur ce lot s'il y en a une.
+    /// `includeMyShares` : faux pour un ménage qui n'est pas membre du groupe (T-172) — les règles réservent
+    /// `groupOrders/{id}/shares` aux membres, et un visiteur n'a de toute façon aucune part.
     static func summaries(
         for offers: [Offer],
         groupOrders: [GroupOrder],
         householdId: String,
-        repositories: AppRepositories
+        repositories: AppRepositories,
+        includeMyShares: Bool = true
     ) async throws -> [OfferSummary] {
         var vendors: [String: Vendor] = [:]
         var result: [OfferSummary] = []
@@ -47,7 +50,7 @@ nonisolated enum OfferSummaryLoader {
             }
             let order = groupOrders.first { $0.offerId == offer.id }
             var myQuantity = 0
-            if let order {
+            if let order, includeMyShares {
                 myQuantity = try await shareQuantity(householdId: householdId, groupOrderId: order.id,
                                                      repositories: repositories)
             }

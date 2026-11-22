@@ -26,6 +26,26 @@ final class GroupDetailViewModel {
         /// Initiales des premiers ménages membres (« B » pour « Famille Benali »), tirées de leur nom réel.
         /// Un ménage illisible (règles, réseau) est simplement omis : jamais d'initiales inventées.
         var memberInitials: [String] = []
+        /// T-172 : nom du ménage qui coordonne le groupe (« Famille Benali »), nil s'il est illisible
+        /// (les règles ne laissent lire un ménage qu'à ses membres) ou si le groupe n'a pas de coordonnateur.
+        var coordinatorName: String? = nil
+
+        /// T-172 : qui regarde la fiche.
+        var audience: Audience { Audience(isMember: isMember, isPublic: group.isPublic) }
+    }
+
+    /// T-172 (FB-13) : un membre voit la fiche complète ; un visiteur voit la fiche publique du groupe
+    /// (« Rejoindre » pour un groupe public, « Demander une invitation » pour un groupe privé).
+    nonisolated enum Audience: Sendable, Hashable {
+        case member
+        case publicVisitor
+        case privateVisitor
+
+        init(isMember: Bool, isPublic: Bool) {
+            self = isMember ? .member : (isPublic ? .publicVisitor : .privateVisitor)
+        }
+
+        var isMember: Bool { self == .member }
     }
 
     private(set) var state: LoadState<Content> = .idle
@@ -78,24 +98,34 @@ final class GroupDetailViewModel {
             async let ordersLoad = repositories.groupOrders.groupOrders(ofGroup: groupId)
             let (group, members, allOrders) = try await (groupLoad, membersLoad, ordersLoad)
             let orders = allOrders.filter(OfferSummaryLoader.isActive)
+            // T-172 (FB-13) : un visiteur ne lit pas les parts (réservées aux membres par les règles) :
+            // c'est ce refus qui affichait « Action non permise » à la place de la fiche.
+            let isMember = members.contains { $0.householdId == householdId }
 
             async let initials = Self.memberInitials(of: members, repositories: repositories)
+            async let coordinator = Self.coordinatorName(of: members, repositories: repositories)
             async let pickupPointLoad: PickupPoint? = {
                 guard let pointId = orders.lazy.compactMap(\.pickupPointId).first else { return nil }
                 return try await repositories.pickupPoints.pickupPoint(id: pointId)
             }()
             let offers = try await FamilyHomeViewModel.offers(for: orders, repositories: repositories)
             let summaries = try await OfferSummaryLoader.summaries(
-                for: offers, groupOrders: orders, householdId: householdId, repositories: repositories
+                for: offers, groupOrders: orders, householdId: householdId, repositories: repositories,
+                includeMyShares: isMember
             )
             let pickupPoint = try await pickupPointLoad
             let now = Date.now
             let nextSlot = orders.flatMap(\.pickupSlots).filter { $0.end > now }.min { $0.start < $1.start }
-            return Content(group: group, members: members,
-                           isMember: members.contains { $0.householdId == householdId },
+            return Content(group: group, members: members, isMember: isMember,
                            pickupPoint: pickupPoint, nextSlot: nextSlot, openOrders: summaries,
-                           memberInitials: await initials)
+                           memberInitials: await initials, coordinatorName: await coordinator)
         }
+    }
+
+    /// T-172 : nom du premier ménage coordonnateur, lu dans `households/{id}` ; nil s'il est illisible.
+    nonisolated static func coordinatorName(of members: [GroupMember], repositories: AppRepositories) async -> String? {
+        guard let id = members.first(where: { $0.role == .coordinator })?.householdId else { return nil }
+        return try? await repositories.users.household(id: id).name
     }
 
     /// Initiales des trois premiers ménages membres, lues en parallèle depuis `households/{id}`.

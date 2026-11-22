@@ -1,6 +1,6 @@
 // FamilyMapComponents.swift
-// Morceaux de la carte des familles (T-091) : épingles par sorte de lieu, repère du quartier,
-// explication de la position et carte en verre du lieu touché.
+// Morceaux de la carte des familles (T-091, refonte T-172) : épingles avec photo, repère du quartier,
+// explication de la position et carrousel des lieux (cartes opaques, synchronisées avec l'épingle choisie).
 
 import MapKit
 import SwiftUI
@@ -16,48 +16,142 @@ extension FamilyMapViewModel.Kind {
     }
 }
 
+extension FamilyMapViewModel.Place {
+    /// Ligne d'info du carrousel : « 27 familles · Hochelaga », « Jeudi, 17 h – 18 h », « Ferme · 3 lots ouverts ».
+    var subtitle: String {
+        switch detail {
+        case .group(let group, let isMember):
+            let families = FrenchPlural.count(group.householdCount, "famille")
+            if isMember { return String(localized: "\(families) · tu en fais partie") }
+            guard let neighborhood = NeighborhoodName.display(group.neighborhood) else { return families }
+            return "\(families) · \(neighborhood)"
+        case .pickupPoint(let point):
+            if let slot = point.slots.first { return PickupPointFormatting.slotText(slot) }
+            let street = PickupPointFormatting.firstLine(of: point.address)
+            return street.isEmpty ? String(localized: "Jusqu'à \(point.capacity) parts") : street
+        case .producer(let vendor, _, let openOfferCount):
+            let kind = FamilyMapPlaceTile.kindText(vendor.kind)
+            return openOfferCount == 0
+                ? String(localized: "\(kind) · pas de lot ouvert")
+                : "\(kind) · \(FrenchPlural.count(openOfferCount, "lot ouvert", plural: "lots ouverts"))"
+        }
+    }
+
+    /// Écran ouvert en touchant la carte du lieu ; nil pour un point de cueillette (itinéraire dans Plans).
+    var destination: FamilyMapDestination? {
+        switch detail {
+        case .group(let group, _): .group(group.id)
+        case .producer(let vendor, _, _): .vendor(vendor.id)
+        case .pickupPoint: nil
+        }
+    }
+
+    /// Itinéraire à pied vers un point de cueillette (Plans).
+    func openWalkingDirections() {
+        guard case .pickupPoint(let point) = detail else { return }
+        PickupPointFormatting.mapItem(name: point.name, address: point.address, coordinate: coordinate.location)
+            .openInMaps(launchOptions: [MKLaunchOptionsDirectionsModeKey: MKLaunchOptionsDirectionsModeWalking])
+    }
+}
+
+// MARK: - Vignette (photo ou symbole)
+
+/// Photo du groupe ou du producteur ; à défaut (ou pendant le chargement), le symbole de la sorte sur un dégradé.
+struct FamilyMapThumbnail: View {
+    let kind: FamilyMapViewModel.Kind
+    let photoURL: URL?
+    var symbolScale: CGFloat = 0.42
+
+    var body: some View {
+        GeometryReader { proxy in
+            MediaImage(url: photoURL) {
+                LinearGradient(colors: [kind.color, kind.color.opacity(0.75)], startPoint: .topLeading,
+                               endPoint: .bottomTrailing)
+                    .overlay {
+                        Image(systemName: kind.systemImage)
+                            .font(.system(size: proxy.size.width * symbolScale, weight: .semibold))
+                            .foregroundStyle(Color.onAccent)
+                    }
+            }
+        }
+        .accessibilityHidden(true)
+    }
+}
+
 // MARK: - Épingle
 
-/// Pastille colorée avec le symbole de la sorte et sa petite tige ; grossit et rebondit quand elle est choisie.
+/// Médaillon (photo ou symbole) cerclé de la couleur de la sorte, avec sa pointe ; quand il est choisi,
+/// il grossit, rebondit et affiche le nom du lieu au-dessus.
 struct FamilyMapPin: View {
     let kind: FamilyMapViewModel.Kind
+    var photoURL: URL? = nil
+    var name: String = ""
     let isSelected: Bool
     let reduceMotion: Bool
     let action: () -> Void
 
-    @ScaledMetric(relativeTo: .body) private var size: CGFloat = 40
+    @ScaledMetric(relativeTo: .body) private var scaledSize: CGFloat = 40
+    private var size: CGFloat { min(scaledSize, 60) }
 
     var body: some View {
         Button(action: action) {
             VStack(spacing: 0) {
-                Image(systemName: kind.systemImage)
-                    .font(.system(size: min(size, 64) * 0.45, weight: .semibold))
-                    .foregroundStyle(Color.onAccent)
-                    .symbolEffect(.bounce, value: reduceMotion ? false : isSelected)
-                    .frame(width: min(size, 64), height: min(size, 64))
-                    .background(kind.color, in: .circle)
-                    .padding(3)
-                    .background(Color.surface, in: .circle)
-                    .overlay {
-                        if isSelected { Circle().strokeBorder(Color.texte, lineWidth: 2) }
+                ZStack(alignment: .bottomTrailing) {
+                    FamilyMapThumbnail(kind: kind, photoURL: photoURL)
+                        .frame(width: size, height: size)
+                        .clipShape(.circle)
+                        .padding(2.5)
+                        .background(kind.color, in: .circle)
+                        .padding(2)
+                        .background(Color.surface, in: .circle)
+                        .shadow(color: .black.opacity(isSelected ? 0.28 : 0.14), radius: isSelected ? 10 : 5, y: 3)
+                        .symbolEffect(.bounce, value: reduceMotion ? false : isSelected)
+                    if photoURL != nil {
+                        // Photo : le symbole de la sorte reste lisible en pastille.
+                        Image(systemName: kind.systemImage)
+                            .font(.system(size: size * 0.26, weight: .bold))
+                            .foregroundStyle(Color.onAccent)
+                            .frame(width: size * 0.46, height: size * 0.46)
+                            .background(kind.color, in: .circle)
+                            .overlay(Circle().strokeBorder(Color.surface, lineWidth: 1.5))
+                            .offset(x: 4, y: 2)
                     }
-                    .shadow(color: .black.opacity(isSelected ? 0.25 : 0.12), radius: isSelected ? 10 : 5, y: 2)
-                Capsule()
-                    .fill(kind.color)
-                    .frame(width: 3, height: 8)
+                }
+                Image(systemName: "arrowtriangle.down.fill")
+                    .font(.system(size: 10))
+                    .foregroundStyle(kind.color)
+                    .offset(y: -2)
             }
-            .scaleEffect(isSelected && !reduceMotion ? 1.18 : 1, anchor: .bottom)
+            .overlay(alignment: .top) {
+                if isSelected && !name.isEmpty {
+                    Text(name)
+                        .font(.caption.weight(.semibold))
+                        .foregroundStyle(Color.texte)
+                        .lineLimit(1)
+                        .padding(.horizontal, 10)
+                        .padding(.vertical, 5)
+                        .glassEffect(.regular, in: .capsule)
+                        .fixedSize()
+                        .alignmentGuide(.top) { $0[.bottom] + 6 }
+                        .transition(.scale(scale: 0.6, anchor: .bottom).combined(with: .opacity))
+                        .accessibilityHidden(true)
+                }
+            }
+            .scaleEffect(isSelected && !reduceMotion ? 1.22 : 1, anchor: .bottom)
             .frame(minWidth: 44, minHeight: 44)
             .contentShape(.rect)
         }
         .buttonStyle(.plain)
-        .animation(reduceMotion ? nil : .spring(duration: 0.35, bounce: 0.35), value: isSelected)
+        .animation(reduceMotion ? nil : .spring(duration: 0.4, bounce: 0.4), value: isSelected)
+        .zIndex(isSelected ? 1 : 0)
     }
 }
 
-/// Repère du quartier du ménage quand la position n'est pas utilisée.
+/// Repère du quartier du ménage quand la position n'est pas utilisée (halo qui respire).
 struct FamilyMapHomeMarker: View {
     @ScaledMetric(relativeTo: .body) private var size: CGFloat = 32
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @State private var breathes = false
 
     var body: some View {
         Image(systemName: "house.fill")
@@ -66,7 +160,17 @@ struct FamilyMapHomeMarker: View {
             .frame(width: min(size, 48), height: min(size, 48))
             .background(Color.surface, in: .circle)
             .overlay(Circle().strokeBorder(Color.grenier, lineWidth: 2))
+            .background {
+                Circle()
+                    .fill(Color.grenier.opacity(0.18))
+                    .scaleEffect(breathes ? 2.1 : 1.3)
+                    .opacity(breathes ? 0 : 1)
+            }
             .shadow(color: .black.opacity(0.15), radius: 4, y: 1)
+            .onAppear {
+                guard !reduceMotion else { return }
+                withAnimation(.easeOut(duration: 2.2).repeatForever(autoreverses: false)) { breathes = true }
+            }
             .accessibilityLabel("Ton quartier")
     }
 }
@@ -136,156 +240,134 @@ private extension String {
     var lowercasedFirst: String { prefix(1).lowercased() + dropFirst() }
 }
 
-// MARK: - Carte du lieu touché
+// MARK: - Carrousel des lieux
 
-/// Détails du lieu et une action : voir le groupe, l'itinéraire vers le point, ou le lot du producteur.
-struct FamilyMapPlaceCard: View {
-    let place: FamilyMapViewModel.Place
-    /// Ouvre un groupe, un producteur ou un lot : la carte pousse elle-même l'écran (`FamilyMapDestination`).
-    var onOpen: (FamilyMapDestination) -> Void = { _ in }
-    let onClose: () -> Void
-
-    @ScaledMetric(relativeTo: .title2) private var badgeSize: CGFloat = 48
-    @ScaledMetric(relativeTo: .body) private var iconWidth: CGFloat = 24
+/// Cartes des lieux visibles, du plus proche au plus loin. Faire défiler choisit le lieu (l'épingle grossit et
+/// la carte s'y déplace) ; toucher une épingle fait défiler jusqu'à sa carte (`selectedID` partagé).
+struct FamilyMapCarousel: View {
+    let places: [FamilyMapViewModel.Place]
+    @Binding var selectedID: String?
+    let reduceMotion: Bool
+    let onOpen: (FamilyMapDestination) -> Void
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 14) {
-            header
-            VStack(alignment: .leading, spacing: 8) { details }
-            action
+        ScrollView(.horizontal) {
+            LazyHStack(spacing: 10) {
+                ForEach(places) { place in
+                    FamilyMapPlaceTile(place: place, isSelected: place.id == selectedID, onOpen: onOpen)
+                        .containerRelativeFrame(.horizontal)
+                        .scrollTransition(.interactive) { content, phase in
+                            content
+                                .scaleEffect(phase.isIdentity || reduceMotion ? 1 : 0.94)
+                                .opacity(phase.isIdentity ? 1 : 0.8)
+                        }
+                        .id(place.id)
+                }
+            }
+            .scrollTargetLayout()
         }
-        .padding(18)
-        .glassEffect(.regular, in: .rect(cornerRadius: 28))
+        .scrollTargetBehavior(.viewAligned)
+        .scrollPosition(id: $selectedID, anchor: .center)
+        .scrollIndicators(.hidden)
+        .contentMargins(.horizontal, 24, for: .scrollContent)
+        .scrollClipDisabled()
         .accessibilityElement(children: .contain)
+        .accessibilityLabel("Lieux sur la carte")
     }
+}
 
-    private var header: some View {
-        HStack(alignment: .top, spacing: 12) {
-            Image(systemName: place.kind.systemImage)
-                .font(.title3.weight(.semibold))
-                .foregroundStyle(Color.onAccent)
-                .frame(width: min(badgeSize, 72), height: min(badgeSize, 72))
-                .background(place.kind.color, in: .circle)
-                .accessibilityHidden(true)
-            VStack(alignment: .leading, spacing: 2) {
-                Text(place.name)
-                    .font(.headline)
-                    .foregroundStyle(Color.texte)
-                    .accessibilityAddTraits(.isHeader)
-                Text("\(place.kind.title) · \(place.distanceText)")
-                    .font(.subheadline)
-                    .foregroundStyle(Color.texteSecondaire)
+/// Carte opaque d'un lieu : vignette, sorte, nom, info utile, distance à pied. La toucher ouvre le groupe
+/// ou le producteur, ou l'itinéraire vers un point de cueillette ; appui long pour les autres actions.
+struct FamilyMapPlaceTile: View {
+    let place: FamilyMapViewModel.Place
+    let isSelected: Bool
+    let onOpen: (FamilyMapDestination) -> Void
+
+    @ScaledMetric(relativeTo: .headline) private var scaledThumbnail: CGFloat = 68
+    private var thumbnail: CGFloat { min(scaledThumbnail, 96) }
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
+
+    var body: some View {
+        Button(action: open) {
+            HStack(spacing: 14) {
+                if !dynamicTypeSize.isAccessibilitySize {
+                    FamilyMapThumbnail(kind: place.kind, photoURL: place.photoURL)
+                        .frame(width: thumbnail, height: thumbnail)
+                        .clipShape(.rect(cornerRadius: 18))
+                }
+                VStack(alignment: .leading, spacing: 3) {
+                    Label(place.kind.title, systemImage: place.kind.systemImage)
+                        .font(.caption.weight(.semibold))
+                        .symbolRenderingMode(.hierarchical)
+                        .foregroundStyle(place.kind.color)
+                    Text(place.name)
+                        .font(.headline)
+                        .foregroundStyle(Color.texte)
+                        .lineLimit(2)
+                    Text(place.subtitle)
+                        .font(.subheadline)
+                        .foregroundStyle(Color.texteSecondaire)
+                        .lineLimit(1)
+                    Label(place.distanceText, systemImage: "figure.walk")
+                        .font(.caption.weight(.semibold))
+                        .foregroundStyle(place.kind.color)
+                        .padding(.horizontal, 8)
+                        .padding(.vertical, 3)
+                        .background(place.kind.color.opacity(0.12), in: .capsule)
+                        .padding(.top, 2)
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+                Image(systemName: place.destination == nil ? "arrow.triangle.turn.up.right.circle.fill" : "chevron.right.circle.fill")
+                    .font(.title2)
+                    .symbolRenderingMode(.hierarchical)
+                    .foregroundStyle(place.kind.color)
+                    .accessibilityHidden(true)
             }
+            .padding(14)
             .frame(maxWidth: .infinity, alignment: .leading)
-            Button("Fermer", systemImage: "xmark", action: onClose)
-                .labelStyle(.iconOnly)
-                .font(.body.weight(.semibold))
-                .buttonStyle(.glass)
-                .buttonBorderShape(.circle)
-                .accessibilityLabel("Fermer les détails")
+            .background(Color.surface, in: .rect(cornerRadius: 26))
+            .overlay {
+                RoundedRectangle(cornerRadius: 26)
+                    .strokeBorder(place.kind.color.opacity(isSelected ? 0.9 : 0), lineWidth: 2)
+            }
+            .shadow(color: .black.opacity(isSelected ? 0.18 : 0.1), radius: isSelected ? 14 : 8, y: 4)
+            .contentShape(.rect(cornerRadius: 26))
+        }
+        .buttonStyle(.plain)
+        .contextMenu { menu }
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel(place.accessibilityLabel + ", " + place.subtitle)
+        .accessibilityHint(hint)
+        .accessibilityAddTraits(isSelected ? [.isButton, .isSelected] : .isButton)
+    }
+
+    private var hint: String {
+        switch place.kind {
+        case .group: String(localized: "Ouvre la fiche du groupe")
+        case .pickupPoint: String(localized: "Ouvre l'itinéraire à pied dans Plans")
+        case .producer: String(localized: "Ouvre la page du producteur")
         }
     }
 
-    @ViewBuilder private var details: some View {
-        switch place.detail {
-        case .group(let group, let isMember):
-            row("person.2.fill", "\(group.householdCount) \(group.householdCount > 1 ? "familles" : "famille")")
-            row("circle.dashed", String(localized: "Rayon de \(NeighborhoodMapLayout.distanceText(group.radiusMeters)) · \(group.neighborhood)"))
-            if isMember {
-                row("checkmark.seal.fill", String(localized: "Tu en fais partie"), tint: .economie)
-            }
-        case .pickupPoint(let point):
-            if let slot = point.slots.first {
-                row("clock.fill", PickupPointFormatting.slotText(slot))
-            }
-            let street = PickupPointFormatting.firstLine(of: point.address)
-            if !street.isEmpty { row("mappin.and.ellipse", street) }
-            if !point.accessibility.isEmpty {
-                row("figure.roll", PickupPointFormatting.accessibilityText(point.accessibility))
-            }
-            row("shippingbox.fill", String(localized: "Jusqu'à \(point.capacity) parts"))
-        case .producer(let vendor, _, let openOfferCount):
-            row("storefront.fill", Self.kindText(vendor.kind) + (vendor.isVerified ? String(localized: " · vérifié") : ""))
-            if let rating = vendor.averageRating {
-                row("star.fill", rating.formatted(.number.precision(.fractionLength(1)).locale(Locale(identifier: "fr_CA"))) + String(localized: " sur 5"))
-            }
-            if !vendor.description.isEmpty {
-                Text(vendor.description)
-                    .font(.subheadline)
-                    .foregroundStyle(Color.texteSecondaire)
-                    .lineLimit(3)
-            }
-            row("tag.fill", openOfferCount == 0
-                ? String(localized: "Pas de lot ouvert en ce moment")
-                : "\(openOfferCount) \(openOfferCount > 1 ? "lots ouverts" : "lot ouvert")")
+    private func open() {
+        if let destination = place.destination {
+            onOpen(destination)
+        } else {
+            place.openWalkingDirections()
         }
     }
 
-    @ViewBuilder private var action: some View {
+    @ViewBuilder private var menu: some View {
         switch place.detail {
         case .group(let group, _):
-            Button {
-                onOpen(.group(group.id))
-            } label: {
-                actionLabel("Voir le groupe", systemImage: "person.3.fill")
-            }
-            .buttonStyle(.glassProminent)
-            .tint(.grenier)
-            .controlSize(.large)
-        case .pickupPoint(let point):
-            Button {
-                PickupPointFormatting.mapItem(name: point.name, address: point.address, coordinate: place.coordinate.location)
-                    .openInMaps(launchOptions: [MKLaunchOptionsDirectionsModeKey: MKLaunchOptionsDirectionsModeWalking])
-            } label: {
-                actionLabel("Itinéraire à pied", systemImage: "figure.walk")
-            }
-            .buttonStyle(.glassProminent)
-            .tint(.grenier)
-            .controlSize(.large)
-            .accessibilityHint("Ouvre Plans")
+            Button("Voir le groupe", systemImage: "person.3.fill") { onOpen(.group(group.id)) }
+        case .pickupPoint:
+            Button("Itinéraire à pied", systemImage: "figure.walk") { place.openWalkingDirections() }
         case .producer(let vendor, let offerId, _):
-            // T-157 : la page du producteur (étoiles, produits, prix, dernière vente) est l'action principale.
-            VStack(spacing: 8) {
-                Button {
-                    onOpen(.vendor(vendor.id))
-                } label: {
-                    actionLabel("Voir le producteur", systemImage: "storefront.fill")
-                }
-                .buttonStyle(.glassProminent)
-                .tint(.grenier)
-                .controlSize(.large)
-                .accessibilityHint("Ouvre la page de \(vendor.legalName) : avis, produits et prix")
-                if let offerId {
-                    Button {
-                        onOpen(.offer(offerId))
-                    } label: {
-                        actionLabel("Voir son lot", systemImage: "basket.fill")
-                    }
-                    .buttonStyle(.glass)
-                    .tint(.grenier)
-                    .controlSize(.large)
-                }
+            Button("Voir le producteur", systemImage: "storefront.fill") { onOpen(.vendor(vendor.id)) }
+            if let offerId {
+                Button("Voir son lot", systemImage: "basket.fill") { onOpen(.offer(offerId)) }
             }
-        }
-    }
-
-    private func actionLabel(_ title: String, systemImage: String) -> some View {
-        Label(title, systemImage: systemImage)
-            .fontWeight(.semibold)
-            .frame(maxWidth: .infinity)
-    }
-
-    private func row(_ symbol: String, _ text: String, tint: Color = .grenier) -> some View {
-        HStack(alignment: .firstTextBaseline, spacing: 10) {
-            Image(systemName: symbol)
-                .symbolRenderingMode(.hierarchical)
-                .foregroundStyle(tint)
-                .frame(width: iconWidth)
-                .accessibilityHidden(true)
-            Text(text)
-                .font(.subheadline)
-                .foregroundStyle(Color.texte)
-                .frame(maxWidth: .infinity, alignment: .leading)
         }
     }
 

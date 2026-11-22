@@ -57,6 +57,26 @@
         }
       }
     },
+    "Modifier le compte" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Edit account"
+          }
+        }
+      }
+    },
+    "Modifier ta photo et ton nom" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Edit your photo and name"
+          }
+        }
+      }
+    },
     "·" : {
       "localizations" : {
         "en" : {

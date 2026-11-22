@@ -49,9 +49,6 @@ struct ProfileScreen: View {
                         .grenierAppear(index: 1, style: .sheet)
                 } header: {
                     ProfileSectionHeader(String(localized: "Portail"), systemImage: "arrow.left.arrow.right.circle.fill")
-                } footer: {
-                    Label("Un même compte peut acheter en famille et vendre comme producteur.", systemImage: "person.2.badge.key.fill")
-                        .symbolRenderingMode(.hierarchical)
                 }
 
                 // T-075 : profil famille (RQ-015, RQ-017 à RQ-020), écrans dans Features/Profile/.
@@ -142,18 +139,21 @@ struct ProfileScreen: View {
 
                 Section {
                     if let user = session?.currentUser {
-                        // FB-06 : photo et nom se modifient ici, sans écran « Mon compte » de plus.
+                        // Ligne compacte (avatar, nom, courriel) qui pousse « Modifier le compte ».
                         if let account {
-                            AccountEditRows(model: account)
+                            NavigationLink {
+                                AccountEditScreen(model: account)
+                            } label: {
+                                AccountSummaryRow(
+                                    name: account.user?.displayName ?? user.displayName,
+                                    email: user.email,
+                                    photoURL: account.user != nil ? account.photoURL : photoURL
+                                )
+                            }
+                            .accessibilityHint("Modifier ta photo et ton nom")
+                        } else {
+                            AccountSummaryRow(name: user.displayName, email: user.email, photoURL: photoURL)
                         }
-                        Label {
-                            Text(user.email)
-                                .foregroundStyle(Color.texteSecondaire)
-                                .textSelection(.enabled)
-                        } icon: {
-                            RowIcon(systemImage: "envelope.fill", tint: .grenier)
-                        }
-                        .accessibilityLabel("Courriel : \(user.email)")
                         Button(role: .destructive) {
                             session?.signOut()
                         } label: {
@@ -170,10 +170,6 @@ struct ProfileScreen: View {
                     }
                 } header: {
                     ProfileSectionHeader(String(localized: "Compte"), systemImage: "person.text.rectangle.fill")
-                } footer: {
-                    if account != nil {
-                        Text("Ta photo et ton nom apparaissent aux membres de ton groupe et à ton point de cueillette.")
-                    }
                 }
 
                 if session?.currentUser != nil, let account {
@@ -242,24 +238,14 @@ struct ProfileScreen: View {
         .appThemed()
     }
 
-    /// Capsule de verre « Familles | Vendeurs » (T-123) et la promesse du portail choisi.
+    /// Capsule de verre « Familles | Vendeurs | Organismes » (T-123), sans texte d'explication dessous.
     private var portalSwitcher: some View {
-        let shown = pendingPortal ?? portal
-        return VStack(alignment: .leading, spacing: 12) {
-            PortalSegmentedControl(selection: shown) { switchPortal(to: $0) }
-            Label {
-                Text(shown.detail)
-                    .fixedSize(horizontal: false, vertical: true)
-            } icon: {
-                Image(systemName: shown.systemImage)
-                    .contentTransition(reduceMotion ? .opacity : .symbolEffect(.replace))
-            }
-            .font(.subheadline)
-            .foregroundStyle(Color.texteSecondaire)
-            .symbolRenderingMode(.hierarchical)
-            .padding(.horizontal, 4)
-            .grenierAnimation(.smooth, value: shown)
-        }
+        PortalSegmentedControl(portals: availablePortals, selection: pendingPortal ?? portal) { switchPortal(to: $0) }
+    }
+
+    /// « Organismes » seulement pour un compte rattaché à un organisme (ou déjà sur ce portail).
+    private var availablePortals: [Portal] {
+        Portal.allCases.filter { $0 != .organization || appContext.hasOrganization || portal == .organization }
     }
 
     /// La pastille glisse tout de suite, puis la feuille se ferme pendant que le voile de bascule
@@ -395,6 +381,40 @@ private struct RowIcon: View {
             .symbolRenderingMode(.hierarchical)
             .foregroundStyle(tint)
             .accessibilityHidden(true)
+    }
+}
+
+/// Ligne compacte de la section Compte : avatar, nom et courriel (pousse « Modifier le compte »).
+private struct AccountSummaryRow: View {
+    let name: String
+    let email: String
+    let photoURL: URL?
+
+    @ScaledMetric(relativeTo: .body) private var avatarSize: CGFloat = 44
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
+
+    var body: some View {
+        // Aux tailles d'accessibilité : avatar au-dessus, courriel entier sur plusieurs lignes.
+        let isStacked = dynamicTypeSize.isAccessibilitySize
+        let layout = isStacked
+            ? AnyLayout(VStackLayout(alignment: .leading, spacing: 8))
+            : AnyLayout(HStackLayout(spacing: 12))
+        layout {
+            AvatarView(name: name, photoURL: photoURL, size: min(avatarSize, 72))
+                .accessibilityHidden(true)
+            VStack(alignment: .leading, spacing: 2) {
+                Text(name)
+                    .font(.headline)
+                    .foregroundStyle(Color.texte)
+                Text(email)
+                    .font(.subheadline)
+                    .foregroundStyle(Color.texteSecondaire)
+                    .lineLimit(isStacked ? nil : 1)
+                    .truncationMode(.middle)
+            }
+        }
+        .padding(.vertical, 2)
+        .accessibilityElement(children: .combine)
     }
 }
 

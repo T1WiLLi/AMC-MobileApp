@@ -144,6 +144,8 @@ private struct OfferDetailContent: View {
     @State private var shownCelebration: OfferDetailViewModel.TierCelebration?
     /// E21-2 : confirmation de « Fermer la commande ».
     @State private var isConfirmingClose = false
+    /// Annuler sa part demande une confirmation : un toucher par erreur ne libère pas la réservation.
+    @State private var isConfirmingCancel = false
     /// E21-4 : reçu de la part payée.
     @State private var isShowingReceipt = false
 
@@ -159,6 +161,9 @@ private struct OfferDetailContent: View {
         ) { content in
             loaded(content)
         }
+        // Fiche plein écran, sans la barre d'onglets : posé aussi ici, car le changement de contenu (chargement → lot)
+        // fait parfois revenir la barre.
+        .toolbarVisibility(.hidden, for: .tabBar)
         .grenierBackground()
         .navigationTitle(viewModel.state.value?.product.name ?? String(localized: "Lot"))
         .navigationBarTitleDisplayMode(.inline)
@@ -799,13 +804,27 @@ private struct OfferDetailContent: View {
                 }
                 if content.isOpen {
                     Button(role: .destructive) {
-                        Task { await viewModel.cancelShare() }
+                        isConfirmingCancel = true
                     } label: {
                         Label("Annuler ma part", systemImage: OfferDetailSymbol.cancel)
-                            .frame(minHeight: 32)
+                            .font(.body.weight(.semibold))
+                            .frame(maxWidth: .infinity, minHeight: 44)
                     }
                     .buttonStyle(.glass)
+                    .tint(.red)
                     .disabled(viewModel.isSaving)
+                    .confirmationDialog(
+                        String(localized: "Annuler ma part ?"),
+                        isPresented: $isConfirmingCancel,
+                        titleVisibility: .visible
+                    ) {
+                        Button("Oui, annuler ma part", role: .destructive) {
+                            Task { await viewModel.cancelShare() }
+                        }
+                        Button("Garder ma part", role: .cancel) {}
+                    } message: {
+                        Text("Ta part sera libérée et rien ne sera débité. Tu peux réserver de nouveau tant que la commande est ouverte.")
+                    }
                 }
             }
         }

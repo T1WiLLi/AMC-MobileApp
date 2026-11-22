@@ -7241,6 +7241,16 @@
         }
       }
     },
+    "Annuler ma part ?" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cancel my share?"
+          }
+        }
+      }
+    },
     "Annulée" : {
       "localizations" : {
         "en" : {
@@ -14737,6 +14747,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Keep"
+          }
+        }
+      }
+    },
+    "Garder ma part" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Keep my share"
           }
         }
       }
@@ -25351,6 +25371,16 @@
         }
       }
     },
+    "Ta part sera libérée et rien ne sera débité. Tu peux réserver de nouveau tant que la commande est ouverte." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Your share will be released and nothing will be charged. You can book again while the order is open."
+          }
+        }
+      }
+    },
     "Ta photo de profil" : {
       "localizations" : {
         "en" : {
@@ -30451,6 +30481,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "We’ll let you know as soon as it arrives at the host’s."
+          }
+        }
+      }
+    },
+    "Oui, annuler ma part" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Yes, cancel my share"
           }
         }
       }

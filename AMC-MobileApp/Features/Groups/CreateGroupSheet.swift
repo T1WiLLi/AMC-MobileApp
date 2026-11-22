@@ -195,13 +195,15 @@ struct CreateGroupSheet: View {
     /// Champ sur fond crème avec son icône, cerclé de Grenier quand il a le focus.
     private func field<Content: View>(systemImage: String, isFocused: Bool,
                                       @ViewBuilder content: () -> Content) -> some View {
-        HStack(alignment: .firstTextBaseline, spacing: 12) {
+        // Centré : l'alignement sur la ligne de base d'un TextField vertical remontait l'icône au-dessus du texte.
+        HStack(alignment: .center, spacing: 12) {
             // Aux tailles d'accessibilité, le texte du champ garde toute la largeur.
             if !dynamicTypeSize.isAccessibilitySize {
                 Image(systemName: systemImage)
+                    .font(.body)
                     .symbolRenderingMode(.hierarchical)
                     .foregroundStyle(isFocused ? Color.grenier : Color.texteSecondaire)
-                    .frame(minWidth: 28)
+                    .frame(width: 28)
                     .accessibilityHidden(true)
             }
             content()

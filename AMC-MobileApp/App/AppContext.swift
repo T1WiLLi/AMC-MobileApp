@@ -52,7 +52,7 @@ struct AppContext: Sendable {
     /// Personas de `FakeData` (Amina, Parc-Extension, Ferme Lafleur), latence de démo courte (`FakeBehavior.demo`),
     /// derrière le cache mémoire (T-112).
     static let demo = AppContext(
-        repositories: .fake(behavior: .demo, data: .demo).cached(),
+        repositories: .fake(behavior: .demo, data: .demo(arguments: ProcessInfo.processInfo.arguments)).cached(),
         userId: FakeData.ID.amina,
         householdId: FakeData.ID.aminaHousehold,
         groupId: FakeData.ID.parcExtension,

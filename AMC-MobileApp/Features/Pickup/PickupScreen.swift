@@ -127,15 +127,13 @@ private struct PickupContentView: View {
                 }
                 PickupCodeCard(content: content)
                     .guidedTourAnchor(.pickup)
-                PickupItemsCard(items: content.items)
+                // Une section par lieu : ses articles, son point (ou « Lieu à confirmer ») et son montant.
+                ForEach(Array(content.places.enumerated()), id: \.element.id) { index, place in
+                    placeSection(place, index: index)
+                }
                 PickupRateVendorsCard(items: content.items) // T-157 : noter le producteur après la cueillette
                 if let point = content.pickupPoint {
-                    PickupPointSummaryCard(content: content, point: point)
                     PickupNeighbourHelpCard(pickupPoint: point, slot: content.slot) // RQ-069, RQ-070
-                    directionsButton(to: point)
-                } else {
-                    // Lot réservé, mais le groupe n'a pas encore choisi où cueillir.
-                    PickupPointPendingCard(totalCents: content.totalCents)
                 }
             }
             .padding(.horizontal, 16)
@@ -145,6 +143,23 @@ private struct PickupContentView: View {
         .grenierScrollEdge()
         .onAppear { brightness.raise() }
         .onDisappear { brightness.restore() }
+    }
+
+    @ViewBuilder
+    private func placeSection(_ place: PickupViewModel.Place, index: Int) -> some View {
+        let count = content.places.count
+        if count > 1 {
+            PickupPlaceHeading(place: place, number: index + 1, count: count)
+                .padding(.top, index == 0 ? 4 : 12)
+        }
+        PickupItemsCard(items: place.items)
+        if let point = place.pickupPoint {
+            PickupPointSummaryCard(point: point, totalCents: place.totalCents)
+            directionsButton(to: point)
+        } else {
+            // Lot réservé, mais le groupe n'a pas encore choisi où cueillir.
+            PickupPointPendingCard(totalCents: place.totalCents)
+        }
     }
 
     private func directionsButton(to point: PickupPoint) -> some View {
@@ -240,6 +255,10 @@ private struct PickupHeroCard: View {
     }
 
     private var hostLine: String {
+        // Plusieurs lieux : chacun a sa section plus bas.
+        if content.places.count > 1 {
+            return String(localized: "\(content.places.count) lieux de cueillette, détaillés plus bas")
+        }
         guard let point = content.pickupPoint else { return String(localized: "Lieu à confirmer par ton groupe") }
         if let host = content.hostFirstName {
             return String(localized: "Chez \(host) · \(point.address)")
@@ -448,10 +467,40 @@ private struct PickupItemsCard: View {
     }
 }
 
-/// Point de cueillette : nom, adresse, accessibilité et montant à payer.
+/// Titre d'une section de lieu quand il y en a plusieurs : « Lieu 1 sur 2 », nom du lieu, compte des articles.
+private struct PickupPlaceHeading: View {
+    let place: PickupViewModel.Place
+    let number: Int
+    let count: Int
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 2) {
+            Label {
+                Text("Lieu \(number) sur \(count)")
+            } icon: {
+                Image(systemName: place.pickupPoint == nil ? "clock.badge.questionmark.fill" : "mappin.circle.fill")
+                    .symbolRenderingMode(.hierarchical)
+                    .foregroundStyle(Color.grenier)
+            }
+            .font(.caption.weight(.semibold))
+            .textCase(.uppercase)
+            .foregroundStyle(Color.texteSecondaire)
+            Text(place.pickupPoint?.name ?? String(localized: "Lieu à confirmer"))
+                .font(.title3.bold())
+                .foregroundStyle(Color.texte)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+        .padding(.horizontal, 4)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .accessibilityElement(children: .combine)
+        .accessibilityAddTraits(.isHeader)
+    }
+}
+
+/// Point de cueillette : nom, adresse, accessibilité et montant à payer à ce lieu.
 private struct PickupPointSummaryCard: View {
-    let content: PickupViewModel.Content
     let point: PickupPoint
+    let totalCents: Cents
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
@@ -479,7 +528,8 @@ private struct PickupPointSummaryCard: View {
                         .foregroundStyle(Color.grenier)
                 }
                 Spacer(minLength: 8)
-                Text(Money.format(content.totalCents)).priceStyle(.priceCompact).foregroundStyle(.texte)
+                Text(Money.format(totalCents)).priceStyle(.priceCompact).foregroundStyle(.texte)
+                    .contentTransition(.numericText())
             }
             .accessibilityElement(children: .combine)
         }

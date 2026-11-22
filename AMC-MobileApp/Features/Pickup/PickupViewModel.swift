@@ -1,5 +1,7 @@
 // PickupViewModel.swift
 // F5 Cueillette (T-019) : parts du ménage à récupérer, QR, créneau, point de cueillette et hôte.
+// Retour samuel : les articles sont rangés par lieu (`Place`), comme le bordereau du vendeur (`DeliveryManifest`) :
+// une section par point de cueillette, et « Lieu à confirmer » pour les commandes sans point.
 
 import Foundation
 import Observation
@@ -23,20 +25,47 @@ final class PickupViewModel {
         var id: String { groupOrderId }
     }
 
-    nonisolated struct Content: Sendable, Hashable {
-        /// Point choisi par le groupe ; nil tant que le coordonnateur n'en a pas choisi (part réservée quand même).
+    /// Un lieu de cueillette et ce qu'on y récupère.
+    nonisolated struct Place: Identifiable, Sendable, Hashable {
+        /// nil : commandes sans point de cueillette (« Lieu à confirmer »).
         var pickupPoint: PickupPoint?
-        /// Prochain créneau (à venir ou en cours), nil s'il n'y en a pas.
+        /// Prochain créneau à ce lieu (à venir ou en cours), nil s'il n'y en a pas.
         var slot: PickupSlot?
-        /// Prénom de l'hôte (« Montre ce code à Amina »), nil s'il est introuvable.
+        /// Prénom de l'hôte du lieu, nil s'il est introuvable ou si c'est le membre connecté.
         var hostFirstName: String?
         var items: [Item]
+
+        var id: String { pickupPoint?.id ?? DeliveryManifest.unassignedStopId }
+        var totalCents: Cents { items.reduce(0) { $0 + $1.totalCents } }
+        var pickedUpCount: Int { items.filter(\.isPickedUp).count }
+    }
+
+    /// Un article et le lieu où le cueillir, avant le regroupement.
+    nonisolated struct Entry: Sendable, Hashable {
+        var item: Item
+        /// Point de la commande (ou zone de livraison du groupe), nil s'il n'y en a pas.
+        var pickupPointId: String?
+        var slots: [PickupSlot]
+    }
+
+    nonisolated struct Content: Sendable, Hashable {
+        /// Lieux dans l'ordre des commandes (groupe actif d'abord), « Lieu à confirmer » en dernier.
+        var places: [Place]
         /// Contenu du QR à afficher.
         var qrPayload: String
         /// Code lisible de la commande (« GRN-4821 »).
         var orderCode: String
 
+        var items: [Item] { places.flatMap(\.items) }
         var totalCents: Cents { items.reduce(0) { $0 + $1.totalCents } }
+        /// Premier lieu avec un point ; nil tant qu'aucune commande n'a de point (part réservée quand même).
+        var pickupPoint: PickupPoint? { places.lazy.compactMap(\.pickupPoint).first }
+        /// Prénom de l'hôte (« Montre ce code à Amina ») quand il n'y a qu'un lieu, nil sinon.
+        var hostFirstName: String? { places.count == 1 ? places.first?.hostFirstName : nil }
+        /// Prochain créneau, tous lieux confondus.
+        var slot: PickupSlot? { places.compactMap(\.slot).min { $0.start < $1.start } }
+        /// Nombre de lieux avec un point de cueillette.
+        var pointCount: Int { places.filter { $0.pickupPoint != nil }.count }
 
         /// Minutes avant le début du créneau (0 s'il est commencé), nil sans créneau. Pour « Cueillette dans 25 min ».
         func minutesUntilPickup(from now: Date = .now) -> Int? {
@@ -84,10 +113,11 @@ final class PickupViewModel {
         // Toutes les parts du ménage, dans tous ses groupes : une part réservée dans un autre groupe que le groupe
         // actif apparaît aussi. Le groupe actif d'abord (son point de cueillette passe en premier).
         let orders = try await activeOrders(householdId: householdId, activeGroupId: groupId, repositories: repositories)
-        var items: [Item] = []
+        var entries: [Entry] = []
         var qrCodes: [String] = []
-        var pickupPointId: String?
-        var slots: [PickupSlot] = []
+        // Commandes sans point choisi : la zone de livraison de leur groupe (liste lue seulement s'il le faut).
+        let allPoints = orders.contains { ($0.pickupPointId ?? "").isEmpty }
+            ? ((try? await repositories.pickupPoints.pickupPoints()) ?? []) : []
         for order in orders {
             let shares = try await repositories.groupOrders.shares(ofGroupOrder: order.id)
             guard let share = shares.first(where: { $0.householdId == householdId }), share.quantity > 0 else { continue }
@@ -95,37 +125,69 @@ final class PickupViewModel {
             let product = try await repositories.vendors.product(id: offer.productId)
             let price = share.finalUnitPriceCents
                 ?? OfferPricing(offer: offer, product: product, committedShares: order.committedShares).currentPriceCents
-            items.append(Item(groupOrderId: order.id, product: product, offer: offer, quantity: share.quantity,
-                              totalCents: price * share.quantity, isPickedUp: share.isPickedUp,
-                              pickedUpByName: share.pickedUpBy.flatMap { HouseholdMembership.firstName(of: $0, in: household) }))
+            let item = Item(groupOrderId: order.id, product: product, offer: offer, quantity: share.quantity,
+                            totalCents: price * share.quantity, isPickedUp: share.isPickedUp,
+                            pickedUpByName: share.pickedUpBy.flatMap { HouseholdMembership.firstName(of: $0, in: household) })
+            entries.append(Entry(item: item, pickupPointId: PickupPoint.resolvedId(for: order, in: allPoints),
+                                 slots: order.pickupSlots))
             if let code = share.qrCode { qrCodes.append(code) }
-            pickupPointId = pickupPointId ?? order.pickupPointId
-            slots += order.pickupSlots
         }
         // Une part réservée s'affiche même avant que le groupe ait choisi son point de cueillette.
-        guard !items.isEmpty else { return nil }
+        guard !entries.isEmpty else { return nil }
 
-        var point: PickupPoint?
-        if let pickupPointId, !pickupPointId.isEmpty {
-            point = try await repositories.pickupPoints.pickupPoint(id: pickupPointId)
+        var points: [String: PickupPoint] = [:]
+        for id in Set(entries.compactMap(\.pickupPointId)) {
+            if let known = allPoints.first(where: { $0.id == id }) {
+                points[id] = known
+                continue
+            }
+            do {
+                points[id] = try await repositories.pickupPoints.pickupPoint(id: id)
+            } catch AppError.notFound {
+                // Point supprimé : ses articles passent dans « Lieu à confirmer ».
+            }
         }
-        let now = Date.now
-        let slot = (slots + (point?.slots ?? [])).filter { $0.end > now }.min { $0.start < $1.start }
         // L'hôte est un détail : son absence ne doit pas bloquer la cueillette.
-        var host: AppUser?
-        if let point { host = try? await repositories.users.user(id: point.hostUserId) }
+        // Quand le membre est lui-même l'hôte du point, « Montre ce code à Amina » n'a pas de sens : on dit « l'hôte ».
+        var hostFirstNames: [String: String] = [:]
+        for point in points.values {
+            guard let host = try? await repositories.users.user(id: point.hostUserId), host.id != userId,
+                  let first = host.displayName.split(separator: " ").first else { continue }
+            hostFirstNames[point.id] = String(first)
+        }
         let code = orderCode(householdId: householdId, groupId: groupId)
         return Content(
-            pickupPoint: point,
-            slot: slot,
-            // Quand le membre est lui-même l'hôte du point, « Montre ce code à Amina » n'a pas de sens : on dit « l'hôte ».
-            hostFirstName: host.flatMap { $0.id == userId ? nil : $0.displayName.split(separator: " ").first.map(String.init) },
-            items: items,
+            places: places(from: entries, points: points, hostFirstNames: hostFirstNames),
             // Le QR est celui de la part du ménage (le même pour tous ses membres), suivi du membre qui le montre.
             qrPayload: qrCodes.first.map { PickupDesk.memberCode($0, memberId: userId) }
                 ?? "grenier://cueillette/\(groupId)/\(householdId)",
             orderCode: code
         )
+    }
+
+    /// Range les articles par lieu, comme `DeliveryManifest` : un lieu par point connu, dans l'ordre où il apparaît
+    /// (groupe actif d'abord) ; les articles sans point, ou dont le point est inconnu, dans « Lieu à confirmer »
+    /// en dernier. Le créneau d'un lieu est le prochain de ses commandes et du point.
+    nonisolated static func places(
+        from entries: [Entry], points: [String: PickupPoint], hostFirstNames: [String: String] = [:],
+        now: Date = .now
+    ) -> [Place] {
+        var order: [String] = []
+        var grouped: [String: (items: [Item], slots: [PickupSlot])] = [:]
+        for entry in entries {
+            let key = entry.pickupPointId.flatMap { points[$0] == nil ? nil : $0 } ?? DeliveryManifest.unassignedStopId
+            if grouped[key] == nil { order.append(key) }
+            grouped[key, default: ([], [])].items.append(entry.item)
+            grouped[key, default: ([], [])].slots += entry.slots
+        }
+        let keys = order.filter { $0 != DeliveryManifest.unassignedStopId }
+            + order.filter { $0 == DeliveryManifest.unassignedStopId }
+        return keys.compactMap { key in
+            guard let group = grouped[key] else { return nil }
+            let point = points[key]
+            let slot = (group.slots + (point?.slots ?? [])).filter { $0.end > now }.min { $0.start < $1.start }
+            return Place(pickupPoint: point, slot: slot, hostFirstName: hostFirstNames[key], items: group.items)
+        }
     }
 
     /// Commandes non annulées ni livrées des groupes du ménage, celles du groupe actif d'abord.

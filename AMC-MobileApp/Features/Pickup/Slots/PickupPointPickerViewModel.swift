@@ -84,6 +84,10 @@ final class PickupPointPickerViewModel {
             state = .loaded(content)
             selectedPointId = order.pickupPointId
             slots = order.pickupSlots.sorted { $0.start < $1.start }
+            // Pas encore de point : la zone de livraison du groupe (créée avec lui) est proposée par défaut.
+            if order.pickupPointId == nil, let zone = PickupPoint.deliveryZone(ofGroup: order.groupId, in: loadedPoints) {
+                selectPoint(id: zone.id)
+            }
         } catch {
             state = .failed(AppError(error))
         }

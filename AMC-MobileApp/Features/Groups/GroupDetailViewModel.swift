@@ -105,7 +105,11 @@ final class GroupDetailViewModel {
             async let initials = Self.memberInitials(of: members, repositories: repositories)
             async let coordinator = Self.coordinatorName(of: members, repositories: repositories)
             async let pickupPointLoad: PickupPoint? = {
-                guard let pointId = orders.lazy.compactMap(\.pickupPointId).first else { return nil }
+                guard let pointId = orders.lazy.compactMap(\.pickupPointId).first else {
+                    // Aucune commande n'a encore de point : la zone de livraison du groupe, si elle existe.
+                    let points = (try? await repositories.pickupPoints.pickupPoints()) ?? []
+                    return PickupPoint.deliveryZone(ofGroup: groupId, in: points)
+                }
                 return try await repositories.pickupPoints.pickupPoint(id: pointId)
             }()
             let offers = try await FamilyHomeViewModel.offers(for: orders, repositories: repositories)

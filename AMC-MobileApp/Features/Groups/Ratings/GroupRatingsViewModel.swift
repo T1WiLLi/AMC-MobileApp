@@ -31,6 +31,7 @@ final class GroupRatingsViewModel {
     private let userId: String?
     private let now: @Sendable () -> Date
     private var isMember = false
+    private var isOwner = false
 
     init(repositories: AppRepositories, groupId: String, householdId: String, userId: String?,
          now: @escaping @Sendable () -> Date = { .now }) {
@@ -41,28 +42,29 @@ final class GroupRatingsViewModel {
         self.now = now
     }
 
-    func load(isMember: Bool) async {
+    func load(isMember: Bool, isOwner: Bool = false) async {
         self.isMember = isMember
+        self.isOwner = isOwner
         if state.value == nil { state = .loading }
         let repositories = repositories, groupId = groupId, householdId = householdId
         state = await .run {
             let ratings = try await repositories.groups.ratings(ofGroup: groupId)
             let mine = householdId.isEmpty ? nil : ratings.first { $0.householdId == householdId }
-            let proofs = (mine == nil && !isMember)
+            let proofs = (mine == nil && !isMember && !isOwner)
                 ? await Self.ordersWithShare(of: householdId, inGroup: groupId, repositories: repositories)
                 : []
             return Content(
                 summary: RatingRules.summary(ofRatings: ratings.map(\.rating)),
                 recent: GroupRatingRules.recent(ratings),
                 myRating: mine,
-                eligibility: GroupRatingRules.eligibility(householdId: householdId, isMember: isMember,
+                eligibility: GroupRatingRules.eligibility(householdId: householdId, isMember: isMember, isOwner: isOwner,
                                                           existing: mine, ordersWithMyShare: proofs)
             )
         }
     }
 
     /// Relit les avis (après une erreur, ou un changement d'adhésion connu de `load`).
-    func reload() async { await load(isMember: isMember) }
+    func reload() async { await load(isMember: isMember, isOwner: isOwner) }
 
     /// Enregistre (ou modifie) l'avis du ménage. Renvoie le groupe aux agrégats à jour, ou l'erreur à afficher.
     func save(rating: Int, comment: String) async -> Result<NeighborhoodGroup, AppError> {
@@ -78,7 +80,7 @@ final class GroupRatingsViewModel {
                 existing: current.myRating, now: now()
             )
             let group = try await repositories.groups.saveRating(draft)
-            await load(isMember: isMember)
+            await load(isMember: isMember, isOwner: isOwner)
             return .success(group)
         } catch {
             return .failure(AppError(error))

@@ -36,8 +36,10 @@ nonisolated enum GroupRatingEligibility: Hashable, Sendable {
     case alreadyRated
     /// Jamais membre : il ne peut pas noter.
     case notEligible
+    /// Créateur du groupe : on ne note pas son propre groupe.
+    case owner
 
-    var canRate: Bool { self != .notEligible }
+    var canRate: Bool { self != .notEligible && self != .owner }
 
     /// Preuve d'ancienne adhésion à écrire dans l'avis.
     var groupOrderId: String? {

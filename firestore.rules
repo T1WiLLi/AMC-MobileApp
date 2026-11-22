@@ -593,12 +593,15 @@ service cloud.firestore {
 
       match /ratings/{householdId} {
         allow read: if isAuthenticated();
+        // Le créateur du groupe ne note pas son propre groupe.
         allow create: if isValidGroupRating(request.resource.data, householdId)
           && isMemberOfHousehold(householdId)
+          && !isGroupCreator(groupId)
           && (exists(memberPath(groupId, householdId)) || hasHadShareInGroup(request.resource.data, householdId))
           && isRatingAggregateChange(householdId, 1, request.resource.data.rating);
         allow update: if isValidGroupRating(request.resource.data, householdId)
           && isMemberOfHousehold(householdId)
+          && !isGroupCreator(groupId)
           && onlyChanges(['authorName', 'rating', 'comment', 'updatedAt'])
           && isRatingAggregateChange(householdId, 0, request.resource.data.rating - resource.data.rating);
         allow delete: if false;

@@ -137,6 +137,12 @@ private struct GroupRatingsCard: View {
                 .accessibilityHint(content.myRating == nil
                                    ? String(localized: "Donne de 1 à 5 étoiles et un commentaire court")
                                    : String(localized: "Change ta note ou ton commentaire"))
+            } else if content.eligibility == .owner {
+                Label("Tu as créé ce groupe : les avis viennent des autres familles.",
+                      systemImage: "person.crop.circle.badge.checkmark")
+                    .font(.footnote)
+                    .symbolRenderingMode(.hierarchical)
+                    .foregroundStyle(.texteSecondaire)
             } else {
                 Label("Seules les familles membres du groupe, ou qui l'ont été, peuvent le noter.",
                       systemImage: "lock.shield.fill")

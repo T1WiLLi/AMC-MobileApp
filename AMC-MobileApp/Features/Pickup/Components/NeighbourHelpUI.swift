@@ -5,7 +5,7 @@ import SwiftUI
 
 /// Formats en français du Québec : distances, heures, créneaux.
 nonisolated enum NeighbourHelpFormat {
-    private static let locale = Locale(identifier: "fr_CA")
+    private static var locale: Locale { AppLanguage.formattingLocale }
 
     /// « à 350 m », « à 1,2 km » ; « tout près » sous 100 m (même cellule de quartier).
     static func distance(_ meters: Double?) -> String? {

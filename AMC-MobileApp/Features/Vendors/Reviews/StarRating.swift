@@ -78,7 +78,7 @@ enum StarRatingText {
 
     /// « 4,7 » en français.
     static func average(_ value: Double) -> String {
-        value.formatted(.number.precision(.fractionLength(1)).locale(Locale(identifier: "fr_CA")))
+        value.formatted(.number.precision(.fractionLength(1)).locale(AppLanguage.formattingLocale))
     }
 }
 

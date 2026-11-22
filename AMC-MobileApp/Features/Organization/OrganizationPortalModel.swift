@@ -156,7 +156,7 @@ final class OrganizationPortalModel {
         if meters < 1_000 { return "\(Int((meters / 50).rounded()) * 50) m" }
         return Measurement(value: meters / 1_000, unit: UnitLength.kilometers)
             .formatted(.measurement(width: .abbreviated, usage: .asProvided, numberFormatStyle: .number.precision(.fractionLength(1)))
-                .locale(Locale(identifier: "fr_CA")))
+                .locale(AppLanguage.formattingLocale))
     }
 
     /// Aperçu d'un financement (montant, paniers, familles), ou l'erreur de saisie.

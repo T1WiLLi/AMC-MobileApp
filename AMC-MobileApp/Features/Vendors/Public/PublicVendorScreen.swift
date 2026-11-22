@@ -440,7 +440,7 @@ private struct OpenOfferCard: View {
     }
 
     private var deadlineText: String {
-        let relative = item.offer.deadline.formatted(.relative(presentation: .named).locale(Locale(identifier: "fr_CA")))
+        let relative = item.offer.deadline.formatted(.relative(presentation: .named).locale(AppLanguage.formattingLocale))
         return String(localized: "Clôture \(relative)")
     }
 }

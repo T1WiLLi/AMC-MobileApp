@@ -5,16 +5,72 @@
       "comment" : "Nom affiché sous l'icône.",
       "extractionState" : "manual",
       "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "LeGrenier" } },
-        "fr" : { "stringUnit" : { "state" : "translated", "value" : "LeGrenier" } }
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "LeGrenier"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "LeGrenier"
+          }
+        }
       }
     },
     "CFBundleName" : {
       "comment" : "Nom du bundle affiché par la feuille système « … veut utiliser accounts.google.com » (sinon « AMC-MobileApp »).",
       "extractionState" : "manual",
       "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "LeGrenier" } },
-        "fr" : { "stringUnit" : { "state" : "translated", "value" : "LeGrenier" } }
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "LeGrenier"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "LeGrenier"
+          }
+        }
+      }
+    },
+    "NSFaceIDUsageDescription" : {
+      "comment" : "Privacy - Face ID Usage Description",
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "LeGrenier uses Face ID to protect your account and confirm your payments."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "LeGrenier utilise Face ID pour protéger ton compte et confirmer tes paiements."
+          }
+        }
+      }
+    },
+    "NSLocationWhenInUseUsageDescription" : {
+      "comment" : "Privacy - Location When In Use Usage Description",
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "LeGrenier uses your location while the map is open to show groups, pickup points and producers near you. It is never shared with your neighbours."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "LeGrenier utilise ta position pendant que la carte est ouverte pour te montrer les groupes, les points de cueillette et les producteurs près de chez toi. Elle n'est jamais partagée avec tes voisins."
+          }
+        }
       }
     }
   },

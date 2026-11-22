@@ -497,7 +497,7 @@ struct TierEditorScreen: View {
 
     // MARK: Divers
 
-    private static let locale = Locale(identifier: "fr_CA")
+    private static var locale: Locale { AppLanguage.formattingLocale }
 
     private var motion: Animation? { reduceMotion ? nil : .smooth }
 
@@ -694,7 +694,7 @@ private struct TierStepChart: View {
                 AxisMarks(position: .leading, values: steps.dropLast().map(\.price)) { value in
                     AxisValueLabel {
                         if let price = value.as(Double.self) {
-                            Text(price, format: .number.precision(.fractionLength(2)).locale(Locale(identifier: "fr_CA")))
+                            Text(price, format: .number.precision(.fractionLength(2)).locale(AppLanguage.formattingLocale))
                         }
                     }
                 }
@@ -828,7 +828,7 @@ private struct WeightField: View {
     @Binding var value: Double
     @State private var text = ""
 
-    private static let locale = Locale(identifier: "fr_CA")
+    private static var locale: Locale { AppLanguage.formattingLocale }
 
     var body: some View {
         TextField(label, text: $text, prompt: Text("10"))
@@ -883,7 +883,7 @@ private struct PriceField: View {
     @Binding var value: Decimal
     @State private var text = ""
 
-    private static let locale = Locale(identifier: "fr_CA")
+    private static var locale: Locale { AppLanguage.formattingLocale }
 
     var body: some View {
         HStack(spacing: 4) {

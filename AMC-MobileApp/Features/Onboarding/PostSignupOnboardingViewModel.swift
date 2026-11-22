@@ -59,8 +59,8 @@ final class PostSignupOnboardingViewModel {
         }
     }
 
-    /// Récapitulatif en français (« Céréales et Œufs »), comme le reste des textes de l'app.
-    nonisolated static let frenchLocale = Locale(identifier: "fr_CA")
+    /// Récapitulatif dans la langue de l'app (« Céréales et Œufs », « Cereals and Eggs »), T-171.
+    nonisolated static var frenchLocale: Locale { AppLanguage.formattingLocale }
 
     /// Taille de ménage acceptée (même plage que le profil du ménage).
     static let sizeRange = HouseholdProfileViewModel.sizeRange

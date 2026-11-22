@@ -99,7 +99,7 @@ struct PickupPointCard: View {
 
 /// Textes et lieu du point de cueillette (testés).
 enum PickupPointFormatting {
-    private static let locale = Locale(identifier: "fr_CA")
+    private static var locale: Locale { AppLanguage.formattingLocale }
 
     /// « Jeudi, 17 h – 18 h 30 »
     static func slotText(_ slot: PickupSlot, calendar: Calendar = .current) -> String {

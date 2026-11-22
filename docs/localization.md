@@ -29,3 +29,11 @@
 | fonds de solidarité | solidarity fund |
 | date limite | deadline |
 | courriel | email |
+
+## Langue choisie dans l'app (T-171)
+
+- Profil › Préférences › « Langue de l'app » : Langue de l'appareil (défaut, repli français), Français ou English. Clé `grenier.appLanguage`, logique dans `Core/Localization/AppLanguage.swift`.
+- Le changement s'applique **sans relancer** : `\.locale` posé à la racine (les `Text("…")` suivent), `String(localized:)` du module passe par une surcharge qui résout dans la langue choisie, et la racine est recréée (`.id`). Le choix est aussi écrit dans `AppleLanguages` pour les éléments système au prochain lancement.
+- Formats (montants, dates, nombres) : `AppLanguage.formattingLocale` (`fr_CA` ou `en_CA`), jamais `Locale(identifier: "fr_CA")` en dur pour un texte affiché.
+- Les tests tournent en français (`language = "fr"`, `region = "CA"` dans le TestAction du schéma).
+- Reste à faire : `FrenchPlural` et quelques littéraux non localisés (ex. `OrganizationPortalModel`) restent en français en anglais.

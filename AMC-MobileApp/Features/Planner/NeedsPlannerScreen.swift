@@ -375,7 +375,7 @@ private struct SuggestionRow: View {
     }
 
     private var deadline: String {
-        let date = suggestion.offer.deadline.formatted(.dateTime.weekday(.wide).day().month().locale(Locale(identifier: "fr_CA")))
+        let date = suggestion.offer.deadline.formatted(.dateTime.weekday(.wide).day().month().locale(AppLanguage.formattingLocale))
         return String(localized: "Ferme \(date)")
     }
 }
@@ -503,7 +503,7 @@ private struct AddNeedSheet: View {
 enum NeedFormat {
     /// « 10 kg », « 2,5 L », « 12 unités ».
     static func quantity(_ value: Double, _ unit: NeedUnit) -> String {
-        let number = value.formatted(.number.precision(.fractionLength(0...1)).locale(Locale(identifier: "fr_CA")))
+        let number = value.formatted(.number.precision(.fractionLength(0...1)).locale(AppLanguage.formattingLocale))
         if unit == .units { return "\(number) \(value > 1 ? "unités" : "unité")" }
         return "\(number) \(unit.symbol)"
     }

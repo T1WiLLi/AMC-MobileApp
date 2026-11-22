@@ -17,8 +17,12 @@ struct AMCMobileApp: App {
     @State private var network = NetworkMonitor()
     /// Liens d'invitation reçus (B-058) : lus par `FamilyTabView` et `GroupsScreen`.
     @State private var inviteLinks = InviteLinkRouter()
+    /// Langue de l'interface (T-171) : choisie dans Préférences, appliquée à toute l'app sans relancer.
+    @AppStorage(AppLanguage.storageKey) private var language: AppLanguage = .system
 
     init() {
+        // T-171 : langue choisie (ou changée dans les Réglages iOS) avant le premier texte affiché.
+        AppLanguage.bootstrap()
         // Fake, émulateur ou projet de démo (B-013) : voir `BackendMode` et docs/firebase.md §4.
         let mode = PerfSignposts.measure("launch.backendSetup") { FirebaseSetup.configure() }
         _session = State(initialValue: SessionViewModel(auth: FirebaseSetup.makeAuthService(mode: mode)))
@@ -61,8 +65,12 @@ struct AMCMobileApp: App {
                 .environment(demo)
                 .environment(network)
                 .id(demo.generation)
+                // T-171 : changer de langue recrée les écrans, pour que les textes déjà calculés suivent aussi.
+                .id(language)
                 .environment(inviteLinks)
                 .appLock(appLock)
+                // T-171 : `Text("…")` et les formats SwiftUI suivent la langue choisie.
+                .environment(\.locale, language.locale)
                 // Un seul gestionnaire de liens : invitation d'abord (B-058), sinon Google Sign-In.
                 .onOpenURL { url in
                     if inviteLinks.handle(url) { return }

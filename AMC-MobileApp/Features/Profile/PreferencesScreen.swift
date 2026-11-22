@@ -31,6 +31,7 @@ struct PreferencesLink: View {
 private struct PreferencesForm: View {
     let viewModel: PreferencesViewModel
     @AppStorage(SeniorMode.storageKey) private var seniorModeStorage = false
+    @AppStorage(AppLanguage.storageKey) private var appLanguage: AppLanguage = .system
     @Environment(\.openURL) private var openURL
 
     var body: some View {
@@ -83,11 +84,15 @@ private struct PreferencesForm: View {
 
     private var languageSection: some View {
         Section {
+            // T-171 : la langue s'applique tout de suite à toute l'app (voir AppLanguage).
             Picker(selection: Binding(
-                get: { viewModel.user?.language ?? .french },
-                set: { language in Task { await viewModel.setLanguage(language) } }
+                get: { appLanguage },
+                set: { language in
+                    Task { await viewModel.setLanguage(AppUser.Language(rawValue: language.resolvedCode) ?? .french) }
+                    AppLanguage.apply(language)
+                }
             )) {
-                ForEach(AppUser.Language.allCases, id: \.self) { language in
+                ForEach(AppLanguage.allCases, id: \.self) { language in
                     Text(PreferencesViewModel.title(of: language)).tag(language)
                 }
             } label: {
@@ -99,7 +104,7 @@ private struct PreferencesForm: View {
         } header: {
             Label("Langue", systemImage: "character.bubble")
         } footer: {
-            Text("Les messages de ton groupe et des producteurs te parviennent dans cette langue.")
+            Text("L'app passe aussitôt à cette langue. Les messages de ton groupe et des producteurs te parviennent aussi dans cette langue.")
         }
     }
 

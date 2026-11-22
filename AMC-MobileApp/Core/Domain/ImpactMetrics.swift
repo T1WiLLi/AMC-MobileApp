@@ -47,7 +47,7 @@ nonisolated struct ImpactIndicator: Sendable, Equatable, Hashable, Identifiable 
 
     /// Valeur arrondie au format québécois (« 1 234 », « 12,5 »), sans l'unité.
     var formattedValue: String {
-        value.formatted(.number.precision(.fractionLength(0...1)).locale(Locale(identifier: "fr_CA")))
+        value.formatted(.number.precision(.fractionLength(0...1)).locale(AppLanguage.formattingLocale))
     }
 }
 
@@ -209,6 +209,6 @@ nonisolated enum ImpactMetrics {
 
     /// Nombre décimal au format québécois (« 2,7 »).
     private static func decimal(_ value: Double) -> String {
-        value.formatted(.number.precision(.fractionLength(0...1)).locale(Locale(identifier: "fr_CA")))
+        value.formatted(.number.precision(.fractionLength(0...1)).locale(AppLanguage.formattingLocale))
     }
 }

@@ -185,7 +185,7 @@ nonisolated enum NeighborhoodMapLayout {
         let kilometers = Double(meters) / 1_000
         let format = FloatingPointFormatStyle<Double>.number
             .precision(.fractionLength(0...1))
-            .locale(Locale(identifier: "fr_CA"))
+            .locale(AppLanguage.formattingLocale)
         return kilometers.formatted(format) + " km"
     }
 

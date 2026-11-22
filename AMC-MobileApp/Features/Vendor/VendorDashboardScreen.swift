@@ -784,7 +784,7 @@ private struct MetaLabel: View {
 }
 
 private enum VendorDeadline {
-    static let locale = Locale(identifier: "fr_CA")
+    static var locale: Locale { AppLanguage.formattingLocale }
 
     /// « dans 2 jours »
     static func relative(_ date: Date) -> String {

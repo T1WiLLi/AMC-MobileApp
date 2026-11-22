@@ -207,7 +207,7 @@ struct FamilyMapPlaceCard: View {
         case .producer(let vendor, _, let openOfferCount):
             row("storefront.fill", Self.kindText(vendor.kind) + (vendor.isVerified ? String(localized: " · vérifié") : ""))
             if let rating = vendor.averageRating {
-                row("star.fill", rating.formatted(.number.precision(.fractionLength(1)).locale(Locale(identifier: "fr_CA"))) + String(localized: " sur 5"))
+                row("star.fill", rating.formatted(.number.precision(.fractionLength(1)).locale(AppLanguage.formattingLocale)) + String(localized: " sur 5"))
             }
             if !vendor.description.isEmpty {
                 Text(vendor.description)

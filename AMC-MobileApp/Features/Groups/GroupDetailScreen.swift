@@ -617,7 +617,7 @@ private enum GroupInvite {
 }
 
 enum PickupTime {
-    private static let locale = Locale(identifier: "fr_CA")
+    private static var locale: Locale { AppLanguage.formattingLocale }
 
     /// « Jeudi, 17 h – 18 h 30 »
     static func text(for slot: PickupSlot) -> String {

@@ -95,7 +95,7 @@ extension ImpactSnapshot {
 
 /// Formats partagés de l'écran Impact (français du Canada, espaces insécables).
 enum ImpactFormat {
-    static let locale = Locale(identifier: "fr_CA")
+    static var locale: Locale { AppLanguage.formattingLocale }
     static let nbsp = "\u{00A0}"
 
     /// Premier jour d'un mois, à Montréal.

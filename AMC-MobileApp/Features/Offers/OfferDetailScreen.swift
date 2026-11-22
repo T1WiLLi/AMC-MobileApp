@@ -800,15 +800,15 @@ private struct OfferDetailContent: View {
     // MARK: Formatage
 
     static func deadlineText(_ date: Date) -> String {
-        date.formatted(.dateTime.weekday(.wide).hour().locale(Locale(identifier: "fr_CA")))
+        date.formatted(.dateTime.weekday(.wide).hour().locale(AppLanguage.formattingLocale))
     }
 
     /// Créneau de cueillette s'il est connu, sinon qui le choisira.
     static func pickupText(_ order: GroupOrder?) -> String {
         if let slot = order?.pickupSlots.min(by: { $0.start < $1.start }) {
-            let day = slot.start.formatted(.dateTime.weekday(.wide).day().month(.wide).locale(Locale(identifier: "fr_CA")))
-            let start = slot.start.formatted(.dateTime.hour().minute().locale(Locale(identifier: "fr_CA")))
-            let end = slot.end.formatted(.dateTime.hour().minute().locale(Locale(identifier: "fr_CA")))
+            let day = slot.start.formatted(.dateTime.weekday(.wide).day().month(.wide).locale(AppLanguage.formattingLocale))
+            let start = slot.start.formatted(.dateTime.hour().minute().locale(AppLanguage.formattingLocale))
+            let end = slot.end.formatted(.dateTime.hour().minute().locale(AppLanguage.formattingLocale))
             return "\(day), \(start) à \(end)"
         }
         if order?.pickupPointId != nil { return String(localized: "Lieu choisi par ton groupe, horaire à venir") }
@@ -820,7 +820,7 @@ private struct OfferDetailContent: View {
         if let match = shareUnit.firstMatch(of: /(\d+(?:[.,]\d+)?)\s*(kg|g|L|l)\b/),
            let value = Double(match.1.replacingOccurrences(of: ",", with: ".")) {
             let total = value * Double(shares)
-            let number = total.formatted(.number.precision(.fractionLength(0...1)).locale(Locale(identifier: "fr_CA")))
+            let number = total.formatted(.number.precision(.fractionLength(0...1)).locale(AppLanguage.formattingLocale))
             return "\(number) \(match.2)"
         }
         return shares == 1 ? "1 \(shareUnit)" : "\(shares) × \(shareUnit)"

@@ -151,13 +151,29 @@ struct VendorOnboardingTests {
         #expect(vendor.averageRating == nil)
         #expect(vendor.productCategories == [.eggs, .produce])
         #expect(vendor.servedZones == [VendorProfileViewModel.zone(for: Self.rosemont)])
-        #expect(vendor.photoURLs.count == 1)
+        // La photo part au stockage final seulement une fois le vendeur créé (l'aperçu, lui, est local).
+        #expect(vendor.photoURLs.map(\.host) == ["example.com"])
+        let previewsAreLocal = model.photoURLs.allSatisfy(\.isFileURL)
+        #expect(previewsAreLocal)
 
         let profile = try await fixture.users.user(id: Self.userId)
         #expect(profile.vendorId == vendor.id)
         #expect(profile.roles.contains(.vendor))
         #expect(profile.roles.contains(.family))
         #expect(model.savedProduct == nil)
+    }
+
+    @Test func photosWaitForTheVendorToExist() async throws {
+        let fixture = Self.fixture()
+        let model = await Self.filledToPhotos(fixture)
+        #expect(await model.addPhoto(data: Data([1, 2, 3])))
+        // Rien n'est encore écrit côté vendeur : les règles refuseraient tant que le compte n'est pas rattaché.
+        await #expect(throws: AppError.notFound) { _ = try await fixture.vendors.vendor(id: model.vendorId) }
+        #expect(model.photoURLs.count == 1)
+        model.removePhoto(try #require(model.photoURLs.first))
+        await model.next()
+        await model.next()
+        #expect(try await fixture.vendors.vendor(id: model.vendorId).photoURLs.isEmpty)
     }
 
     @Test func finishingWithAProductPublishesIt() async throws {

@@ -41,39 +41,22 @@ struct GroupsScreen: View {
 
     /// Aucun groupe autour : en créer un est l'action principale (FB-10).
     private func emptyState(_ viewModel: GroupsViewModel) -> some View {
-        GroupsIllustratedState(
-            scene: GroupsSymbolScene(
-                systemImage: "map.fill",
-                satellites: [
-                    .init(systemImage: "house.fill", tint: .economie, degrees: -145),
-                    .init(systemImage: "person.fill.questionmark", tint: .grenier, degrees: -35),
-                    .init(systemImage: GrenierSymbol.offers, tint: .grenier, degrees: 145)
-                ]
-            ),
-            title: String(localized: "Aucun groupe près de toi"),
-            message: String(localized: "Aucun groupe de quartier n'est ouvert pour l'instant. Lance le tien : tes voisins pourront le rejoindre.")
-        ) {
-            // FB-10 : aucun groupe autour → en créer un est l'action principale.
-            Button {
-                isCreatingGroup = true
-            } label: {
-                Label("Créer un groupe", systemImage: "plus.circle.fill")
-                    .fontWeight(.semibold)
-            }
-            .buttonStyle(.glassProminent)
-            .tint(.grenier)
-            .controlSize(.large)
-            Button {
-                Task { await viewModel.load() }
-            } label: {
-                Label("Actualiser", systemImage: "arrow.clockwise")
-                    .fontWeight(.semibold)
-            }
-            .buttonStyle(.glass)
-            .tint(.grenier)
-            .controlSize(.large)
+        let scene = GroupsSymbolScene(systemImage: "map.fill", satellites: Self.emptySatellites)
+        let title = String(localized: "Aucun groupe près de toi")
+        let message = String(localized: "Aucun groupe de quartier n'est ouvert pour l'instant. Lance le tien : tes voisins pourront le rejoindre.")
+        return GroupsIllustratedState(scene: scene, title: title, message: message) {
+            GroupsEmptyActions(
+                onCreate: { isCreatingGroup = true },
+                onRefresh: { await viewModel.load() }
+            )
         }
     }
+
+    private static let emptySatellites: [GroupsSymbolScene.Satellite] = [
+        GroupsSymbolScene.Satellite(systemImage: "house.fill", tint: Color.economie, degrees: -145),
+        GroupsSymbolScene.Satellite(systemImage: "person.fill.questionmark", tint: Color.grenier, degrees: -35),
+        GroupsSymbolScene.Satellite(systemImage: GrenierSymbol.offers, tint: Color.grenier, degrees: 145)
+    ]
 
     var body: some View {
         NavigationStack(path: $path) {
@@ -650,4 +633,29 @@ private struct BannerBadge: View {
     GroupsScreen()
         .environment(\.appContext, .instant)
         .preferredColorScheme(.dark)
+}
+
+/// Actions de l'état vide de la liste : créer un groupe (principal), actualiser.
+private struct GroupsEmptyActions: View {
+    let onCreate: () -> Void
+    let onRefresh: () async -> Void
+
+    var body: some View {
+        Button(action: onCreate) {
+            Label("Créer un groupe", systemImage: "plus.circle.fill")
+                .fontWeight(.semibold)
+        }
+        .buttonStyle(.glassProminent)
+        .tint(.grenier)
+        .controlSize(.large)
+        Button {
+            Task { await onRefresh() }
+        } label: {
+            Label("Actualiser", systemImage: "arrow.clockwise")
+                .fontWeight(.semibold)
+        }
+        .buttonStyle(.glass)
+        .tint(.grenier)
+        .controlSize(.large)
+    }
 }

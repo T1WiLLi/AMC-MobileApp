@@ -23,62 +23,63 @@ struct GroupsScreen: View {
     var showsCloseButton = false
     @Environment(\.dismiss) private var dismiss
 
+    /// Contenu selon l'état du chargement (découpé pour le vérificateur de types).
+    @ViewBuilder
+    private func stateContent(_ viewModel: GroupsViewModel) -> some View {
+        switch viewModel.state {
+        case .idle, .loading:
+            GroupsLoadingSkeleton()
+        case .empty:
+            emptyState(viewModel)
+        case .failed(let error):
+            GroupsErrorState(error: error, retry: { await viewModel.load() })
+        case .loaded(let items):
+            GroupList(items: items, viewModel: viewModel,
+                      onCreateGroup: { isCreatingGroup = true })
+        }
+    }
+
+    /// Aucun groupe autour : en créer un est l'action principale (FB-10).
+    private func emptyState(_ viewModel: GroupsViewModel) -> some View {
+        GroupsIllustratedState(
+            scene: GroupsSymbolScene(
+                systemImage: "map.fill",
+                satellites: [
+                    .init(systemImage: "house.fill", tint: .economie, degrees: -145),
+                    .init(systemImage: "person.fill.questionmark", tint: .grenier, degrees: -35),
+                    .init(systemImage: GrenierSymbol.offers, tint: .grenier, degrees: 145)
+                ]
+            ),
+            title: String(localized: "Aucun groupe près de toi"),
+            message: String(localized: "Aucun groupe de quartier n'est ouvert pour l'instant. Lance le tien : tes voisins pourront le rejoindre.")
+        ) {
+            // FB-10 : aucun groupe autour → en créer un est l'action principale.
+            Button {
+                isCreatingGroup = true
+            } label: {
+                Label("Créer un groupe", systemImage: "plus.circle.fill")
+                    .fontWeight(.semibold)
+            }
+            .buttonStyle(.glassProminent)
+            .tint(.grenier)
+            .controlSize(.large)
+            Button {
+                Task { await viewModel.load() }
+            } label: {
+                Label("Actualiser", systemImage: "arrow.clockwise")
+                    .fontWeight(.semibold)
+            }
+            .buttonStyle(.glass)
+            .tint(.grenier)
+            .controlSize(.large)
+        }
+    }
+
     var body: some View {
         NavigationStack(path: $path) {
             Group {
                 if let viewModel {
-                    switch viewModel.state {
-                    case .idle, .loading:
-                        GroupsLoadingSkeleton()
-                    case .empty:
-                        GroupsIllustratedState(
-                            scene: GroupsSymbolScene(
-                                systemImage: "map.fill",
-                                satellites: [
-                                    .init(systemImage: "house.fill", tint: .economie, degrees: -145),
-                                    .init(systemImage: "person.fill.questionmark", tint: .grenier, degrees: -35),
-                                    .init(systemImage: GrenierSymbol.offers, tint: .grenier, degrees: 145)
-                                ]
-                            ),
-                            title: String(localized: "Aucun groupe près de toi"),
-                            message: String(localized: "Aucun groupe de quartier n'est ouvert pour l'instant. Lance le tien : tes voisins pourront le rejoindre.")
-                        ) {
-                            // FB-10 : aucun groupe autour → en créer un est l'action principale.
-                            Button {
-                                isCreatingGroup = true
-                            } label: {
-                                Label("Créer un groupe", systemImage: "plus.circle.fill")
-                                    .fontWeight(.semibold)
-                            }
-                            .buttonStyle(.glassProminent)
-                            .tint(.grenier)
-                            .controlSize(.large)
-                            Button {
-                                isCreatingGroup = true
-                            } label: {
-                                Label("Créer un groupe", systemImage: "person.3.sequence.fill")
-                                    .fontWeight(.semibold)
-                            }
-                            .buttonStyle(.glassProminent)
-                            .tint(.grenier)
-                            .controlSize(.large)
-                            Button {
-                                Task { await viewModel.load() }
-                            } label: {
-                                Label("Actualiser", systemImage: "arrow.clockwise")
-                                    .fontWeight(.semibold)
-                            }
-                            .buttonStyle(.glass)
-                            .tint(.grenier)
-                            .controlSize(.large)
-                        }
-                    case .failed(let error):
-                        GroupsErrorState(error: error, retry: { await viewModel.load() })
-                    case .loaded(let items):
-                        GroupList(items: items, viewModel: viewModel,
-                                  onCreate: { isCreatingGroup = true },
-                                  onJoinWithCode: { joinCode = JoinCodeRequest(code: "") })
-                    }
+                    stateContent(viewModel)
                 } else {
                     GroupsLoadingSkeleton()
                 }
@@ -179,8 +180,6 @@ private struct JoinCodeRequest: Identifiable {
 private struct GroupList: View {
     let items: [GroupsViewModel.Item]
     let viewModel: GroupsViewModel
-    let onCreate: () -> Void
-    let onJoinWithCode: () -> Void
     /// FB-10 : « Créer un groupe » bien visible, pas seulement dans le menu +.
     let onCreateGroup: () -> Void
     @Environment(SessionContextStore.self) private var contextStore: SessionContextStore?
@@ -195,9 +194,6 @@ private struct GroupList: View {
                     nearbyCount: others.count,
                     familyCount: items.reduce(0) { $0 + $1.group.householdCount }
                 )
-
-                // FB-10 : créer un groupe se voit tout de suite, pas caché dans le menu « + ».
-                CreateGroupCallout(onCreate: onCreate, onJoinWithCode: onJoinWithCode)
 
                 VStack(alignment: .leading, spacing: 12) {
                     GroupsSectionHeader(
@@ -432,66 +428,6 @@ private struct GroupsLoadingSkeleton: View {
         }
         .accessibilityElement(children: .ignore)
         .accessibilityLabel("Chargement des groupes")
-    }
-}
-
-// MARK: - Créer un groupe (FB-10)
-
-/// Carte d'appel en tête de liste : créer son groupe est l'action principale de l'écran (« Rejoindre » reste en `.glass`).
-private struct CreateGroupCallout: View {
-    let onCreate: () -> Void
-    let onJoinWithCode: () -> Void
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 14) {
-            HStack(spacing: 14) {
-                GroupsSymbolScene(
-                    systemImage: "person.3.sequence.fill",
-                    satellites: [
-                        .init(systemImage: "plus", tint: .grenier, degrees: -40),
-                        .init(systemImage: "house.fill", tint: .economie, degrees: 150)
-                    ],
-                    diameter: 56,
-                    badgeBackground: .fond
-                )
-                VStack(alignment: .leading, spacing: 2) {
-                    Text("Lance ton groupe")
-                        .font(.headline)
-                        .foregroundStyle(.texte)
-                    Text("Ton ménage en est le premier membre.")
-                        .font(.subheadline)
-                        .foregroundStyle(.texteSecondaire)
-                }
-                .fixedSize(horizontal: false, vertical: true)
-                Spacer(minLength: 0)
-            }
-            ViewThatFits(in: .horizontal) {
-                HStack(spacing: 10) { buttons }
-                VStack(alignment: .leading, spacing: 10) { buttons }
-            }
-        }
-        .grenierCard(padding: 16)
-    }
-
-    @ViewBuilder
-    private var buttons: some View {
-        Button(action: onCreate) {
-            Label("Créer un groupe", systemImage: "plus.circle.fill")
-                .fontWeight(.semibold)
-                .frame(maxWidth: .infinity)
-        }
-        .buttonStyle(.glassProminent)
-        .tint(.grenier)
-        .controlSize(.large)
-        .accessibilityHint("Ton ménage en devient le premier membre")
-        Button(action: onJoinWithCode) {
-            Label("J'ai un code", systemImage: "ticket.fill")
-                .fontWeight(.semibold)
-        }
-        .buttonStyle(.glass)
-        .tint(.grenier)
-        .controlSize(.large)
-        .accessibilityHint("Entre dans un groupe avec une invitation reçue")
     }
 }
 

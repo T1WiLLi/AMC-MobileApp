@@ -482,7 +482,8 @@ private struct OrderLink: View {
                     // Ma part vit dans la carte, en pastille courte « ✓ 1 part ».
                     myShareQuantity: summary.hasMyShare ? summary.myShareQuantity : 0,
                     isClosed: summary.isClosed,
-                    isPaid: summary.isPaid
+                    isPaid: summary.isPaid,
+                    orderStatus: summary.groupOrder?.status
                 )
                 // La fiche du lot sort de la carte en zoom (T-123).
                 .grenierZoomSource(OfferRoute(offerId: summary.offer.id))

@@ -30134,6 +30134,96 @@
           }
         }
       }
+    },
+    "Fermée, en préparation" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Closed, being prepared"
+          }
+        }
+      }
+    },
+    "Commande fermée, en préparation" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Order closed, being prepared"
+          }
+        }
+      }
+    },
+    "Commande livrée" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Order delivered"
+          }
+        }
+      }
+    },
+    "Minimum non atteint · aucune famille débitée" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Minimum not reached · no family charged"
+          }
+        }
+      }
+    },
+    "Fermer la commande, %@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Close the order, %@"
+          }
+        }
+      }
+    },
+    "Demande confirmation, puis fige le prix et fait payer les familles." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Asks for confirmation, then locks the price and charges the families."
+          }
+        }
+      }
+    },
+    "Le prix est figé à %@ par %@, le palier atteint. Les parts de %@ seront payées au pot du groupe. Elles ne pourront plus changer." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The price is locked at %1$@ per %2$@, the tier reached. The shares of %3$@ will be paid into the group pot. They can no longer change."
+          }
+        }
+      }
+    },
+    "Le prix est figé au palier atteint par chaque groupe, de %@ à %@ par %@. Les parts de %@ seront payées au pot du groupe. Elles ne pourront plus changer." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The price is locked at the tier each group reached, from %1$@ to %2$@ per %3$@. The shares of %4$@ will be paid into the group pot. They can no longer change."
+          }
+        }
+      }
+    },
+    "Les commandes sous le minimum (%lld) seront annulées, sans débit." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Orders below the minimum (%lld) will be cancelled, with no charge."
+          }
+        }
+      }
     }
   },
   "version" : "1.0"

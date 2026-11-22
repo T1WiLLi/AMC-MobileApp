@@ -27,7 +27,7 @@ struct VendorTabView: View {
             }
             Tab("Lots", systemImage: "shippingbox.fill", value: .offers) {
                 vendorContent(title: "Lots") {
-                    VendorOffersScreen(repositories: context.repositories, vendorId: vendorId)
+                    VendorOffersScreen(repositories: context.repositories, vendorId: vendorId, userId: context.userId)
                 }
                 .grenierTabContent(isSelected: selection == .offers)
             }

@@ -1,26 +1,13 @@
 // VendorReviewRules.swift
-// Logique pure des avis producteurs (T-157) : moyenne, répartition, éligibilité à noter, indicateurs de confiance.
+// Logique pure des avis producteurs (T-157) : éligibilité à noter, indicateurs de confiance.
+// Moyenne, répartition, commentaire et signature : `RatingRules` (commun aux notes de groupes, T-174).
 // Testée dans AMC-MobileAppTests/Domain/VendorReviewRulesTests.swift ; mêmes limites que firestore.rules.
 
 import Foundation
 
 nonisolated enum VendorReviewRules {
-    /// Note agrégée d'un producteur.
-    struct Summary: Hashable, Sendable {
-        /// Moyenne arrondie au dixième ; nil sans avis.
-        var average: Double?
-        var count: Int
-        /// Nombre d'avis par nombre d'étoiles (index 0 = 1 étoile … index 4 = 5 étoiles).
-        var distribution: [Int]
-
-        static let empty = Summary(average: nil, count: 0, distribution: Array(repeating: 0, count: 5))
-
-        /// Part (0…1) des avis à `stars` étoiles.
-        func share(of stars: Int) -> Double {
-            guard count > 0, VendorReview.ratingRange.contains(stars) else { return 0 }
-            return Double(distribution[stars - 1]) / Double(count)
-        }
-    }
+    /// Note agrégée d'un producteur (type commun à toutes les notes, `RatingRules`).
+    typealias Summary = RatingRules.Summary
 
     /// Indicateurs qui donnent confiance aux familles.
     struct Trust: Hashable, Sendable {
@@ -33,12 +20,7 @@ nonisolated enum VendorReviewRules {
 
     /// Moyenne et répartition. Les notes hors 1…5 sont ignorées.
     static func summary(of reviews: [VendorReview]) -> Summary {
-        let valid = reviews.filter { VendorReview.ratingRange.contains($0.rating) }
-        guard !valid.isEmpty else { return .empty }
-        var distribution = Array(repeating: 0, count: 5)
-        for review in valid { distribution[review.rating - 1] += 1 }
-        let mean = Double(valid.reduce(0) { $0 + $1.rating }) / Double(valid.count)
-        return Summary(average: (mean * 10).rounded() / 10, count: valid.count, distribution: distribution)
+        RatingRules.summary(ofRatings: reviews.map(\.rating))
     }
 
     /// Avis les plus récents d'abord (dernière modification).
@@ -64,19 +46,14 @@ nonisolated enum VendorReviewRules {
         )
     }
 
-    /// Commentaire nettoyé : espaces retirés, vide → nil, coupé à la limite.
+    /// Commentaire nettoyé (`RatingRules.normalizedComment`) : vide → nil, coupé à la limite.
     static func normalizedComment(_ text: String) -> String? {
-        let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !trimmed.isEmpty else { return nil }
-        return String(trimmed.prefix(VendorReview.maxCommentLength))
+        RatingRules.normalizedComment(text, maxLength: VendorReview.maxCommentLength)
     }
 
     /// « Amina Benali » → « Amina B. » ; vide → « Une famille ».
     static func authorName(fromDisplayName name: String) -> String {
-        let parts = name.split(separator: " ").map(String.init)
-        guard let first = parts.first else { return String(localized: "Une famille") }
-        let short = parts.count > 1 ? "\(first) \(parts[parts.count - 1].prefix(1))." : first
-        return String(short.prefix(VendorReview.maxAuthorNameLength))
+        RatingRules.authorName(fromDisplayName: name)
     }
 
     /// Avis prêt à enregistrer (création ou modification de l'avis existant du ménage).

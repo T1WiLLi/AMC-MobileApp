@@ -15,6 +15,8 @@ rules_version = '2';
 //   groups/{id}                          groupe de quartier ; lecture par tout utilisateur connecté ;
 //                                        seul householdCount bouge, avec l'adhésion (T-099)
 //   groups/{id}/members/{householdId}    adhésion ; un ménage s'ajoute ou se retire lui-même
+//   groups/{id}/ratings/{householdId}    avis d'une famille sur le groupe (T-174) ; lecture connectée, écrit par un
+//                                        ménage membre ou ancien membre, avec ratingSum / ratingCount du groupe
 //   vendors/{id}                         vendeur ; lecture connectée, le vendeur modifie sa vitrine
 //   vendorReviews/{vendorId}_{household} avis d'une famille (T-157) ; lecture connectée, écrit par le ménage acheteur
 //   products/{id}, offers/{id}           catalogue ; lecture connectée, écrit par le vendeur propriétaire
@@ -398,7 +400,8 @@ service cloud.firestore {
       allow list: if isAuthenticated() && resource.data.isPublic == true;
       allow create: if isGroupCreation();
       allow delete: if false;
-      allow update: if isMembershipCountUpdate() || isMediaStampUpdate() || isBrandingUpdate() || isVisibilityUpdate();
+      allow update: if isMembershipCountUpdate() || isMediaStampUpdate() || isBrandingUpdate() || isVisibilityUpdate()
+        || isRatingAggregateUpdate();
 
       // B-059 : une personne crée un groupe depuis l'app. Elle en est la créatrice et la seule coordonnatrice,
       // son ménage (`lastMembershipChange`) en est le premier membre, coordonnateur, écrit dans le même batch.
@@ -510,6 +513,84 @@ service cloud.firestore {
         allow update: if false;
         allow delete: if isMemberOfHousehold(householdId)
           && (!exists(groupPath(groupId)) || isCountChangedBy(groupId, householdId, -1));
+      }
+
+      // ---------------------------------------------------------------
+      // T-174 (FB-20) : avis des familles sur le groupe, groups/{groupId}/ratings/{householdId}.
+      // Champs : id (= householdId), groupId, householdId, authorName (prénom + initiale, 1..60),
+      //   rating (int 1..5), comment (string 0..280, optionnel), groupOrderId (optionnel : preuve d'ancien membre,
+      //   une commande terminée du groupe où le ménage avait une part), createdAt, updatedAt (timestamps).
+      // Un avis par ménage (id du doc). Créé par un membre du ménage, membre du groupe (ou ancien membre, preuve
+      // à l'appui) ; modifié par le ménage auteur (note, commentaire, signature, date) ; jamais supprimé.
+      // Agrégats `ratingSum` / `ratingCount` du groupe tenus dans la même transaction, avec
+      // `lastRatingChange` = le ménage : l'avis exige que le groupe bouge de l'écart exact, et le groupe
+      // n'accepte ces champs que si l'avis du ménage apparaît ou change d'autant. Ils ne peuvent pas dériver.
+      // ---------------------------------------------------------------
+      function ratingPath(householdId) {
+        return /databases/$(database)/documents/groups/$(groupId)/ratings/$(householdId);
+      }
+
+      // Le groupe bouge de `countDelta` avis et `sumDelta` étoiles dans cette requête, au nom de `householdId`.
+      function isRatingAggregateChange(householdId, countDelta, sumDelta) {
+        let before = get(groupPath(groupId)).data;
+        let after = getAfter(groupPath(groupId)).data;
+        return after.get('lastRatingChange', '') == householdId
+          && after.get('ratingCount', 0) == before.get('ratingCount', 0) + countDelta
+          && after.get('ratingSum', 0) == before.get('ratingSum', 0) + sumDelta;
+      }
+
+      // Côté groupe : seuls les agrégats bougent, et exactement de l'écart de l'avis du ménage nommé.
+      function isRatingAggregateUpdate() {
+        let householdId = request.resource.data.get('lastRatingChange', '');
+        let path = ratingPath(householdId);
+        let hadRating = exists(path);
+        let oldRating = hadRating ? get(path).data.rating : 0;
+        return onlyChanges(['ratingSum', 'ratingCount', 'lastRatingChange'])
+          && householdId is string && householdId.size() > 0
+          && isMemberOfHousehold(householdId)
+          && existsAfter(path)
+          && request.resource.data.get('ratingCount', 0) == resource.data.get('ratingCount', 0) + (hadRating ? 0 : 1)
+          && request.resource.data.get('ratingSum', 0)
+            == resource.data.get('ratingSum', 0) + getAfter(path).data.rating - oldRating;
+      }
+
+      function isValidGroupRating(data, householdId) {
+        return data.keys().hasOnly(['id', 'groupId', 'householdId', 'authorName', 'rating', 'comment',
+                                    'groupOrderId', 'createdAt', 'updatedAt'])
+          && data.keys().hasAll(['id', 'groupId', 'householdId', 'authorName', 'rating', 'createdAt', 'updatedAt'])
+          && data.id == householdId
+          && data.householdId == householdId
+          && data.groupId == groupId
+          && isShortString(data.authorName, 1, 60)
+          && isIntIn(data.rating, 1, 5)
+          && isOptionalString(data, 'comment', 280)
+          && isOptionalString(data, 'groupOrderId', 128)
+          && data.createdAt is timestamp
+          && data.updatedAt is timestamp;
+      }
+
+      // Ancien membre : il avait une part dans une commande terminée (livrée ou close) de ce groupe.
+      function hasHadShareInGroup(data, householdId) {
+        let orderId = data.get('groupOrderId', '');
+        let orderPath = /databases/$(database)/documents/groupOrders/$(orderId);
+        return orderId is string && orderId.size() > 0
+          && exists(orderPath)
+          && get(orderPath).data.groupId == groupId
+          && get(orderPath).data.status in ['delivered', 'closed']
+          && exists(/databases/$(database)/documents/groupOrders/$(orderId)/shares/$(householdId));
+      }
+
+      match /ratings/{householdId} {
+        allow read: if isAuthenticated();
+        allow create: if isValidGroupRating(request.resource.data, householdId)
+          && isMemberOfHousehold(householdId)
+          && (exists(memberPath(groupId, householdId)) || hasHadShareInGroup(request.resource.data, householdId))
+          && isRatingAggregateChange(householdId, 1, request.resource.data.rating);
+        allow update: if isValidGroupRating(request.resource.data, householdId)
+          && isMemberOfHousehold(householdId)
+          && onlyChanges(['authorName', 'rating', 'comment', 'updatedAt'])
+          && isRatingAggregateChange(householdId, 0, request.resource.data.rating - resource.data.rating);
+        allow delete: if false;
       }
     }
 
@@ -1062,6 +1143,8 @@ service cloud.firestore {
       match /shares/{householdId} {
         allow read: if isAuthenticated()
           && (isGroupMember(orderDoc().groupId) || isOfferVendor(offerOf(orderDoc())) || isPickupHost(orderDoc()));
+        // T-174 : le ménage lit aussi SA propre part (par id) après avoir quitté le groupe : preuve pour le noter.
+        allow get: if isMemberOfHousehold(householdId);
 
         allow create: if isValidShare(request.resource.data, householdId)
           && isFamilyShape(request.resource.data)

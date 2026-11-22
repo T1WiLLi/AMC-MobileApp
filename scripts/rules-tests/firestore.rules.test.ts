@@ -1284,3 +1284,158 @@ describe('vitrine du vendeur (T-157)', () => {
     await assertFails(deleteDoc(doc(lafleur(), 'vendors/vendor-autre/media/photo-x')))
   })
 })
+
+describe('avis des familles sur un groupe (T-174)', () => {
+  const groupPath = 'groups/group-parc-extension'
+  const ratingPath = `${groupPath}/ratings/household-amina`
+  const rating = (overrides: Record<string, unknown> = {}) => ({
+    id: 'household-amina', groupId: 'group-parc-extension', householdId: 'household-amina', authorName: 'Amina B.',
+    rating: 4, comment: 'Coordination au top', createdAt: Timestamp.fromMillis(Date.now()),
+    updatedAt: Timestamp.fromMillis(Date.now()), ...overrides
+  })
+
+  // Ce que fait FirestoreGroupRepository.saveRating : avis + agrégats du groupe, ensemble.
+  function rateBatch(db: Firestore, data: Record<string, unknown>, sumDelta: number, countDelta: number,
+                     householdId = 'household-amina', path = ratingPath, isUpdate = false) {
+    const batch = writeBatch(db)
+    if (isUpdate) batch.update(doc(db, path), data)
+    else batch.set(doc(db, path), data)
+    batch.update(doc(db, groupPath), {
+      ratingSum: increment(sumDelta), ratingCount: increment(countDelta), lastRatingChange: householdId
+    })
+    return batch.commit()
+  }
+
+  async function seedMember() {
+    await env.withSecurityRulesDisabled(async (context) => {
+      await setDoc(doc(context.firestore(), `${groupPath}/members/household-amina`),
+                   { householdId: 'household-amina', role: 'member', joinedAt: Timestamp.fromMillis(Date.now()) })
+    })
+  }
+
+  async function seedExistingRating() {
+    await env.withSecurityRulesDisabled(async (context) => {
+      const db = context.firestore()
+      await setDoc(doc(db, ratingPath), rating())
+      await updateDoc(doc(db, groupPath), { ratingSum: 9, ratingCount: 2, lastRatingChange: 'household-tremblay' })
+    })
+  }
+
+  beforeEach(async () => {
+    await env.withSecurityRulesDisabled(async (context) => {
+      const db = context.firestore()
+      const order = { groupId: 'group-parc-extension', offerId: 'offer-carottes', committedShares: 2, committedHouseholds: 1, pickupSlots: [] }
+      await setDoc(doc(db, 'groupOrders/order-passee'), { ...order, id: 'order-passee', status: 'delivered' })
+      await setDoc(doc(db, 'groupOrders/order-passee/shares/household-amina'), share)
+      await setDoc(doc(db, 'groupOrders/order-ouverte-moi'), { ...order, id: 'order-ouverte-moi', status: 'open' })
+      await setDoc(doc(db, 'groupOrders/order-ouverte-moi/shares/household-amina'), share)
+      await setDoc(doc(db, 'groupOrders/order-sans-moi'), { ...order, id: 'order-sans-moi', status: 'delivered' })
+      await setDoc(doc(db, 'groupOrders/order-autre-groupe'), { ...order, id: 'order-autre-groupe', groupId: 'group-ailleurs', status: 'delivered' })
+      await setDoc(doc(db, 'groupOrders/order-autre-groupe/shares/household-amina'), share)
+      await setDoc(doc(db, `${groupPath}/ratings/household-tremblay`), {
+        ...rating(), id: 'household-tremblay', householdId: 'household-tremblay', authorName: 'Julie T.'
+      })
+    })
+  })
+
+  test('connecté lit les avis du groupe', async () => {
+    await assertSucceeds(getDocs(collection(intruder(), `${groupPath}/ratings`)))
+  })
+  test('anonyme ne lit pas les avis', async () => {
+    await assertFails(getDoc(doc(anonymous(), `${groupPath}/ratings/household-tremblay`)))
+  })
+  test('un membre note le groupe, agrégats tenus', async () => {
+    await seedMember()
+    await assertSucceeds(rateBatch(amina(), rating(), 4, 1))
+  })
+  test('sans commentaire, c’est permis', async () => {
+    await seedMember()
+    const { comment: _comment, ...withoutComment } = rating()
+    await assertSucceeds(rateBatch(amina(), withoutComment, 4, 1))
+  })
+  test('ancien membre avec une part dans une commande livrée du groupe : permis', async () => {
+    await assertSucceeds(rateBatch(amina(), rating({ groupOrderId: 'order-passee' }), 4, 1))
+  })
+  test('jamais membre, sans preuve : refusé', async () => {
+    await assertFails(rateBatch(amina(), rating(), 4, 1))
+  })
+  test('preuve : commande encore ouverte : refusé', async () => {
+    await assertFails(rateBatch(amina(), rating({ groupOrderId: 'order-ouverte-moi' }), 4, 1))
+  })
+  test('preuve : commande sans part du ménage : refusé', async () => {
+    await assertFails(rateBatch(amina(), rating({ groupOrderId: 'order-sans-moi' }), 4, 1))
+  })
+  test('preuve : commande d’un autre groupe : refusé', async () => {
+    await assertFails(rateBatch(amina(), rating({ groupOrderId: 'order-autre-groupe' }), 4, 1))
+  })
+  test('avis sans agrégats : refusé', async () => {
+    await seedMember()
+    await assertFails(setDoc(doc(amina(), ratingPath), rating()))
+  })
+  test('agrégats faussés (somme gonflée) : refusé', async () => {
+    await seedMember()
+    await assertFails(rateBatch(amina(), rating(), 50, 1))
+  })
+  test('agrégats faussés (compte gonflé) : refusé', async () => {
+    await seedMember()
+    await assertFails(rateBatch(amina(), rating(), 4, 3))
+  })
+  test('agrégats seuls, sans avis : refusé', async () => {
+    await seedMember()
+    await assertFails(updateDoc(doc(amina(), groupPath), {
+      ratingSum: increment(5), ratingCount: increment(1), lastRatingChange: 'household-amina'
+    }))
+  })
+  test('note hors 1…5 : refusé', async () => {
+    await seedMember()
+    await assertFails(rateBatch(amina(), rating({ rating: 6 }), 6, 1))
+    await assertFails(rateBatch(amina(), rating({ rating: 0 }), 0, 1))
+  })
+  test('commentaire de plus de 280 caractères : refusé', async () => {
+    await seedMember()
+    await assertFails(rateBatch(amina(), rating({ comment: 'x'.repeat(281) }), 4, 1))
+  })
+  test('champ inconnu : refusé', async () => {
+    await seedMember()
+    await assertFails(rateBatch(amina(), rating({ isFeatured: true }), 4, 1))
+  })
+  test('noter au nom d’un autre ménage : refusé', async () => {
+    await seedMember()
+    const other = rating({ id: 'household-intrus', householdId: 'household-intrus' })
+    await assertFails(rateBatch(amina(), other, 4, 1, 'household-intrus', `${groupPath}/ratings/household-intrus`))
+  })
+  test('un intrus ne note pas pour Amina', async () => {
+    await seedMember()
+    await assertFails(rateBatch(intruder(), rating(), 4, 1))
+  })
+  test('modifier sa note : écart exact sur la somme, compte inchangé', async () => {
+    await seedMember()
+    await seedExistingRating()
+    const change = { rating: 2, comment: 'Plus pareil', updatedAt: Timestamp.fromMillis(Date.now()) }
+    await assertSucceeds(rateBatch(amina(), change, -2, 0, 'household-amina', ratingPath, true))
+  })
+  test('modifier sa note après avoir quitté le groupe : permis', async () => {
+    await seedExistingRating()
+    const change = { rating: 5, updatedAt: Timestamp.fromMillis(Date.now()) }
+    await assertSucceeds(rateBatch(amina(), change, 1, 0, 'household-amina', ratingPath, true))
+  })
+  test('modifier en recomptant un avis : refusé', async () => {
+    await seedMember()
+    await seedExistingRating()
+    const change = { rating: 5, updatedAt: Timestamp.fromMillis(Date.now()) }
+    await assertFails(rateBatch(amina(), change, 1, 1, 'household-amina', ratingPath, true))
+  })
+  test('modifier la date de création : refusé', async () => {
+    await seedMember()
+    await seedExistingRating()
+    await assertFails(rateBatch(amina(), { createdAt: Timestamp.fromMillis(0) }, 0, 0, 'household-amina', ratingPath, true))
+  })
+  test('supprimer son avis : refusé (les agrégats ne dériveraient plus)', async () => {
+    await seedExistingRating()
+    await assertFails(deleteDoc(doc(amina(), ratingPath)))
+  })
+  test('le ménage lit sa propre part après avoir quitté le groupe, pas un intrus', async () => {
+    await assertSucceeds(getDoc(doc(amina(), 'groupOrders/order-passee/shares/household-amina')))
+    await assertFails(getDoc(doc(intruder(), 'groupOrders/order-passee/shares/household-amina')))
+  })
+})

@@ -30,6 +30,14 @@ nonisolated struct NeighborhoodGroup: Identifiable, Codable, Sendable, Hashable 
     var bannerUpdatedAt: Date? = nil
     /// B-056 : utilisateur qui a créé le groupe ; nil pour les anciens documents (le premier coordonnateur).
     var createdBy: String? = nil
+    /// T-174 : somme des étoiles des avis des familles (`groups/{id}/ratings`), tenue dans la même transaction
+    /// que chaque avis (firestore.rules le vérifie). nil = aucun avis.
+    var ratingSum: Int? = nil
+    /// T-174 : nombre d'avis (un par ménage).
+    var ratingCount: Int? = nil
+
+    /// T-174 : moyenne et nombre d'avis, pour les cartes et la fiche sans relire les avis.
+    var ratingSummary: RatingRules.Summary { RatingRules.summary(sum: ratingSum, count: ratingCount) }
 
     /// B-056 : créateur du groupe, seul à changer sa visibilité et à gérer ses invitations.
     /// Même calcul que `groupCreatorId` dans firestore.rules.
@@ -78,6 +86,8 @@ extension NeighborhoodGroup {
         photoUpdatedAt = try container.decodeIfPresent(Date.self, forKey: .photoUpdatedAt)
         bannerUpdatedAt = try container.decodeIfPresent(Date.self, forKey: .bannerUpdatedAt)
         createdBy = try container.decodeIfPresent(String.self, forKey: .createdBy)
+        ratingSum = try container.decodeIfPresent(Int.self, forKey: .ratingSum)
+        ratingCount = try container.decodeIfPresent(Int.self, forKey: .ratingCount)
     }
 }
 

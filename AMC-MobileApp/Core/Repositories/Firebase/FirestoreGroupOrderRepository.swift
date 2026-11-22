@@ -84,6 +84,16 @@ nonisolated final class FirestoreGroupOrderRepository: GroupOrderRepository, @un
         return try await fetchShares(groupOrderId)
     }
 
+    /// T-174 : lecture du seul document du ménage (les règles le laissent lire sa propre part, même hors du groupe).
+    func share(ofHousehold householdId: String, inGroupOrder groupOrderId: String) async throws -> Share? {
+        do {
+            let snapshot = try await sharesRef(groupOrderId).document(householdId).getDocument()
+            return snapshot.exists ? try Self.decodeShare(snapshot) : nil
+        } catch {
+            throw Self.appError(from: error)
+        }
+    }
+
     func observeGroupOrder(id: String) async -> AsyncThrowingStream<GroupOrder, any Error> {
         let (stream, continuation) = AsyncThrowingStream<GroupOrder, any Error>.makeStream()
         let firstSnapshot = PerfSignposts.begin("firestore.observeGroupOrder.firstSnapshot")

@@ -127,6 +127,12 @@ final class OrderActivityController {
         await client.update(id: activityID, state: newState, alert: alert)
     }
 
+    /// Renvoie l'état en cours, sans alerte, pour que le système redessine l'activité (langue changée dans l'app).
+    func refresh() async {
+        guard let activityID, let state else { return }
+        await client.update(id: activityID, state: state, alert: nil)
+    }
+
     /// Termine l'activité (elle reste un moment sur l'écran verrouillé avec son dernier état).
     func end() async {
         stopDemo()

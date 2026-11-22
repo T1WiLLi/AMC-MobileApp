@@ -28,6 +28,8 @@ struct AMCMobileApp: App {
     init() {
         // T-171 : langue choisie (ou changée dans les Réglages iOS) avant le premier texte affiché.
         AppLanguage.bootstrap()
+        // Le widget suit aussi la langue retenue (elle a pu changer dans les Réglages iOS).
+        ExtensionLanguageSync.reloadWidgets()
         // Fake, émulateur ou projet de démo (B-013) : voir `BackendMode` et docs/firebase.md §4.
         let mode = PerfSignposts.measure("launch.backendSetup") { FirebaseSetup.configure() }
         _session = State(initialValue: SessionViewModel(auth: FirebaseSetup.makeAuthService(mode: mode)))

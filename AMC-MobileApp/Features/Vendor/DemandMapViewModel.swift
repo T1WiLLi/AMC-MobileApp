@@ -81,6 +81,8 @@ final class DemandMapViewModel {
         var wishes: [GroupDemand] = []
         /// Ménages distincts qui ont au moins une envie dans le point.
         var wishingHouseholds: Int = 0
+        /// Quartier du groupe le plus demandeur (« Saint-Michel »), pour poser la bulle sur le bon quartier.
+        var neighborhood: String?
 
         /// Familles prêtes à acheter : engagées dans une commande ou qui ont exprimé une envie.
         /// Un ménage engagé qui a aussi une envie peut compter deux fois : les parts ne disent pas qui les a prises.
@@ -306,7 +308,8 @@ final class DemandMapViewModel {
                 products: productDemands(records),
                 intensity: 0,
                 wishes: GroupDemand.aggregate(wishes.map(\.wish)),
-                wishingHouseholds: Set(wishes.map(\.wish.householdId)).count
+                wishingHouseholds: Set(wishes.map(\.wish.householdId)).count,
+                neighborhood: topGroup?.neighborhood
             )
         }
         let maxScore = points.map(\.demandScore).max() ?? 0

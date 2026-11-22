@@ -199,7 +199,8 @@ struct FamilyMapViewModelTests {
         let model = viewModel(data: data)
         await model.load()
         try zoom(model, to: 2_000)
-        #expect(model.allPlaces.value?.map(\.sourceId) == [ID.hochelaga])
+        // Hochelaga et Parc-Extension (T-180) sont chargés, mais hors du rayon de 2 km.
+        #expect(model.allPlaces.value?.map(\.sourceId) == [ID.hochelaga, ID.parcExtension])
         #expect(model.state == .empty)
         #expect(model.summaryText == "Aucun lieu dans ce rayon")
     }

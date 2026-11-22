@@ -14,7 +14,7 @@ nonisolated protocol HouseholdPrivateStore: Sendable {
 
 /// En mémoire. `shared` garde le statut entre deux ouvertures de l'écran pendant la démo.
 actor FakeHouseholdPrivateStore: HouseholdPrivateStore {
-    static let shared = FakeHouseholdPrivateStore(behavior: .realistic)
+    static let shared = FakeHouseholdPrivateStore(behavior: .demo)
 
     private let behavior: FakeBehavior
     private var profiles: [String: HouseholdPrivate]

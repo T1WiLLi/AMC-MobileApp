@@ -1,3 +1,4 @@
+import CoreLocation
 import Testing
 @testable import AMC_MobileApp
 
@@ -67,5 +68,34 @@ struct DemandMapFormattingTests {
             committedShares: 26, committedHouseholds: 24, householdCount: 31, products: [], intensity: 1
         )
         #expect(point.accessibilityDescription == "Parc-Ex Ouest, 24 familles, forte demande")
+    }
+
+    /// Bulles de la carte Demande : « Saint-Michel » (f25dv) tombait près du Mont-Royal, « Hochelaga » (f25ej) sur le Plateau.
+    @Test func demandBubblesSitOnTheirNeighborhood() throws {
+        func point(_ grouping: DemandMapViewModel.Grouping, _ label: String, _ geohash: String,
+                   neighborhood: String?) -> DemandMapViewModel.DemandPoint {
+            DemandMapViewModel.DemandPoint(
+                id: label, grouping: grouping, label: label, geohash: geohash, groupIds: ["g"], committedShares: 19,
+                committedHouseholds: 11, householdCount: 12, products: [], intensity: 1, neighborhood: neighborhood
+            )
+        }
+        func isNear(_ coordinate: CLLocationCoordinate2D?, _ latitude: Double, _ longitude: Double) -> Bool {
+            guard let coordinate else { return false }
+            return abs(coordinate.latitude - latitude) < 0.002 && abs(coordinate.longitude - longitude) < 0.002
+        }
+
+        // Quartiers : le centre connu du quartier, même avec un geohash de groupe à 5 caractères.
+        #expect(isNear(point(.neighborhood, "Saint-Michel", "f25dv", neighborhood: "Saint-Michel").coordinate, 45.565, -73.615))
+        #expect(isNear(point(.neighborhood, "hochelaga", "f25ej", neighborhood: nil).coordinate, 45.548, -73.540))
+        // Groupes : un centre loin de son quartier est ramené au quartier…
+        #expect(isNear(point(.group, "Voisins de Saint-Michel", "f25dv", neighborhood: "Saint-Michel").coordinate, 45.565, -73.615))
+        // … un centre précis dans son quartier est gardé.
+        let precise = try #require(Geohash.decode("f25eh8"))
+        #expect(isNear(point(.group, "Parc-Ex Ouest", "f25eh8", neighborhood: "Parc-Extension").coordinate,
+                       precise.latitude, precise.longitude))
+        // Zones, ou quartier inconnu : le centre du geohash.
+        let zone = try #require(Geohash.decode("f25d"))
+        #expect(isNear(point(.geohash, "f25d", "f25d", neighborhood: "Saint-Michel").coordinate, zone.latitude, zone.longitude))
+        #expect(isNear(point(.neighborhood, "Laval", "f25dv", neighborhood: nil).coordinate, 45.5054, -73.5864))
     }
 }

@@ -78,9 +78,9 @@ struct PublicVendorViewModelTests {
         let model = model()
         await model.load()
         let zones = try #require(model.state.value?.zones)
-        // f25d → Saint-Michel (groupe f25dv), f25e → Hochelaga (groupe f25ej).
+        // f25d → Parc-Extension (groupe f25dt, T-180) et Saint-Michel (groupe f25dv), f25e → Hochelaga (groupe f25ej).
         #expect(zones.map(\.id) == ["f25d", "f25e"])
-        #expect(zones.map(\.label) == ["Saint-Michel", "Hochelaga"])
+        #expect(zones.map(\.label) == ["Parc-Extension et Saint-Michel", "Hochelaga"])
 
         let unknown = self.model(vendorId: "vendor-nouveau")
         await unknown.load()

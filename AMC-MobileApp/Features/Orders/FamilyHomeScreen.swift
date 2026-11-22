@@ -68,6 +68,9 @@ struct FamilyHomeScreen: View {
             // Retour depuis une fiche de lot ou depuis un autre onglet : une part réservée entre-temps
             // (et le nouveau prix) s'affiche tout de suite. `load()` garde le contenu affiché pendant le rechargement.
             .onAppear { reloadIfAlreadyLoaded() }
+            // Une part réservée depuis la fiche (poussée sur cette pile ou ouverte d'un autre onglet) : on recharge
+            // tout de suite, sans attendre le retour. Le zoom de la fiche ne relance pas toujours `onAppear`.
+            .onChange(of: ShareActivity.shared.generation) { reloadIfAlreadyLoaded() }
         }
         // Bascule de portail : le voile attend que l'accueil ait son contenu.
         .portalContentReady(.family, when: isContentReady)

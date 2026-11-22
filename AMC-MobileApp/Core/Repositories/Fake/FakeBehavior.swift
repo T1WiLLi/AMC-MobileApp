@@ -11,6 +11,10 @@ nonisolated struct FakeBehavior: Sendable {
 
     /// Previews et démo : 300 à 800 ms, comme un vrai réseau.
     static let realistic = FakeBehavior(latencyMilliseconds: 300...800, failure: nil)
+    /// App en mode `-useFakeData` (démo du jury) : 5 à 25 ms par appel. Un écran enchaîne plusieurs appels ;
+    /// avec `realistic`, la Cueillette attendait 5 à 7 s, la carte Demande 3 s et l'Accueil 2 s. Ici, moins
+    /// de 300 ms par écran, et les états de chargement existent encore (une image ou deux).
+    static let demo = FakeBehavior(latencyMilliseconds: 5...25, failure: nil)
     /// Tests : aucune attente.
     static let instant = FakeBehavior(latencyMilliseconds: nil, failure: nil)
     /// État d'erreur, par exemple pour une preview hors ligne.

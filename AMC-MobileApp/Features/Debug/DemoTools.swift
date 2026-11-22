@@ -82,7 +82,7 @@ final class DemoEnvironment {
 extension AppContext {
     /// Mode `.fake` SEULEMENT (`resetFakeDemo`) : mêmes personas et même latence que `.demo`, avec des dépôts neufs
     /// (les commandes passées pendant la démo disparaissent).
-    static func reloadedDemo(behavior: FakeBehavior = .realistic) -> AppContext {
+    static func reloadedDemo(behavior: FakeBehavior = .demo) -> AppContext {
         AppContext(
             repositories: .fake(behavior: behavior, data: .demo).cached(),
             userId: FakeData.ID.amina,

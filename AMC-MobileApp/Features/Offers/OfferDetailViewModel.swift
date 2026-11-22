@@ -275,6 +275,8 @@ final class OfferDetailViewModel {
                 newContent.mySuspendedCents = saved.suspendedAmountCents
             }
             state = .loaded(newContent)
+            // L'Accueil (sous la fiche dans la pile) recharge ses cartes : nouveau prix, nouvelle part.
+            ShareActivity.shared.shareDidChange()
 
             let after = newContent.pricing
             if quantity > 0, after.tierNumber > before.tierNumber {

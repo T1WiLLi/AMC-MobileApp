@@ -40,7 +40,8 @@ struct VendorProfileViewModelTests {
         #expect(vendor.legalName == "Ferme Bio-Rive")
         #expect(model.description == vendor.description)
         #expect(model.servedZones == ["f25d", "f25e"])
-        #expect(model.label(forZone: "f25d") == "Saint-Michel")
+        // f25d : groupes Parc-Extension (f25dt, T-180) et Saint-Michel (f25dv).
+        #expect(model.label(forZone: "f25d") == "Parc-Extension et Saint-Michel")
         #expect(model.label(forZone: "f25e") == "Hochelaga")
         #expect(model.label(forZone: "zzzz") == "Secteur personnalisé")
         #expect(model.zoneSuggestions.isEmpty)

@@ -49,9 +49,9 @@ struct NearbyGroupsViewModelTests {
         #expect(items[1].memberCount == 8)
         #expect(items[1].memberCountText == "8 ménages")
         #expect(items[2].memberCountText == "1 ménage")
-        // Le groupe privé n'apparaît jamais ; Hochelaga est chargé mais hors rayon.
+        // Le groupe privé n'apparaît jamais ; Hochelaga et Parc-Extension (T-180) sont chargés mais hors rayon.
         #expect(model.allGroups.value?.map(\.id).contains(Self.hidden) == false)
-        #expect(model.allGroups.value?.last?.id == ID.hochelaga)
+        #expect(model.allGroups.value?.map(\.id).suffix(2) == [ID.hochelaga, ID.parcExtension])
     }
 
     @Test func radiusFiltersWithoutReloading() async throws {

@@ -176,18 +176,18 @@ final class OrganizationPortalModel {
                 id: donation.id, date: donation.date,
                 kind: donation.kind == .suspendedBaskets ? .baskets : .fund,
                 title: donation.kind == .suspendedBaskets
-                    ? "\(FrenchPlural.count(donation.basketCount, "panier suspendu", plural: "paniers suspendus")) à \(donation.groupName)"
-                    : "Don de \(Money.formatRounded(donation.amountCents)) au fonds de \(donation.groupName)",
+                    ? String(localized: "\(FrenchPlural.count(donation.basketCount, "panier suspendu", plural: "paniers suspendus")) à \(donation.groupName)")
+                    : String(localized: "Don de \(Money.formatRounded(donation.amountCents)) au fonds de \(donation.groupName)"),
                 detail: donation.householdsReached > 0
-                    ? "\(FrenchPlural.count(donation.householdsReached, "famille aidée", plural: "familles aidées")) · \(Money.formatRounded(donation.amountCents))"
-                    : "\(Money.formatRounded(donation.amountCents)) en réserve dans le fonds"
+                    ? String(localized: "\(FrenchPlural.count(donation.householdsReached, "famille aidée", plural: "familles aidées")) · \(Money.formatRounded(donation.amountCents))")
+                    : String(localized: "\(Money.formatRounded(donation.amountCents)) en réserve dans le fonds")
             )
         }
         let sponsorships = snapshot.sponsorships.map { sponsorship in
             TimelineEvent(
                 id: "sponsorship-\(sponsorship.id)", date: sponsorship.startedAt, kind: .sponsorship,
-                title: "Parrainage de \(sponsorship.groupName)",
-                detail: "Objectif : \(FrenchPlural.count(sponsorship.monthlyBasketGoal, "panier")) par mois · \(sponsorship.neighborhood)"
+                title: String(localized: "Parrainage de \(sponsorship.groupName)"),
+                detail: String(localized: "Objectif : \(FrenchPlural.count(sponsorship.monthlyBasketGoal, "panier")) par mois · \(sponsorship.neighborhood)")
             )
         }
         return (donations + sponsorships).sorted { $0.date > $1.date }
@@ -197,11 +197,10 @@ final class OrganizationPortalModel {
     var impactStory: String {
         let impact = impact
         guard let snapshot, impact.basketsFunded > 0 else {
-            return "Ton premier panier suspendu financé apparaîtra ici."
+            return String(localized: "Ton premier panier suspendu financé apparaîtra ici.")
         }
         let quartiers = FrenchPlural.count(impact.groupsReached, "groupe de quartier", plural: "groupes de quartier")
-        return "\(snapshot.organization.name) a financé \(FrenchPlural.count(impact.basketsFunded, "panier")) "
-            + "pour \(FrenchPlural.count(impact.familiesHelped, "famille")) dans \(quartiers) avec LeGrenier."
+        return String(localized: "\(snapshot.organization.name) a financé \(FrenchPlural.count(impact.basketsFunded, "panier")) pour \(FrenchPlural.count(impact.familiesHelped, "famille")) dans \(quartiers) avec LeGrenier.")
     }
 
     // MARK: Actions

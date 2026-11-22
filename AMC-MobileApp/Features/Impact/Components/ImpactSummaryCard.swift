@@ -108,8 +108,8 @@ struct ImpactSummaryCard: View {
     /// « ce mois-ci, par rapport à l'épicerie », ou la marche à suivre quand rien n'est encore économisé.
     var savingsCaption: String {
         snapshot.currentMonthSavedCents > 0
-            ? "ce mois-ci, par rapport à l'épicerie"
-            : "ce mois-ci : réserve une part dans un lot pour commencer à économiser"
+            ? String(localized: "ce mois-ci, par rapport à l'épicerie")
+            : String(localized: "ce mois-ci : réserve une part dans un lot pour commencer à économiser")
     }
 
     /// « Novembre à Parc-Extension » ; sans quartier connu, le mois seul (jamais « Novembre à »).
@@ -118,7 +118,7 @@ struct ImpactSummaryCard: View {
         let neighborhood = snapshot.neighborhoodName.trimmingCharacters(in: .whitespaces)
         guard let first = month.first else { return neighborhood }
         let capitalized = "\(first.uppercased())\(month.dropFirst())"
-        return neighborhood.isEmpty ? capitalized : "\(capitalized) à \(neighborhood)"
+        return neighborhood.isEmpty ? capitalized : String(localized: "\(capitalized) à \(neighborhood)")
     }
 
     /// « Amina, tu as économisé 48 $ ce mois-ci. Ton quartier a économisé 3 900 $. 12 paniers suspendus offerts. »

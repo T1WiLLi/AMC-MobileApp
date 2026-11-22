@@ -153,7 +153,7 @@ nonisolated enum ImpactMetrics {
             let baskets = max(0, context.subsidizedBaskets)
             return ImpactIndicator(
                 sphere: sphere, title: String(localized: "Paniers solidaires"), value: Double(baskets),
-                unit: baskets > 1 ? "paniers" : "panier",
+                unit: baskets > 1 ? String(localized: "paniers") : String(localized: "panier"),
                 explanation: String(localized: "Paniers payés par le fonds de solidarité ou offerts par tes voisins.")
             )
         case .localEconomy:
@@ -173,7 +173,7 @@ nonisolated enum ImpactMetrics {
             let packaging = savings.packagingKilogramsAvoided
             return ImpactIndicator(
                 sphere: sphere, title: String(localized: "Emballages évités"), value: Double(savings.packagesAvoided),
-                unit: savings.packagesAvoided > 1 ? "emballages" : "emballage",
+                unit: savings.packagesAvoided > 1 ? String(localized: "emballages") : String(localized: "emballage"),
                 explanation: String(localized: "Acheter en vrac remplace les formats de 1 kg : environ \(decimal(packaging)) kg d'emballage en moins.")
             )
         case .mobility:
@@ -181,7 +181,7 @@ nonisolated enum ImpactMetrics {
             let kilometers = Double(trips) * averageGroceryTripKilometers
             return ImpactIndicator(
                 sphere: sphere, title: String(localized: "Trajets d'épicerie évités"), value: Double(trips),
-                unit: trips > 1 ? "trajets" : "trajet",
+                unit: trips > 1 ? String(localized: "trajets") : String(localized: "trajet"),
                 explanation: String(localized: "Une cueillette groupée près de chez toi remplace des allers-retours : environ \(decimal(kilometers)) km en moins.")
             )
         case .inclusion:

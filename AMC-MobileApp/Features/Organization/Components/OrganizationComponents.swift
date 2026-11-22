@@ -66,10 +66,9 @@ struct CoverageBar: View {
 
     private var caption: String {
         guard profile.subsidizedHouseholds > 0 else {
-            return "\(FrenchPlural.count(profile.basketsFundable, "panier")) en réserve · aucun ménage en attente"
+            return String(localized: "\(FrenchPlural.count(profile.basketsFundable, "panier")) en réserve · aucun ménage en attente")
         }
-        return "\(FrenchPlural.count(profile.basketsFundable, "panier")) en réserve pour "
-            + FrenchPlural.count(profile.subsidizedHouseholds, "ménage aidé", plural: "ménages aidés")
+        return String(localized: "\(FrenchPlural.count(profile.basketsFundable, "panier")) en réserve pour \(FrenchPlural.count(profile.subsidizedHouseholds, "ménage aidé", plural: "ménages aidés"))")
     }
 }
 
@@ -153,11 +152,11 @@ struct SimulationNotice: View {
 
 /// Titre de section avec icône.
 struct OrganizationSectionTitle: View {
-    let title: String
+    let title: LocalizedStringKey
     let systemImage: String
     var tint: Color = .grenier
 
-    init(_ title: String, systemImage: String, tint: Color = .grenier) {
+    init(_ title: LocalizedStringKey, systemImage: String, tint: Color = .grenier) {
         self.title = title
         self.systemImage = systemImage
         self.tint = tint

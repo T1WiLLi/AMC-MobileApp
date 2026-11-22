@@ -286,8 +286,8 @@ nonisolated enum OfferLifecycle {
         }
     }
 
-    /// « 9,90 $ », sans dépendre de `Money` (isolé au MainActor).
+    /// « 9,90 $ » : même rendu que `Money.format`, sans en dépendre (isolé au MainActor).
     private static func format(_ cents: Cents) -> String {
-        "\(cents / 100),\(String(format: "%02d", cents % 100)) $"
+        (Decimal(cents) / 100).formatted(.currency(code: "CAD").locale(AppLanguage.formattingLocale))
     }
 }

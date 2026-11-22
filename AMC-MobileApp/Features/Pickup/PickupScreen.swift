@@ -970,7 +970,7 @@ private enum PickupFormat {
         case .legumes: "circle.grid.3x3.fill"
         case .oils: "drop.fill"
         case .canned: "cylinder.fill"
-        case .eggs: "egg.fill"
+        case .eggs: "oval.portrait.fill"
         case .meat: "fork.knife"
         case .produce: "basket.fill"
         case .household: "sparkles"

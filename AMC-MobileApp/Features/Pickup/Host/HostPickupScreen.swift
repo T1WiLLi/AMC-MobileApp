@@ -279,7 +279,12 @@ private struct HostOutcomeBanner: View {
 private struct HostManualCodeEntry: View {
     let viewModel: HostPickupViewModel
     @State private var code = ""
+    /// Évite qu'un double appui (bouton puis clavier) valide deux fois le même code.
+    @State private var isSubmitting = false
     @FocusState private var isFocused: Bool
+
+    /// Longueur maximale acceptée : un code réel fait moins de 100 caractères.
+    private static let maxLength = 200
 
     private var trimmed: String { code.trimmingCharacters(in: .whitespacesAndNewlines) }
 
@@ -305,15 +310,18 @@ private struct HostManualCodeEntry: View {
             .listRowBackground(Color.surface)
 
             Section {
-                TextField("Entrer le code", text: $code, prompt: Text("GRENIER:…"), axis: .vertical)
+                TextField("Entrer le code", text: $code, prompt: Text("\(ShareAllocator.qrCodePrefix)…"), axis: .vertical)
                     .textInputAutocapitalization(.never)
                     .autocorrectionDisabled()
                     .font(.body.monospaced())
                     .focused($isFocused)
                     .submitLabel(.done)
                     .onSubmit(submit)
+                    .onChange(of: code) { _, new in
+                        if new.count > Self.maxLength { code = String(new.prefix(Self.maxLength)) }
+                    }
                 Button("Valider le code", systemImage: "checkmark.circle.fill", action: submit)
-                    .disabled(trimmed.isEmpty)
+                    .disabled(trimmed.isEmpty || isSubmitting)
             } header: {
                 Label("Entrer le code", systemImage: "number.square.fill")
             }
@@ -333,13 +341,21 @@ private struct HostManualCodeEntry: View {
     }
 
     private func submit() {
-        guard !trimmed.isEmpty else { return }
+        guard !trimmed.isEmpty, !isSubmitting else { return }
         let value = trimmed
+        isSubmitting = true
         Task {
             await viewModel.scan(value)
             if viewModel.outcome?.result.isSuccess == true { code = "" }
+            isSubmitting = false
         }
     }
+}
+
+#Preview("Saisie manuelle du code") {
+    HostManualCodeEntry(viewModel: HostPickupViewModel(
+        repositories: .fake(behavior: .instant), userId: "user-demo", householdId: "household-demo", groupId: nil
+    ))
 }
 
 private struct HostScannerSheet: View {

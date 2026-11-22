@@ -11560,6 +11560,16 @@
         }
       }
     },
+    "Tu économiseras avec ton groupe" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "You will save with your group"
+          }
+        }
+      }
+    },
     "Économisé avec ton groupe" : {
       "localizations" : {
         "en" : {

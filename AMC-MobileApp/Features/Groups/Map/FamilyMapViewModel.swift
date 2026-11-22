@@ -5,7 +5,8 @@
 //   @State private var model = FamilyMapViewModel(repositories: repos, householdId: id, userId: userId)
 //   .task { await model.load() }                         // centre d'abord sur le quartier du ménage
 //   model.useUserLocation(coordinate)                    // quand la position est autorisée
-//   Picker lié à `$model.radius` (1 / 1,5 / 2 km) : `state` se recalcule seul.
+//   .onMapCameraChange(frequency: .continuous) { model.visibleRegionChanged(center:latitudeDelta:longitudeDelta:) }
+//   Plus de rayons prédéfinis (R-015) : la zone visible fixe le rayon, `state` se recalcule (différé de `debounce`).
 //   switch model.state { case .loaded(let places): Annotation par lieu, `place.distanceText` (« à 650 m ») }
 //
 // Positions : centre du groupe (geohash), `PickupPoint.geohash`, `Vendor.storefrontGeohash`. Un lieu sans
@@ -52,21 +53,18 @@ final class FamilyMapViewModel {
         }
     }
 
-    /// Rayon autour du centre de la carte.
-    nonisolated enum Radius: Int, CaseIterable, Identifiable, Sendable {
-        case oneKilometer = 1_000
-        case oneAndHalfKilometers = 1_500
-        case twoKilometers = 2_000
+    /// Zone de recherche : le cercle qui couvre la partie visible de la carte (R-015).
+    nonisolated struct SearchArea: Sendable, Hashable {
+        var center: Geohash.Coordinate
+        var radiusMeters: Double
 
-        var id: Int { rawValue }
-        var meters: Double { Double(rawValue) }
-        var title: String {
-            switch self {
-            case .oneKilometer: String(localized: "1 km")
-            case .oneAndHalfKilometers: String(localized: "1,5 km")
-            case .twoKilometers: String(localized: "2 km")
-            }
+        init(center: Geohash.Coordinate, radiusMeters: Double) {
+            self.center = center
+            self.radiusMeters = FamilyMapViewModel.clampedRadius(radiusMeters)
         }
+
+        /// « 4,2 km », « 850 m ».
+        var radiusText: String { FamilyMapViewModel.radiusText(meters: radiusMeters) }
     }
 
     /// Centre de la carte : la position de la famille, ou à défaut le quartier du ménage.
@@ -145,7 +143,10 @@ final class FamilyMapViewModel {
 
     // MARK: Filtres (le résultat se recalcule à chaque changement)
 
-    var radius: Radius
+    /// Zone filtrée, posée par la carte (différée) ; nil → `defaultRadiusMeters` autour de `origin`.
+    private(set) var visibleArea: SearchArea?
+    /// Rayon affiché tout de suite pendant le geste (la liste suit après `debounce`).
+    private(set) var liveRadiusMeters: Double?
     /// Sortes de lieux affichées ; toutes par défaut.
     var visibleKinds: Set<Kind> = Set(Kind.allCases)
     /// Lieu touché sur la carte (carte du bas) ; ignoré s'il sort du rayon ou du filtre.
@@ -168,13 +169,38 @@ final class FamilyMapViewModel {
 
     /// Au-delà de cette distance du quartier, la position de l'appareil est ignorée.
     nonisolated static let maxDistanceFromHomeMeters = 25_000.0
+    /// Rayon avant que la carte ait donné sa zone visible (premier cadrage).
+    nonisolated static let defaultRadiusMeters = 1_500.0
+    /// Bornes du rayon : un zoom extrême ne vide pas la carte et un dézoom ne charge pas tout le Québec.
+    nonisolated static let radiusRangeMeters = 200.0...50_000.0
+
+    /// Délai entre la fin d'un mouvement de carte et le nouveau filtrage.
+    let debounce: Duration
+    private var pendingArea: Task<Void, Never>?
 
     init(repositories: AppRepositories, householdId: String, userId: String? = nil,
-         radius: Radius = .oneAndHalfKilometers) {
+         debounce: Duration = .milliseconds(300)) {
         self.repositories = repositories
         self.householdId = householdId
         self.userId = userId
-        self.radius = radius
+        self.debounce = debounce
+    }
+
+    /// Zone qui filtre les lieux : celle de la carte, sinon le rayon par défaut autour du centre.
+    var searchArea: SearchArea? {
+        if let visibleArea { return visibleArea }
+        guard let origin else { return nil }
+        return SearchArea(center: origin.coordinate, radiusMeters: Self.defaultRadiusMeters)
+    }
+
+    /// Rayon à afficher dans la pastille (suit le doigt, avant même le filtrage).
+    var displayedRadiusMeters: Double {
+        liveRadiusMeters ?? searchArea?.radiusMeters ?? Self.defaultRadiusMeters
+    }
+
+    /// « Dans un rayon de 4,2 km ».
+    var radiusTitle: String {
+        String(localized: "Dans un rayon de \(Self.radiusText(meters: displayedRadiusMeters))")
     }
 
     /// Lieux dans le rayon et le filtre, du plus proche au plus loin ; `.empty` s'il n'y en a aucun.
@@ -185,8 +211,8 @@ final class FamilyMapViewModel {
         case .empty: return .empty
         case .failed(let error): return .failed(error)
         case .loaded(let places):
-            guard let origin else { return .loading }
-            return .from(Self.filter(places, around: origin.coordinate, radius: radius, kinds: visibleKinds))
+            guard let origin, let area = searchArea else { return .loading }
+            return .from(Self.filter(places, in: area, distanceFrom: origin.coordinate, kinds: visibleKinds))
         }
     }
 
@@ -194,8 +220,8 @@ final class FamilyMapViewModel {
 
     /// Nombre de lieux de chaque sorte dans le rayon (sans le filtre de sorte), pour les puces.
     var countsInRadius: [Kind: Int] {
-        guard let all = allPlaces.value, let origin else { return [:] }
-        let inRadius = Self.filter(all, around: origin.coordinate, radius: radius, kinds: Set(Kind.allCases))
+        guard let all = allPlaces.value, let origin, let area = searchArea else { return [:] }
+        let inRadius = Self.filter(all, in: area, distanceFrom: origin.coordinate, kinds: Set(Kind.allCases))
         return Dictionary(grouping: inRadius, by: \.kind).mapValues(\.count)
     }
 
@@ -205,11 +231,12 @@ final class FamilyMapViewModel {
         return places.first { $0.id == selectedPlaceID }
     }
 
-    /// « 8 lieux à moins de 1,5 km ».
+    /// « 8 lieux dans ce rayon », « Aucun lieu dans ce rayon » (le rayon est dans la pastille du haut).
     var summaryText: String {
         let count = places.count
+        if count == 0 { return String(localized: "Aucun lieu dans ce rayon") }
         let noun = count > 1 ? "lieux" : "lieu"
-        return String(localized: "\(count) \(noun) à moins de \(radius.title)")
+        return String(localized: "\(count) \(noun) dans ce rayon")
     }
 
     // MARK: Actions
@@ -262,6 +289,32 @@ final class FamilyMapViewModel {
         return true
     }
 
+    /// La carte a bougé (pincement, déplacement, boutons) : le rayon affiché suit tout de suite,
+    /// le filtrage suit `debounce` après le dernier mouvement.
+    func visibleRegionChanged(center: Geohash.Coordinate, latitudeDelta: Double, longitudeDelta: Double) {
+        let area = SearchArea(center: center, radiusMeters: Self.radiusMeters(
+            center: center, latitudeDelta: latitudeDelta, longitudeDelta: longitudeDelta))
+        liveRadiusMeters = area.radiusMeters
+        pendingArea?.cancel()
+        let delay = debounce
+        pendingArea = Task { [weak self] in
+            if delay > .zero {
+                try? await Task.sleep(for: delay)
+                guard !Task.isCancelled else { return }
+            }
+            self?.applyVisibleArea(area)
+        }
+    }
+
+    /// Attend le filtrage en cours (tests).
+    func settle() async { await pendingArea?.value }
+
+    /// Pose la zone filtrée sans délai.
+    func applyVisibleArea(_ area: SearchArea) {
+        visibleArea = area
+        liveRadiusMeters = nil
+    }
+
     /// Revient sur le quartier du ménage (position refusée ou indisponible).
     func useHouseholdOrigin() {
         if let householdOrigin { origin = householdOrigin }
@@ -305,20 +358,46 @@ final class FamilyMapViewModel {
         return groupPlaces + pickupPlaces + producerPlaces
     }
 
-    /// Lieux des sortes demandées à `radius` ou moins (bornes incluses), avec leur distance,
+    /// Lieux des sortes demandées dans `area` (bord inclus), avec leur distance à `origin` (la famille),
     /// du plus proche au plus loin puis par nom.
     nonisolated static func filter(
-        _ places: [Place], around origin: Geohash.Coordinate, radius: Radius, kinds: Set<Kind>
+        _ places: [Place], in area: SearchArea, distanceFrom origin: Geohash.Coordinate, kinds: Set<Kind>
     ) -> [Place] {
         places
             .filter { kinds.contains($0.kind) }
+            .filter { Geohash.distanceMeters(from: area.center, to: $0.coordinate) <= area.radiusMeters }
             .map { place in
                 var place = place
                 place.distanceMeters = Geohash.distanceMeters(from: origin, to: place.coordinate)
                 return place
             }
-            .filter { $0.distanceMeters <= radius.meters }
             .sorted { ($0.distanceMeters, $0.name) < ($1.distanceMeters, $1.name) }
+    }
+
+    /// Rayon de la zone visible : du centre au coin de la région (demi-diagonale), pour que tout lieu
+    /// visible à l'écran soit dans le filtre. Borné par `radiusRangeMeters`.
+    nonisolated static func radiusMeters(center: Geohash.Coordinate, latitudeDelta: Double, longitudeDelta: Double) -> Double {
+        let corner = Geohash.Coordinate(
+            latitude: min(90, center.latitude + abs(latitudeDelta) / 2),
+            longitude: center.longitude + abs(longitudeDelta) / 2
+        )
+        return clampedRadius(Geohash.distanceMeters(from: center, to: corner))
+    }
+
+    nonisolated static func clampedRadius(_ meters: Double) -> Double {
+        guard meters.isFinite else { return radiusRangeMeters.upperBound }
+        return min(max(meters, radiusRangeMeters.lowerBound), radiusRangeMeters.upperBound)
+    }
+
+    /// « 850 m » (à 50 m près), « 4,2 km » (au dixième), « 18 km » (au km dès 10 km).
+    nonisolated static func radiusText(meters: Double) -> String {
+        let meters = max(0, meters)
+        if meters < 950 { return "\(max(50, Int((meters / 50).rounded()) * 50)) m" }
+        let tenths = Int((meters / 100).rounded())
+        if tenths < 100 {
+            return tenths % 10 == 0 ? "\(tenths / 10) km" : "\(tenths / 10),\(tenths % 10) km"
+        }
+        return "\(Int((meters / 1_000).rounded())) km"
     }
 
     nonisolated private static func neighborhood(ofUser userId: String?, repositories: AppRepositories) async -> String? {

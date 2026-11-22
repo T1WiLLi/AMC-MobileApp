@@ -40,21 +40,21 @@ struct QAFlowFixesTests {
 
     private typealias Key = GrenierNotification.UserInfoKey
 
-    @Test func deliveryAndPickupReminderOpenPickup() {
+    @Test @MainActor func deliveryAndPickupReminderOpenPickup() {
         for kind in [GrenierNotification.Kind.delivery, .pickupReminder] {
             let userInfo: [AnyHashable: Any] = [Key.kind: kind.rawValue, Key.groupId: "g1"]
             #expect(NotificationRouter.destination(userInfo: userInfo) == .pickup)
         }
     }
 
-    @Test func groupEventsOpenTheGroup() {
+    @Test @MainActor func groupEventsOpenTheGroup() {
         for kind in [GrenierNotification.Kind.tier, .outcome, .deadlineReminder] {
             let userInfo: [AnyHashable: Any] = [Key.kind: kind.rawValue, Key.groupId: "g1"]
             #expect(NotificationRouter.destination(userInfo: userInfo) == .group(id: "g1"))
         }
     }
 
-    @Test func aForeignNotificationOpensNothing() {
+    @Test @MainActor func aForeignNotificationOpensNothing() {
         #expect(NotificationRouter.destination(userInfo: [:]) == nil)
         #expect(NotificationRouter.destination(userInfo: [Key.kind: "autre"]) == nil)
         #expect(NotificationRouter.destination(userInfo: [Key.kind: "tier", Key.groupId: ""]) == nil)

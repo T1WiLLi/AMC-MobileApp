@@ -29524,6 +29524,616 @@
           }
         }
       }
+    },
+    "1 commande à marquer comme arrivée pour prévenir les familles." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "1 order to mark as arrived to notify the families."
+          }
+        }
+      }
+    },
+    "%lld commandes à marquer comme arrivées pour prévenir les familles." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld orders to mark as arrived to notify the families."
+          }
+        }
+      }
+    },
+    "Arrivée ! Viens la chercher" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Arrived! Come pick it up"
+          }
+        }
+      }
+    },
+    "Arrivée enregistrée" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Arrival recorded"
+          }
+        }
+      }
+    },
+    "Arrivée — remise en cours" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Arrived — handing out"
+          }
+        }
+      }
+    },
+    "Aucune famille trouvée" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No family found"
+          }
+        }
+      }
+    },
+    "Chercher une famille" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Search for a family"
+          }
+        }
+      }
+    },
+    "Choisis « Tous les créneaux » pour voir toutes les familles." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Choose “All time slots” to see every family."
+          }
+        }
+      }
+    },
+    "Code QR de cueillette pour %@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pickup QR code for %@"
+          }
+        }
+      }
+    },
+    "Code %lld sur %lld · %@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Code %1$lld of %2$lld · %3$@"
+          }
+        }
+      }
+    },
+    "Commande en cours" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Order in progress"
+          }
+        }
+      }
+    },
+    "Créneau" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Time slot"
+          }
+        }
+      }
+    },
+    "Disponible quand la livraison est marquée comme arrivée" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Available once the delivery is marked as arrived"
+          }
+        }
+      }
+    },
+    "Dès que tu as reçu les produits, marque la livraison comme arrivée : les familles voient « Arrivée ! Viens la chercher » dans leur app et peuvent venir. Le scan et « Récupéré » s'activent à ce moment-là." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "As soon as you have received the products, mark the delivery as arrived: families see “Arrived! Come pick it up” in their app and can come. Scanning and “Picked up” turn on at that moment."
+          }
+        }
+      }
+    },
+    "En route — on te prévient dès l'arrivée" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "On the way — we’ll let you know when it arrives"
+          }
+        }
+      }
+    },
+    "La famille" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The family"
+          }
+        }
+      }
+    },
+    "La livraison est arrivée ?" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Has the delivery arrived?"
+          }
+        }
+      }
+    },
+    "La livraison n'est pas encore arrivée" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The delivery hasn’t arrived yet"
+          }
+        }
+      }
+    },
+    "La livraison n'est pas encore arrivée. Marque-la comme arrivée avant de remettre les parts." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The delivery hasn’t arrived yet. Mark it as arrived before handing out shares."
+          }
+        }
+      }
+    },
+    "Le code de l'autre article apparaîtra à sa clôture" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The other item’s code will appear when its order closes"
+          }
+        }
+      }
+    },
+    "Les %lld familles" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The %lld families"
+          }
+        }
+      }
+    },
+    "Les codes des %lld autres articles apparaîtront à leur clôture" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The codes of the %lld other items will appear when their orders close"
+          }
+        }
+      }
+    },
+    "Les familles voient « Arrivée ! Viens la chercher » et sont prévenues par une notification. Tu peux commencer la remise." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Families see “Arrived! Come pick it up” and get a notification. You can start handing out."
+          }
+        }
+      }
+    },
+    "Lieu de cueillette" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pickup place"
+          }
+        }
+      }
+    },
+    "Livraison en route" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Delivery on the way"
+          }
+        }
+      }
+    },
+    "Marquer comme arrivée" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mark as arrived"
+          }
+        }
+      }
+    },
+    "Montre ton code QR à l'hôte." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Show your QR code to the host."
+          }
+        }
+      }
+    },
+    "Non payé" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Not paid"
+          }
+        }
+      }
+    },
+    "On te prévient dès l'arrivée chez l'hôte." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "We’ll let you know as soon as it arrives at the host’s."
+          }
+        }
+      }
+    },
+    "Oui, marquer comme arrivée" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Yes, mark as arrived"
+          }
+        }
+      }
+    },
+    "Où cueillir ?" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Where to pick up?"
+          }
+        }
+      }
+    },
+    "Part : %@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Share: %@"
+          }
+        }
+      }
+    },
+    "Parts remises" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Shares handed out"
+          }
+        }
+      }
+    },
+    "Pas encore" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Not yet"
+          }
+        }
+      }
+    },
+    "Payé" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Paid"
+          }
+        }
+      }
+    },
+    "Personne n'a réservé ce créneau" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nobody booked this time slot"
+          }
+        }
+      }
+    },
+    "Point à choisir par le groupe" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Point to be chosen by the group"
+          }
+        }
+      }
+    },
+    "Point à choisir" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Point to be chosen"
+          }
+        }
+      }
+    },
+    "Quand la commande ferme, ton code de cueillette s'affiche ici. On te prévient ensuite dès que la livraison arrive." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "When the order closes, your pickup code shows up here. We’ll then let you know as soon as the delivery arrives."
+          }
+        }
+      }
+    },
+    "Quand une commande sera fermée pour ton point ou ton groupe, elle apparaîtra ici : tu pourras la marquer comme arrivée, puis remettre les parts." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "When an order closes for your point or your group, it will appear here: you can mark it as arrived, then hand out the shares."
+          }
+        }
+      }
+    },
+    "Remise des parts" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Share handout"
+          }
+        }
+      }
+    },
+    "Servi · %@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Served · %@"
+          }
+        }
+      }
+    },
+    "Servi à %@ · %@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Served at %1$@ · %2$@"
+          }
+        }
+      }
+    },
+    "Servi à %@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Served at %@"
+          }
+        }
+      }
+    },
+    "Servis (%lld)" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Served (%lld)"
+          }
+        }
+      }
+    },
+    "Suis la remise des parts aux familles." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Follow the handout of shares to families."
+          }
+        }
+      }
+    },
+    "Terminée" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Done"
+          }
+        }
+      }
+    },
+    "Tes codes de cueillette" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Your pickup codes"
+          }
+        }
+      }
+    },
+    "Ton code apparaîtra à la clôture" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Your code will appear when the order closes"
+          }
+        }
+      }
+    },
+    "Tout est remis !" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Everything is handed out!"
+          }
+        }
+      }
+    },
+    "Tout est récupéré à ce lieu : plus de code à montrer." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Everything is picked up at this place: no more code to show."
+          }
+        }
+      }
+    },
+    "Vérifie l'orthographe du nom." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Check the spelling of the name."
+          }
+        }
+      }
+    },
+    "%lld familles servies sur %lld" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$lld families served out of %2$lld"
+          }
+        }
+      }
+    },
+    "%lld familles servies, %lld parts remises. Merci d'accueillir ton quartier !" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$lld families served, %2$lld shares handed out. Thanks for welcoming your neighbourhood!"
+          }
+        }
+      }
+    },
+    "%lld parts remises sur %lld" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$lld shares handed out out of %2$lld"
+          }
+        }
+      }
+    },
+    "%@ seront prévenues qu'elles peuvent venir chercher %@. Ce n'est pas réversible." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ will be notified that they can come pick up %2$@. This can’t be undone."
+          }
+        }
+      }
+    },
+    "%@ × %@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ × %2$@"
+          }
+        }
+      }
+    },
+    "%@ (+ 1 autre créneau)" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ (+ 1 other time slot)"
+          }
+        }
+      }
+    },
+    "%@ (+ %lld autres créneaux)" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ (+ %2$lld other time slots)"
+          }
+        }
+      }
+    },
+    "À servir (%lld)" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "To serve (%lld)"
+          }
+        }
+      }
+    },
+    "État : %@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Status: %@"
+          }
+        }
+      }
     }
   },
   "version" : "1.0"

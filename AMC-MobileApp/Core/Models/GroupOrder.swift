@@ -23,6 +23,9 @@ nonisolated struct GroupOrder: Identifiable, Codable, Sendable, Hashable {
     var committedHouseholds: Int
     var pickupPointId: String?
     var pickupSlots: [PickupSlot]
+    /// Moment où un coordonnateur ou l'hôte a marqué la livraison comme arrivée au point (closed → delivered) ;
+    /// nil avant, et pour les anciennes commandes livrées.
+    var deliveredAt: Date? = nil
 }
 
 /// Document `groupOrders/{groupOrderId}/shares/{householdId}` : la part d'un ménage.
@@ -46,6 +49,9 @@ nonisolated struct Share: Identifiable, Codable, Sendable, Hashable {
     var pickedUpBy: String? = nil
     /// T-159 : moment de la remise.
     var pickedUpAt: Date? = nil
+    /// Nom du ménage (« Famille Benali »), copié dans la part quand il réserve : l'hôte ne peut pas lire
+    /// `households/{id}` (réservé aux membres). nil dans les anciennes parts.
+    var householdName: String? = nil
 
     var id: String { householdId }
 

@@ -319,9 +319,9 @@ struct FamilyViewModelTests {
         #expect(content.totalCents == 990)
         #expect(content.slot != nil)
         #expect(content.minutesUntilPickup(from: .now).map { $0 > 0 } == true)
-        #expect(content.orderCode.hasPrefix("GRN-"))
-        #expect(content.orderCode == PickupViewModel.orderCode(householdId: ID.aminaHousehold, groupId: ID.saintMichel))
-        #expect(!content.qrPayload.isEmpty)
+        // Commande encore ouverte : pas de code (aucun faux QR) tant qu'elle n'est pas fermée.
+        #expect(content.items.allSatisfy { $0.pickupCode == nil })
+        #expect(content.places.first?.codeState == .awaitingClosure)
     }
 
     @Test func pickupFailsOffline() async {

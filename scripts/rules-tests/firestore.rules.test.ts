@@ -406,6 +406,16 @@ describe('cueillette unique par ménage (T-159)', () => {
     })
     await assertFails(updateDoc(doc(amina(), sharePath), pickedUp('karim')))
   })
+  test('pas avant l’arrivée de la livraison : commande fermée mais pas encore livrée', async () => {
+    await env.withSecurityRulesDisabled(async (c) => {
+      await updateDoc(doc(c.firestore(), 'groupOrders/order-pickup'), { status: 'closed' })
+    })
+    await assertFails(updateDoc(doc(amina(), sharePath), pickedUp('karim')))
+  })
+  test('l’hôte ne change pas le nom du ménage sur la part', async () => {
+    await assertFails(updateDoc(doc(amina(), sharePath), { householdName: 'Autre nom' }))
+    await assertFails(updateDoc(doc(amina(), sharePath), { ...pickedUp('karim'), householdName: 'Autre nom' }))
+  })
   test('rien d’autre ne bouge avec la remise', async () => {
     await assertFails(updateDoc(doc(amina(), sharePath), { ...pickedUp('karim'), quantity: 9 }))
   })
@@ -565,10 +575,10 @@ describe('groupOrders/shares', () => {
 
   // Comme FirestoreGroupOrderRepository.setShare (B-019) : la part et les compteurs de la commande
   // sont écrits dans la même transaction. Un lot (batch) est évalué pareil par les règles.
-  const setShare = (db: Firestore, quantity: number, committedHouseholds: number) => {
+  const setShare = (db: Firestore, quantity: number, committedHouseholds: number, extra: Record<string, unknown> = {}) => {
     const batch = writeBatch(db)
     if (quantity > 0) {
-      batch.set(doc(db, sharePath), { ...share, quantity, updatedAt: Timestamp.now() })
+      batch.set(doc(db, sharePath), { ...share, quantity, updatedAt: Timestamp.now(), ...extra })
     } else {
       batch.delete(doc(db, sharePath))
     }
@@ -602,6 +612,99 @@ describe('groupOrders/shares', () => {
     await assertFails(updateDoc(doc(amina(), sharePath), { isPaid: true }))
     await assertFails(getDoc(doc(intruder(), sharePath)))
     await assertSucceeds(setShare(amina(), 0, 0))
+  })
+  test('le ménage copie son nom dans sa part (pour l’hôte), 80 caractères au plus', async () => {
+    await assertFails(setShare(amina(), 2, 1, { householdName: 'x'.repeat(81) }))
+    await assertFails(setShare(amina(), 2, 1, { householdName: '' }))
+    await assertFails(setShare(amina(), 2, 1, { householdName: 42 }))
+    await assertSucceeds(setShare(amina(), 2, 1, { householdName: 'Famille Benali' }))
+  })
+  test('une ancienne part reçoit le nom au prochain changement de quantité', async () => {
+    await env.withSecurityRulesDisabled(async (c) => {
+      await setDoc(doc(c.firestore(), sharePath), share)
+      await setDoc(doc(c.firestore(), orderPath), { ...order, status: 'open', committedShares: 2, committedHouseholds: 1 })
+    })
+    const db = amina()
+    const batch = writeBatch(db)
+    batch.update(doc(db, sharePath), { quantity: 3, updatedAt: Timestamp.now(), householdName: 'Famille Benali' })
+    batch.update(doc(db, orderPath), { committedShares: 3 })
+    await assertSucceeds(batch.commit())
+    // Un autre ménage ne renomme pas la part.
+    await assertFails(updateDoc(doc(intruder(), sharePath), { householdName: 'Intrus' }))
+  })
+})
+
+describe('arrivée de la livraison (closed → delivered)', () => {
+  const orderPath = 'groupOrders/order-arrivee'
+  const arrivedOrder = {
+    id: 'order-arrivee', groupId: 'group-arrivee', offerId: 'offer-carottes', status: 'closed', currentTierIndex: 0,
+    committedShares: 12, committedHouseholds: 3, pickupPointId: 'pickup-arrivee', pickupSlots: []
+  }
+  const as = (uid: string) => env.authenticatedContext(uid).firestore()
+  const arrived = (extra: Record<string, unknown> = {}) => ({ status: 'delivered', deliveredAt: serverTimestamp(), ...extra })
+
+  beforeEach(async () => {
+    await env.withSecurityRulesDisabled(async (c) => {
+      const db = c.firestore()
+      await setDoc(doc(db, 'users/coordo'), { ...aminaUser, id: 'coordo', displayName: 'Coordo', householdId: 'household-coordo' })
+      await setDoc(doc(db, 'users/hote'), { ...aminaUser, id: 'hote', displayName: 'Hôte', householdId: null })
+      await setDoc(doc(db, 'users/membre'), { ...aminaUser, id: 'membre', displayName: 'Membre', householdId: 'household-membre' })
+      await setDoc(doc(db, 'users/vendeur-autre'), { ...aminaUser, id: 'vendeur-autre', displayName: 'Autre', roles: ['vendor'], householdId: null, vendorId: 'vendor-autre' })
+      await setDoc(doc(db, 'households/household-coordo'), { id: 'household-coordo', name: 'Famille Coordo', size: 2, geohash: '', userIds: ['coordo'] })
+      await setDoc(doc(db, 'households/household-membre'), { id: 'household-membre', name: 'Famille Membre', size: 2, geohash: '', userIds: ['membre'] })
+      await setDoc(doc(db, 'groups/group-arrivee'), { id: 'group-arrivee', name: 'Arrivée', isPublic: true, inviteCode: 'ARRI', householdCount: 2, coordinatorIds: ['coordo'] })
+      await setDoc(doc(db, 'groups/group-arrivee/members/household-coordo'), { householdId: 'household-coordo', role: 'coordinator', joinedAt: serverTimestamp() })
+      await setDoc(doc(db, 'groups/group-arrivee/members/household-membre'), { householdId: 'household-membre', role: 'member', joinedAt: serverTimestamp() })
+      await setDoc(doc(db, 'pickupPoints/pickup-arrivee'), { id: 'pickup-arrivee', hostUserId: 'hote', name: 'Chez l’hôte', address: '2 rue', capacity: 20, accessibility: [], slots: [] })
+      await setDoc(doc(db, orderPath), arrivedOrder)
+    })
+  })
+
+  const withStatus = async (status: string) => {
+    await env.withSecurityRulesDisabled(async (c) => {
+      await updateDoc(doc(c.firestore(), orderPath), { status })
+    })
+  }
+
+  test('le coordonnateur du groupe marque la livraison arrivée (heure du serveur)', async () => {
+    await assertSucceeds(updateDoc(doc(as('coordo'), orderPath), arrived()))
+  })
+  test('l’hôte du point de la commande la marque arrivée, avec ou sans deliveredAt', async () => {
+    await assertSucceeds(updateDoc(doc(as('hote'), orderPath), { status: 'delivered' }))
+  })
+  test('un simple membre du groupe ne la marque pas arrivée', async () => {
+    await assertFails(updateDoc(doc(as('membre'), orderPath), arrived()))
+  })
+  test('le vendeur d’un autre lot, ni un inconnu, ne la marquent pas arrivée', async () => {
+    await assertFails(updateDoc(doc(as('vendeur-autre'), orderPath), arrived()))
+    await assertFails(updateDoc(doc(intruder(), orderPath), arrived()))
+    await assertFails(updateDoc(doc(anonymous(), orderPath), arrived()))
+  })
+  test('l’hôte d’un autre point ne la marque pas arrivée', async () => {
+    // amina est l’hôte de pickup-1, pas du point de cette commande.
+    await assertFails(updateDoc(doc(amina(), orderPath), arrived()))
+  })
+  test('seulement depuis une commande fermée (pas ouverte, palier atteint ou annulée)', async () => {
+    for (const status of ['open', 'reached', 'cancelled']) {
+      await withStatus(status)
+      await assertFails(updateDoc(doc(as('coordo'), orderPath), arrived()))
+      await assertFails(updateDoc(doc(as('hote'), orderPath), arrived()))
+    }
+  })
+  test('pas de retour en arrière ni de deuxième arrivée', async () => {
+    await withStatus('delivered')
+    await assertFails(updateDoc(doc(as('coordo'), orderPath), { status: 'closed' }))
+    await assertFails(updateDoc(doc(as('coordo'), orderPath), arrived()))
+  })
+  test('rien d’autre ne bouge avec l’arrivée', async () => {
+    await assertFails(updateDoc(doc(as('coordo'), orderPath), arrived({ committedShares: 40 })))
+    await assertFails(updateDoc(doc(as('hote'), orderPath), arrived({ pickupPointId: 'pickup-1' })))
+    await assertFails(updateDoc(doc(as('coordo'), orderPath), arrived({ currentTierIndex: null })))
+    await assertFails(updateDoc(doc(as('coordo'), orderPath), { status: 'cancelled' }))
+  })
+  test('deliveredAt est l’heure du serveur, pas une date choisie', async () => {
+    await assertFails(updateDoc(doc(as('coordo'), orderPath), arrived({ deliveredAt: Timestamp.fromMillis(Date.now() - 86_400_000) })))
+    await assertFails(updateDoc(doc(as('coordo'), orderPath), arrived({ deliveredAt: 'hier' })))
   })
 })
 

@@ -260,6 +260,11 @@ nonisolated protocol GroupOrderRepository: Sendable {
     /// Une part par ménage, remise une seule fois : un deuxième scan renvoie `.alreadyPickedUp` sans rien écrire.
     @discardableResult
     func confirmPickup(code: String, groupOrderId: String, at date: Date) async throws -> PickupDesk.ScanResult
+    /// « La livraison est arrivée » : un coordonnateur du groupe ou l'hôte du point passe la commande de fermée à
+    /// livrée (`OrderArrival.markArrived`) ; la remise des parts devient possible. Lève `.invalidInput` si la commande
+    /// n'est pas fermée, `.permissionDenied` si l'utilisateur n'a pas le droit (firestore.rules).
+    @discardableResult
+    func markArrived(groupOrderId: String, at date: Date) async throws -> GroupOrder
     /// T-181 : fixe le panier suspendu (0 = aucun) de la part du ménage, commande ouverte (`SolidarityLedger`).
     /// Lève `.notFound` sans part, `.orderClosed` si la commande est fermée, `.invalidInput` au-dessus du plafond.
     @discardableResult
@@ -293,6 +298,10 @@ extension GroupOrderRepository {
     }
 
     func setSuspendedBasket(_ amountCents: Cents, householdId: String, groupOrderId: String) async throws -> Share {
+        throw AppError.permissionDenied
+    }
+
+    func markArrived(groupOrderId: String, at date: Date) async throws -> GroupOrder {
         throw AppError.permissionDenied
     }
 

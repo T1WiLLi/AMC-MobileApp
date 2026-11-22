@@ -30,9 +30,15 @@ struct PickupDeskTests {
         #expect(result.message.contains("2 parts"))
     }
 
-    @Test func surroundingWhitespaceIsIgnoredAndClosedOrdersArePickable() {
+    @Test func surroundingWhitespaceIsIgnored() {
         let code = " \(ShareAllocator.qrCode(orderId: "go1", householdId: "h1"))\n"
-        #expect(PickupDesk.scan(code, order: order(.closed), shares: shares).isSuccess)
+        #expect(PickupDesk.scan(code, order: order(), shares: shares).isSuccess)
+    }
+
+    /// Fermée = en route : la part ne se remet qu'une fois la livraison marquée comme arrivée.
+    @Test func closedOrderIsNotPickableUntilArrived() {
+        let code = ShareAllocator.qrCode(orderId: "go1", householdId: "h1")
+        #expect(PickupDesk.scan(code, order: order(.closed), shares: shares) == .orderNotReady(.closed))
     }
 
     @Test func alreadyPickedUpShareIsNotGivenTwice() {
@@ -64,14 +70,14 @@ struct PickupDeskTests {
         #expect(result.message.contains("autre commande"))
     }
 
-    @Test func onlyClosedOrDeliveredOrdersCanBePickedUp() {
+    @Test func onlyDeliveredOrdersCanBePickedUp() {
         let code = ShareAllocator.qrCode(orderId: "go1", householdId: "h1")
-        for status in [GroupOrder.Status.open, .reached, .cancelled] {
+        for status in [GroupOrder.Status.open, .reached, .closed, .cancelled] {
             let result = PickupDesk.scan(code, order: order(status), shares: shares)
             #expect(result == .orderNotReady(status))
             #expect(!result.message.isEmpty)
         }
-        #expect(GroupOrder.Status.allCases.filter(PickupDesk.canPickUp) == [.closed, .delivered])
+        #expect(GroupOrder.Status.allCases.filter(PickupDesk.canPickUp) == [.delivered])
     }
 
     // MARK: - RQ-067

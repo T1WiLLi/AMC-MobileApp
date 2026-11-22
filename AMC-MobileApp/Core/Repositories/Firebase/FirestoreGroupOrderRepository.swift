@@ -164,6 +164,8 @@ nonisolated final class FirestoreGroupOrderRepository: GroupOrderRepository, @un
         guard quantity >= 0 else { throw AppError.invalidInput(String(localized: "La quantité ne peut pas être négative.")) }
         let orderRef = orderRef(groupOrderId)
         let shareRef = sharesRef(groupOrderId).document(householdId)
+        // Copié dans la part pour l'hôte, qui ne peut pas lire `households/{id}` ; jamais bloquant.
+        let householdName = quantity > 0 ? await householdName(of: householdId) : nil
 
         return try await withFreshShareList(groupOrderId) { knownIds in
             let shareRefs = knownIds.filter { $0 != householdId }.map { self.sharesRef(groupOrderId).document($0) }
@@ -192,15 +194,19 @@ nonisolated final class FirestoreGroupOrderRepository: GroupOrderRepository, @un
                     )
                     share.quantity = quantity
                     share.updatedAt = now
+                    if let householdName { share.householdName = householdName }
                     newShares.append(share)
                     if mine == nil {
                         transaction.setData(try Firestore.Encoder().encode(share), forDocument: shareRef)
                     } else {
                         // Seuls les champs qui changent : réécrire toute la part ferait bouger les dates
                         // (aller-retour Date ↔ Timestamp) et les null du seed, et firestore.rules refuserait.
-                        transaction.updateData(
-                            ["quantity": quantity, "updatedAt": Timestamp(date: now)], forDocument: shareRef
-                        )
+                        var fields: [String: Any] = ["quantity": quantity, "updatedAt": Timestamp(date: now)]
+                        // Ancienne part sans nom (ou ménage renommé) : le nom suit le prochain changement.
+                        if let householdName, mine?.householdName != householdName {
+                            fields["householdName"] = householdName
+                        }
+                        transaction.updateData(fields, forDocument: shareRef)
                     }
                 } else if mine != nil {
                     transaction.deleteDocument(shareRef)
@@ -211,6 +217,12 @@ nonisolated final class FirestoreGroupOrderRepository: GroupOrderRepository, @un
                 return updated
             }
         }
+    }
+
+    /// Nom de mon ménage (`households/{id}.name`, lisible par ses membres), nil s'il est illisible.
+    private func householdName(of householdId: String) async -> String? {
+        let snapshot = try? await db.collection(FirestoreCollection.households).document(householdId).getDocument()
+        return ShareHouseholdName.normalized(snapshot?.data()?["name"] as? String)
     }
 
     /// T-181 : panier suspendu de ma part, fixé à `amountCents`. Seuls `suspendedAmountCents` et `updatedAt` changent
@@ -426,6 +438,23 @@ nonisolated final class FirestoreGroupOrderRepository: GroupOrderRepository, @un
             throw Self.appError(from: error)
         }
         return share
+    }
+
+    /// « La livraison est arrivée » : seuls `status` et `deliveredAt` changent (firestore.rules,
+    /// `isArrivalUpdate` : coordonnateur du groupe ou hôte du point, commande fermée, `deliveredAt == request.time`).
+    @discardableResult
+    func markArrived(groupOrderId: String, at date: Date) async throws -> GroupOrder {
+        let order = try await groupOrder(id: groupOrderId)
+        let delivered = try OrderArrival.markArrived(order, at: date)
+        do {
+            try await orderRef(groupOrderId).updateData([
+                "status": GroupOrder.Status.delivered.rawValue,
+                "deliveredAt": FieldValue.serverTimestamp(),
+            ])
+        } catch {
+            throw Self.appError(from: error)
+        }
+        return delivered
     }
 
     /// T-159 : une transaction relit la part avant de la marquer : deux scans en même temps n'en remettent qu'un.

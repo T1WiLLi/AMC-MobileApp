@@ -966,17 +966,19 @@ service cloud.firestore {
     // Champs : id (string, = id du doc, immuable), groupId (string, immuable), offerId (string, immuable),
     //   status ('open'|'reached'|'closed'|'delivered'|'cancelled'), currentTierIndex (int ≥ 0, optionnel),
     //   committedShares (int ≥ 0), committedHouseholds (int ≥ 0), pickupPointId (string, optionnel),
-    //   pickupSlots (list).
+    //   pickupSlots (list), deliveredAt (timestamp, optionnel : moment de l'arrivée au point).
     // Pas de PII : lisible par tout utilisateur connecté (fil des lots, tableau vendeur).
     // Écrit seulement par le client via FirestoreGroupOrderRepository (transactions) :
     //   - création vide par un membre du groupe, lot actif, avant la date limite ;
     //   - changement de part par un membre : seuls les compteurs, le palier et open/reached bougent,
     //     et l'écart de committedShares est exactement celui de SA part (écrite dans la même transaction) ;
-    //   - clôture par le coordonnateur du groupe ou le vendeur du lot, après la date limite.
+    //   - clôture par le coordonnateur du groupe ou le vendeur du lot, après la date limite ;
+    //   - arrivée de la livraison (closed → delivered) par un coordonnateur du groupe ou l'hôte du point.
     // ---------------------------------------------------------------
     function isValidGroupOrder(data, orderId) {
       return data.keys().hasOnly(['id', 'groupId', 'offerId', 'status', 'currentTierIndex',
-                                  'committedShares', 'committedHouseholds', 'pickupPointId', 'pickupSlots'])
+                                  'committedShares', 'committedHouseholds', 'pickupPointId', 'pickupSlots',
+                                  'deliveredAt'])
         && data.keys().hasAll(['id', 'groupId', 'offerId', 'status', 'committedShares',
                                'committedHouseholds', 'pickupSlots'])
         && data.id == orderId
@@ -989,7 +991,8 @@ service cloud.firestore {
         && data.committedHouseholds is int && data.committedHouseholds >= 0
         && data.committedHouseholds <= data.committedShares
         && (!('pickupPointId' in data) || data.pickupPointId == null || isShortString(data.pickupPointId, 1, 128))
-        && data.pickupSlots is list && data.pickupSlots.size() <= 20;
+        && data.pickupSlots is list && data.pickupSlots.size() <= 20
+        && (!('deliveredAt' in data) || data.deliveredAt == null || data.deliveredAt is timestamp);
     }
 
     // Un champ optionnel n'a pas bougé : le SDK Swift omet un nil (setData) là où le seed écrit null.
@@ -1094,7 +1097,7 @@ service cloud.firestore {
 
       allow update: if isValidGroupOrder(request.resource.data, orderId)
         && areImmutableFieldsUnchanged(['id', 'groupId', 'offerId'])
-        && (isShareCountUpdate(orderId) || isClosingUpdate() || isPickupChoiceUpdate());
+        && (isShareCountUpdate(orderId) || isClosingUpdate() || isPickupChoiceUpdate() || isArrivalUpdate());
 
       allow delete: if false;
 
@@ -1104,7 +1107,8 @@ service cloud.firestore {
       // Champs : householdId (string, = id du doc), quantity (int 1..totalShares),
       //   finalPriceCents (int, optionnel, figé à la clôture), isPaid (bool),
       //   suspendedAmountCents (int 0..20 000, SolidarityLedger.maxSuspendedAmountCents),
-      //   subsidyCents (int ≥ 0), qrCode (string, optionnel), isPickedUp (bool), updatedAt (timestamp, optionnel).
+      //   subsidyCents (int ≥ 0), qrCode (string, optionnel), isPickedUp (bool), updatedAt (timestamp, optionnel),
+      //   householdName (string 1..80, optionnel : nom du ménage pour l'hôte, posé par le ménage seulement).
       // Lisible par les membres du groupe (la transaction relit toutes les parts) et le vendeur du lot.
       // Un ménage n'écrit que SA part, avant la date limite, commande ouverte, et en mettant à jour
       // la commande dans la même transaction. Prix, subvention et QR : seulement à la clôture, et vérifiés.
@@ -1113,7 +1117,7 @@ service cloud.firestore {
       function isValidShare(data, householdId) {
         return data.keys().hasOnly(['householdId', 'quantity', 'finalPriceCents', 'isPaid',
                                     'suspendedAmountCents', 'subsidyCents', 'qrCode', 'isPickedUp', 'updatedAt',
-                                    'pickupSlotStart', 'pickedUpBy', 'pickedUpAt'])
+                                    'pickupSlotStart', 'pickedUpBy', 'pickedUpAt', 'householdName'])
           && data.keys().hasAll(['householdId', 'quantity', 'isPaid', 'suspendedAmountCents',
                                  'subsidyCents', 'isPickedUp'])
           && data.householdId == householdId
@@ -1127,7 +1131,8 @@ service cloud.firestore {
           && (!('qrCode' in data) || data.qrCode == null || (data.qrCode is string && data.qrCode.size() <= 200))
           && data.isPickedUp is bool
           && (!('updatedAt' in data) || data.updatedAt == null || data.updatedAt is timestamp)
-          && (!('pickupSlotStart' in data) || data.pickupSlotStart == null || data.pickupSlotStart is timestamp);
+          && (!('pickupSlotStart' in data) || data.pickupSlotStart == null || data.pickupSlotStart is timestamp)
+          && (!('householdName' in data) || isShortString(data.householdName, 1, 80));
       }
 
       // RQ-064 (T-077) : un ménage choisit ou annule SON créneau, commande ni annulée ni livrée
@@ -1151,12 +1156,24 @@ service cloud.firestore {
           && get(/databases/$(database)/documents/pickupPoints/$(pointId)).data.get('hostUserId', '') == request.auth.uid;
       }
 
+      // « La livraison est arrivée » : un coordonnateur du groupe ou l'hôte du point de la commande la passe
+      // de fermée à livrée. Seuls status et deliveredAt (heure du serveur, optionnel) changent.
+      function isArrivalUpdate() {
+        let before = resource.data;
+        let after = request.resource.data;
+        return before.status == 'closed'
+          && after.status == 'delivered'
+          && after.diff(before).affectedKeys().hasOnly(['status', 'deliveredAt'])
+          && (!('deliveredAt' in after) || after.deliveredAt == request.time)
+          && (isGroupCoordinator(before.groupId) || isPickupHost(before));
+      }
+
       // T-159 : une part par ménage, remise UNE fois (isPickedUp false → true), par l'hôte ou un coordonnateur,
-      // commande fermée ou livrée. pickedUpBy = le membre du ménage qui s'est présenté (s'il est connu).
+      // seulement une fois la livraison arrivée (commande livrée). pickedUpBy = le membre du ménage qui s'est présenté (s'il est connu).
       function isPickupConfirmation(householdId) {
         let order = orderDoc();
         let after = request.resource.data;
-        return order.status in ['closed', 'delivered']
+        return order.status == 'delivered'
           && resource.data.isPickedUp == false
           && after.isPickedUp == true
           && after.diff(resource.data).affectedKeys().hasOnly(['isPickedUp', 'pickedUpBy', 'pickedUpAt', 'updatedAt'])
@@ -1245,10 +1262,11 @@ service cloud.firestore {
             && isClosingAllocation(request.resource.data, householdId))
           || (isValidShare(request.resource.data, householdId)
             && (
-              // Le ménage : quantité et panier suspendu. Le reste ne bouge pas (une subvention déjà posée par
+              // Le ménage : quantité, panier suspendu et son nom. Le reste ne bouge pas (une subvention déjà posée par
               // le seed reste telle quelle, un null du seed peut devenir absent).
               (request.resource.data.diff(resource.data).affectedKeys()
-                   .hasOnly(['quantity', 'suspendedAmountCents', 'updatedAt', 'finalPriceCents', 'qrCode'])
+                   .hasOnly(['quantity', 'suspendedAmountCents', 'updatedAt', 'finalPriceCents', 'qrCode',
+                             'householdName'])
                 && isSameOptional(request.resource.data, resource.data, 'finalPriceCents')
                 && isSameOptional(request.resource.data, resource.data, 'qrCode')
                 && canChangeMyShare(householdId))

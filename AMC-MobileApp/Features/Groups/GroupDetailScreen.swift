@@ -138,6 +138,62 @@ struct GroupDetailScreen: View {
 
 // MARK: - Contenu
 
+/// Lien du coordonnateur vers « Remettre les parts », limité au groupe : livraisons en route à marquer comme
+/// arrivées (les familles sont alors prévenues), puis remise des parts.
+private struct GroupDeliveriesLink: View {
+    let groupId: String
+    let onTheWay: Int
+    @Environment(\.appContext) private var context
+    @Environment(\.groupTheme) private var theme
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
+    var body: some View {
+        NavigationLink {
+            HostPickupScreen(viewModel: HostPickupViewModel(
+                repositories: context.repositories, userId: context.userId, householdId: context.householdId,
+                groupId: context.groupId, focusGroupId: groupId
+            ))
+        } label: {
+            Label {
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(onTheWay > 0 ? String(localized: "Livraison en route") : String(localized: "Remise des parts"))
+                        .font(.headline)
+                        .foregroundStyle(.texte)
+                    Text(subtitle)
+                        .font(.subheadline)
+                        .foregroundStyle(.texteSecondaire)
+                        .multilineTextAlignment(.leading)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+            } icon: {
+                Image(systemName: onTheWay > 0 ? "box.truck.fill" : "shippingbox.and.arrow.backward.fill")
+                    .font(.title2)
+                    .symbolRenderingMode(.hierarchical)
+                    .foregroundStyle(theme.accent)
+                    .symbolEffect(.pulse, options: .repeating, isActive: !reduceMotion && onTheWay > 0)
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(.trailing, 20)
+            .overlay(alignment: .trailing) {
+                Image(systemName: "chevron.right")
+                    .font(.footnote.weight(.semibold))
+                    .foregroundStyle(.texteSecondaire)
+                    .accessibilityHidden(true)
+            }
+            .grenierCard()
+        }
+        .buttonStyle(.plain)
+    }
+
+    private var subtitle: String {
+        switch onTheWay {
+        case 0: String(localized: "Suis la remise des parts aux familles.")
+        case 1: String(localized: "1 commande à marquer comme arrivée pour prévenir les familles.")
+        default: String(localized: "\(onTheWay) commandes à marquer comme arrivées pour prévenir les familles.")
+        }
+    }
+}
+
 private struct GroupDetailContent: View {
     @Environment(\.groupTheme) private var theme
     let content: GroupDetailViewModel.Content
@@ -190,6 +246,11 @@ private struct GroupDetailContent: View {
                     VStack(alignment: .leading, spacing: 12) {
                         GroupsSectionHeader(title: "Cueillette", systemImage: "figure.walk", tint: .economie)
                         PickupCard(pickupPoint: content.pickupPoint, slot: content.nextSlot)
+                    }
+
+                    // Coordonnateur : livraisons à marquer comme arrivées, puis remise des parts.
+                    if viewModel.isCoordinator, content.ordersOnTheWay + content.ordersArrived > 0 {
+                        GroupDeliveriesLink(groupId: group.id, onTheWay: content.ordersOnTheWay)
                     }
 
                     openOrdersSection

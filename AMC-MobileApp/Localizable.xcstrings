@@ -21358,6 +21358,46 @@
           }
         }
       }
+    },
+    "Connexion" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sign in"
+          }
+        }
+      }
+    },
+    "Inscription" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sign up"
+          }
+        }
+      }
+    },
+    "Ton prénom" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Your first name"
+          }
+        }
+      }
+    },
+    "Tu as créé ce groupe : les avis viennent des autres familles." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "You created this group: reviews come from other families."
+          }
+        }
+      }
     }
   },
   "version" : "1.0"

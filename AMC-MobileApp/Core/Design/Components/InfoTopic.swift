@@ -71,7 +71,7 @@ nonisolated enum InfoTopic: String, CaseIterable, Identifiable, Sendable {
         case .vendorOffers:
             String(localized: "Un lot, c'est un produit que tu vends en grande quantité à un groupe. Tu fixes des paliers : plus les familles prennent de parts, plus le prix baisse.")
         case .lockedTerms:
-            String(localized: "Le lot est publié : les familles voient déjà ces conditions, elles ne peuvent plus changer.")
+            String(localized: "Ce lot est publié : les paliers, le nombre de parts et la part ne changent plus, pour protéger les familles qui ont réservé. Tu peux encore repousser la date limite. Pour d'autres prix, duplique le lot.")
         }
     }
 

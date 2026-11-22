@@ -115,8 +115,10 @@ struct VendorProfileScreen: View {
                             .accessibilityAction(named: "Mettre en couverture") { viewModel.makeCover(url) }
                     }
                     if viewModel.canAddPhoto {
+                        // Valeur lue ici : le libellé de `PhotosPicker` est une closure `@Sendable`.
+                        let isAddingPhoto = viewModel.isAddingPhoto
                         PhotosPicker(selection: $pickedItem, matching: .images, photoLibrary: .shared()) {
-                            AddPhotoTile(isLoading: viewModel.isAddingPhoto)
+                            AddPhotoTile(isLoading: isAddingPhoto)
                         }
                         .buttonStyle(.plain)
                         .accessibilityLabel("Ajouter une photo")

@@ -8,13 +8,7 @@ import SwiftUI
 ///         OfferList(offers: offers)
 ///     }
 struct StateView<Value: Sendable, Content: View>: View {
-    struct EmptyContent {
-        var title: LocalizedStringKey
-        var systemImage: String
-        var message: LocalizedStringKey
-        /// L'action suivante proposée sous le message (FB-18). Sans elle, « Actualiser » relance le chargement.
-        var action: EmptyStateAction?
-    }
+    typealias EmptyContent = StateViewEmptyContent
 
     let state: LoadState<Value>
     var empty: EmptyContent = .init(title: "Rien pour l'instant", systemImage: "tray", message: "Reviens un peu plus tard.")
@@ -129,6 +123,16 @@ struct LoadingStateView: View {
 }
 
 /// Action d'un état vide : le bouton « et maintenant ? » sous l'explication (FB-18).
+/// Ce que `StateView` affiche quand la liste est vide (`StateView.EmptyContent`).
+/// Hors du type générique : sa valeur par défaut ne dépend ainsi pas de la conformance `Content: View`.
+struct StateViewEmptyContent {
+    var title: LocalizedStringKey
+    var systemImage: String
+    var message: LocalizedStringKey
+    /// L'action suivante proposée sous le message (FB-18). Sans elle, « Actualiser » relance le chargement.
+    var action: EmptyStateAction?
+}
+
 struct EmptyStateAction {
     var title: LocalizedStringKey
     var systemImage: String

@@ -80,6 +80,41 @@ struct PickupPlacesTests {
         #expect(content.hostFirstName == nil)
     }
 
+    // MARK: Un groupe, un QR (T-198)
+
+    private static func code(_ orderId: String) -> String {
+        PickupDesk.memberCode(PickupDesk.pickupCode(orderId: orderId, householdId: "h1", token: PickupDesk.newPickupToken()),
+                              memberId: "u1")
+    }
+
+    @Test func itemsAreGroupedByGroupThenPlace() {
+        var withCode1 = Self.item("o1", cents: 100), withCode3 = Self.item("o3", cents: 100)
+        withCode1.pickupCode = Self.code("o1")
+        withCode3.pickupCode = Self.code("o3")
+        let entries = [
+            PickupViewModel.Entry(item: withCode1, pickupPointId: "a", slots: [], groupId: "g1"),
+            PickupViewModel.Entry(item: Self.item("o2", cents: 100), pickupPointId: "b", slots: [], groupId: "g2"),
+            PickupViewModel.Entry(item: withCode3, pickupPointId: "a", slots: [], groupId: "g1"),
+            PickupViewModel.Entry(item: Self.item("o4", cents: 100), pickupPointId: nil, slots: [], groupId: "g1"),
+        ]
+        let groups = PickupViewModel.groups(from: entries, points: ["a": Self.point("a"), "b": Self.point("b")],
+                                            groupNames: ["g1": "Voisins de Saint-Michel"])
+        #expect(groups.map(\.id) == ["g1", "g2"])
+        #expect(groups[0].title == "Voisins de Saint-Michel")
+        #expect(groups[1].groupName == nil)
+        #expect(groups[0].places.map(\.id) == ["a", DeliveryManifest.unassignedStopId])
+        // Un seul QR pour les deux commandes fermées du groupe ; o4 (ouverte) s'y ajoutera à sa clôture.
+        guard case .codes(let items, let waiting) = groups[0].codeState else {
+            Issue.record("attendu : un code pour g1")
+            return
+        }
+        #expect(items.map(\.groupOrderId) == ["o1", "o3"])
+        #expect(waiting == 1)
+        let payload = try? #require(groups[0].qrPayload)
+        #expect(PickupDesk.bundledCodes(payload ?? "") == [withCode1.pickupCode, withCode3.pickupCode])
+        #expect(groups[1].codeState == .awaitingClosure && groups[1].qrPayload == nil)
+    }
+
     // MARK: Zone de livraison du groupe
 
     @Test func orderWithoutPointFallsBackToTheGroupZone() {
@@ -121,8 +156,12 @@ struct PickupPlacesTests {
         let viewModel = PickupViewModel(repositories: repos, householdId: ID.aminaHousehold, groupId: ID.saintMichel)
         await viewModel.load()
         let content = try #require(viewModel.state.value)
-        #expect(content.places.map(\.id) == [ID.jarryPickup, DeliveryManifest.unassignedStopId])
-        #expect(content.places[1].items.map(\.groupOrderId) == [ID.potatoOrder])
+        // T-198 : chaque groupe a sa section ; la commande sans point est « Lieu à confirmer » dans SON groupe.
+        let saintMichel = try #require(content.groups.first)
+        #expect(saintMichel.id == ID.saintMichel)
+        #expect(saintMichel.places.map(\.id) == [DeliveryManifest.unassignedStopId])
+        #expect(saintMichel.places[0].items.map(\.groupOrderId) == [ID.potatoOrder])
+        #expect(content.groups.dropFirst().flatMap(\.places).map(\.id) == [ID.jarryPickup])
     }
 
     @Test func pickerPreselectsTheGroupZone() async throws {

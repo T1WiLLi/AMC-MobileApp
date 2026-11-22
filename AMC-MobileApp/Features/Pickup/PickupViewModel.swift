@@ -2,6 +2,8 @@
 // F5 Cueillette (T-019) : parts du ménage à récupérer, QR, créneau, point de cueillette et hôte.
 // Retour samuel : les articles sont rangés par lieu (`Place`), comme le bordereau du vendeur (`DeliveryManifest`) :
 // une section par point de cueillette, et « Lieu à confirmer » pour les commandes sans point.
+// T-198 (retour samuel) : au-dessus des lieux, une section par GROUPE du ménage, avec un seul QR par groupe
+// (`GroupPickup.qrPayload`, les codes à jeton de ses commandes mis bout à bout : `PickupDesk.bundleCode`).
 
 import Foundation
 import Observation
@@ -57,13 +59,33 @@ final class PickupViewModel {
         var totalCents: Cents { items.reduce(0) { $0 + $1.totalCents } }
         var pickedUpCount: Int { items.filter(\.isPickedUp).count }
 
-        /// Codes à montrer à ce lieu : un par commande pas encore récupérée, ou pourquoi il n'y en a pas.
-        var codeState: CodeState {
-            let pending = items.filter { !$0.isPickedUp }
-            guard !pending.isEmpty else { return .allPickedUp }
-            let codes = pending.filter { $0.pickupCode != nil }
-            if codes.isEmpty { return .awaitingClosure }
-            return .codes(codes, waitingCount: pending.count - codes.count)
+        /// Commandes à cueillir à ce lieu qui ont un code, ou pourquoi il n'y en a pas.
+        var codeState: CodeState { CodeState(items: items) }
+    }
+
+    /// Un groupe du ménage, ses lieux, et UN QR pour toutes ses commandes.
+    nonisolated struct GroupPickup: Identifiable, Sendable, Hashable {
+        var groupId: String
+        /// Nom du groupe (« Voisins de Saint-Michel »), nil s'il est illisible.
+        var groupName: String?
+        /// Lieux du groupe (souvent un seul : son point de cueillette), « Lieu à confirmer » en dernier.
+        var places: [Place]
+
+        var id: String { groupId }
+        var items: [Item] { places.flatMap(\.items) }
+        var totalCents: Cents { items.reduce(0) { $0 + $1.totalCents } }
+        /// Prénom de l'hôte quand le groupe n'a qu'un lieu.
+        var hostFirstName: String? { places.count == 1 ? places.first?.hostFirstName : nil }
+        var title: String { groupName ?? String(localized: "Mon groupe") }
+
+        /// Ce que la carte du code affiche pour le groupe.
+        var codeState: CodeState { CodeState(items: items) }
+
+        /// Contenu du QR du groupe : les codes de ses commandes fermées pas encore récupérées, en un seul code
+        /// (`PickupDesk.bundleCode`). nil sans commande fermée : pas de faux QR.
+        var qrPayload: String? {
+            guard case .codes(let items, _) = codeState else { return nil }
+            return PickupDesk.bundleCode(items.compactMap(\.pickupCode))
         }
     }
 
@@ -75,6 +97,15 @@ final class PickupViewModel {
         case awaitingClosure
         /// Tout est récupéré.
         case allPickedUp
+
+        /// Commandes pas encore récupérées : celles qui ont un code, et combien attendent encore leur clôture.
+        init(items: [Item]) {
+            let pending = items.filter { !$0.isPickedUp }
+            let codes = pending.filter { $0.pickupCode != nil }
+            if pending.isEmpty { self = .allPickedUp }
+            else if codes.isEmpty { self = .awaitingClosure }
+            else { self = .codes(codes, waitingCount: pending.count - codes.count) }
+        }
     }
 
     /// Un article et le lieu où le cueillir, avant le regroupement.
@@ -83,11 +114,23 @@ final class PickupViewModel {
         /// Point de la commande (ou zone de livraison du groupe), nil s'il n'y en a pas.
         var pickupPointId: String?
         var slots: [PickupSlot]
+        /// Groupe de la commande (T-198).
+        var groupId: String = ""
     }
 
     nonisolated struct Content: Sendable, Hashable {
-        /// Lieux dans l'ordre des commandes (groupe actif d'abord), « Lieu à confirmer » en dernier.
-        var places: [Place]
+        /// Groupes du ménage qui ont une part à cueillir, le groupe actif d'abord.
+        var groups: [GroupPickup]
+
+        init(groups: [GroupPickup]) { self.groups = groups }
+
+        /// Un seul groupe (aperçus, tests du rangement par lieu).
+        init(places: [Place]) {
+            groups = [GroupPickup(groupId: "", groupName: nil, places: places)]
+        }
+
+        /// Lieux de tous les groupes, dans l'ordre des groupes.
+        var places: [Place] { groups.flatMap(\.places) }
 
         var items: [Item] { places.flatMap(\.items) }
         var totalCents: Cents { items.reduce(0) { $0 + $1.totalCents } }
@@ -100,10 +143,10 @@ final class PickupViewModel {
         /// Nombre de lieux avec un point de cueillette.
         var pointCount: Int { places.filter { $0.pickupPoint != nil }.count }
 
-        /// Le même contenu limité à un lieu (sélecteur de lieu en haut de la Cueillette).
-        func scoped(to placeId: String?) -> Content {
-            guard places.count > 1, let place = places.first(where: { $0.id == placeId }) ?? places.first else { return self }
-            return Content(places: [place])
+        /// Le même contenu limité à un groupe (sélecteur de groupe en haut de la Cueillette) ; le premier par défaut.
+        func scoped(to groupId: String?) -> Content {
+            guard groups.count > 1, let group = groups.first(where: { $0.id == groupId }) ?? groups.first else { return self }
+            return Content(groups: [group])
         }
 
         /// État de la livraison : le premier lieu où quelque chose est arrivé, sinon « en route » si une commande
@@ -158,7 +201,8 @@ final class PickupViewModel {
         let household = try? await repositories.users.household(id: householdId)
         // Toutes les parts du ménage, dans tous ses groupes : une part réservée dans un autre groupe que le groupe
         // actif apparaît aussi. Le groupe actif d'abord (son point de cueillette passe en premier).
-        let orders = try await activeOrders(householdId: householdId, activeGroupId: groupId, repositories: repositories)
+        let (orders, groupNames) = try await activeOrders(householdId: householdId, activeGroupId: groupId,
+                                                          repositories: repositories)
         var entries: [Entry] = []
         // Commandes sans point choisi : la zone de livraison de leur groupe (liste lue seulement s'il le faut).
         let allPoints = orders.contains { ($0.pickupPointId ?? "").isEmpty }
@@ -183,7 +227,7 @@ final class PickupViewModel {
                             orderStatus: order.status,
                             pickupCode: qrPayload(for: order, code: code, memberId: userId))
             entries.append(Entry(item: item, pickupPointId: PickupPoint.resolvedId(for: order, in: allPoints),
-                                 slots: order.pickupSlots))
+                                 slots: order.pickupSlots, groupId: order.groupId))
         }
         // Une part réservée s'affiche même avant que le groupe ait choisi son point de cueillette.
         guard !entries.isEmpty else { return nil }
@@ -208,7 +252,7 @@ final class PickupViewModel {
                   let first = host.displayName.split(separator: " ").first else { continue }
             hostFirstNames[point.id] = String(first)
         }
-        return Content(places: places(from: entries, points: points, hostFirstNames: hostFirstNames))
+        return Content(groups: groups(from: entries, points: points, hostFirstNames: hostFirstNames, groupNames: groupNames))
     }
 
     /// Contenu du QR d'UNE commande : le code de la part du ménage (`GroupOrderRepository.pickupCode`, jeton privé,
@@ -246,6 +290,23 @@ final class PickupViewModel {
         }
     }
 
+    /// T-198 : une section par groupe, dans l'ordre où il apparaît (groupe actif d'abord), chacune rangée par lieu.
+    nonisolated static func groups(
+        from entries: [Entry], points: [String: PickupPoint], hostFirstNames: [String: String] = [:],
+        groupNames: [String: String] = [:], now: Date = .now
+    ) -> [GroupPickup] {
+        var order: [String] = []
+        var grouped: [String: [Entry]] = [:]
+        for entry in entries {
+            if grouped[entry.groupId] == nil { order.append(entry.groupId) }
+            grouped[entry.groupId, default: []].append(entry)
+        }
+        return order.map { groupId in
+            GroupPickup(groupId: groupId, groupName: groupNames[groupId],
+                        places: places(from: grouped[groupId] ?? [], points: points, hostFirstNames: hostFirstNames, now: now))
+        }
+    }
+
     /// Délai pendant lequel une part récupérée d'une commande livrée reste affichée (« Tout est récupéré »).
     nonisolated static let doneRetention: TimeInterval = 2 * 86_400
 
@@ -257,12 +318,17 @@ final class PickupViewModel {
     }
 
     /// Commandes non annulées des groupes du ménage (livrées comprises : c'est là qu'on vient chercher sa part),
-    /// celles du groupe actif d'abord.
+    /// celles du groupe actif d'abord, et le nom de chaque groupe.
     /// La liste des groupes est un détail : si elle échoue, on garde au moins le groupe actif.
     nonisolated static func activeOrders(
         householdId: String, activeGroupId: String, repositories: AppRepositories
-    ) async throws -> [GroupOrder] {
-        let memberGroupIds = (try? await repositories.groups.groups(ofHousehold: householdId).map(\.id)) ?? []
+    ) async throws -> (orders: [GroupOrder], groupNames: [String: String]) {
+        let memberGroups = (try? await repositories.groups.groups(ofHousehold: householdId)) ?? []
+        var groupNames = Dictionary(memberGroups.map { ($0.id, $0.name) }, uniquingKeysWith: { first, _ in first })
+        if groupNames[activeGroupId] == nil, let active = try? await repositories.groups.group(id: activeGroupId) {
+            groupNames[activeGroupId] = active.name
+        }
+        let memberGroupIds = memberGroups.map(\.id)
         let groupIds = [activeGroupId] + memberGroupIds.filter { $0 != activeGroupId }
         var orders: [GroupOrder] = []
         var seen = Set<String>()
@@ -272,6 +338,6 @@ final class PickupViewModel {
                 orders.append(order)
             }
         }
-        return orders
+        return (orders, groupNames)
     }
 }

@@ -132,6 +132,17 @@ final class HostPickupViewModel {
         let id = UUID()
         var result: PickupDesk.ScanResult
         var householdName: String?
+        /// T-198 : autres commandes du même QR de groupe remises en même temps.
+        var otherOrdersHandedOver: Int = 0
+
+        /// « Aussi remis : 2 autres commandes de ce groupe. », nil s'il n'y en a pas.
+        var othersMessage: String? {
+            switch otherOrdersHandedOver {
+            case 0: nil
+            case 1: String(localized: "Aussi remise : 1 autre commande de ce groupe.")
+            default: String(localized: "Aussi remises : \(otherOrdersHandedOver) autres commandes de ce groupe.")
+            }
+        }
     }
 
     /// Au-delà de ce nombre de familles, un champ de recherche apparaît.
@@ -338,37 +349,63 @@ final class HostPickupViewModel {
 
     /// Code lu par la caméra. La commande est celle du code si l'hôte la sert, sinon la commande affichée
     /// (le dépôt répond alors « mauvaise commande »).
+    /// T-198 : le QR d'un groupe porte le code de chaque commande du ménage ; un seul scan remet toutes celles que
+    /// l'hôte sert. La commande affichée passe en dernier : c'est son résultat que montre le bandeau.
     func scan(_ rawCode: String) async {
         guard pendingHouseholdId == nil, let content = state.value else { return }
-        let parsed = PickupDesk.parse(rawCode)
-        let target = content.stations.first { $0.id == parsed?.orderId } ?? selectedStation
-        guard let target else { return }
-        if target.id != selectedOrderId { selectOrder(target.id) }
-        // Un code sans membre : l'hôte qui scanne est noté (firestore.rules exige `pickedUpBy`).
-        let trimmed = rawCode.trimmingCharacters(in: .whitespacesAndNewlines)
-        let code = parsed?.memberId == nil ? PickupDesk.memberCode(trimmed, memberId: userId) : trimmed
-        let repositories = repositories, date = now(), orderId = target.id
-        await confirm(orderId: orderId) {
-            try await repositories.groupOrders.confirmPickup(code: code, groupOrderId: orderId, at: date)
+        let codes = PickupDesk.bundledCodes(rawCode)
+        var targets: [(station: Station, code: String)] = []
+        for code in codes {
+            guard let orderId = PickupDesk.parse(code)?.orderId,
+                  let station = content.stations.first(where: { $0.id == orderId }),
+                  !targets.contains(where: { $0.station.id == orderId }) else { continue }
+            targets.append((station, code))
+        }
+        if targets.isEmpty {
+            guard let selectedStation else { return }
+            targets = [(selectedStation, codes.first ?? rawCode)]
+        }
+        let shown = targets.first { $0.station.id == selectedOrderId } ?? targets[0]
+        if shown.station.id != selectedOrderId { selectOrder(shown.station.id) }
+        let others = targets.filter { $0.station.id != shown.station.id }
+        var othersHandedOver = 0
+        for target in others + [shown] {
+            // Un code sans membre : l'hôte qui scanne est noté (firestore.rules exige `pickedUpBy`).
+            let trimmed = target.code.trimmingCharacters(in: .whitespacesAndNewlines)
+            let code = PickupDesk.parse(trimmed)?.memberId == nil ? PickupDesk.memberCode(trimmed, memberId: userId) : trimmed
+            let repositories = repositories, date = now(), orderId = target.station.id
+            let isShown = orderId == shown.station.id
+            let succeeded = await confirm(orderId: orderId, report: isShown, otherOrdersHandedOver: othersHandedOver) {
+                try await repositories.groupOrders.confirmPickup(code: code, groupOrderId: orderId, at: date)
+            }
+            if !isShown && succeeded { othersHandedOver += 1 }
         }
     }
 
+    /// Enregistre une remise. `report` faux : une autre commande du même QR de groupe, comptée sans bandeau.
+    @discardableResult
     private func confirm(
-        orderId: String, _ attempt: @Sendable () async throws -> PickupDesk.ScanResult
-    ) async {
+        orderId: String, report: Bool = true, otherOrdersHandedOver: Int = 0,
+        _ attempt: @Sendable () async throws -> PickupDesk.ScanResult
+    ) async -> Bool {
         do {
             let result = try await attempt()
             if let share = result.share { apply(share, to: orderId) }
+            guard report else { return result.isSuccess }
             var householdName: String?
             if let share = result.share {
                 householdName = state.value?.stations.first { $0.id == orderId }?.displayNames[share.householdId]
                     ?? String(localized: "Ménage \(share.householdId)")
             }
-            outcome = Outcome(result: result, householdName: householdName)
-            if result.isSuccess { successes += 1 } else { rejections += 1 }
+            outcome = Outcome(result: result, householdName: householdName, otherOrdersHandedOver: otherOrdersHandedOver)
+            if result.isSuccess || otherOrdersHandedOver > 0 { successes += 1 } else { rejections += 1 }
+            return result.isSuccess
         } catch {
-            actionError = AppError(error)
-            rejections += 1
+            if report {
+                actionError = AppError(error)
+                rejections += 1
+            }
+            return false
         }
     }
 

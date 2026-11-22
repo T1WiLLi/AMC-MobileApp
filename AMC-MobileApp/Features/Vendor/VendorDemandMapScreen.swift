@@ -47,6 +47,7 @@ struct VendorDemandMapScreen: View {
             .navigationTitle("Demande")
             .navigationBarTitleDisplayMode(.inline)
             .profileToolbar()
+            .infoToolbarButton(.vendorDemand)
             .toolbar {
                 // B-055 : une carte ne se tire pas ; la liste a aussi « tirer pour rafraîchir ».
                 ToolbarItem(placement: .topBarLeading) {
@@ -105,7 +106,11 @@ struct VendorDemandMapScreen: View {
                 empty: .init(
                     title: "Aucune demande ici",
                     systemImage: "binoculars.fill",
-                    message: "Aucune famille n'a encore commandé ni exprimé d'envie avec ces filtres. Essaie un autre produit ou toute la demande."
+                    message: "Cet écran montre où les familles commandent et ce qu'elles souhaitent acheter. Avec ces filtres, personne n'a encore de demande : essaie un autre produit ou toute la demande.",
+                    action: hasActiveFilters ? EmptyStateAction(title: "Voir toute la demande", systemImage: "line.3.horizontal.decrease.circle") {
+                        viewModel.productFilter = nil
+                        viewModel.scope = .allOffers
+                    } : nil
                 ),
                 retry: { await viewModel.load() }
             ) { points in

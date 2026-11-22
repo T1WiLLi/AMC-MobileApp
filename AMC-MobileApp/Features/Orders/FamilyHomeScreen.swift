@@ -27,7 +27,7 @@ struct FamilyHomeScreen: View {
                     StateView(
                         state: viewModel.state,
                         empty: .init(title: "Rien pour l'instant", systemImage: "basket",
-                                     message: "Aucune commande ni aucun lot dans ton quartier. Reviens un peu plus tard."),
+                                     message: "L'Accueil réunit les commandes de ton groupe et les lots près de chez toi. Les producteurs en ajoutent chaque semaine : actualise pour voir les nouveautés."),
                         retry: { await viewModel.load() }
                     ) { content in
                         FamilyHomeContent(
@@ -237,7 +237,8 @@ private struct FamilyHomeContent: View {
             VStack(alignment: .leading, spacing: 12) {
                 GrenierSectionHeader(
                     mine.count > 1 ? String(localized: "Tes commandes en cours") : String(localized: "Ta commande en cours"),
-                    systemImage: "cart.fill"
+                    systemImage: "cart.fill",
+                    info: .tiers
                 )
                 if mine.isEmpty {
                     NoOrderCard(hasOffersBelow: !content.newOffers.isEmpty)
@@ -270,7 +271,7 @@ private struct FamilyHomeContent: View {
         let filtered = HomeOfferFilter.filter(content.newOffers, category: category)
         let visibleCount = HomeOfferFilter.visibleCount(total: filtered.count, isExpanded: showsAllOffers)
         return VStack(alignment: .leading, spacing: 12) {
-            GrenierSectionHeader(String(localized: "Nouveaux lots près de toi"), systemImage: "sparkles")
+            GrenierSectionHeader(String(localized: "Nouveaux lots près de toi"), systemImage: "sparkles", info: .offers)
             if content.newOffers.isEmpty {
                 NoNewOfferCard()
             } else {

@@ -38,6 +38,7 @@ struct VendorOffersScreen: View {
                 .grenierBackground()
                 .navigationTitle("Lots")
                 .profileToolbar()
+                .infoToolbarButton(.vendorOffers)
                 // B-052 : « Créer un lot » en icône de barre (le bouton flottant cachait le bas de la liste),
                 // « Mes produits » ouvre le catalogue du vendeur.
                 .myProductsToolbar(repositories: repositories, vendorId: vendorId)

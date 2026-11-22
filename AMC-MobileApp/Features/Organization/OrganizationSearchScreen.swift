@@ -14,7 +14,7 @@ struct OrganizationSearchScreen: View {
                     VStack(alignment: .leading, spacing: 12) {
                         if model.searchResults.isEmpty {
                             EmptyStateView(title: "Aucun groupe trouvé", systemImage: "magnifyingglass",
-                                           message: "Essaie un autre quartier.")
+                                           message: "Cherche un quartier pour trouver les groupes qui ont besoin d'aide et les financer. Essaie un autre nom de quartier.")
                         }
                         ForEach(model.searchResults) { profile in
                             GroupNeedCard(profile: profile, distance: model.distanceText(for: profile),

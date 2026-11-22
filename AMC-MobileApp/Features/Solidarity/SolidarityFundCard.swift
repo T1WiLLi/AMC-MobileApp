@@ -40,6 +40,8 @@ struct SolidarityFundCard: View {
                         .font(.subheadline)
                         .foregroundStyle(.texteSecondaire)
                 }
+                Spacer(minLength: 0)
+                InfoButton(topic: .suspendedBasket)
             }
 
             VStack(alignment: .leading, spacing: 2) {

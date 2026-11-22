@@ -89,7 +89,7 @@ private struct ProductStatsStateContent: View {
             EmptyStateView(
                 title: "Pas encore de ventes",
                 systemImage: "chart.bar.xaxis",
-                message: "Publie un lot : ses parts vendues, ses revenus et les économies offertes apparaîtront ici."
+                message: "Ici, tu suis chaque produit : parts vendues, revenus et économies offertes aux familles. Publie un lot pour voir tes premiers chiffres."
             )
             .frame(maxWidth: .infinity, maxHeight: .infinity)
         case .failed, .loaded:

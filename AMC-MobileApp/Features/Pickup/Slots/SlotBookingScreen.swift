@@ -14,7 +14,7 @@ struct SlotBookingScreen: View {
             empty: .init(
                 title: "Pas encore de créneau",
                 systemImage: "calendar.badge.clock",
-                message: "Le coordonnateur du groupe n'a pas encore proposé d'horaires. Reviens bientôt."
+                message: "Un créneau, c'est l'heure où tu passes chercher ton panier. Le coordonnateur du groupe n'en a pas encore proposé : actualise un peu plus tard."
             ),
             retry: { await viewModel.load() }
         ) { content in

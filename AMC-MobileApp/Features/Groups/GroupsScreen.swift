@@ -70,6 +70,7 @@ struct GroupsScreen: View {
             .grenierBackground()
             .navigationTitle("Groupes")
             .profileToolbar()
+            .infoToolbarButton(.group)
             .toolbar {
                 if showsCloseButton {
                     ToolbarItem(placement: .topBarLeading) {

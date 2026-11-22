@@ -304,7 +304,7 @@ private struct RatingSummaryCard: View {
                 }
                 .accessibilityElement(children: .combine)
                 if summary.count > 0 {
-                    DistributionBars(summary: summary)
+                    RatingDistributionBars(summary: summary)
                 }
             }
 
@@ -331,85 +331,13 @@ private struct RatingSummaryCard: View {
     }
 }
 
-private struct DistributionBars: View {
-    let summary: VendorReviewRules.Summary
-
-    var body: some View {
-        VStack(spacing: 4) {
-            ForEach((1...5).reversed(), id: \.self) { stars in
-                HStack(spacing: 6) {
-                    Text("\(stars)")
-                        .font(.caption.monospacedDigit())
-                        .foregroundStyle(.texteSecondaire)
-                    Image(systemName: "star.fill")
-                        .font(.caption2)
-                        .foregroundStyle(.orange)
-                    GeometryReader { proxy in
-                        ZStack(alignment: .leading) {
-                            Capsule().fill(Color.texteSecondaire.opacity(0.15))
-                            Capsule().fill(Color.orange)
-                                .frame(width: proxy.size.width * summary.share(of: stars))
-                        }
-                    }
-                    .frame(height: 6)
-                }
-                .accessibilityElement(children: .ignore)
-                .accessibilityLabel("\(FrenchPlural.count(stars, String(localized: "étoile"))) : \(FrenchPlural.count(summary.distribution[stars - 1], String(localized: "avis"), plural: String(localized: "avis")))")
-            }
-        }
-        .frame(maxWidth: .infinity)
-    }
-}
-
 private struct ReviewCard: View {
     let review: VendorReview
     let isMine: Bool
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            HStack(spacing: 10) {
-                Text(initials)
-                    .font(.subheadline.bold())
-                    .foregroundStyle(Color.onAccent)
-                    .frame(width: 36, height: 36)
-                    .background(isMine ? Color.economie : Color.grenier, in: .circle)
-                    .accessibilityHidden(true)
-                VStack(alignment: .leading, spacing: 2) {
-                    HStack(spacing: 6) {
-                        Text(review.authorName)
-                            .font(.subheadline.weight(.semibold))
-                            .foregroundStyle(.texte)
-                        if isMine {
-                            Text("Ton avis")
-                                .font(.caption2.bold())
-                                .foregroundStyle(Color.economie)
-                                .padding(.horizontal, 6)
-                                .padding(.vertical, 2)
-                                .background(Color.economie.opacity(0.15), in: .capsule)
-                        }
-                    }
-                    Label("Lot reçu · \(SaleText.relative(review.updatedAt))", systemImage: "checkmark.seal.fill")
-                        .font(.caption)
-                        .symbolRenderingMode(.hierarchical)
-                        .foregroundStyle(.texteSecondaire)
-                }
-                Spacer(minLength: 8)
-                StarRatingView(rating: Double(review.rating), font: .caption)
-            }
-            if let comment = review.comment {
-                Text(comment)
-                    .font(.body)
-                    .foregroundStyle(.texte)
-                    .fixedSize(horizontal: false, vertical: true)
-            }
-        }
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .grenierCard()
-        .accessibilityElement(children: .combine)
-        .accessibilityLabel("\(review.authorName), \(FrenchPlural.count(review.rating, String(localized: "étoile"))). \(review.comment ?? "")")
-    }
-
-    private var initials: String {
-        review.authorName.split(separator: " ").prefix(2).compactMap(\.first).map(String.init).joined()
+        RatingCommentCard(authorName: review.authorName, rating: review.rating, comment: review.comment,
+                          caption: String(localized: "Lot reçu · \(SaleText.relative(review.updatedAt))"),
+                          isMine: isMine)
     }
 }

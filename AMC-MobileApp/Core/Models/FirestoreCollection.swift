@@ -25,6 +25,8 @@ nonisolated enum FirestoreCollection {
     static func joinRequests(ofHousehold householdId: String) -> String { "households/\(householdId)/joinRequests" }
     static func householdPrivate(_ householdId: String) -> String { "households/\(householdId)/private" }
     static func members(ofGroup groupId: String) -> String { "groups/\(groupId)/members" }
+    /// T-174 : avis des familles sur un groupe (`groups/{id}/ratings/{householdId}`).
+    static func ratings(ofGroup groupId: String) -> String { "groups/\(groupId)/ratings" }
     static func shares(ofGroupOrder groupOrderId: String) -> String { "groupOrders/\(groupOrderId)/shares" }
 
     /// Id du seul document de `households/{id}/private`.

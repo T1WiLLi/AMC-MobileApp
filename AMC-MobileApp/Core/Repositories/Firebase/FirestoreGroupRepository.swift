@@ -271,6 +271,53 @@ nonisolated final class FirestoreGroupRepository: GroupRepository, @unchecked Se
         }
     }
 
+    // MARK: - T-174 Avis des familles
+
+    private func ratingsRef(_ groupId: String) -> CollectionReference {
+        db.collection(FirestoreCollection.ratings(ofGroup: groupId))
+    }
+
+    func ratings(ofGroup groupId: String) async throws -> [GroupRating] {
+        try await FirestoreDocument.query(GroupRating.self, ratingsRef(groupId), idKey: "id")
+            .sorted { $0.updatedAt > $1.updatedAt }
+    }
+
+    /// Avis et agrégats du groupe dans une seule transaction (relue si deux familles notent en même temps) :
+    /// `ratingSum` / `ratingCount` bougent de l'écart exact, avec `lastRatingChange` = le ménage, ce que
+    /// firestore.rules revérifie des deux côtés (avis et groupe). Une modification ne réécrit que la note,
+    /// le commentaire, la signature et la date : création et preuve d'adhésion ne bougent jamais.
+    func saveRating(_ rating: GroupRating) async throws -> NeighborhoodGroup {
+        try GroupRatingRules.validate(rating)
+        let groupRef = groupRef(rating.groupId)
+        let ratingRef = ratingsRef(rating.groupId).document(rating.householdId)
+        let encoded = try Firestore.Encoder().encode(rating)
+        _ = try await FirestoreTransactions.run(db) { transaction -> Bool in
+            guard try transaction.getDocument(groupRef).exists else { throw AppError.notFound }
+            let previousSnapshot = try transaction.getDocument(ratingRef)
+            let previous = previousSnapshot.exists
+                ? try FirestoreTransactions.decode(GroupRating.self, previousSnapshot)
+                : nil
+            let delta = RatingRules.aggregateDelta(previous: previous?.rating, new: rating.rating)
+            if previous != nil {
+                transaction.updateData([
+                    "authorName": rating.authorName,
+                    "rating": rating.rating,
+                    "comment": rating.comment.map { $0 as Any } ?? FieldValue.delete(),
+                    "updatedAt": Timestamp(date: rating.updatedAt),
+                ], forDocument: ratingRef)
+            } else {
+                transaction.setData(encoded, forDocument: ratingRef)
+            }
+            transaction.updateData([
+                "ratingSum": FieldValue.increment(Int64(delta.sum)),
+                "ratingCount": FieldValue.increment(Int64(delta.count)),
+                "lastRatingChange": rating.householdId,
+            ], forDocument: groupRef)
+            return true
+        }
+        return try await group(id: rating.groupId)
+    }
+
     // MARK: - B-059 Création
 
     /// Groupe (compteur à 1) et adhésion coordonnateur du ménage créateur dans un seul batch : les règles

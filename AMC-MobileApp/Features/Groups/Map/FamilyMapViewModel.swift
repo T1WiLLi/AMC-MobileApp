@@ -11,6 +11,10 @@
 //
 // Positions : centre du groupe (geohash), `PickupPoint.geohash`, `Vendor.storefrontGeohash`. Un lieu sans
 // position n'apparaît pas. Jamais d'adresse exacte : tout passe par des geohash tronqués.
+//
+// T-172 (FB-11) : la carte s'ouvre toujours sur Montréal. Centre = geohash du ménage, sinon centre d'un de ses
+// groupes, sinon le centre-ville (`montrealCenter`). Une position d'appareil à plus de 25 km de Montréal
+// (simulateur à San Francisco) ou inconnue est ignorée sans message ; un ménage sans geohash n'est plus une erreur.
 
 import Foundation
 import Observation
@@ -67,15 +71,18 @@ final class FamilyMapViewModel {
         var radiusText: String { FamilyMapViewModel.radiusText(meters: radiusMeters) }
     }
 
-    /// Centre de la carte : la position de la famille, ou à défaut le quartier du ménage.
+    /// Centre de la carte : la position de la famille, ou à défaut le quartier du ménage, ou Montréal.
     nonisolated enum Origin: Sendable, Hashable {
-        /// Geohash approximatif du ménage ; `neighborhood` pour le libellé (« Saint-Michel »).
+        /// Geohash approximatif du ménage (ou centre de son groupe) ; `neighborhood` pour le libellé (« Saint-Michel »).
         case household(Geohash.Coordinate, neighborhood: String?)
         case userLocation(Geohash.Coordinate)
+        /// T-172 : ni position, ni quartier connu : le centre-ville de Montréal.
+        case montreal
 
         var coordinate: Geohash.Coordinate {
             switch self {
             case .household(let coordinate, _), .userLocation(let coordinate): coordinate
+            case .montreal: FamilyMapViewModel.montrealCenter
             }
         }
 
@@ -89,6 +96,7 @@ final class FamilyMapViewModel {
             case .userLocation: String(localized: "Autour de toi")
             case .household(_, let neighborhood?) where !neighborhood.isEmpty: String(localized: "Autour de \(neighborhood)")
             case .household: String(localized: "Autour de ton quartier")
+            case .montreal: String(localized: "Autour de Montréal")
             }
         }
     }
@@ -139,6 +147,15 @@ final class FamilyMapViewModel {
 
         /// « Groupe de quartier, Voisins de Saint-Michel, à 10 m ».
         var accessibilityLabel: String { "\(kind.title), \(name), \(distanceText)" }
+
+        /// T-172 : photo du groupe ou première photo du producteur ; nil pour un point de cueillette (icône).
+        var photoURL: URL? {
+            switch detail {
+            case .group(let group, _): group.photoURL
+            case .pickupPoint: nil
+            case .producer(let vendor, _, _): vendor.photoURLs.first
+            }
+        }
     }
 
     // MARK: Filtres (le résultat se recalcule à chaque changement)
@@ -158,8 +175,10 @@ final class FamilyMapViewModel {
     private(set) var allPlaces: LoadState<[Place]> = .idle
     /// Centre de la carte ; nil avant le premier chargement.
     private(set) var origin: Origin?
-    /// La position reçue était trop loin du quartier (hors de Montréal, simulateur) : on reste sur le quartier.
+    /// La position reçue était trop loin de Montréal (simulateur) : ignorée sans message, on reste sur le quartier.
     private(set) var isUserLocationOutOfArea = false
+    /// T-172 : rayon du premier cadrage, assez grand pour montrer au moins les trois lieux les plus proches.
+    private(set) var initialRadiusMeters = FamilyMapViewModel.defaultRadiusMeters
 
     let householdId: String
     let userId: String?
@@ -167,8 +186,15 @@ final class FamilyMapViewModel {
     /// Quartier du ménage, gardé pour revenir dessus quand la position est refusée.
     private var householdOrigin: Origin?
 
-    /// Au-delà de cette distance du quartier, la position de l'appareil est ignorée.
-    nonisolated static let maxDistanceFromHomeMeters = 25_000.0
+    /// T-172 : centre-ville de Montréal, centre par défaut de la carte.
+    nonisolated static let montrealCenter = Geohash.Coordinate(latitude: 45.5017, longitude: -73.5673)
+    /// Au-delà de cette distance de Montréal, la position de l'appareil est ignorée (sans message).
+    nonisolated static let maxDistanceFromMontrealMeters = 25_000.0
+    /// Un geohash de ménage ou de groupe plus loin que ça de Montréal (geohash tronqué à 1–2 caractères,
+    /// donnée corrompue) n'est pas un quartier : on passe au repli suivant. Couvre Laval et la Rive-Sud.
+    nonisolated static let maxHomeDistanceFromMontrealMeters = 60_000.0
+    /// Plafond du premier cadrage automatique.
+    nonisolated static let maxInitialRadiusMeters = 15_000.0
     /// Rayon avant que la carte ait donné sa zone visible (premier cadrage).
     nonisolated static let defaultRadiusMeters = 1_500.0
     /// Bornes du rayon : un zoom extrême ne vide pas la carte et un dézoom ne charge pas tout le Québec.
@@ -190,12 +216,12 @@ final class FamilyMapViewModel {
     var searchArea: SearchArea? {
         if let visibleArea { return visibleArea }
         guard let origin else { return nil }
-        return SearchArea(center: origin.coordinate, radiusMeters: Self.defaultRadiusMeters)
+        return SearchArea(center: origin.coordinate, radiusMeters: initialRadiusMeters)
     }
 
     /// Rayon à afficher dans la pastille (suit le doigt, avant même le filtrage).
     var displayedRadiusMeters: Double {
-        liveRadiusMeters ?? searchArea?.radiusMeters ?? Self.defaultRadiusMeters
+        liveRadiusMeters ?? searchArea?.radiusMeters ?? initialRadiusMeters
     }
 
     /// « Dans un rayon de 4,2 km ».
@@ -246,7 +272,8 @@ final class FamilyMapViewModel {
         if allPlaces.value == nil { allPlaces = .loading }
         let repositories = repositories, householdId = householdId, userId = userId
         do {
-            let household = try await repositories.users.household(id: householdId)
+            // T-172 : un ménage illisible ou sans geohash n'empêche plus la carte de s'ouvrir.
+            async let household = Self.household(id: householdId, repositories: repositories)
             async let userNeighborhood = Self.neighborhood(ofUser: userId, repositories: repositories)
             async let publicGroups = repositories.groups.groups(inNeighborhood: nil)
             async let myGroups = repositories.groups.groups(ofHousehold: householdId)
@@ -262,25 +289,25 @@ final class FamilyMapViewModel {
                 vendors: try await vendors,
                 offers: try await offers
             )
-            guard let center = Geohash.center(of: household.geohash) else {
-                throw AppError.invalidInput(String(localized: "La position du ménage est inconnue."))
-            }
-            let neighborhood = await userNeighborhood ?? mine.first?.neighborhood
-            let home = Origin.household(center, neighborhood: neighborhood)
+            let home = Self.homeOrigin(householdGeohash: await household?.geohash, groups: mine,
+                                       neighborhood: await userNeighborhood)
             householdOrigin = home
             if origin == nil || origin?.isUserLocation == false { origin = home }
+            initialRadiusMeters = Self.initialRadius(
+                places: places, around: home.coordinate,
+                minimum: home == .montreal ? Self.defaultRadiusMeters * 3 : Self.defaultRadiusMeters
+            )
             allPlaces = .from(places)
         } catch {
             if allPlaces.value == nil { allPlaces = .failed(AppError(error)) }
         }
     }
 
-    /// Centre la carte sur la position de la famille. Ignorée (et signalée) si elle est loin du quartier.
-    /// Renvoie vrai si la carte est maintenant centrée sur la position.
+    /// Centre la carte sur la position de la famille. Ignorée sans message si elle est à plus de 25 km de
+    /// Montréal (simulateur, voyage). Renvoie vrai si la carte est maintenant centrée sur la position.
     @discardableResult
     func useUserLocation(_ coordinate: Geohash.Coordinate) -> Bool {
-        if let home = householdOrigin,
-           Geohash.distanceMeters(from: home.coordinate, to: coordinate) > Self.maxDistanceFromHomeMeters {
+        guard Self.isNearMontreal(coordinate) else {
             isUserLocationOutOfArea = true
             return false
         }
@@ -331,6 +358,44 @@ final class FamilyMapViewModel {
     }
 
     // MARK: Calculs (purs, testables)
+
+    /// T-172 : la position est à moins de `maxDistanceFromMontrealMeters` du centre-ville.
+    nonisolated static func isNearMontreal(_ coordinate: Geohash.Coordinate) -> Bool {
+        guard coordinate.latitude.isFinite, coordinate.longitude.isFinite else { return false }
+        return Geohash.distanceMeters(from: montrealCenter, to: coordinate) <= maxDistanceFromMontrealMeters
+    }
+
+    /// T-172 : centre de la carte sans position. Dans l'ordre : geohash du ménage, centre d'un groupe du ménage,
+    /// centre-ville de Montréal. Un geohash vide, invalide ou loin de Montréal passe au repli suivant.
+    /// `neighborhood` (profil) donne le libellé ; à défaut, le quartier du groupe retenu.
+    nonisolated static func homeOrigin(householdGeohash: String?, groups: [NeighborhoodGroup],
+                                       neighborhood: String?) -> Origin {
+        func usable(_ geohash: String?) -> Geohash.Coordinate? {
+            guard let geohash, let center = Geohash.center(of: geohash),
+                  Geohash.distanceMeters(from: montrealCenter, to: center) <= maxHomeDistanceFromMontrealMeters
+            else { return nil }
+            return center
+        }
+        if let center = usable(householdGeohash) {
+            let label = neighborhood ?? groups.lazy.compactMap { NeighborhoodName.display($0.neighborhood) }.first
+            return .household(center, neighborhood: label)
+        }
+        for group in groups {
+            if let center = usable(group.centerGeohash) {
+                return .household(center, neighborhood: neighborhood ?? NeighborhoodName.display(group.neighborhood))
+            }
+        }
+        return .montreal
+    }
+
+    /// T-172 : premier cadrage, assez grand pour voir les trois lieux les plus proches (avec une marge),
+    /// au moins `minimum`, au plus `maxInitialRadiusMeters`. La carte ne s'ouvre plus « vide » à côté des lieux.
+    nonisolated static func initialRadius(places: [Place], around center: Geohash.Coordinate, minimum: Double) -> Double {
+        let distances = places.map { Geohash.distanceMeters(from: center, to: $0.coordinate) }.sorted()
+        guard !distances.isEmpty else { return clampedRadius(minimum) }
+        let third = distances[min(2, distances.count - 1)]
+        return clampedRadius(min(max(minimum, third * 1.15), maxInitialRadiusMeters))
+    }
 
     /// Lieux localisables : groupes (sans doublon), points de cueillette et producteurs avec une position.
     nonisolated static func places(
@@ -400,6 +465,10 @@ final class FamilyMapViewModel {
         return "\(Int((meters / 1_000).rounded())) km"
     }
 
+    nonisolated private static func household(id: String, repositories: AppRepositories) async -> Household? {
+        try? await repositories.users.household(id: id)
+    }
+
     nonisolated private static func neighborhood(ofUser userId: String?, repositories: AppRepositories) async -> String? {
         guard let userId, let raw = try? await repositories.users.user(id: userId).neighborhood else { return nil }
         return displayName(ofNeighborhood: raw)
@@ -407,6 +476,14 @@ final class FamilyMapViewModel {
 
     /// « parc-extension » (slug du seed) → « Parc-Extension » ; un nom déjà mis en forme reste tel quel.
     nonisolated static func displayName(ofNeighborhood raw: String) -> String? {
+        NeighborhoodName.display(raw)
+    }
+}
+
+/// T-172 : nom de quartier lisible, partagé par la carte et la fiche publique d'un groupe.
+nonisolated enum NeighborhoodName {
+    /// « parc-extension » (slug du seed) → « Parc-Extension » ; un nom déjà mis en forme reste tel quel.
+    static func display(_ raw: String) -> String? {
         let trimmed = raw.trimmingCharacters(in: .whitespaces)
         guard !trimmed.isEmpty else { return nil }
         guard trimmed == trimmed.lowercased() else { return trimmed }

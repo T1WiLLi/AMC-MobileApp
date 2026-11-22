@@ -41,8 +41,15 @@ struct GroupDetailScreen: View {
                 case .failed(let error):
                     GroupsErrorState(error: error, retry: { await viewModel.load() })
                 case .loaded(let content):
-                    GroupDetailContent(content: content, viewModel: viewModel,
-                                       imageEditor: viewModel.isCoordinator ? imageEditor : nil)
+                    // T-172 (FB-13) : un visiteur voit la fiche publique ; un membre (ou un coordonnateur) la fiche complète.
+                    if content.audience.isMember || viewModel.isCoordinator {
+                        GroupDetailContent(content: content, viewModel: viewModel,
+                                           imageEditor: viewModel.isCoordinator ? imageEditor : nil)
+                            .transition(.opacity)
+                    } else {
+                        GroupPublicContent(content: content, viewModel: viewModel)
+                            .transition(.opacity)
+                    }
                 }
             } else {
                 GroupsLoadingScene(title: "Chargement du groupe…", systemImage: GrenierSymbol.map)
@@ -53,6 +60,8 @@ struct GroupDetailScreen: View {
         .environment(\.groupTheme, theme)
         .tint(theme.accent)
         .animation(reduceMotion ? nil : .smooth(duration: 0.45), value: theme)
+        // Rejoindre : la fiche publique laisse place à la fiche complète en fondu.
+        .animation(reduceMotion ? nil : .smooth, value: viewModel?.state.value?.isMember)
         .navigationTitle(theme.displayName ?? "Groupe")
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
@@ -130,6 +139,8 @@ private struct GroupDetailContent: View {
     let imageEditor: GroupImageEditorViewModel?
 
     @State private var isConfirmingLeave = false
+    /// T-174 : avis des familles sur le groupe.
+    @State private var ratings: GroupRatingsViewModel?
     /// B-056 : visibilité et invitations, pour le créateur du groupe seulement.
     @State private var invitations: GroupInvitationsViewModel?
     /// B-056 : feuille « Rejoindre avec un code » (groupe privé).
@@ -171,6 +182,13 @@ private struct GroupDetailContent: View {
                     }
 
                     openOrdersSection
+
+                    // T-174 (FB-20) : avis des familles, « Noter ce groupe » pour les membres et anciens membres.
+                    if let ratings {
+                        GroupRatingsSection(model: ratings, groupName: theme.displayName ?? group.name) { updated in
+                            viewModel.replaceGroup(updated)
+                        }
+                    }
 
                     // S-07 (T-108) : envies des familles, réservées aux membres.
                     if content.isMember {
@@ -259,6 +277,12 @@ private struct GroupDetailContent: View {
                     .accessibilityHidden(!showsNavigationTitle)
             }
         }
+        .task(id: content.isMember) {
+            let model = ratings ?? GroupRatingsViewModel(repositories: context.repositories, groupId: group.id,
+                                                         householdId: context.householdId, userId: context.userId)
+            ratings = model
+            await model.load(isMember: content.isMember)
+        }
         .task(id: viewModel.isCreator) {
             guard viewModel.isCreator, invitations == nil else { return }
             let userId = context.userId
@@ -331,6 +355,9 @@ private struct GroupDetailContent: View {
                     .accessibilityHidden(true)
             }
             .accessibilityAddTraits(.isHeader)
+            // T-174 : note moyenne des familles (agrégats du groupe).
+            RatingSummaryView(summary: group.ratingSummary, style: .stars)
+                .grenierAnimation(.smooth, value: group.ratingSummary)
             if let welcome = theme.welcomeMessage {
                 Text(welcome)
                     .font(.body)

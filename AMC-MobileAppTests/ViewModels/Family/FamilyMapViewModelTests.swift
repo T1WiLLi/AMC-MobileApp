@@ -252,6 +252,111 @@ struct FamilyMapViewModelTests {
         #expect(model.isUserLocationOutOfArea)
         #expect(model.origin?.isUserLocation == false)
         #expect(model.places.count == 6)
+        #expect(model.state.error == nil)
+    }
+
+    // MARK: T-172 (FB-11) : centre de la carte toujours à Montréal
+
+    private static let sanFrancisco = Geohash.Coordinate(latitude: 37.7858, longitude: -122.4064)
+
+    @Test func householdWithoutGeohashFallsBackToItsGroupWithoutError() async throws {
+        var data = FakeData.montreal
+        let index = try #require(data.households.firstIndex { $0.id == ID.aminaHousehold })
+        data.households[index].geohash = ""
+        let model = viewModel(data: data)
+        await model.load()
+
+        // Avant : « Vérifie ta saisie — La position du ménage est inconnue » et 0 lieu.
+        // Maintenant : centre du premier groupe du ménage (Cuisine collective Villeray, f25du), libellé du profil.
+        #expect(model.state.error == nil)
+        let villeray = try #require(Geohash.center(of: "f25du"))
+        #expect(model.origin == .household(villeray, neighborhood: "Saint-Michel"))
+        #expect(!model.places.isEmpty)
+    }
+
+    @Test func simulatorLocationInSanFranciscoIsIgnoredSilently() async throws {
+        let model = viewModel()
+        await model.load()
+        let before = model.origin
+        #expect(!model.useUserLocation(Self.sanFrancisco))
+        #expect(model.origin == before)
+        #expect(model.state.error == nil)
+        #expect(model.places.count == 6)
+    }
+
+    @Test func homeOriginPrefersTheHouseholdThenTheGroupThenDowntown() throws {
+        let group = NearbyGroupsFixture.group
+        let household = try #require(Geohash.center(of: "f25dv94"))
+        let groupCenter = try #require(Geohash.center(of: group.centerGeohash))
+
+        // 1. Geohash du ménage ; libellé du profil, sinon du groupe (slug mis en forme).
+        #expect(FamilyMapViewModel.homeOrigin(householdGeohash: "f25dv94", groups: [group], neighborhood: nil)
+                == .household(household, neighborhood: "Villeray"))
+        #expect(FamilyMapViewModel.homeOrigin(householdGeohash: "f25dv94", groups: [], neighborhood: "Saint-Michel")
+                == .household(household, neighborhood: "Saint-Michel"))
+
+        // 2. Ménage sans geohash, invalide ou hors de Montréal (San Francisco : 9q8yy) : centre du groupe.
+        for bad in [nil, "", "aaaa", "9q8yy"] as [String?] {
+            #expect(FamilyMapViewModel.homeOrigin(householdGeohash: bad, groups: [group], neighborhood: nil)
+                    == .household(groupCenter, neighborhood: "Villeray"))
+        }
+
+        // 3. Ni ménage ni groupe localisable : centre-ville de Montréal.
+        var unlocated = group
+        unlocated.centerGeohash = ""
+        let downtown = FamilyMapViewModel.homeOrigin(householdGeohash: nil, groups: [unlocated], neighborhood: nil)
+        #expect(downtown == .montreal)
+        #expect(downtown.coordinate == Geohash.Coordinate(latitude: 45.5017, longitude: -73.5673))
+        #expect(downtown.title == "Autour de Montréal")
+        #expect(!downtown.isUserLocation)
+    }
+
+    @Test func deviceLocationCountsOnlyNearMontreal() {
+        #expect(FamilyMapViewModel.isNearMontreal(FamilyMapViewModel.montrealCenter))
+        // Laval (≈ 15 km) et Longueuil (≈ 7 km) : oui.
+        #expect(FamilyMapViewModel.isNearMontreal(Geohash.Coordinate(latitude: 45.6066, longitude: -73.7124)))
+        #expect(FamilyMapViewModel.isNearMontreal(Geohash.Coordinate(latitude: 45.5312, longitude: -73.5181)))
+        // Saint-Jérôme (≈ 50 km), San Francisco, coordonnée invalide : non.
+        #expect(!FamilyMapViewModel.isNearMontreal(Geohash.Coordinate(latitude: 45.7804, longitude: -74.0036)))
+        #expect(!FamilyMapViewModel.isNearMontreal(Self.sanFrancisco))
+        #expect(!FamilyMapViewModel.isNearMontreal(Geohash.Coordinate(latitude: .nan, longitude: -73.5)))
+    }
+
+    @Test func noLocatableHomeOpensOnDowntownWithAWiderFrame() async throws {
+        var data = FakeData.montreal
+        let index = try #require(data.households.firstIndex { $0.id == ID.aminaHousehold })
+        data.households[index].geohash = ""
+        data.groups = data.groups.map { var group = $0; group.centerGeohash = ""; return group }
+        let model = viewModel(data: data)
+        await model.load()
+        #expect(model.state.error == nil)
+        #expect(model.origin == .montreal)
+        #expect(model.initialRadiusMeters >= 4_500)
+        #expect(model.initialRadiusMeters <= FamilyMapViewModel.maxInitialRadiusMeters)
+        #expect(model.searchArea?.center == FamilyMapViewModel.montrealCenter)
+    }
+
+    @Test func initialRadiusShowsTheThreeClosestPlaces() throws {
+        let center = FamilyMapViewModel.montrealCenter
+        #expect(FamilyMapViewModel.initialRadius(places: [], around: center, minimum: 1_500) == 1_500)
+
+        func place(_ id: String, metersNorth: Double) -> FamilyMapViewModel.Place {
+            var group = NearbyGroupsFixture.group
+            group.id = id
+            let coordinate = Geohash.Coordinate(latitude: center.latitude + metersNorth / Self.metersPerDegree,
+                                                longitude: center.longitude)
+            return .init(detail: .group(group, isMember: false), coordinate: coordinate)
+        }
+        // Tout près : le minimum.
+        let near = [place("a", metersNorth: 200), place("b", metersNorth: 400), place("c", metersNorth: 600)]
+        #expect(FamilyMapViewModel.initialRadius(places: near, around: center, minimum: 1_500) == 1_500)
+        // Troisième lieu à 4 km : 4,6 km (marge de 15 %).
+        let spread = near.prefix(2) + [place("d", metersNorth: 4_000), place("e", metersNorth: 9_000)]
+        let radius = FamilyMapViewModel.initialRadius(places: Array(spread), around: center, minimum: 1_500)
+        #expect(abs(radius - 4_600) < 10)
+        // Très loin : plafonné.
+        #expect(FamilyMapViewModel.initialRadius(places: [place("f", metersNorth: 40_000)], around: center,
+                                                 minimum: 1_500) == FamilyMapViewModel.maxInitialRadiusMeters)
     }
 
     @Test func loadFailureIsAnError() async {

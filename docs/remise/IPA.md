@@ -1,75 +1,67 @@
 # IPA de LeGrenier : état et marche à suivre
 
-> L'IPA ne se commite jamais dans le repo, ni l'archive, ni `GoogleService-Info.plist`.
-> Procédure complète et plan B : [`docs/ipa-build.md`](../ipa-build.md).
+> L'IPA ne se commite jamais dans le dépôt, ni l'archive, ni `GoogleService-Info.plist`.
+> Procédure complète : [`docs/ipa-build.md`](../ipa-build.md). Pipeline : [`scripts/release/build-ipa.sh`](../../scripts/release/build-ipa.sh).
 
-## Ce qui a été tenté (2026-11-21, agent claude-samuel)
+## Version publiée
 
-Depuis la racine du repo, sur `main` (5c36975), Xcode 27.2 (27B52) :
+**Release GitHub [v1.0-334](https://github.com/T1WiLLi/AMC-MobileApp/releases/tag/v1.0-334)** : `LeGrenier-v1.0-334.ipa` et son SHA-256.
 
-```bash
-xcodebuild archive \
-  -project AMC-MobileApp.xcodeproj \
-  -scheme AMC-MobileApp \
-  -configuration Release \
-  -destination 'generic/platform=iOS' \
-  -archivePath build/AMC-MobileApp.xcarchive
-```
-
-Résultat : **échec (code 65), à cause de la signature** :
-
-```
-error: Signing for "AMC-MobileApp" requires a development team. Select a development team in the Signing & Capabilities editor.
-error: Signing for "GrenierWidgetsExtension" requires a development team. Select a development team in the Signing & Capabilities editor.
-** ARCHIVE FAILED **
-```
-
-L'export (`xcodebuild -exportArchive`) n'a donc pas été lancé. L'agent n'a volontairement modifié
-aucun réglage de signature et n'a utilisé aucun identifiant.
-
-## Ce qui manque
-
-| Manque | Constat |
+| | |
 |---|---|
-| Équipe de développement | `DEVELOPMENT_TEAM` absent du projet (signature automatique, bundle `ca.amc2026.mobileapp` et `ca.amc2026.mobileapp.widgets`). |
-| Certificat de signature | `security find-identity -v -p codesigning` : 0 identité valide sur ce Mac. |
-| Profil de provisionnement | Aucun profil installé. |
+| Version | 1.0 (build 334), commit `6e694ee` plus les correctifs de compilation Release de #332 |
+| Bundle | `ca.cegepsorel.legrenier` (widget : `ca.cegepsorel.legrenier.widgets`) |
+| Équipe Apple | équipe du Cégep (`6A6TQRFTWB`) |
+| Profil | ad hoc, 35 appareils enregistrés, valable jusqu'au 20 avril 2027 |
+| iOS | 26 ou plus |
 
-Les deux cibles à signer : **AMC-MobileApp** (l'app) et **GrenierWidgetsExtension** (le widget).
+### Limites
 
-## À faire par samuel dans Xcode (≈ 10 min)
+- **Seuls les iPhones du profil ad hoc peuvent installer l'IPA.** Un appareil absent du profil refuse l'installation : il faut enregistrer son UDID dans l'équipe, puis refaire l'IPA.
+- **Le widget suit la langue de l'appareil**, pas celle choisie dans l'app : la build est signée sans App Group (`--no-app-group`), parce que l'équipe du Cégep n'a pas le groupe `group.ca.cegepsorel.legrenier`. L'app elle-même et la Live Activity ne changent pas.
 
-1. **Xcode › Settings › Accounts** : ajoute ton identifiant Apple (compte développeur payant recommandé ;
-   un compte gratuit donne un IPA qui expire après 7 jours et ne s'installe que sur tes appareils).
-2. Ouvre `AMC-MobileApp.xcodeproj`, cible **AMC-MobileApp** › **Signing & Capabilities** :
-   coche *Automatically manage signing*, choisis ton **Team**.
-   Refais la même chose pour la cible **GrenierWidgetsExtension**.
-   Si Xcode dit que le bundle ID est déjà pris, change le préfixe (ex. `ca.amc2026.<toi>.mobileapp`)
-   sur les deux cibles, en gardant le suffixe `.widgets` pour le widget.
-3. Vérifie que `AMC-MobileApp/GoogleService-Info.plist` est bien présent (il est ignoré par Git).
-4. Destination en haut : **Any iOS Device (arm64)**.
-5. **Product › Archive**. L'Organizer s'ouvre à la fin.
-6. **Distribute App › Custom › Debugging** (ou *Release Testing* avec un compte payant) › Next ›
-   signature automatique › **Export**. Le dossier exporté contient `AMC-MobileApp.ipa`.
-7. Dépose l'IPA à l'endroit demandé par l'AMC (pas dans le repo).
+### ⚠️ v1.0-334 est en retard sur `main` : à refaire avant la remise
 
-En ligne de commande, une fois le Team choisi dans Xcode :
+Elle a été produite avant ces PR :
 
-```bash
-xcodebuild archive -project AMC-MobileApp.xcodeproj -scheme AMC-MobileApp \
-  -configuration Release -destination 'generic/platform=iOS' \
-  -archivePath build/AMC-MobileApp.xcarchive -allowProvisioningUpdates
-```
+| PR | Pourquoi c'est important pour la démo |
+|---|---|
+| #329 commission ramenée à 1 % | **Bloquant** : les règles Firestore attendent 1 %, alors que la v1.0-334 écrit 6 %. Toute clôture de commande échoue avec cette IPA. |
+| #336 compte d'organisme droit à son portail | Sinon `organisme@` passe par le choix du portail et garde la bascule. |
+| #338 plus de « Simulation » ni de « démo » dans l'UI | Sinon le bandeau « Simulation » et « Apple Pay (démo) » apparaissent. |
+| #333, #335, #337, #340, #341, #342 | Noms des familles, vraies photos, cartes de l'Accueil allégées, filtre des lots ouverts du vendeur, « Confirmer la commande » côté vendeur, bulles regroupées sur la carte de la demande. |
 
-```bash
-cp docs/ExportOptions.example.plist build/ExportOptions.plist
-```
+Refaire l'IPA depuis `main` (procédure ci-dessous) **avant de fermer les outils de développement**, puis la réinstaller sur les iPhones de démo. Si d'autres PR importantes sont mergées entre-temps, recommencer.
 
-Remplace `TEAM_ID_ICI` dans `build/ExportOptions.plist` par ton Team ID, puis :
+## Refaire l'IPA
 
-```bash
-xcodebuild -exportArchive -archivePath build/AMC-MobileApp.xcarchive \
-  -exportOptionsPlist build/ExportOptions.plist -exportPath build/ipa -allowProvisioningUpdates
-```
+Sur le Mac qui a le compte de l'équipe du Cégep dans Xcode › Settings › Accounts, Xcode 26 ou plus récent.
 
-`build/` est hors du suivi Git : ne l'ajoute pas au commit.
+1. Se placer sur `main` à jour :
+
+   ```bash
+   git fetch origin && git switch main && git pull --ff-only
+   ```
+
+2. Récupérer le `GoogleService-Info.plist` de l'app Firebase qui correspond au bundle `ca.cegepsorel.legrenier`, **hors du dépôt** :
+
+   ```bash
+   npx firebase-tools@15.37.0 apps:sdkconfig IOS 1:959550736484:ios:0967b7aeb8690517ae3771 \
+     --project amc-2026-8ab03 > ../firebase-cegep/GoogleService-Info.plist
+   ```
+
+3. Lancer le pipeline (archive Release, export ad hoc, vérifications, release GitHub `v1.0-<build>` avec l'IPA et son SHA-256) :
+
+   ```bash
+   scripts/release/build-ipa.sh --team 6A6TQRFTWB --bundle-id ca.cegepsorel.legrenier \
+     --firebase-plist ../firebase-cegep/GoogleService-Info.plist --no-app-group --release
+   ```
+
+   Le numéro de build est le nombre de commits de `main` : la nouvelle release aura un numéro plus grand que 334. Tout ce qui est produit va dans `build/release/` (ignoré par git).
+
+4. Installer la nouvelle IPA sur chaque iPhone de démo (Apple Configurator, ou Finder avec l'iPhone branché), la lancer une fois, et vérifier qu'une commande se ferme bien avec le compte de Jean.
+
+## Historique
+
+- 2026-11-21 : première tentative d'archive sans équipe de développement, échec de signature.
+- 2026-11-22 : pipeline `build-ipa.sh` (#325), Xcode 26 ou plus (#330), option `--no-app-group` (#331), build Release qui compile (#332), puis release v1.0-334 avec l'équipe du Cégep.

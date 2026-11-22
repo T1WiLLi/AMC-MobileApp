@@ -74,7 +74,7 @@ struct VendorOffersScreen: View {
                 .sensoryFeedback(.success, trigger: publishedTrigger)
                 .sensoryFeedback(.success, trigger: model.closeSuccessCount)
                 .confirmationDialog(
-                    String(localized: "Fermer la commande ?"),
+                    String(localized: "Confirmer la commande ?"),
                     isPresented: Binding(get: { offerToClose != nil }, set: { if !$0 { offerToClose = nil } }),
                     titleVisibility: .visible,
                     presenting: offerToClose
@@ -152,7 +152,7 @@ struct VendorOffersScreen: View {
                                 .matchedTransitionSource(id: summary.id, in: transition)
                         }
                         .buttonStyle(.plain)
-                        .accessibilityHint("Ouvre l'éditeur de paliers de ce lot.")
+                        .accessibilityHint("Ouvre le lot.")
                         if model.canClose(summary) {
                             closeButton(summary)
                         }
@@ -167,7 +167,7 @@ struct VendorOffersScreen: View {
                             Button {
                                 offerToClose = summary
                             } label: {
-                                Label("Fermer la commande", systemImage: "lock.fill")
+                                Label("Confirmer la commande", systemImage: "checkmark.seal.fill")
                             }
                         }
                         Button {
@@ -200,7 +200,7 @@ struct VendorOffersScreen: View {
                 if model.isClosing(summary) {
                     ProgressView()
                 } else {
-                    Label("Fermer la commande", systemImage: "lock.fill")
+                    Label("Confirmer la commande", systemImage: "checkmark.seal.fill")
                 }
             }
             .frame(maxWidth: .infinity, minHeight: 32)
@@ -208,7 +208,7 @@ struct VendorOffersScreen: View {
         .buttonStyle(.glass)
         .tint(Color.grenier)
         .disabled(model.closingOfferId != nil)
-        .accessibilityLabel(Text("Fermer la commande, \(summary.title)"))
+        .accessibilityLabel(Text("Confirmer la commande, \(summary.title)"))
         .accessibilityHint("Demande confirmation, puis fige le prix et fait payer les familles.")
     }
 
@@ -424,18 +424,6 @@ private struct VendorOfferCard: View {
                 }
             }
 
-            Divider()
-
-            HStack {
-                Label("Modifier les paliers", systemImage: "slider.horizontal.3")
-                    .font(.subheadline.weight(.semibold))
-                    .foregroundStyle(Color.grenier)
-                Spacer()
-                Image(systemName: "chevron.right")
-                    .font(.footnote.weight(.semibold))
-                    .foregroundStyle(.texteSecondaire)
-            }
-            .symbolRenderingMode(.hierarchical)
         }
         .grenierCard()
         .contentShape(.rect(cornerRadius: 24))

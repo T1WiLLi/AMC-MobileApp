@@ -70,6 +70,28 @@ struct DemandMapFormattingTests {
         #expect(point.accessibilityDescription == "Parc-Ex Ouest, 24 familles, forte demande")
     }
 
+    /// Carte Demande : comme la carte des familles, les bulles proches se regroupent dézoomé et se séparent zoomé.
+    @MainActor
+    @Test func demandBubblesClusterWhenZoomedOut() {
+        func point(_ label: String, households: Int) -> DemandMapViewModel.DemandPoint {
+            DemandMapViewModel.DemandPoint(
+                id: label, grouping: .neighborhood, label: label, geohash: "f25d", groupIds: ["g"], committedShares: 1,
+                committedHouseholds: households, householdCount: households, products: [], intensity: 1
+            )
+        }
+        let points = [point("Saint-Michel", households: 36), point("Villeray", households: 66),
+                      point("Verdun", households: 40)]
+        // Toute l'île sur un écran de 400 × 800 pt : Saint-Michel et Villeray (≈ 2 km) se touchent.
+        let zoomedOut = MapClustering.Viewport(latitudeDelta: 0.5, longitudeDelta: 0.5, width: 400, height: 800)
+        let merged = DemandMapViewModel.clusters(points, viewport: zoomedOut, minimumDistance: 84)
+        #expect(merged.count < points.count)
+        #expect(merged.reduce(0) { $0 + $1.members.count } == points.count)
+        // Zoomé sur un quartier : chacun sa bulle.
+        let zoomedIn = MapClustering.Viewport(latitudeDelta: 0.005, longitudeDelta: 0.005, width: 400, height: 800)
+        #expect(DemandMapViewModel.clusters(points, viewport: zoomedIn, minimumDistance: 84).count == points.count)
+        #expect(DemandFormatting.clusterTitle([points[0], points[1]]).hasSuffix("+ 1"))
+    }
+
     /// Bulles de la carte Demande : « Saint-Michel » (f25dv) tombait près du Mont-Royal, « Hochelaga » (f25ej) sur le Plateau.
     @Test func demandBubblesSitOnTheirNeighborhood() throws {
         func point(_ grouping: DemandMapViewModel.Grouping, _ label: String, _ geohash: String,

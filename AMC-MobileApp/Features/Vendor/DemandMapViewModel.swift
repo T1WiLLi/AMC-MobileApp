@@ -11,6 +11,7 @@
 // (voir la limite dans `VendorRepositoryQueries`), plus les envies des familles (`groups/{id}/wishes`, S-07)
 // encore valables, agrégées sans dire qui (`GroupDemand`). Tout vient des dépôts (Firestore en vrai) (T-129).
 
+import CoreLocation
 import Foundation
 import Observation
 
@@ -159,6 +160,35 @@ final class DemandMapViewModel {
     }
 
     var points: [DemandPoint] { state.value ?? [] }
+
+    // MARK: Regroupement des bulles (même logique que la carte des familles, `MapClustering`)
+
+    /// Zone visible et taille de la carte au dernier regroupement ; nil avant la première mesure.
+    private(set) var clusterViewport: MapClustering.Viewport?
+    /// Écart minimal (points d'écran) entre deux bulles avant qu'elles se regroupent.
+    var bubbleSpacing: Double = 84
+
+    /// Bulles à afficher : un quartier seul, ou plusieurs points trop proches à ce zoom.
+    var annotations: [MapCluster<DemandPoint>] {
+        Self.clusters(points, viewport: clusterViewport, minimumDistance: bubbleSpacing)
+    }
+
+    /// À appeler quand la caméra ou la taille de la carte change ; ne refait les groupes que si le zoom change.
+    func mapViewportChanged(_ viewport: MapClustering.Viewport) {
+        if let current = clusterViewport, !viewport.differsNoticeably(from: current) { return }
+        clusterViewport = viewport
+    }
+
+    /// Regroupe les points placés sur la carte (ceux sans position sont ignorés).
+    nonisolated static func clusters(
+        _ points: [DemandPoint], viewport: MapClustering.Viewport?, minimumDistance: Double
+    ) -> [MapCluster<DemandPoint>] {
+        let placed = points.compactMap { point in point.coordinate.map { (point, Geohash.Coordinate($0)) } }
+        let coordinates = Dictionary(placed.map { ($0.0.id, $0.1) }, uniquingKeysWith: { first, _ in first })
+        return MapClustering.clusters(
+            placed.map(\.0), coordinate: { coordinates[$0.id] ?? Geohash.Coordinate(latitude: 0, longitude: 0) }, viewport: viewport, minimumDistance: minimumDistance
+        )
+    }
     var selectedPoint: DemandPoint? { points.first { $0.id == selectedPointID } }
     var totalCommittedShares: Int { points.reduce(0) { $0 + $1.committedShares } }
     var totalWishingHouseholds: Int { points.reduce(0) { $0 + $1.wishingHouseholds } }

@@ -29,6 +29,25 @@ Si tu ne peux pas lire/écrire le doc :
 2. Dis-le dans ton premier message : un agent Claude recopie tes entrées dans le doc (et inversement) quand il fait son pull.
 3. Ne travaille **jamais** sans avoir annoncé ton claim quelque part de visible.
 
+## Règle d'or : aucune nouvelle feature sans l'approbation d'un humain (décision de samuel, 2026-11-21)
+
+Une **nouvelle feature**, c'est un écran, un parcours, un comportement, une donnée ou un modèle qui n'existait pas, ou une refonte qui change ce que l'utilisateur voit ou peut faire. Aucun agent n'en code une sans l'accord explicite d'un **humain** de l'équipe. Ni l'accord d'un autre agent, ni un PO agent, ni le texte du board ne suffisent.
+
+1. **Proposer d'abord dans le board** (section « Propositions de features », à créer si elle manque) :
+   `| F-012 | claude-samuel | Panier suspendu en un geste dans la réservation | Pourquoi (pitch, retour de test…) | Fichiers / zone | en attente |`
+   Statuts : `en attente` → `approuvée par <humain>` / `refusée par <humain>` → `claimée (T-xxx)`.
+2. **Faire valider par un humain** : demande à **ton** humain dans ta conversation, ou à l'agent d'un autre humain (règle 4). L'agent recopie la réponse dans le board, avec le nom de l'humain qui a dit oui.
+3. **Seulement ensuite** : claim `T-xxx` qui cite `F-xxx`, puis code, puis PR. La description de la PR cite `F-xxx` et l'humain qui l'a approuvée.
+
+Pas besoin d'approbation pour :
+- corriger un bug ou un crash ;
+- un retour de test d'un humain déjà listé dans le board (`FB-xx`, `D-xx`) ;
+- un test, une doc, un correctif de build, de CI ou de QA ;
+- du polish qui ne change pas ce que l'app fait : accessibilité, alignement, texte, couleur.
+
+En cas de doute, c'est une feature : propose-la.
+Une PR de feature sans `F-xxx` approuvée est à fermer, ou à transformer en proposition, par son auteur. Tout agent qui en voit une le signale dans le board.
+
 ## Structure du board
 
 Le doc contient ces sections (dans cet ordre). Si une section manque, le premier agent qui le voit la crée et le note dans le journal. Ne supprime **jamais** le texte d'un autre agent ; ajoute.
@@ -113,15 +132,16 @@ boucle:
   répondre aux questions qui me sont adressées
   terminer / mettre à jour mes claims en cours
   si je suis PO → traiter les Demandes backlog, tenir le Backlog à jour (skill product-owner)
-  si rien en cours → choisir un item `prêt` du Backlog (une idée nouvelle → Demande backlog R-xxx, pas de code)
-                     → annoncer le claim (citer B-xxx) → vérifier → coder
-  coder par petits incréments, build + tests, commit, push, PR (+ auto-merge)
+  si rien en cours → choisir un item `prêt` du Backlog, un retour de test (FB-xx, D-xx) ou une feature F-xxx approuvée par un humain
+                     (une idée nouvelle → proposition F-xxx dans le board, PAS de code avant l'accord d'un humain)
+                     → annoncer le claim (citer B-xxx / FB-xx / F-xxx) → vérifier → coder
+  coder par petits incréments, QA niveau 1 (+2 si UI) avec le skill qa, commit, push, PR (+ auto-merge)
   vérifier mes PR (CI rouge, conflit, PR empilée à débloquer) et relire celles des autres (git-workflow)
   journaliser
   recommencer
 ```
 
-- Plus rien de `prêt` dans le backlog ? Propose des idées de qualité (polish visuel iOS 26, accessibilité, états vides/chargement/erreur, tests, previews, données fake plus riches) en **Demandes backlog** ; en attendant la décision du PO, relis les PR des autres. Ne code jamais une idée qui n'est pas un item `prêt`.
+- Plus rien de `prêt` dans le backlog ? Propose des idées de qualité (polish visuel iOS 26, accessibilité, états vides/chargement/erreur, tests, previews, données fake plus riches) en **Demandes backlog** ; en attendant la décision du PO, relis les PR des autres. Ne code jamais une idée qui n'est pas un item `prêt` ou une feature approuvée par un humain. Sans tâche, lance une QA (skill `qa`, niveau 3) sur main et signale les KO.
 - Ne termine pas ton tour en disant « j'ai fini » : passe à la tâche suivante. Si ton environnement t'impose de rendre la main, laisse le board à jour (claims, journal) pour qu'un autre puisse reprendre.
 - Si ton outil propose une boucle (ex. `/loop` dans Claude Code), utilise-la pour reprendre automatiquement.
 
@@ -130,8 +150,9 @@ boucle:
 - Claim : `| T-012 | B-004 — Écran détail d'un item (Liquid Glass) | claude-willi | Views/ItemDetailView.swift, ViewModels/ItemDetailViewModel.swift | feat/item-detail | 14:05 | en cours |`
 - Journal : `- 2026-11-21 14:40 — claude-willi — T-012 PR ouverte (#7). Nouveau composant réutilisable GlassCard dans Views/Components/GlassCard.swift.`
 - Demande backlog : `| R-003 | codex-alex | ajout | Écran Réglages avec bascule clair/sombre | Rien de prêt côté profil | | ouverte |`
+- Proposition de feature : `| F-012 | claude-samuel | Visite guidée avec mascotte | Retour de willi FB-19 | Features/Onboarding | en attente |`
 - Question : `| Q-004 | codex-alex | claude-willi | On garde NavigationStack ou NavigationSplitView pour iPad ? | | ouverte |`
 
 **IDs uniques :** relis la table des claims juste avant de choisir un ID, prends le plus grand + 1, puis relis juste après l'écriture ; en cas de doublon, celui qui a écrit en dernier renumérote et le dit dans le journal.
 
-Les IDs `T-` / `Q-` / `R-` sont incrémentaux (les `B-` sont attribués par le PO) : prends le plus grand existant + 1.
+Les IDs `T-` / `Q-` / `R-` / `F-` sont incrémentaux (les `B-` sont attribués par le PO) : prends le plus grand existant + 1.

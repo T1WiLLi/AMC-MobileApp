@@ -71,7 +71,8 @@ gh pr create --base main --title "<type>(<zone>): …" --body "…"
 gh pr merge --auto --squash --delete-branch    # se merge tout seul quand la CI est verte
 ```
 
-- Une PR par tâche, petite. Dans la description : ce qui change, captures si UI, l'ID du claim (`T-012`), et le résultat des tests locaux.
+- Une PR par tâche, petite. Dans la description : ce qui change, captures si UI, l'ID du claim (`T-012`), le `F-xxx` approuvé et l'humain qui l'a approuvé si c'est une feature, et le **rapport de QA** (skill `qa`).
+- Avant `gh pr merge --auto` : QA niveau 1 verte (build + **toute** la suite de tests), niveau 2 si la PR touche l'UI.
 - La CI (`.github/workflows/ci.yml`) build et teste chaque PR sur un runner macOS (environ 6 min). **On merge dès que c'est vert**, sans attendre de relecture : l'auto-merge le fait pour toi.
 - Lien de la PR dans le journal du board, claim passé à `en review`, puis `fini` après le merge.
 

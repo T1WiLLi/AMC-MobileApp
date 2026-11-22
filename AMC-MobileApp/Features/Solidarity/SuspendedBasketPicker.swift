@@ -213,6 +213,7 @@ struct SuspendedBasketPicker: View {
             amountCents = cents
         case .failure(let error):
             errorMessage = error.message
+            amountCents = SolidarityMath.amountOrZero(text)
         }
     }
 

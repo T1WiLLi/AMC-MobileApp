@@ -34,6 +34,10 @@ nonisolated enum OfferLifecycle {
         var cancelledOrders: [GroupOrder]
     }
 
+    /// Plafonds de firestore.rules (`isValidOffer`) : 1 à 10 000 parts, 1 à 10 paliers.
+    static let maxTotalShares = 10_000
+    static let maxTiers = 10
+
     static let defaultRecurrenceInterval: TimeInterval = 7 * 24 * 3600
     static let defaultLeftoversDiscountPercent = 30
     static let defaultLeftoversDuration: TimeInterval = 48 * 3600
@@ -46,10 +50,16 @@ nonisolated enum OfferLifecycle {
     /// seuils entre 1 et le total, prix > 0, minimum pour lancer entre 1 et le total, date limite future.
     static func validate(_ offer: Offer, now: Date = .now) throws(AppError) {
         guard offer.totalShares > 0 else { throw .invalidInput(String(localized: "Le lot doit contenir au moins une part.")) }
+        guard offer.totalShares <= maxTotalShares else {
+            throw .invalidInput(String(localized: "Le lot ne peut pas dépasser 10 000 parts."))
+        }
         guard !offer.shareUnit.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
             throw .invalidInput(String(localized: "Indique ce que contient une part (par exemple « sac de 10 kg »)."))
         }
         guard !offer.tiers.isEmpty else { throw .invalidInput(String(localized: "Ajoute au moins un palier de prix.")) }
+        guard offer.tiers.count <= maxTiers else {
+            throw .invalidInput(String(localized: "Un lot ne peut pas avoir plus de 10 paliers de prix."))
+        }
         let tiers = offer.sortedTiers
         for (index, tier) in tiers.enumerated() {
             let rank = index + 1

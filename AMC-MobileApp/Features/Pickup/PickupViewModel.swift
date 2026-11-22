@@ -156,6 +156,21 @@ final class PickupViewModel {
             return items.contains(where: \.isOnTheWay) ? .onTheWay : nil
         }
 
+        /// Le même contenu où ces commandes sont marquées récupérées (scan de l'hôte vu par `refreshPickups`).
+        func markingPickedUp(_ groupOrderIds: Set<String>) -> Content {
+            var copy = self
+            for g in copy.groups.indices {
+                for p in copy.groups[g].places.indices {
+                    for i in copy.groups[g].places[p].items.indices
+                    where groupOrderIds.contains(copy.groups[g].places[p].items[i].groupOrderId) {
+                        copy.groups[g].places[p].items[i].isPickedUp = true
+                        copy.groups[g].places[p].items[i].pickupCode = nil
+                    }
+                }
+            }
+            return copy
+        }
+
         /// Minutes avant le début du créneau (0 s'il est commencé), nil sans créneau. Pour « Cueillette dans 25 min ».
         func minutesUntilPickup(from now: Date = .now) -> Int? {
             slot.map { max(0, Int($0.start.timeIntervalSince(now) / 60)) }
@@ -192,6 +207,22 @@ final class PickupViewModel {
         } catch {
             state = .failed(AppError(error))
         }
+    }
+
+    /// Retour samuel : pendant que le QR est affiché, relit (sans cache) la part du ménage de chaque commande à code
+    /// et marque celles que l'hôte vient de scanner, pour enchaîner sur le remerciement. Aucun écouteur Firestore :
+    /// une lecture de document par commande, seulement quand un code est à l'écran.
+    func refreshPickups() async {
+        guard let pending = state.value?.items.filter({ !$0.isPickedUp && $0.pickupCode != nil }), !pending.isEmpty else { return }
+        var picked: Set<String> = []
+        for item in pending {
+            if let share = try? await repositories.groupOrders.share(ofHousehold: householdId, inGroupOrder: item.groupOrderId),
+               share.isPickedUp {
+                picked.insert(item.groupOrderId)
+            }
+        }
+        guard !picked.isEmpty, let current = state.value else { return }
+        state = .loaded(current.markingPickedUp(picked))
     }
 
     nonisolated private static func content(

@@ -74,6 +74,16 @@
         }
       }
     },
+    "%lld étoiles sur 5" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld stars out of 5"
+          }
+        }
+      }
+    },
     "- %@ (%@) : %@, %@" : {
       "localizations" : {
         "en" : {
@@ -166,6 +176,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Welcome to the vendor side"
+          }
+        }
+      }
+    },
+    "Bon appétit !" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Enjoy your meal!"
           }
         }
       }
@@ -300,6 +320,16 @@
         }
       }
     },
+    "Envoyer mes notes" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Send my ratings"
+          }
+        }
+      }
+    },
     "Familles membres" : {
       "localizations" : {
         "en" : {
@@ -400,6 +430,16 @@
         }
       }
     },
+    "L'hôte scanne ce code et te remet toutes tes parts du groupe. Les articles encore ouverts s'ajoutent au code à leur clôture. La luminosité monte au maximum pour faciliter le scan." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The host scans this code and hands you all your shares from the group. Items still open are added to the code when they close. Brightness goes up to the max to make scanning easier."
+          }
+        }
+      }
+    },
     "La carte montre où les familles commandent et ce qu'elles souhaitent acheter. Touche une bulle pour lire leurs souhaits et « Proposer un lot ici »." : {
       "localizations" : {
         "en" : {
@@ -456,6 +496,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "The price drops as families join"
+          }
+        }
+      }
+    },
+    "Le producteur" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The producer"
           }
         }
       }
@@ -540,6 +590,16 @@
         }
       }
     },
+    "Note de %@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Rating for %@"
+          }
+        }
+      }
+    },
     "Ouvre le lot." : {
       "localizations" : {
         "en" : {
@@ -556,6 +616,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Where the demand is"
+          }
+        }
+      }
+    },
+    "Pas de note" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No rating"
           }
         }
       }
@@ -646,6 +716,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Nothing to show here yet: it will appear once this screen has content."
+          }
+        }
+      }
+    },
+    "Ta commande est récupérée. Une note ? C'est facultatif." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Your order is picked up. Want to leave a rating? It's optional."
           }
         }
       }
@@ -806,6 +886,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Tap + in the Bundles tab to publish a new bundle: product, quantity, grocery price and price tiers."
+          }
+        }
+      }
+    },
+    "Un commentaire ? (facultatif)" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "A comment? (optional)"
           }
         }
       }

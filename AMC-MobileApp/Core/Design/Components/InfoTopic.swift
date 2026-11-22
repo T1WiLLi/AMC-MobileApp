@@ -9,6 +9,10 @@ nonisolated enum InfoTopic: String, CaseIterable, Identifiable, Sendable {
     case suspendedBasket
     case pickup
     case pickupSlot
+    /// Carte « Ton code de cueillette » quand le QR est affiché.
+    case pickupCode
+    /// Carte « Ton code de cueillette » avant la clôture (pas encore de code).
+    case pickupCodePending
     case mapRadius
     case group
     case impact
@@ -26,6 +30,7 @@ nonisolated enum InfoTopic: String, CaseIterable, Identifiable, Sendable {
         case .suspendedBasket: String(localized: "Le panier suspendu")
         case .pickup: String(localized: "La cueillette")
         case .pickupSlot: String(localized: "Les créneaux")
+        case .pickupCode, .pickupCodePending: String(localized: "Ton code de cueillette")
         case .mapRadius: String(localized: "Le rayon de la carte")
         case .group: String(localized: "Les groupes")
         case .impact: String(localized: "Ton impact")
@@ -47,6 +52,10 @@ nonisolated enum InfoTopic: String, CaseIterable, Identifiable, Sendable {
             String(localized: "Tu peux ajouter quelques dollars pour une famille qui en a besoin. Ton groupe s'en sert pour offrir un panier, sans dire à qui. Personne ne voit qui a donné.")
         case .pickup:
             String(localized: "Quand le lot est livré, tu viens chercher tes parts au point de cueillette de ton groupe. Montre ton code QR : un voisin bénévole te remet ton panier.")
+        case .pickupCode:
+            String(localized: "L'hôte scanne ce code et te remet toutes tes parts du groupe. Les articles encore ouverts s'ajoutent au code à leur clôture. La luminosité monte au maximum pour faciliter le scan.")
+        case .pickupCodePending:
+            String(localized: "Quand la commande ferme, ton code de cueillette s'affiche ici. On te prévient ensuite dès que la livraison arrive.")
         case .pickupSlot:
             String(localized: "Un créneau, c'est l'heure où tu passes chercher ton panier. Choisis celui qui t'arrange : ça évite la file au point de cueillette.")
         case .mapRadius:
@@ -69,7 +78,7 @@ nonisolated enum InfoTopic: String, CaseIterable, Identifiable, Sendable {
         case .tiers: "chart.line.downtrend.xyaxis"
         case .share: "chart.pie.fill"
         case .suspendedBasket: "heart.fill"
-        case .pickup: "qrcode"
+        case .pickup, .pickupCode, .pickupCodePending: "qrcode"
         case .pickupSlot: "calendar.badge.clock"
         case .mapRadius: "scope"
         case .group: "person.3.fill"

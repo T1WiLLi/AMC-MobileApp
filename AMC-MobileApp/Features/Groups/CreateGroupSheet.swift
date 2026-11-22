@@ -3,6 +3,8 @@
 // public ou privé. La personne qui crée le groupe en est la coordonnatrice et son ménage le premier membre.
 // T-188 (retour samuel) : même style que le reste de l'app : aperçu en direct, cartes Grenier sur fond crème,
 // choix public / privé en cartes, une seule action principale en bas.
+// Retour samuel : section obligatoire « Point de cueillette » (nom du lieu + adresse vérifiée par Apple), là où le
+// vendeur livre et où les familles du groupe viennent chercher leurs parts.
 
 import MapKit
 import SwiftUI
@@ -14,9 +16,10 @@ struct CreateGroupSheet: View {
     @State private var model: CreateGroupViewModel
     @State private var camera: MapCameraPosition = .automatic
     @FocusState private var focusedField: Field?
+    @FocusState private var addressFocused: Bool
     let onCreated: (NeighborhoodGroup) -> Void
 
-    private enum Field: Hashable { case name, neighborhood }
+    private enum Field: Hashable { case name, neighborhood, pickupName }
 
     init(repositories: AppRepositories, userId: String, householdId: String,
          onCreated: @escaping (NeighborhoodGroup) -> Void) {
@@ -32,6 +35,7 @@ struct CreateGroupSheet: View {
                     if !model.hasRoomForAnotherGroup { limitCard }
                     identityCard
                     zoneCard
+                    pickupCard
                     visibilityCard
                     coordinatorNote
                 }
@@ -49,6 +53,8 @@ struct CreateGroupSheet: View {
                 }
             }
             .onChange(of: model.draft) { model.formChanged() }
+            .onChange(of: model.pickupName) { model.formChanged() }
+            .onChange(of: model.pickupAddress) { model.formChanged() }
             .sensoryFeedback(.error, trigger: model.submitError) { _, new in new != nil }
             .sensoryFeedback(.success, trigger: model.createdGroup) { _, new in new != nil }
             .sensoryFeedback(.selection, trigger: model.isPublic)
@@ -307,6 +313,48 @@ struct CreateGroupSheet: View {
         }
     }
 
+    // MARK: Point de cueillette
+
+    /// Zone de livraison du groupe : le lieu où le vendeur livre et où les familles cueillent.
+    private var pickupCard: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            sectionHeader("Point de cueillette", systemImage: "mappin.and.ellipse")
+            Text("Le vendeur y livre les commandes du groupe, et les familles y viennent chercher leurs parts.")
+                .font(.subheadline)
+                .foregroundStyle(Color.texteSecondaire)
+                .fixedSize(horizontal: false, vertical: true)
+            field(systemImage: "building.2.fill", isFocused: focusedField == .pickupName) {
+                TextField("Ex. : centre communautaire", text: $model.pickupName, axis: .vertical)
+                    .lineLimit(1...3)
+                    .focused($focusedField, equals: .pickupName)
+                    .textInputAutocapitalization(.words)
+                    .submitLabel(.next)
+                    .onSubmit { addressFocused = true }
+                    .onChange(of: model.pickupName) { _, value in
+                        guard value.contains("\n") else { return }
+                        model.pickupName = value.replacingOccurrences(of: "\n", with: "")
+                        addressFocused = true
+                    }
+                    .accessibilityLabel("Nom du point de cueillette")
+            }
+            field(systemImage: "mappin.circle.fill", isFocused: addressFocused) {
+                AddressField("Adresse du point de cueillette", text: $model.pickupAddress, model: model.addressCheck,
+                             prompt: "1234 rue Jarry Est", isFocused: $addressFocused)
+            }
+            Label {
+                Text("Seul un quartier approximatif apparaît sur la carte, jamais l'adresse exacte.")
+                    .fixedSize(horizontal: false, vertical: true)
+            } icon: {
+                Image(systemName: "lock.shield.fill")
+                    .symbolRenderingMode(.hierarchical)
+                    .foregroundStyle(Color.grenier)
+            }
+            .font(.footnote)
+            .foregroundStyle(Color.texteSecondaire)
+        }
+        .grenierCard()
+    }
+
     // MARK: Visibilité
 
     private var visibilityCard: some View {
@@ -403,6 +451,7 @@ struct CreateGroupSheet: View {
             }
             Button {
                 focusedField = nil
+                addressFocused = false
                 Task { await model.create() }
             } label: {
                 HStack(spacing: 8) {

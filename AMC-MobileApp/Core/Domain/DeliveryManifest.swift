@@ -62,7 +62,8 @@ nonisolated struct DeliveryManifest: Sendable, Equatable {
         for order in orders where order.status == .closed && order.committedShares > 0 {
             guard let offer = offersById[order.offerId],
                   vendorId == nil || offer.vendorId == vendorId else { continue }
-            let pointKey = order.pickupPointId.flatMap { pointsById[$0] == nil ? nil : $0 }
+            // Sans point choisi, la zone de livraison du groupe (créée avec lui).
+            let pointKey = PickupPoint.resolvedId(for: order, in: pickupPoints).flatMap { pointsById[$0] == nil ? nil : $0 }
                 ?? Self.unassignedStopId
             var line = Line(
                 productId: offer.productId,

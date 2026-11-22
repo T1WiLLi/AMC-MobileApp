@@ -144,7 +144,9 @@ final class HostSetupViewModel {
             accessibility: PickupPoint.Accessibility.allCases.filter(accessibility.contains),
             slots: existingPoint?.slots ?? [],
             // Position de l'adresse vérifiée ; sinon (adresse inchangée) celle déjà connue.
-            geohash: addressCheck.validatedAddress(for: address)?.geohash() ?? existingPoint?.geohash
+            geohash: addressCheck.validatedAddress(for: address)?.geohash() ?? existingPoint?.geohash,
+            // Zone de livraison d'un groupe : le rattachement ne change pas (immuable dans firestore.rules).
+            groupId: existingPoint?.groupId
         )
     }
 

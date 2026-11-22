@@ -14,6 +14,8 @@ final class CreateGroupViewModel {
     var center: Geohash.Coordinate
     var radiusMeters = 1_500
     var isPublic = true
+    /// Position approximative du ménage (bouton « Chez moi » de la carte) ; nil si inconnue.
+    private(set) var homeCenter: Geohash.Coordinate?
 
     private(set) var isSaving = false
     /// Erreur renvoyée par le dépôt (réseau, règles, limite de groupes) ; remise à nil dès qu'on modifie le formulaire.
@@ -46,7 +48,10 @@ final class CreateGroupViewModel {
         async let groups = try? repositories.groups.groups(ofHousehold: householdId)
         let (loadedUser, loadedHousehold, loadedGroups) = await (user, household, groups)
         if neighborhood.isEmpty, let value = loadedUser?.neighborhood { neighborhood = value }
-        if let geohash = loadedHousehold?.geohash, let origin = Geohash.center(of: geohash) { center = origin }
+        if let geohash = loadedHousehold?.geohash, let origin = Geohash.center(of: geohash) {
+            center = origin
+            homeCenter = origin
+        }
         householdGroupCount = loadedGroups?.count
     }
 
@@ -81,6 +86,15 @@ final class CreateGroupViewModel {
         return tenths % 10 == 0
             ? String(localized: "\(tenths / 10) km")
             : String(localized: "\(tenths / 10),\(tenths % 10) km")
+    }
+
+    /// Nom sans les espaces autour, pour le compteur de caractères.
+    var trimmedNameCount: Int { name.trimmingCharacters(in: .whitespacesAndNewlines).count }
+
+    /// Vrai si le centre est encore sur le ménage (le bouton « Chez moi » n'a alors rien à faire).
+    var isCenteredAtHome: Bool {
+        guard let homeCenter else { return true }
+        return Geohash.distanceMeters(from: homeCenter, to: center) < 20
     }
 
     func formChanged() { submitError = nil }

@@ -4,6 +4,7 @@
 
 import Foundation
 import Observation
+import UIKit
 
 @Observable
 @MainActor
@@ -39,14 +40,14 @@ final class HostSetupViewModel {
     init(
         repositories: AppRepositories,
         userId: String,
-        photoStore: any HostPhotoStore = LocalHostPhotoStore(),
+        photoStore: (any HostPhotoStore)? = nil,
         addressValidator: any AddressValidating = MapKitAddressValidator.shared,
         makeId: @escaping @Sendable () -> String = { "pickup-\(UUID().uuidString.lowercased())" }
     ) {
         self.addressCheck = AddressFieldModel(validator: addressValidator)
         self.repositories = repositories
         self.userId = userId
-        self.photoStore = photoStore
+        self.photoStore = photoStore ?? ImageStoreHostPhotoStore(images: repositories.images)
         self.makeId = makeId
     }
 
@@ -105,18 +106,36 @@ final class HostSetupViewModel {
             }
             address = checked
         }
+        let isNew = existingPoint == nil
+        let point: PickupPoint
         do {
-            var url = photoURL
-            if let photoData { url = try await photoStore.upload(photoData, pointId: id) }
-            let point = try PickupSlotBook.validatedPoint(draft(id: id, photoURL: url))
-            try await repositories.pickupPoints.savePickupPoint(point)
-            fill(with: point)
-            savedPoint = point
-            return point
+            // Le point d'abord : firestore.rules n'accepte la photo que de l'hôte d'un point existant.
+            point = try PickupSlotBook.validatedPoint(draft(id: id, photoURL: photoURL))
+            if isNew || photoData == nil { try await repositories.pickupPoints.savePickupPoint(point) }
         } catch {
             saveError = AppError(error)
             return nil
         }
+        guard let photoData else { return finishSave(point) }
+        do {
+            var withPhoto = point
+            withPhoto.photoURL = try await photoStore.upload(photoData, pointId: id)
+            try await repositories.pickupPoints.savePickupPoint(withPhoto)
+            return finishSave(withPhoto)
+        } catch {
+            // Point créé sans sa photo : l'écran passe en modification et garde la photo choisie pour réessayer.
+            let pending = photoData
+            if isNew { fill(with: point) }
+            self.photoData = pending
+            saveError = AppError(error)
+            return nil
+        }
+    }
+
+    private func finishSave(_ point: PickupPoint) -> PickupPoint {
+        fill(with: point)
+        savedPoint = point
+        return point
     }
 
     private func draft(id: String, photoURL: URL?) -> PickupPoint {
@@ -141,23 +160,25 @@ final class HostSetupViewModel {
     }
 }
 
-/// Envoi de la photo d'un point de cueillette. L'app range la photo sur l'appareil en attendant
-/// le dépôt Firebase Storage.
+/// Envoi de la photo d'un point de cueillette.
 nonisolated protocol HostPhotoStore: Sendable {
     func upload(_ data: Data, pointId: String) async throws -> URL
 }
 
-/// Range la photo dans les caches de l'app (fake, previews, démo).
-nonisolated struct LocalHostPhotoStore: HostPhotoStore {
+/// Par défaut : recadre en 4:3, compresse sous 300 Kio et range dans `pickupPoints/{id}/media/photo`
+/// (Firestore en live, mémoire en fake). Renvoie l'URL `grenier-media` versionnée (à afficher avec `MediaImage`).
+nonisolated struct ImageStoreHostPhotoStore: HostPhotoStore {
+    let images: any ImageStore
+
     func upload(_ data: Data, pointId: String) async throws -> URL {
-        let folder = URL.cachesDirectory.appending(path: "pickup-photos", directoryHint: .isDirectory)
-        do {
-            try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
-            let url = folder.appending(path: "\(pointId).jpg")
-            try data.write(to: url, options: .atomic)
-            return url
-        } catch {
-            throw AppError.unknown(String(localized: "Photo non enregistrée : \(error.localizedDescription)"))
+        let path = MediaPath.pickupPhoto(pointId: pointId)
+        let image = try await Task.detached(priority: .userInitiated) {
+            try ImageProcessing.prepare(data, spec: path.spec)
+        }.value
+        let url = try await images.save(image, at: path)
+        if let decoded = UIImage(data: image.jpeg) {
+            await MediaImageLoader.shared.prime(decoded, for: url)
         }
+        return url
     }
 }

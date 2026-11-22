@@ -787,6 +787,14 @@ describe('images en bytes (T-132, Q-033)', () => {
   test('refuse une date choisie par le client', async () => {
     await assertFails(setDoc(doc(amina(), 'users/amina/media/avatar'), { ...media(), updatedAt: Timestamp.fromMillis(0) }))
   })
+  test('l’hôte écrit la photo de son point de cueillette', async () => {
+    await assertSucceeds(setDoc(doc(amina(), 'pickupPoints/pickup-1/media/photo'), media()))
+  })
+  test('personne d’autre n’écrit la photo du point', async () => {
+    await assertFails(setDoc(doc(intruder(), 'pickupPoints/pickup-1/media/photo'), media()))
+    await assertFails(setDoc(doc(amina(), 'pickupPoints/pickup-1/media/galerie'), media()))
+    await assertFails(setDoc(doc(amina(), 'pickupPoints/pickup-inconnu/media/photo'), media()))
+  })
   test('un connecté lit un avatar, un anonyme non', async () => {
     await env.withSecurityRulesDisabled(async (context) => {
       await setDoc(doc(context.firestore(), 'users/amina/media/avatar'), { ...media(), updatedAt: Timestamp.now() })

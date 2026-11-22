@@ -1,5 +1,6 @@
 import Foundation
 import Testing
+import UIKit
 @testable import AMC_MobileApp
 
 /// Devenir hôte, choix du point par le coordonnateur, créneaux réservés (T-077), sur `FakeData.montreal`.
@@ -15,7 +16,53 @@ struct HostAndSlotsViewModelTests {
         }
     }
 
+    private nonisolated struct FailingPhotoStore: HostPhotoStore {
+        func upload(_ data: Data, pointId: String) async throws -> URL { throw AppError.permissionDenied }
+    }
+
+    private static func photo() -> Data {
+        UIGraphicsImageRenderer(size: CGSize(width: 1_600, height: 1_200)).image { context in
+            UIColor.systemGreen.setFill()
+            context.fill(CGRect(x: 0, y: 0, width: 1_600, height: 1_200))
+        }.jpegData(compressionQuality: 0.9)!
+    }
+
+    private func fillNewPoint(_ viewModel: HostSetupViewModel) {
+        viewModel.name = "Chez Karim"
+        viewModel.address = "8200 boul. Pie-IX"
+        viewModel.capacity = 12
+        viewModel.photoData = Self.photo()
+    }
+
     // MARK: Devenir hôte (RQ-062)
+
+    @Test func newHostPhotoGoesToMediaStore() async throws {
+        let repos = AppRepositories.fake(behavior: .instant)
+        let viewModel = HostSetupViewModel(repositories: repos, userId: "user-karim-2",
+                                           addressValidator: FakeAddressValidator(), makeId: { "pickup-nouveau" })
+        await viewModel.load()
+        fillNewPoint(viewModel)
+
+        let saved = try #require(await viewModel.save())
+        let url = try #require(saved.photoURL)
+        #expect(MediaURL.source(of: url) == .media(.pickupPhoto(pointId: "pickup-nouveau")))
+        #expect(try await repos.images.imageData(at: .pickupPhoto(pointId: "pickup-nouveau")).isEmpty == false)
+        #expect(try await repos.pickupPoints.pickupPoint(id: "pickup-nouveau").photoURL == url)
+    }
+
+    @Test func failedPhotoUploadKeepsNewPointAndPhoto() async throws {
+        let repos = AppRepositories.fake(behavior: .instant)
+        let viewModel = HostSetupViewModel(repositories: repos, userId: "user-karim-2", photoStore: FailingPhotoStore(),
+                                           addressValidator: FakeAddressValidator(), makeId: { "pickup-nouveau" })
+        await viewModel.load()
+        fillNewPoint(viewModel)
+
+        #expect(await viewModel.save() == nil)
+        #expect(viewModel.saveError != nil)
+        #expect(viewModel.isEditing, "le point est créé, sans photo")
+        #expect(viewModel.photoData != nil, "la photo choisie reste là pour réessayer")
+        #expect(try await repos.pickupPoints.pickupPoint(id: "pickup-nouveau").photoURL == nil)
+    }
 
     @Test func newHostCreatesPoint() async throws {
         let repos = AppRepositories.fake(behavior: .instant)

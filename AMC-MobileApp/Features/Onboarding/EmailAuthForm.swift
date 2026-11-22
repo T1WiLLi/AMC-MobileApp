@@ -1,8 +1,8 @@
 import SwiftUI
 
-/// Formulaire courriel et mot de passe de la feuille de connexion (T-124) : champs à étiquette intégrée,
-/// validation en direct, erreurs sous le champ concerné. À l'inscription : avatar qui prend l'initiale
-/// du prénom et règles du mot de passe en liste à cocher. Le mode est piloté par `SignInScreen`.
+/// Formulaire courriel et mot de passe de l'écran de connexion (T-124, refonte photo T-201) : champs groupés
+/// dans une carte, validation en direct, erreurs sous la carte. À l'inscription : ligne « Prénom » et règles
+/// du mot de passe en liste à cocher. Le mode est piloté par `SignInScreen`.
 struct EmailAuthForm: View {
     enum Mode: String, CaseIterable, Identifiable {
         case signIn, signUp
@@ -12,6 +12,22 @@ struct EmailAuthForm: View {
             switch self {
             case .signIn: "Se connecter"
             case .signUp: "Créer mon compte"
+            }
+        }
+
+        /// Libellé du bouton principal pendant l'envoi.
+        var busyTitle: LocalizedStringKey {
+            switch self {
+            case .signIn: "Connexion…"
+            case .signUp: "Création…"
+            }
+        }
+
+        /// Libellé du segment du sélecteur.
+        var segmentTitle: LocalizedStringKey {
+            switch self {
+            case .signIn: "Connexion"
+            case .signUp: "Inscription"
             }
         }
     }
@@ -54,16 +70,11 @@ struct EmailAuthForm: View {
 
     var body: some View {
         VStack(spacing: 14) {
-            if mode == .signUp {
-                WelcomeAvatar(firstName: trimmedFirstName)
-                    .transition(.move(edge: .top).combined(with: .opacity))
-            }
-
             // Champs groupés dans une seule carte, comme les réglages iOS : une ligne par champ, séparateurs fins.
             VStack(spacing: 0) {
                 if mode == .signUp {
-                    row(.firstName, icon: "person.fill", placeholder: "Ton prénom", text: firstName,
-                        issue: firstNameIssue, isValid: firstNameIsValid) {
+                    row(.firstName, icon: "person.fill", placeholder: "Prénom", text: firstName,
+                        issue: firstNameIssue, isValid: false) {
                         TextField("", text: $firstName)
                             .accessibilityLabel("Prénom")
                             .textContentType(.givenName)
@@ -92,7 +103,7 @@ struct EmailAuthForm: View {
                 rowDivider
 
                 row(.password, icon: showsPassword ? "lock.open.fill" : "lock.fill", placeholder: "Mot de passe",
-                    text: password, issue: passwordIssue, isValid: mode == .signUp && passwordIsLongEnough) {
+                    text: password, issue: passwordIssue, isValid: false) {
                     Group {
                         if showsPassword {
                             TextField("", text: $password)
@@ -118,22 +129,22 @@ struct EmailAuthForm: View {
                             .contentShape(.rect)
                     }
                     .buttonStyle(.plain)
-                    .accessibilityLabel(showsPassword ? String(localized: "Masquer le mot de passe") : String(localized: "Afficher le mot de passe"))
+                    .accessibilityLabel(passwordToggleLabel)
                     .sensoryFeedback(.selection, trigger: showsPassword)
                 }
             }
-            .background(Color.surface, in: .rect(cornerRadius: 22, style: .continuous))
+            .background(Color.surface, in: .rect(cornerRadius: 18, style: .continuous))
             .overlay {
-                RoundedRectangle(cornerRadius: 22, style: .continuous)
-                    .strokeBorder(cardStroke, lineWidth: focus == nil && fieldIssues.isEmpty ? 1 : 1.5)
+                RoundedRectangle(cornerRadius: 18, style: .continuous)
+                    .strokeBorder(cardStroke, lineWidth: focus == nil && errorLines.isEmpty ? 1 : 1.5)
             }
-            .shadow(color: .black.opacity(0.06), radius: 16, y: 6)
+            .shadow(color: .black.opacity(0.05), radius: 12, y: 4)
             .animation(reduceMotion ? nil : .smooth(duration: 0.2), value: focus)
 
-            if !fieldIssues.isEmpty {
+            if !errorLines.isEmpty {
                 VStack(alignment: .leading, spacing: 6) {
-                    ForEach(fieldIssues, id: \.self) { issue in
-                        Label(issue, systemImage: "exclamationmark.circle.fill")
+                    ForEach(errorLines, id: \.self) { issue in
+                        Label(issue, systemImage: "exclamationmark.circle")
                             .font(.footnote.weight(.semibold))
                             .foregroundStyle(.red)
                             .fixedSize(horizontal: false, vertical: true)
@@ -158,43 +169,37 @@ struct EmailAuthForm: View {
                     .transition(.opacity)
             }
 
-            if let serverError, serverError.field == .general {
-                Label(serverError.localizedDescription, systemImage: "exclamationmark.triangle.fill")
-                    .font(.subheadline)
-                    .foregroundStyle(.red)
-                    .padding(12)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .background(Color.red.opacity(0.09), in: .rect(cornerRadius: 14))
-                    .transition(.opacity)
-            }
-
             // Toujours orange et actif (sauf pendant l'envoi) : un toucher sur un formulaire incomplet
             // montre les erreurs et place le curseur sur le champ à corriger, au lieu d'un bouton gris muet.
             Button(action: submit) {
-                HStack(spacing: 8) {
-                    Text(mode.title)
-                        .font(.headline)
-                        .contentTransition(.opacity)
+                HStack(spacing: 10) {
                     if session.isSigningIn(with: .email) {
                         ProgressView()
-                            .tint(Color.onAccent)
+                            .tint(.white)
+                        Text(mode.busyTitle)
                     } else {
-                        Image(systemName: "arrow.right")
-                            .font(.headline)
+                        Text(mode.title)
                     }
                 }
-                .frame(maxWidth: .infinity, minHeight: 48)
-                .foregroundStyle(Color.onAccent)
+                .font(.headline)
+                .foregroundStyle(session.isSigningIn(with: .email) ? Color.white : Color.onAccent)
+                .frame(maxWidth: .infinity, minHeight: 56)
+                .background(Color.grenier, in: .capsule)
+                .opacity(isBusy ? 0.7 : 1)
+                .contentShape(.capsule)
             }
-            .buttonStyle(.glassProminent)
-            .tint(Color.grenier)
+            .buttonStyle(.plain)
             .disabled(isBusy)
             .padding(.top, 4)
         }
         .animation(reduceMotion ? nil : .smooth, value: serverError)
         .animation(reduceMotion ? nil : .smooth, value: mode)
-        .animation(reduceMotion ? nil : .smooth, value: fieldIssues)
+        .animation(reduceMotion ? nil : .smooth, value: errorLines)
         .sensoryFeedback(.error, trigger: serverError) { _, new in new != nil }
+        .onChange(of: errorLines) { _, new in
+            // VoiceOver annonce l'erreur dès qu'elle apparaît.
+            if !new.isEmpty { AccessibilityNotification.Announcement(new.joined(separator: " ")).post() }
+        }
         .onChange(of: focus) { old, _ in
             if let old { visited.insert(old) }
         }
@@ -216,13 +221,25 @@ struct EmailAuthForm: View {
             .padding(.leading, 16 + fieldIconWidth + 12)
     }
 
+    private var passwordToggleLabel: String {
+        if showsPassword { return String(localized: "Masquer le mot de passe") }
+        return String(localized: "Afficher le mot de passe")
+    }
+
     private var cardStroke: Color {
-        if !fieldIssues.isEmpty { return Color.red.opacity(0.7) }
+        if !errorLines.isEmpty { return Color.red.opacity(0.7) }
         if focus != nil { return Color.grenier.opacity(0.7) }
         return Color.texteSecondaire.opacity(0.15)
     }
 
-    /// Erreurs des champs, dans l'ordre de la carte, affichées sous la carte.
+    /// Erreurs de champs puis erreur générale du serveur, affichées sous la carte.
+    private var errorLines: [String] {
+        var lines = fieldIssues
+        if let serverError, serverError.field == .general { lines.append(serverError.localizedDescription) }
+        return lines
+    }
+
+    /// Erreurs des champs, dans l'ordre de la carte.
     private var fieldIssues: [String] {
         [mode == .signUp ? firstNameIssue : nil, emailIssue, passwordIssue].compactMap { $0 }
     }
@@ -307,9 +324,10 @@ struct EmailAuthForm: View {
             .font(.body.weight(.medium))
             .frame(maxWidth: .infinity, alignment: .leading)
             if isValid && issue == nil {
-                Image(systemName: "checkmark.circle.fill")
+                Image(systemName: "checkmark")
+                    .font(.body.weight(.bold))
                     .foregroundStyle(Color.economie)
-                    .symbolEffect(.bounce, value: isValid)
+                    .symbolEffect(.bounce, options: .nonRepeating, value: reduceMotion ? false : isValid)
                     .transition(.scale.combined(with: .opacity))
                     .accessibilityHidden(true)
             }
@@ -321,51 +339,6 @@ struct EmailAuthForm: View {
         .frame(minHeight: 56)
         .contentShape(.rect)
         .onTapGesture { focus = kind }
-    }
-}
-
-/// En-tête de l'inscription : avatar rond qui prend l'initiale du prénom, et salutation.
-private struct WelcomeAvatar: View {
-    let firstName: String
-
-    private var initial: String { firstName.first.map { String($0).uppercased() } ?? "" }
-
-    var body: some View {
-        HStack(spacing: 14) {
-            ZStack {
-                Circle().fill(Color.grenier.opacity(0.14))
-                if initial.isEmpty {
-                    Image(systemName: "person.fill")
-                        .font(.title2)
-                        .foregroundStyle(Color.grenier)
-                } else {
-                    Text(initial)
-                        .font(.title.weight(.heavy))
-                        .fontDesign(.rounded)
-                        .foregroundStyle(Color.grenier)
-                        .contentTransition(.numericText())
-                }
-            }
-            .frame(width: 52, height: 52)
-            .overlay(Circle().strokeBorder(Color.surface, lineWidth: 3))
-            .shadow(color: .black.opacity(0.08), radius: 6, y: 2)
-
-            VStack(alignment: .leading, spacing: 2) {
-                Text(firstName.isEmpty ? String(localized: "Bienvenue !") : String(localized: "Salut \(firstName) !"))
-                    .font(.title3.bold())
-                    .fontDesign(.rounded)
-                    .foregroundStyle(Color.texte)
-                    .lineLimit(2)
-                    .contentTransition(.opacity)
-                Text("Ton groupe te verra avec ce prénom.")
-                    .font(.subheadline)
-                    .foregroundStyle(Color.texteSecondaire)
-                    .fixedSize(horizontal: false, vertical: true)
-            }
-            .frame(maxWidth: .infinity, alignment: .leading)
-        }
-        .animation(.smooth, value: initial)
-        .accessibilityElement(children: .combine)
     }
 }
 

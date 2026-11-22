@@ -21,22 +21,39 @@ struct PriceTag: View {
         .accessibilityLabel(accessibilityText)
     }
 
+    /// Montant et unité sur une ligne ; si l'unité ne tient pas à côté (AX5, unité longue), elle passe sous le montant
+    /// sur toute la largeur plutôt que de s'écraser dans une colonne étroite à droite.
     private var priceAndUnit: some View {
-        HStack(alignment: .firstTextBaseline, spacing: 0) {
-            Text(Money.format(priceCents))
-                .priceStyle(font)
-                .foregroundStyle(.texte)
-                // Le montant ne se coupe jamais (« 11,50 » puis « $ » seul sur la ligne suivante) : seule l'unité passe à la ligne.
-                .lineLimit(1)
-                .fixedSize()
-                .contentTransition(reduceMotion ? .opacity : .numericText(value: Double(priceCents)))
-                .grenierAnimation(.smooth, value: priceCents)
-            if let unit {
-                Text("/\(unit)")
-                    .font(.subheadline.weight(.semibold))
-                    .fontDesign(.rounded)
-                    .foregroundStyle(.texteSecondaire)
+        ViewThatFits(in: .horizontal) {
+            HStack(alignment: .firstTextBaseline, spacing: 0) {
+                amount
+                unitText.fixedSize()
             }
+            VStack(alignment: .leading, spacing: 0) {
+                amount
+                unitText.fixedSize(horizontal: false, vertical: true)
+            }
+        }
+    }
+
+    private var amount: some View {
+        Text(Money.format(priceCents))
+            .priceStyle(font)
+            .foregroundStyle(.texte)
+            // Le montant ne se coupe jamais (« 11,50 » puis « $ » seul sur la ligne suivante) : seule l'unité passe à la ligne.
+            .lineLimit(1)
+            .fixedSize()
+            .contentTransition(reduceMotion ? .opacity : .numericText(value: Double(priceCents)))
+            .grenierAnimation(.smooth, value: priceCents)
+    }
+
+    @ViewBuilder
+    private var unitText: some View {
+        if let unit {
+            Text("/\(unit)")
+                .font(.subheadline.weight(.semibold))
+                .fontDesign(.rounded)
+                .foregroundStyle(.texteSecondaire)
         }
     }
 

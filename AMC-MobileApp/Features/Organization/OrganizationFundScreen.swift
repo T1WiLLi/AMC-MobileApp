@@ -1,7 +1,8 @@
 import SwiftUI
 
-/// Onglet Financer du portail Organismes (T-116, RQ-081) : tous les groupes, du besoin le plus urgent au moins
-/// urgent ; chaque carte ouvre la feuille de financement (paniers suspendus ou don au fonds, simulés).
+/// Onglet Financer du portail Organismes (T-116, RQ-081) : tous les groupes de la recherche de groupes (du plus proche
+/// au plus loin, T-208), ou ceux en besoin, du plus urgent au moins urgent ; chaque carte ouvre la fiche publique du
+/// groupe, et « Financer » la feuille de financement (paniers suspendus ou don au fonds, simulés).
 struct OrganizationFundScreen: View {
     enum Filter: String, CaseIterable, Identifiable {
         case all
@@ -69,6 +70,8 @@ struct OrganizationFundScreen: View {
                     .padding(16)
                 }
                 .refreshable { await model.load() }
+                // T-208 : toucher un groupe ouvre sa fiche publique.
+                .organizationGroupDestination(model: model)
                 .sheet(item: $donationTarget) { profile in
                     DonationSheet(model: model, groupId: profile.groupId)
                 }
@@ -82,7 +85,7 @@ struct OrganizationFundScreen: View {
 
     private func filtered(_ model: OrganizationPortalModel) -> [GroupSolidarityProfile] {
         switch filter {
-        case .all: model.prioritizedGroups
+        case .all: model.groupsByDistance
         case .inNeed: model.groupsInNeed
         case .sponsored: model.sponsoredGroups
         }

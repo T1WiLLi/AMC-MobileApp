@@ -3,6 +3,7 @@
 //
 // Collections :
 //   - `organizations/{orgId}`                         (lecture : membres de l'organisme)
+//   - `organizationDirectory/{orgId}`                 (T-208 ; fiche publique, lue par les comptes d'organisme)
 //   - `organizations/{orgId}/sponsorships/{groupId}`  (écriture : membres de l'organisme)
 //   - `organizations/{orgId}/donations/{donationId}`  (création seule : membres de l'organisme)
 //   - `groups/{groupId}/solidarity/fund`              (fonds anonyme ; un organisme n'y ajoute qu'une contribution)
@@ -54,6 +55,27 @@ nonisolated final class FirestoreOrganizationRepository: OrganizationRepository,
             profiles.append(Self.profile(group, fund: try await fundDocument(group.id)))
         }
         return profiles.sorted { $0.groupName.localizedStandardCompare($1.groupName) == .orderedAscending }
+    }
+
+    // T-208 : les groupes viennent de `GroupRepository.groups(inNeighborhood: nil)`, comme la recherche de groupes du
+    // portail Famille (même requête, mêmes médias résolus) ; on n'y ajoute que le fonds, lu en parallèle.
+    func solidarityProfiles(of groups: [NeighborhoodGroup]) async throws -> [GroupSolidarityProfile] {
+        let funds = try await withThrowingTaskGroup(of: (String, SolidarityFundDocument).self) { tasks in
+            for group in groups {
+                tasks.addTask { (group.id, try await self.fundDocument(group.id)) }
+            }
+            var funds: [String: SolidarityFundDocument] = [:]
+            for try await (id, fund) in tasks { funds[id] = fund }
+            return funds
+        }
+        return groups.map { GroupSolidarityProfile(group: $0, fund: funds[$0.id] ?? SolidarityFundDocument()) }
+    }
+
+    func directory() async throws -> [OrganizationDirectoryEntry] {
+        try await FirestoreVendorRepository.fetch(
+            OrganizationDirectoryEntry.self, db.collection(FirestoreCollection.organizationDirectory)
+        )
+        .sorted { $0.name.localizedStandardCompare($1.name) == .orderedAscending }
     }
 
     func solidarityProfile(groupId: String) async throws -> GroupSolidarityProfile {
@@ -170,12 +192,7 @@ nonisolated final class FirestoreOrganizationRepository: OrganizationRepository,
     }
 
     private static func profile(_ group: NeighborhoodGroup, fund: SolidarityFundDocument) -> GroupSolidarityProfile {
-        GroupSolidarityProfile(
-            groupId: group.id, groupName: group.name, neighborhood: group.neighborhood,
-            centerGeohash: group.centerGeohash, householdCount: group.householdCount,
-            subsidizedHouseholds: fund.subsidizedHouseholds, basketPriceCents: fund.basketPriceCents,
-            fund: fund.fund, sponsorOrganizationIds: fund.sponsorOrganizationIds
-        )
+        GroupSolidarityProfile(group: group.resolvingMediaURLs(), fund: fund)
     }
 
     /// Transaction Firestore en async : une erreur levée dans le bloc annule la transaction sans nouvel essai.

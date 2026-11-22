@@ -10,8 +10,13 @@ nonisolated protocol OrganizationRepository: Sendable {
     func organization(id: String) async throws -> Organization
     /// Groupes publics avec leur fonds de solidarité et leur besoin anonyme, par nom.
     func solidarityProfiles() async throws -> [GroupSolidarityProfile]
+    /// T-208 : fonds et besoin de ces groupes (ceux de la recherche de groupes du portail Famille), dans le même
+    /// ordre. Un groupe sans fonds a un profil vide (aucun ménage subventionné, prix de panier par défaut).
+    func solidarityProfiles(of groups: [NeighborhoodGroup]) async throws -> [GroupSolidarityProfile]
     /// Lève `.notFound` si le groupe n'existe pas.
     func solidarityProfile(groupId: String) async throws -> GroupSolidarityProfile
+    /// T-208 : fiches publiques de tous les organismes (carte du portail), par nom.
+    func directory() async throws -> [OrganizationDirectoryEntry]
     /// Financements de l'organisme, du plus récent au plus ancien.
     func donations(ofOrganization organizationId: String) async throws -> [OrganizationDonation]
     /// Parrainages de l'organisme, du plus ancien au plus récent.

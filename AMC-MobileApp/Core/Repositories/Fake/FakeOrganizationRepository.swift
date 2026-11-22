@@ -38,6 +38,23 @@ actor FakeOrganizationRepository: OrganizationRepository {
         return profiles.values.sorted { $0.groupName.localizedStandardCompare($1.groupName) == .orderedAscending }
     }
 
+    func solidarityProfiles(of groups: [NeighborhoodGroup]) async throws -> [GroupSolidarityProfile] {
+        try await behavior.simulate()
+        return groups.map { group in
+            var profile = profiles[group.id] ?? GroupSolidarityProfile(group: group)
+            profile.group = group
+            // Un groupe vu pour la première fois devient finançable (dons, parrainage), comme dans Firestore.
+            profiles[group.id] = profile
+            return profile
+        }
+    }
+
+    func directory() async throws -> [OrganizationDirectoryEntry] {
+        try await behavior.simulate()
+        return organizations.values.map(OrganizationDirectoryEntry.init)
+            .sorted { $0.name.localizedStandardCompare($1.name) == .orderedAscending }
+    }
+
     func solidarityProfile(groupId: String) async throws -> GroupSolidarityProfile {
         try await behavior.simulate()
         guard let profile = profiles[groupId] else { throw AppError.notFound }

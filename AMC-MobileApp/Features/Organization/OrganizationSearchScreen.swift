@@ -40,6 +40,8 @@ struct OrganizationSearchScreen: View {
                     }
                 }
                 .onChange(of: query, initial: true) { _, text in model.searchText = text }
+                // T-208 : toucher un groupe ouvre sa fiche publique.
+                .organizationGroupDestination(model: model)
                 .sheet(item: $donationTarget) { profile in
                     DonationSheet(model: model, groupId: profile.groupId)
                 }

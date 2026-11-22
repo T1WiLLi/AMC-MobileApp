@@ -27,7 +27,7 @@ Photos sous [licence Unsplash](https://unsplash.com/license) (usage gratuit, com
 
 Ajoute une ligne ici pour chaque nouvelle photo (1200 px de large max, JPEG ~70 %).
 
-## Organismes du seed (T-205)
+## Organismes du seed (T-208)
 
 Photo de profil (`-logo.jpg`, 400 × 400) et bannière (`-banner.jpg`, 1200 × 450) de chaque organisme fictif, dans `scripts/seed/media/organizations/`. `seed:org` les écrit dans `organizations/{id}/media/{logo|banner}`. Licence Unsplash.
 

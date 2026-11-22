@@ -8,7 +8,8 @@
 //   groups/{groupId}/media/banner   bannière du groupe (écrite par un coordinateur)
 //   pickupPoints/{id}/media/photo   photo d'un point de cueillette (écrite par son hôte)
 //   households/{id}/media/photo     photo d'une famille (T-205 ; écrite par le seed seulement)
-//   organizations/{id}/media/logo   logo d'un organisme (T-205 ; écrit par le seed seulement)
+//   organizations/{id}/media/logo   photo de profil d'un organisme (T-208 ; écrite par le seed seulement)
+//   organizations/{id}/media/banner bannière d'un organisme (T-208 ; écrite par le seed seulement)
 //
 // Le document parent garde la date d'envoi (`photoUpdatedAt` / `bannerUpdatedAt`, serverTimestamp) ; l'app en déduit
 // une URL versionnée qui pointe vers ce média, sans aucune URL Storage :
@@ -36,6 +37,8 @@ nonisolated enum MediaPath: Hashable, Sendable {
     case householdPhoto(householdId: String)
     /// T-205 : logo d'un organisme (`organizations/{id}/media/logo`) ; absent → symbole du type d'organisme.
     case organizationLogo(organizationId: String)
+    /// T-208 : bannière d'un organisme (`organizations/{id}/media/banner`) ; absente → dégradé Grenier.
+    case organizationBanner(organizationId: String)
 
     /// Préfixe du document d'une photo de produit.
     static let productPhotoPrefix = "photo-product-"
@@ -59,6 +62,7 @@ nonisolated enum MediaPath: Hashable, Sendable {
         case .pickupPhoto(let pointId): "pickupPoints/\(pointId)/media/photo"
         case .householdPhoto(let householdId): "households/\(householdId)/media/photo"
         case .organizationLogo(let organizationId): "organizations/\(organizationId)/media/logo"
+        case .organizationBanner(let organizationId): "organizations/\(organizationId)/media/banner"
         }
     }
 
@@ -66,7 +70,7 @@ nonisolated enum MediaPath: Hashable, Sendable {
     var spec: ImageSpec {
         switch self {
         case .userAvatar, .groupPhoto, .householdPhoto, .organizationLogo: .square
-        case .groupBanner: .banner
+        case .groupBanner, .organizationBanner: .banner
         case .vendorPhoto, .pickupPhoto: .showcase
         case .productPhoto: .product
         }
@@ -83,6 +87,7 @@ nonisolated enum MediaPath: Hashable, Sendable {
         case ("pickupPoints", "photo"): self = .pickupPhoto(pointId: parts[1])
         case ("households", "photo"): self = .householdPhoto(householdId: parts[1])
         case ("organizations", "logo"): self = .organizationLogo(organizationId: parts[1])
+        case ("organizations", "banner"): self = .organizationBanner(organizationId: parts[1])
         case ("vendors", let photoId) where photoId.hasPrefix(Self.productPhotoPrefix)
             && photoId.count > Self.productPhotoPrefix.count:
             self = .productPhoto(vendorId: parts[1], productId: String(photoId.dropFirst(Self.productPhotoPrefix.count)))

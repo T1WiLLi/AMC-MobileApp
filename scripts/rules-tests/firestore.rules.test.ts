@@ -1986,7 +1986,7 @@ describe('portail Organismes (T-194)', () => {
     })
   })
 
-  // T-205 : carte des organismes. La fiche publique ne porte aucun membre ; organizations/{id} reste privé.
+  // T-208 : carte des organismes. La fiche publique ne porte aucun membre ; organizations/{id} reste privé.
   describe('organizationDirectory/{id}', () => {
     const entry = {
       id: 'org-autre', name: 'Centre communautaire Les Pommiers', kind: 'communityCenter', neighborhood: 'saint-michel',

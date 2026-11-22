@@ -1,4 +1,4 @@
-// Seed du portail Organismes (T-194, T-205) : l'organisme de démo (banque alimentaire de Côte-des-Neiges) et quatre
+// Seed du portail Organismes (T-194, T-208) : l'organisme de démo (banque alimentaire de Côte-des-Neiges) et quatre
 // autres organismes montréalais, leurs dons, leurs parrainages, leur fiche publique (carte des organismes), leur
 // photo de profil et leur bannière, et le fonds de solidarité des groupes financés. Ne supprime rien. Idempotent.
 // DRY-RUN PAR DÉFAUT : rien n'est écrit sans --yes.

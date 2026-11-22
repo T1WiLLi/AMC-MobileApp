@@ -6,6 +6,9 @@ import SwiftUI
 /// Poussée dans le NavigationStack de l'onglet Groupes (qui enregistre `.offerDestination()`).
 struct GroupDetailScreen: View {
     let groupId: String
+    /// T-208 : visiteur qui n'est pas une famille (portail Organismes) : toujours la fiche publique, avec ses
+    /// actions à lui à la place de « Rejoindre ».
+    var visitorAddOn: GroupVisitorAddOn? = nil
 
     @Environment(\.appContext) private var context
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
@@ -42,12 +45,12 @@ struct GroupDetailScreen: View {
                     GroupsErrorState(error: error, retry: { await viewModel.load() })
                 case .loaded(let content):
                     // T-172 (FB-13) : un visiteur voit la fiche publique ; un membre (ou un coordonnateur) la fiche complète.
-                    if content.audience.isMember || viewModel.isCoordinator {
+                    if visitorAddOn == nil && (content.audience.isMember || viewModel.isCoordinator) {
                         GroupDetailContent(content: content, viewModel: viewModel,
                                            imageEditor: viewModel.isCoordinator ? imageEditor : nil)
                             .transition(.opacity)
                     } else {
-                        GroupPublicContent(content: content, viewModel: viewModel)
+                        GroupPublicContent(content: content, viewModel: viewModel, addOn: visitorAddOn)
                             .transition(.opacity)
                     }
                 }

@@ -1,4 +1,4 @@
-// Organismes de démo du portail Organismes (T-194, T-205) : la banque alimentaire de Côte-des-Neiges (le compte de
+// Organismes de démo du portail Organismes (T-194, T-208) : la banque alimentaire de Côte-des-Neiges (le compte de
 // démo) et quatre autres organismes montréalais fictifs, avec leurs dons, leurs parrainages, le fonds de solidarité
 // des groupes qu'ils financent, une photo de profil et une bannière. Même schéma que l'app (`Organization.swift`,
 // `FirestoreOrganizationRepository`) :

@@ -46,6 +46,85 @@ nonisolated struct Organization: Identifiable, Codable, Sendable, Hashable {
     var memberUserIds: [String]
     var mission: String
     var createdAt: Date
+    /// T-208 : date d'envoi de `organizations/{id}/media/logo` (photo de profil), posée par le seed ; nil = inconnue.
+    var photoUpdatedAt: Date? = nil
+    /// T-208 : date d'envoi de `organizations/{id}/media/banner`.
+    var bannerUpdatedAt: Date? = nil
+
+    /// Photo de profil (absente → symbole du type d'organisme).
+    var photoURL: URL { OrganizationMedia.url(.organizationLogo(organizationId: id), updatedAt: photoUpdatedAt) }
+    /// Bannière (absente → dégradé Grenier).
+    var bannerURL: URL { OrganizationMedia.url(.organizationBanner(organizationId: id), updatedAt: bannerUpdatedAt) }
+}
+
+// MARK: - Décodage tolérant (T-208)
+
+extension Organization {
+    /// Un document écrit à la main ou par une ancienne version du seed (sans médias, sans mission) se lit quand même.
+    nonisolated init(from decoder: any Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        id = try container.decode(String.self, forKey: .id)
+        name = try container.decode(String.self, forKey: .name)
+        kind = (try? container.decodeIfPresent(Kind.self, forKey: .kind)) ?? .communityCenter
+        neighborhood = try container.decodeIfPresent(String.self, forKey: .neighborhood) ?? ""
+        geohash = try container.decodeIfPresent(String.self, forKey: .geohash) ?? ""
+        memberUserIds = try container.decodeIfPresent([String].self, forKey: .memberUserIds) ?? []
+        mission = try container.decodeIfPresent(String.self, forKey: .mission) ?? ""
+        createdAt = try container.decodeIfPresent(Date.self, forKey: .createdAt) ?? .distantPast
+        photoUpdatedAt = try? container.decodeIfPresent(Date.self, forKey: .photoUpdatedAt)
+        bannerUpdatedAt = try? container.decodeIfPresent(Date.self, forKey: .bannerUpdatedAt)
+    }
+}
+
+/// T-208 : fiche publique d'un organisme (`organizationDirectory/{orgId}`), pour la carte du portail Organismes.
+/// Rien de privé : ni membres, ni dons. Lue par les comptes d'organisme, écrite par le seed.
+nonisolated struct OrganizationDirectoryEntry: Identifiable, Codable, Sendable, Hashable {
+    var id: String
+    var name: String
+    var kind: Organization.Kind
+    var neighborhood: String
+    var geohash: String
+    var photoUpdatedAt: Date? = nil
+    var bannerUpdatedAt: Date? = nil
+
+    var photoURL: URL { OrganizationMedia.url(.organizationLogo(organizationId: id), updatedAt: photoUpdatedAt) }
+    var bannerURL: URL { OrganizationMedia.url(.organizationBanner(organizationId: id), updatedAt: bannerUpdatedAt) }
+
+    init(id: String, name: String, kind: Organization.Kind, neighborhood: String, geohash: String,
+         photoUpdatedAt: Date? = nil, bannerUpdatedAt: Date? = nil) {
+        self.id = id
+        self.name = name
+        self.kind = kind
+        self.neighborhood = neighborhood
+        self.geohash = geohash
+        self.photoUpdatedAt = photoUpdatedAt
+        self.bannerUpdatedAt = bannerUpdatedAt
+    }
+
+    init(_ organization: Organization) {
+        self.init(id: organization.id, name: organization.name, kind: organization.kind,
+                  neighborhood: organization.neighborhood, geohash: organization.geohash,
+                  photoUpdatedAt: organization.photoUpdatedAt, bannerUpdatedAt: organization.bannerUpdatedAt)
+    }
+
+    nonisolated init(from decoder: any Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        id = try container.decode(String.self, forKey: .id)
+        name = try container.decode(String.self, forKey: .name)
+        kind = (try? container.decodeIfPresent(Organization.Kind.self, forKey: .kind)) ?? .communityCenter
+        neighborhood = try container.decodeIfPresent(String.self, forKey: .neighborhood) ?? ""
+        geohash = try container.decodeIfPresent(String.self, forKey: .geohash) ?? ""
+        photoUpdatedAt = try? container.decodeIfPresent(Date.self, forKey: .photoUpdatedAt)
+        bannerUpdatedAt = try? container.decodeIfPresent(Date.self, forKey: .bannerUpdatedAt)
+    }
+}
+
+/// URL des images d'un organisme : versionnée par la date d'envoi si on la connaît, sinon sans version (l'image
+/// est tentée, son absence montre le repli).
+nonisolated enum OrganizationMedia {
+    static func url(_ path: MediaPath, updatedAt: Date?) -> URL {
+        updatedAt.map { path.url(version: MediaVersion.make($0)) } ?? path.url
+    }
 }
 
 /// Ce qu'un organisme veut financer pour un groupe.
@@ -151,8 +230,36 @@ nonisolated struct GroupSolidarityProfile: Identifiable, Sendable, Equatable {
     var basketPriceCents: Cents
     var fund: SolidarityFund
     var sponsorOrganizationIds: [String]
+    /// T-208 : le groupe tel que la recherche de groupes du portail Famille le montre (photo, bannière, marque),
+    /// pour réutiliser ses cartes et sa fiche publique. nil dans les anciennes données fake.
+    var group: NeighborhoodGroup? = nil
 
     var id: String { groupId }
+
+    /// T-208 : profil d'un groupe sans fonds (aucun don ni ménage subventionné encore).
+    init(group: NeighborhoodGroup, fund: SolidarityFundDocument = SolidarityFundDocument()) {
+        self.init(
+            groupId: group.id, groupName: group.name, neighborhood: group.neighborhood,
+            centerGeohash: group.centerGeohash, householdCount: group.householdCount,
+            subsidizedHouseholds: fund.subsidizedHouseholds, basketPriceCents: fund.basketPriceCents,
+            fund: fund.fund, sponsorOrganizationIds: fund.sponsorOrganizationIds, group: group
+        )
+    }
+
+    init(groupId: String, groupName: String, neighborhood: String, centerGeohash: String, householdCount: Int,
+         subsidizedHouseholds: Int, basketPriceCents: Cents, fund: SolidarityFund, sponsorOrganizationIds: [String],
+         group: NeighborhoodGroup? = nil) {
+        self.groupId = groupId
+        self.groupName = groupName
+        self.neighborhood = neighborhood
+        self.centerGeohash = centerGeohash
+        self.householdCount = householdCount
+        self.subsidizedHouseholds = subsidizedHouseholds
+        self.basketPriceCents = basketPriceCents
+        self.fund = fund
+        self.sponsorOrganizationIds = sponsorOrganizationIds
+        self.group = group
+    }
 
     /// Paniers que le fonds peut déjà payer.
     var basketsFundable: Int { fund.basketsFundable(unitPriceCents: basketPriceCents) }
@@ -167,6 +274,8 @@ nonisolated struct GroupSolidarityProfile: Identifiable, Sendable, Equatable {
 
 extension FirestoreCollection {
     nonisolated static let organizations = "organizations"
+    /// T-208 : fiches publiques des organismes (`OrganizationDirectoryEntry`).
+    nonisolated static let organizationDirectory = "organizationDirectory"
     nonisolated static func sponsorships(ofOrganization organizationId: String) -> String {
         "organizations/\(organizationId)/sponsorships"
     }

@@ -56,6 +56,8 @@ struct OrganizationSponsorshipsScreen: View {
                     .padding(16)
                 }
                 .refreshable { await model.load() }
+                // T-208 : toucher un groupe ouvre sa fiche publique.
+                .organizationGroupDestination(model: model)
                 .sheet(item: $sponsorTarget) { profile in
                     SponsorSheet(model: model, groupId: profile.groupId)
                 }

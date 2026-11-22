@@ -88,16 +88,23 @@ private extension OrganizationDashboardScreen {
 struct OrganizationHeroCard: View {
     let organization: Organization
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
+    /// L'icône grandit avec le texte : un cadre fixe de 56 pt la coupait aux très grandes tailles.
+    @ScaledMetric(relativeTo: .title) private var badgeSize: CGFloat = 56
     @State private var appeared = false
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            HStack(alignment: .center, spacing: 12) {
+        // Aux tailles d'accessibilité, l'icône passe au-dessus du nom au lieu de lui voler la largeur.
+        let layout = dynamicTypeSize.isAccessibilitySize
+            ? AnyLayout(VStackLayout(alignment: .leading, spacing: 12))
+            : AnyLayout(HStackLayout(alignment: .center, spacing: 12))
+        return VStack(alignment: .leading, spacing: 12) {
+            layout {
                 Image(systemName: organization.kind.systemImage)
                     .font(.title)
                     .symbolRenderingMode(.hierarchical)
                     .foregroundStyle(Color.onAccent)
-                    .frame(width: 56, height: 56)
+                    .frame(width: badgeSize, height: badgeSize)
                     .background(Color.grenier.gradient, in: .rect(cornerRadius: 16))
                     .symbolEffect(.bounce, value: reduceMotion ? false : appeared)
                     .accessibilityHidden(true)

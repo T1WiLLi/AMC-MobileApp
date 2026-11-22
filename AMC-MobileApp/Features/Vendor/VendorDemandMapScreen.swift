@@ -149,7 +149,7 @@ struct VendorDemandMapScreen: View {
     private func mapView(_ points: [DemandPoint]) -> some View {
         Map(position: $camera, interactionModes: [.pan, .zoom], selection: $viewModel.selectedPointID) {
             ForEach(points) { point in
-                if let coordinate = Geohash.decode(point.geohash) {
+                if let coordinate = point.coordinate {
                     Annotation(point.displayName, coordinate: coordinate, anchor: .center) {
                         DemandBubble(
                             point: point,
@@ -394,7 +394,7 @@ struct VendorDemandMapScreen: View {
     }
 
     private func focusCamera(on point: DemandPoint) {
-        guard displayMode == .map, let coordinate = Geohash.decode(point.geohash) else { return }
+        guard displayMode == .map, let coordinate = point.coordinate else { return }
         // Garde la bulle dans le tiers haut, au-dessus de la feuille du bas.
         let span = visibleRegion.span
         let center = CLLocationCoordinate2D(latitude: coordinate.latitude - span.latitudeDelta * 0.18, longitude: coordinate.longitude)
@@ -422,7 +422,7 @@ struct VendorDemandMapScreen: View {
     }
 
     private func fitCamera(to points: [DemandPoint]) {
-        let coordinates = points.compactMap { Geohash.decode($0.geohash) }
+        let coordinates = points.compactMap(\.coordinate)
         guard let region = MKCoordinateRegion(fitting: coordinates) else { return }
         withAnimation(reduceMotion ? nil : .smooth(duration: 0.8)) {
             camera = .region(region)
@@ -1034,6 +1034,29 @@ extension DemandMapViewModel.DemandPoint {
         var parts = [displayName, DemandFormatting.families(interestedHouseholds)]
         if isHighDemand { parts.append(String(localized: "forte demande")) }
         return parts.joined(separator: ", ")
+    }
+}
+
+// MARK: - Position des bulles
+
+nonisolated extension DemandMapViewModel.DemandPoint {
+    /// Écart au-delà duquel le centre d'un groupe ne colle plus à son quartier (geohash tronqué ou mal saisi).
+    static let neighborhoodToleranceMeters: Double = 1_500
+
+    /// Où poser la bulle. Le centre d'un groupe est souvent un geohash à 5 caractères (≈ 5 km) : décodé tel quel,
+    /// « Saint-Michel » (f25dv) tombait près du Mont-Royal et « Hochelaga » (f25ej) sur le Plateau.
+    /// - « Quartiers » : toujours le centre connu du quartier (`MontrealNeighborhood`).
+    /// - « Groupes » : le centre du groupe s'il est dans son quartier, sinon le centre du quartier.
+    /// - « Zones », ou quartier inconnu : le centre du geohash.
+    var coordinate: CLLocationCoordinate2D? {
+        let decoded = Geohash.decode(geohash)
+        guard grouping != .geohash else { return decoded }
+        let name = grouping == .neighborhood ? label : (neighborhood ?? "")
+        guard let known = MontrealNeighborhood.named(MontrealNeighborhood.displayName(for: name)) else { return decoded }
+        let center = CLLocationCoordinate2D(latitude: known.latitude, longitude: known.longitude)
+        guard grouping == .group, let decoded else { return center }
+        let gap = Geohash.distanceMeters(from: Geohash.Coordinate(decoded), to: Geohash.Coordinate(center))
+        return gap <= Self.neighborhoodToleranceMeters ? decoded : center
     }
 }
 

@@ -19,7 +19,8 @@ struct VendorRealDataTests {
         let model = DemandMapViewModel(repositories: VendorTestData.repositories(wishes: wishes), vendorId: ID.fermeRive)
         await model.load()
 
-        #expect(model.points.map(\.id) == ["Saint-Michel", "Hochelaga"])
+        // T-180 : la commande de riz de Parc-Extension (Ferme Lafleur) compte aussi (tous les lots).
+        #expect(model.points.map(\.id) == ["Parc-Extension", "Saint-Michel", "Hochelaga"])
         let hochelaga = try #require(model.points.last)
         #expect(hochelaga.committedShares == 0)
         #expect(hochelaga.wishingHouseholds == 2)
@@ -59,8 +60,9 @@ struct VendorRealDataTests {
         let model = DemandMapViewModel(repositories: VendorTestData.repositories(wishes: wishes), vendorId: ID.fermeRive)
         await model.load()
 
-        let point = try #require(model.points.first)
-        #expect(model.points.count == 1)
+        // Saint-Michel (19 parts + 2 familles) d'abord, puis Parc-Extension (riz de la Ferme Lafleur, T-180).
+        #expect(model.points.map(\.id) == ["Saint-Michel", "Parc-Extension"])
+        let point = try #require(model.points.first { $0.id == "Saint-Michel" })
         #expect(point.committedShares == 19)
         #expect(point.committedHouseholds == 11)
         #expect(point.wishingHouseholds == 2)
@@ -162,10 +164,15 @@ struct VendorRealDataTests {
         let all = try #require(model.state.value)
         #expect(Set(all.products.map(\.vendorId)) == [ID.fermeRive])
         #expect(Set(all.offers.map(\.offer.vendorId)) == [ID.fermeRive])
-        #expect(all.neighborhoods.map(\.label) == ["Saint-Michel"])
+        // La demande couvre tous les lots du marché : le riz de Parc-Extension (Ferme Lafleur, T-180) y figure.
+        #expect(all.neighborhoods.map(\.label) == ["Parc-Extension", "Saint-Michel"])
 
+        // « riz » : rien dans le catalogue de la Ferme de la Rive, seulement la demande de Parc-Extension.
         model.query = "riz"
-        #expect(model.results.isEmpty)
+        #expect(model.results.products.isEmpty)
+        #expect(model.results.offers.isEmpty)
+        #expect(model.results.neighborhoods.map(\.label) == ["Parc-Extension"])
+        #expect(model.results.groups.map(\.id) == [ID.parcExtension])
 
         model.query = "pommes de terre"
         #expect(model.results.products.map(\.id) == [ID.potatoes])

@@ -15,7 +15,7 @@ nonisolated protocol ReportRepository: Sendable {
 /// Signalements gardés en mémoire, avec latence et mode erreur (`FakeBehavior`).
 actor InMemoryReportRepository: ReportRepository {
     /// Dépôt partagé par défaut de `.reportable(target:)` (démo).
-    static let shared = InMemoryReportRepository(behavior: .realistic)
+    static let shared = InMemoryReportRepository(behavior: .demo)
 
     private let behavior: FakeBehavior
     private(set) var all: [Report] = []

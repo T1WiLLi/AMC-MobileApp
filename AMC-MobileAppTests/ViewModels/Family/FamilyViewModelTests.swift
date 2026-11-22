@@ -76,9 +76,10 @@ struct FamilyViewModelTests {
         await viewModel.load()
         let items = try #require(viewModel.state.value)
         // B-056 : le groupe privé d'Amina est dans « Tes groupes », jamais dans les groupes à rejoindre.
-        #expect(items.map(\.id) == [ID.villerayKitchen, ID.saintMichel, ID.hochelaga])
-        #expect(items.map(\.isMember) == [true, true, false])
-        #expect(viewModel.myGroups.map(\.id) == [ID.villerayKitchen, ID.saintMichel])
+        // T-180 : Amina coordonne aussi Parc-Extension solidaire (parcours du pitch).
+        #expect(items.map(\.id) == [ID.villerayKitchen, ID.parcExtension, ID.saintMichel, ID.hochelaga])
+        #expect(items.map(\.isMember) == [true, true, true, false])
+        #expect(viewModel.myGroups.map(\.id) == [ID.villerayKitchen, ID.parcExtension, ID.saintMichel])
         #expect(items.last?.distanceText != nil)
 
         await viewModel.join(groupId: ID.hochelaga)
@@ -179,6 +180,29 @@ struct FamilyViewModelTests {
         viewModel.dismissCelebration()
         #expect(viewModel.celebration == nil)
         #expect(!viewModel.canReserve)
+    }
+
+    /// L'Accueil recharge ses cartes après une réservation (il affichait encore 11,50 $ et « Encore 1 part »).
+    @Test func reservationSignalsTheHomeWhichShowsTheNewPrice() async throws {
+        let repos = repositories()
+        let home = FamilyHomeViewModel(repositories: repos, userId: ID.amina,
+                                       householdId: ID.aminaHousehold, groupId: ID.saintMichel)
+        await home.load()
+        #expect(home.state.value?.currentOrders.first?.pricing.currentPriceCents == 1_150)
+
+        let detail = OfferDetailViewModel(repositories: repos, offerId: ID.potatoOffer,
+                                          householdId: ID.aminaHousehold, groupId: ID.saintMichel)
+        await detail.load()
+        let generation = ShareActivity.shared.generation
+        await detail.reserve()
+        #expect(ShareActivity.shared.generation > generation)
+
+        // Ce que fait l'Accueil sur le signal : recharger.
+        await home.load()
+        let potatoes = try #require(home.state.value?.currentOrders.first { $0.offer.id == ID.potatoOffer })
+        #expect(potatoes.hasMyShare)
+        #expect(potatoes.committedShares == 20)
+        #expect(potatoes.pricing.currentPriceCents == 990)
     }
 
     @Test func changingTheShareWithoutNewTierDoesNotCelebrate() async throws {

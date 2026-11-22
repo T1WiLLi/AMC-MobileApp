@@ -58,3 +58,9 @@ Démarrer la démo avec la session déjà ouverte : en mode fake, la session ne 
 - Lancer avec `-useFakeData -demoFamilyPortal -AppleLanguages "(fr-CA)" -AppleLocale fr_CA`, et passer l'iPhone de démo en français.
 - Ne pas montrer l'inscription par courriel (bloquée). Utiliser Google ou une session déjà ouverte.
 - Ne pas promettre le scanner ni le panier suspendu en un geste tant qu'ils ne sont pas branchés. Pour le mode aîné, montrer seulement l'écran Préférences.
+
+## Corrigé depuis (PR « Accueil rafraîchi, carte Demande, latence fake réduite »)
+
+- **Accueil après une réservation** : la fiche du lot signale chaque part enregistrée (`ShareActivity`), et l'Accueil recharge tout de suite son flux. Au retour, la carte montre le nouveau prix et ta part, plus « Encore 1 part ».
+- **Carte Demande du vendeur** : en vue « Quartiers », chaque bulle est posée sur le centre connu du quartier (`MontrealNeighborhood`). En vue « Groupes », un centre de groupe à plus de 1,5 km de son quartier est ramené au quartier. Saint-Michel, Hochelaga et Parc-Extension tombent au bon endroit.
+- **Latence en mode `-useFakeData`** : 5 à 25 ms par appel (`FakeBehavior.demo`) au lieu de 300 à 800 ms. Les 5 à 7 s de la Cueillette, les 3 s de la carte Demande et les 2 s de squelette de l'Accueil deviennent moins de 300 ms par écran. Les previews gardent la latence réaliste.

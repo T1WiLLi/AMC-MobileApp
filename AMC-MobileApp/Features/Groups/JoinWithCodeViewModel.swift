@@ -32,6 +32,41 @@ final class JoinWithCodeViewModel {
 
     func inputChanged() { errorMessage = nil }
 
+    /// Un lien collé vient d'être reconnu : la feuille l'indique sous les cases.
+    private(set) var recognizedLink = false
+
+    /// La saisie est un lien qu'on ne sait pas lire (autre site, code manquant).
+    var isUnrecognizedLink: Bool { Self.looksLikeLink(input) && code == nil }
+
+    /// Saisie tapée ou collée dans la feuille : un lien reconnu devient son code ; un code trop long est
+    /// coupé à `GroupRules.inviteCodeLength` caractères. Sinon la frappe reste telle quelle (la réécrire à
+    /// chaque touche fait perdre des lettres quand on tape vite) : les cases montrent `displayedCode`.
+    /// Un lien non reconnu reste tel quel, pour l'expliquer sous le champ.
+    func updateInput(_ raw: String) {
+        let formatted = Self.formattedInput(raw)
+        recognizedLink = Self.looksLikeLink(raw) && !Self.looksLikeLink(formatted)
+        guard formatted != input else { return }
+        input = formatted
+        inputChanged()
+    }
+
+    /// Le code tel que les cases l'affichent : majuscules, sans espaces ni tirets.
+    var displayedCode: String {
+        isUnrecognizedLink ? "" : String(GroupRules.normalizedInviteCode(input).prefix(GroupRules.inviteCodeLength))
+    }
+
+    static func formattedInput(_ raw: String) -> String {
+        let trimmed = raw.trimmingCharacters(in: .whitespacesAndNewlines)
+        if looksLikeLink(trimmed) {
+            return GroupRules.inviteCode(fromUserInput: trimmed) ?? trimmed
+        }
+        let normalized = GroupRules.normalizedInviteCode(trimmed)
+        return normalized.count > GroupRules.inviteCodeLength
+            ? String(normalized.prefix(GroupRules.inviteCodeLength)) : raw
+    }
+
+    private static func looksLikeLink(_ text: String) -> Bool { text.contains("://") }
+
     func join() async {
         guard !isJoining else { return }
         guard let code else {

@@ -363,71 +363,6 @@ struct PrivateGroupNote: View {
     }
 }
 
-/// B-056 : rejoindre un groupe avec un code ou un lien d'invitation.
-struct JoinWithCodeSheet: View {
-    @Environment(\.dismiss) private var dismiss
-    @State private var model: JoinWithCodeViewModel
-    @FocusState private var isFocused: Bool
-    let onJoined: (NeighborhoodGroup) -> Void
-
-    init(repositories: AppRepositories, householdId: String, code: String = "",
-         onJoined: @escaping (NeighborhoodGroup) -> Void) {
-        _model = State(initialValue: JoinWithCodeViewModel(repositories: repositories, householdId: householdId, input: code))
-        self.onJoined = onJoined
-    }
-
-    var body: some View {
-        NavigationStack {
-            Form {
-                Section {
-                    TextField("Code ou lien d'invitation", text: $model.input)
-                        .font(.title3.monospaced())
-                        .textInputAutocapitalization(.characters)
-                        .autocorrectionDisabled()
-                        .submitLabel(.join)
-                        .focused($isFocused)
-                        .onSubmit { Task { await model.join() } }
-                        .onChange(of: model.input) { model.inputChanged() }
-                } header: {
-                    Text("Invitation")
-                } footer: {
-                    if let message = model.errorMessage {
-                        Label(message, systemImage: "exclamationmark.triangle.fill")
-                            .foregroundStyle(.red)
-                    } else {
-                        Text("Colle le lien reçu ou tape le code de \(GroupRules.inviteCodeLength) lettres ou chiffres. Une invitation à un groupe privé sert une seule fois.")
-                    }
-                }
-            }
-            .navigationTitle("Rejoindre avec un code")
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .cancellationAction) {
-                    Button("Annuler", systemImage: "xmark") { dismiss() }
-                }
-                ToolbarItem(placement: .confirmationAction) {
-                    if model.isJoining {
-                        ProgressView()
-                    } else {
-                        Button("Rejoindre", systemImage: "checkmark") {
-                            Task { await model.join() }
-                        }
-                        .disabled(!model.canJoin)
-                    }
-                }
-            }
-            .sensoryFeedback(.error, trigger: model.errorMessage) { _, new in new != nil }
-            .onChange(of: model.joinedGroup) { _, group in
-                guard let group else { return }
-                onJoined(group)
-                dismiss()
-            }
-            .onAppear { if model.input.isEmpty { isFocused = true } }
-        }
-        .presentationDetents([.medium, .large])
-    }
-}
-
 #if DEBUG
 #Preview("Créateur, groupe privé") {
     let data = FakeData.montreal
@@ -439,12 +374,5 @@ struct JoinWithCodeSheet: View {
     }
     .grenierBackground()
     .task { await model.load() }
-}
-
-#Preview("Rejoindre avec un code") {
-    Text("Groupes")
-        .sheet(isPresented: .constant(true)) {
-            JoinWithCodeSheet(repositories: .fake(data: .montreal), householdId: FakeData.ID.aminaHousehold, onJoined: { _ in })
-        }
 }
 #endif

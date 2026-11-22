@@ -2,7 +2,7 @@ import Foundation
 import Testing
 @testable import AMC_MobileApp
 
-/// T-156 : onboarding après l'inscription (préférences, quartier, ménage), puis le tableau de bord Familles.
+/// T-156 : onboarding après l'inscription (préférences, adresse et quartier, ménage), puis le tableau de bord Familles.
 @MainActor
 struct PostSignupOnboardingTests {
     private static func newUser(householdId: String? = "household-neuf", completed: Bool? = false) -> AppUser {
@@ -25,10 +25,19 @@ struct PostSignupOnboardingTests {
         return Fixture(repositories: repositories, users: users)
     }
 
-    private static func loadedModel(_ fixture: Fixture, householdId: String = "household-neuf") async -> PostSignupOnboardingViewModel {
-        let model = PostSignupOnboardingViewModel(repositories: fixture.repositories, userId: "uid-neuf", householdId: householdId)
+    private static func loadedModel(_ fixture: Fixture, householdId: String = "household-neuf",
+                                    validator: FakeAddressValidator = FakeAddressValidator()) async -> PostSignupOnboardingViewModel {
+        let model = PostSignupOnboardingViewModel(repositories: fixture.repositories, userId: "uid-neuf", householdId: householdId,
+                                                  addressValidator: validator)
         await model.load()
         return model
+    }
+
+    /// Étape 2 : adresse et code postal (Saint-Michel par défaut).
+    private static func fillAddress(_ model: PostSignupOnboardingViewModel,
+                                    _ streetLine: String = "55 rue Fictive", postalCode: String = "H2A 1B3") {
+        model.streetLine = streetLine
+        model.postalCode = postalCode
     }
 
     // MARK: Drapeau
@@ -94,18 +103,108 @@ struct PostSignupOnboardingTests {
         #expect(!model.canContinue)
         model.postalCode = "h2a 1b3"
         #expect(model.neighborhood?.name == "Saint-Michel")
-        #expect(model.canContinue)
+        #expect(!model.canContinue)              // l'adresse est obligatoire
+        model.streetLine = "55 rue Fictive"
+        #expect(model.canContinue)               // vérifiée par Apple au « Continuer »
         await model.next()
         #expect(model.step == .household)
+        #expect(model.addressCheck.status(for: model.composedStreetLine) == .valid)
         model.back()
         #expect(model.step == .neighborhood)
     }
 
+    @Test func addressStepNeedsAFoundAddressAndACompletePostalCode() async {
+        let model = await Self.loadedModel(Self.fixture())
+        await model.next()
+        Self.fillAddress(model, "Jarry")
+        #expect(model.addressError != nil)       // pas de numéro civique
+        #expect(!model.canContinue)
+
+        model.streetLine = "12 rue Inexistante"
+        await model.addressCheck.validate(model.composedStreetLine)
+        #expect(model.addressCheck.status(for: model.composedStreetLine) == .notFound)
+        #expect(!model.canContinue)              // Apple ne la trouve pas
+        await model.next()
+        #expect(model.step == .neighborhood)
+
+        model.streetLine = "55 rue Fictive"
+        model.postalCode = "H2A"                 // quartier trouvé, code incomplet
+        #expect(model.neighborhood?.name == "Saint-Michel")
+        #expect(model.postalMessage?.contains("Saint-Michel") == true)
+        #expect(!model.canContinue)
+        model.postalCode = "H2A 1B"
+        #expect(!model.canContinue)
+        model.postalCode = "123 456"
+        #expect(model.postalLookup == .invalid)
+        #expect(model.neighborhood == nil)       // le quartier suit le code postal
+        #expect(!model.canContinue)
+        model.postalCode = "H2A 1B3"
+        #expect(model.canContinue)
+    }
+
+    @Test func postalCodeOutsideServedNeighborhoodsOffersTheManualPicker() async {
+        let model = await Self.loadedModel(Self.fixture())
+        await model.next()
+        Self.fillAddress(model, postalCode: "H9X 1A1")
+        #expect(model.postalLookup == .notServed)
+        #expect(model.showsNeighborhoodPicker)
+        #expect(!model.canContinue)              // un quartier reste nécessaire
+        model.neighborhood = MontrealNeighborhood.named("Verdun")
+        #expect(model.canContinue)
+        model.postalCode = "H2A 1B3"
+        #expect(!model.showsNeighborhoodPicker)
+        #expect(model.neighborhood?.name == "Saint-Michel")
+    }
+
+    @Test func applePostalCodeFillsTheEmptyField() async {
+        let model = await Self.loadedModel(Self.fixture())
+        await model.next()
+        model.streetLine = "1234 rue Jarry est"
+        #expect(!model.canContinue)              // code postal encore vide
+        let normalized = await model.addressCheck.validate(model.composedStreetLine)
+        model.streetLine = normalized ?? model.streetLine
+        model.adoptValidatedPostalCode()
+        #expect(model.postalCode == "H2R 1A1")
+        #expect(model.neighborhood?.name == "Villeray")
+        #expect(model.canContinue)
+    }
+
+    @Test func unverifiedAddressStillLetsTheFamilyContinue() async throws {
+        let fixture = Self.fixture()
+        let model = await Self.loadedModel(fixture, validator: FakeAddressValidator(isOffline: true))
+        await model.next()
+        Self.fillAddress(model)
+        await model.next()                       // vérification impossible (hors ligne) : on continue
+        #expect(model.addressCheck.status(for: model.composedStreetLine) == .unverified)
+        #expect(model.step == .household)
+        #expect(model.canContinue)
+        await model.next()
+        #expect(model.step == .done)
+        let household = try await fixture.users.household(id: "household-neuf")
+        #expect(household.addressKey == "55fictive-h2a1b3")
+        #expect(household.geohash == MontrealNeighborhood.named("Saint-Michel")?.geohash)
+        let lookupId = try #require(model.address.lookupId)
+        #expect(try await fixture.users.householdAddress(lookupId: lookupId)?.householdId == "household-neuf")
+    }
+
+    @Test func savedNeighborhoodIsKeptUntilThePostalCodeSaysOtherwise() async {
+        var returning = Self.newUser()
+        returning.neighborhood = "Verdun"
+        let model = await Self.loadedModel(Self.fixture(user: returning))
+        await model.next()
+        #expect(model.neighborhood?.name == "Verdun")
+        #expect(!model.canContinue)              // l'adresse n'est jamais gardée telle quelle : on la redemande
+        Self.fillAddress(model, postalCode: "H9X 1A1")   // hors secteur : le quartier enregistré reste
+        #expect(model.neighborhood?.name == "Verdun")
+        #expect(model.canContinue)
+    }
+
     @Test func emptyHouseholdNameBlocks() async {
         let model = await Self.loadedModel(Self.fixture())
-        model.neighborhood = MontrealNeighborhood.named("Villeray")
         await model.next()
+        Self.fillAddress(model)
         await model.next()
+        #expect(model.step == .household)
         model.householdName = "   "
         #expect(model.nameError != nil)
         #expect(!model.canContinue)
@@ -130,7 +229,7 @@ struct PostSignupOnboardingTests {
         model.toggle(Product.Category.grains)
         model.toggle(DietaryTag.halal)
         await model.next()
-        model.postalCode = "H2A1B3"
+        Self.fillAddress(model, postalCode: "H2A1B3")
         await model.next()
         model.householdName = "  Famille Benali "
         model.householdSize = 4
@@ -141,7 +240,9 @@ struct PostSignupOnboardingTests {
         let household = try await fixture.users.household(id: "household-neuf")
         #expect(household.name == "Famille Benali")
         #expect(household.size == 4)
-        #expect(household.geohash == MontrealNeighborhood.named("Saint-Michel")?.geohash)
+        // Adresse vérifiée : sa position, à la précision du quartier.
+        #expect(household.geohash == Geohash.encode(FakeAddressValidator.defaultCoordinate, precision: 5))
+        #expect(household.addressKey == "55fictive-h2a1b3")
         #expect(household.userIds == ["uid-neuf"])
 
         let user = try await fixture.users.user(id: "uid-neuf")
@@ -158,8 +259,8 @@ struct PostSignupOnboardingTests {
     @Test func accountWithoutHouseholdGetsANewOne() async throws {
         let fixture = Self.fixture(user: Self.newUser(householdId: nil), households: [])
         let model = await Self.loadedModel(fixture, householdId: "")
-        model.neighborhood = MontrealNeighborhood.named("Verdun")
         await model.next()
+        Self.fillAddress(model, postalCode: "H4G 1A1")
         await model.next()
         await model.next()
         let id = try #require(model.savedHouseholdId)
@@ -184,10 +285,11 @@ struct PostSignupOnboardingTests {
     @Test func saveFailureStaysOnHouseholdStep() async {
         var repositories = AppRepositories.empty()
         repositories.users = FailingSaveUserRepository(user: Self.newUser(), household: Self.household)
-        let model = PostSignupOnboardingViewModel(repositories: repositories, userId: "uid-neuf", householdId: "household-neuf")
+        let model = PostSignupOnboardingViewModel(repositories: repositories, userId: "uid-neuf", householdId: "household-neuf",
+                                                  addressValidator: FakeAddressValidator())
         await model.load()
-        model.neighborhood = MontrealNeighborhood.named("Verdun")
         await model.next()
+        Self.fillAddress(model, postalCode: "H4G 1A1")
         await model.next()
         await model.next()
         #expect(model.step == .household)

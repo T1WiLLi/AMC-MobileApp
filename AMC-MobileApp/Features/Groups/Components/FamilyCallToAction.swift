@@ -51,7 +51,9 @@ struct FamilyCallToAction: View {
         .sheet(item: $presented) { destination in
             switch destination {
             case .findGroup:
-                GroupsScreen()
+                // FB-15 : la feuille se ferme avec « Fermer » ou en glissant vers le bas.
+                GroupsScreen(showsCloseButton: true)
+                    .presentationDragIndicator(.visible)
             case .browseOffers:
                 SearchScreen(prompt: "Riz, pommes, producteur…", linksToOffers: true)
             }

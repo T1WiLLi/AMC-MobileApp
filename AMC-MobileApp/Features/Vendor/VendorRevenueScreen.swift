@@ -66,7 +66,7 @@ struct VendorRevenueContent: View {
             .guidedTourAnchor(.vendorRevenue, padding: 4)
             ProductStatsLink() // T-119 : statistiques de ventes par produit
 
-            SectionTitle("Commandes fermées", systemImage: "checkmark.seal.fill", tint: .economie)
+            SectionTitle("Commandes fermées", systemImage: "checkmark.seal.fill", tint: .economie, info: .closedOrders)
             ClosedOrdersSettlementCard(state: settlement, retry: retrySettlement)
 
             SectionTitle("Par lot", systemImage: "chart.bar.xaxis", tint: .grenier)
@@ -74,11 +74,11 @@ struct VendorRevenueContent: View {
                 .grenierCard()
 
             if !revenue.neighborhoods.isEmpty {
-                SectionTitle("Par quartier", systemImage: GrenierSymbol.map, tint: .solidarite)
+                SectionTitle("Par quartier", systemImage: GrenierSymbol.map, tint: .solidarite, info: .vendorDemand)
                 NeighborhoodList(neighborhoods: revenue.neighborhoods)
             }
 
-            SectionTitle("Prochaines livraisons", systemImage: "truck.box.fill", tint: .economie)
+            SectionTitle("Prochaines livraisons", systemImage: "truck.box.fill", tint: .economie, info: .deliveries)
             DeliveryList(deliveries: revenue.deliveries)
         }
         .padding(.horizontal, 16)
@@ -90,25 +90,31 @@ private struct SectionTitle: View {
     let title: LocalizedStringKey
     let systemImage: String
     let tint: Color
+    /// Bouton « i » qui explique la section (T-209).
+    let info: InfoTopic?
 
-    init(_ title: LocalizedStringKey, systemImage: String, tint: Color) {
+    init(_ title: LocalizedStringKey, systemImage: String, tint: Color, info: InfoTopic? = nil) {
         self.title = title
         self.systemImage = systemImage
         self.tint = tint
+        self.info = info
     }
 
     var body: some View {
-        Label {
-            Text(title)
-        } icon: {
-            Image(systemName: systemImage)
-                .symbolRenderingMode(.hierarchical)
-                .foregroundStyle(tint)
+        HStack(spacing: 2) {
+            Label {
+                Text(title)
+            } icon: {
+                Image(systemName: systemImage)
+                    .symbolRenderingMode(.hierarchical)
+                    .foregroundStyle(tint)
+            }
+            .font(.title2.bold())
+            .foregroundStyle(.texte)
+            .accessibilityAddTraits(.isHeader)
+            if let info { InfoButton(topic: info) }
         }
-        .font(.title2.bold())
-        .foregroundStyle(.texte)
         .padding(.top, 12)
-        .accessibilityAddTraits(.isHeader)
     }
 }
 

@@ -139,7 +139,7 @@ private struct OfferDetailContent: View {
             empty: .init(
                 title: "Lot introuvable",
                 systemImage: "shippingbox.and.arrow.backward",
-                message: "Ce lot n'est plus disponible. D'autres lots t'attendent dans l'onglet Lots."
+                message: "Ce lot est fermé ou a été retiré par le producteur. D'autres lots t'attendent sur l'Accueil : chaque semaine, de nouveaux arrivent près de chez toi."
             ),
             retry: { await viewModel.load() }
         ) { content in
@@ -348,18 +348,22 @@ private struct OfferDetailContent: View {
     }
 
     /// Titre de section avec son symbole (jamais de titre en texte seul).
-    private func sectionHeader(_ title: String, systemImage: String, tint: Color = .grenier) -> some View {
-        Label {
-            Text(title)
-                .font(.title3.bold())
-                .foregroundStyle(.texte)
-        } icon: {
-            Image(systemName: systemImage)
-                .font(.title3)
-                .symbolRenderingMode(.hierarchical)
-                .foregroundStyle(tint)
+    /// `info` ajoute le bouton « i » qui explique le concept (FB-08).
+    private func sectionHeader(_ title: String, systemImage: String, tint: Color = .grenier, info: InfoTopic? = nil) -> some View {
+        HStack(spacing: 2) {
+            Label {
+                Text(title)
+                    .font(.title3.bold())
+                    .foregroundStyle(.texte)
+            } icon: {
+                Image(systemName: systemImage)
+                    .font(.title3)
+                    .symbolRenderingMode(.hierarchical)
+                    .foregroundStyle(tint)
+            }
+            .accessibilityAddTraits(.isHeader)
+            if let info { InfoButton(topic: info) }
         }
-        .accessibilityAddTraits(.isHeader)
     }
 
     // MARK: Prix
@@ -526,7 +530,7 @@ private struct OfferDetailContent: View {
         let pricing = content.pricing
         let households = content.groupOrder?.committedHouseholds ?? 0
         return VStack(alignment: .leading, spacing: 10) {
-            sectionHeader(String(localized: "Ton groupe"), systemImage: OfferDetailSymbol.groupSection)
+            sectionHeader(String(localized: "Ton groupe"), systemImage: OfferDetailSymbol.groupSection, info: .tiers)
             VStack(alignment: .leading, spacing: 14) {
                 ViewThatFits(in: .horizontal) {
                     HStack(alignment: .firstTextBaseline) {
@@ -624,7 +628,7 @@ private struct OfferDetailContent: View {
     @ViewBuilder
     private func shareSection(_ content: OfferDetailViewModel.Content) -> some View {
         VStack(alignment: .leading, spacing: 14) {
-            sectionHeader(String(localized: "Ta part"), systemImage: OfferDetailSymbol.shareSection)
+            sectionHeader(String(localized: "Ta part"), systemImage: OfferDetailSymbol.shareSection, info: .share)
 
             if content.groupOrder != nil && !content.isOpen {
                 OfferSymbolScene(
@@ -645,6 +649,9 @@ private struct OfferDetailContent: View {
                 )
             } else {
                 sharePicker(content)
+
+                // T-181 : panier suspendu en un geste, enregistré avec la part.
+                SuspendedBasketChips(amountCents: $viewModel.suspendedCents, choices: OfferDetailViewModel.suspendedChoices)
 
                 if viewModel.selectedSavingsCents > 0 {
                     Label {
@@ -679,7 +686,7 @@ private struct OfferDetailContent: View {
                     badge: "checkmark.circle.fill",
                     tint: .economie,
                     title: String(localized: "Part réservée !"),
-                    message: String(localized: "Tu as réservé \(Self.quantityLabel(content.myShareQuantity, shareUnit: content.offer.shareUnit)). Tu paies à la cueillette."),
+                    message: reservedMessage(content),
                     trigger: content.myShareQuantity
                 )
                 .grenierTransition(.cardAppear)
@@ -726,17 +733,19 @@ private struct OfferDetailContent: View {
         let quantity = Self.quantityLabel(viewModel.selectedQuantity, shareUnit: content.offer.shareUnit)
         return layout {
             VStack(alignment: .leading, spacing: 2) {
-                Text(Money.format(viewModel.selectedTotalCents))
+                Text(Money.format(viewModel.selectedTotalWithBasketCents))
                     .priceStyle(.title2.bold())
                     .foregroundStyle(.texte)
-                    .contentTransition(.numericText(value: Double(viewModel.selectedTotalCents)))
-                Label("\(quantity) · payé à la cueillette", systemImage: OfferDetailSymbol.payment)
+                    .contentTransition(.numericText(value: Double(viewModel.selectedTotalWithBasketCents)))
+                Label(viewModel.suspendedCents > 0
+                      ? String(localized: "\(quantity) + panier suspendu \(Money.formatRounded(viewModel.suspendedCents))")
+                      : String(localized: "\(quantity) · payé à la cueillette"), systemImage: OfferDetailSymbol.payment)
                     .font(.footnote)
                     .symbolRenderingMode(.hierarchical)
                     .foregroundStyle(.texteSecondaire)
             }
             .accessibilityElement(children: .combine)
-            .accessibilityLabel("Total \(Money.format(viewModel.selectedTotalCents)) pour \(quantity), payé à la cueillette")
+            .accessibilityLabel("Total \(Money.format(viewModel.selectedTotalWithBasketCents)) pour \(quantity)\(viewModel.suspendedCents > 0 ? ", dont \(Money.formatRounded(viewModel.suspendedCents)) de panier suspendu" : ""), payé à la cueillette")
 
             if !dynamicTypeSize.isAccessibilitySize { Spacer(minLength: 0) }
 
@@ -749,9 +758,10 @@ private struct OfferDetailContent: View {
                     } else {
                         Label {
                             // La quantité est déjà dans le résumé à gauche : le bouton reste sur une ligne.
+                            // Aux tailles d'accessibilité (mode aîné), il passe sur plusieurs lignes plutôt que déborder.
                             Text(reserveTitle(content))
-                                .lineLimit(1)
-                                .fixedSize()
+                                .lineLimit(dynamicTypeSize.isAccessibilitySize ? nil : 1)
+                                .fixedSize(horizontal: !dynamicTypeSize.isAccessibilitySize, vertical: true)
                         } icon: {
                             Image(systemName: OfferDetailSymbol.reserve(
                                 myShare: content.myShareQuantity,
@@ -779,17 +789,26 @@ private struct OfferDetailContent: View {
         .grenierAnimation(.smooth, value: viewModel.selectedQuantity)
     }
 
+    /// Confirmation sous « Part réservée ! » : mentionne le panier suspendu enregistré avec la part.
+    private func reservedMessage(_ content: OfferDetailViewModel.Content) -> String {
+        let share = Self.quantityLabel(content.myShareQuantity, shareUnit: content.offer.shareUnit)
+        if content.mySuspendedCents > 0 {
+            return String(localized: "Tu as réservé \(share) et offert un panier suspendu de \(Money.formatRounded(content.mySuspendedCents)). Merci ! Tu paies à la cueillette.")
+        }
+        return String(localized: "Tu as réservé \(share). Tu paies à la cueillette.")
+    }
+
     /// Libellé court du bouton : la quantité choisie est affichée dans le résumé à côté.
     private func reserveTitle(_ content: OfferDetailViewModel.Content) -> String {
         if content.myShareQuantity == 0 { return String(localized: "Réserver") }
-        if content.myShareQuantity == viewModel.selectedQuantity { return String(localized: "Part réservée") }
+        if content.myShareQuantity == viewModel.selectedQuantity, content.mySuspendedCents == viewModel.suspendedCents { return String(localized: "Part réservée") }
         return String(localized: "Modifier ma part")
     }
 
     /// VoiceOver garde la quantité dans le libellé du bouton.
     private func reserveAccessibilityTitle(_ content: OfferDetailViewModel.Content, quantity: String) -> String {
         if content.myShareQuantity == 0 { return String(localized: "Réserver \(quantity)") }
-        if content.myShareQuantity == viewModel.selectedQuantity { return String(localized: "Part réservée") }
+        if content.myShareQuantity == viewModel.selectedQuantity, content.mySuspendedCents == viewModel.suspendedCents { return String(localized: "Part réservée") }
         return String(localized: "Passer à \(quantity)")
     }
 

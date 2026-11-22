@@ -35,7 +35,7 @@ struct InterestedGroupsScreen: View {
             ContentUnavailableView(
                 "Aucun groupe pour l'instant",
                 systemImage: "person.3.sequence",
-                description: Text("Quand des familles de tes zones voudront ce que tu as, leurs groupes apparaîtront ici.")
+                description: Text("Ici apparaissent les groupes qui veulent ce que tu produis. Ajoute tes disponibilités : quand des familles de tes zones en voudront, leurs groupes s'afficheront.")
             )
         case .failed, .loaded:
             StateView(state: model.state, retry: { await model.load() }) { interests in

@@ -74,6 +74,8 @@ struct ProfileScreen: View {
                             RowIcon(systemImage: "slider.horizontal.3", tint: .economie)
                         }
                     }
+                    // RQ-019 : le mode aîné à portée de main, sans fouiller dans Préférences.
+                    SeniorModeToggleRow()
                 } header: {
                     ProfileSectionHeader(String(localized: "Ma famille"), systemImage: "figure.2.and.child.holdinghands")
                 }
@@ -157,6 +159,25 @@ struct ProfileScreen: View {
                 }
 
                 Section {
+                    // FB-19 : rejoue la visite de Noisette sans redémarrer (voir `GuidedTour`).
+                    if portal == .family && GuidedTour.shared.isEnabled {
+                        Button {
+                            dismiss()
+                            // La carte d'accueil se présente une fois la feuille du Profil fermée.
+                            Task {
+                                try? await Task.sleep(for: .milliseconds(450))
+                                GuidedTour.shared.replay()
+                            }
+                        } label: {
+                            Label {
+                                Text("Revoir la visite guidée")
+                                    .foregroundStyle(Color.texte)
+                            } icon: {
+                                RowIcon(systemImage: "figure.wave", tint: .grenier)
+                            }
+                        }
+                        .accessibilityHint("\(MascotView.name) te remontre l'app, en commençant par l'Accueil")
+                    }
                     // Geste caché (RQ-114) : 5 taps ou appui long ouvrent les outils de démo.
                     AppVersionLabel()
                         .demoToolsTrigger()

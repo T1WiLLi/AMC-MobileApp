@@ -13,6 +13,8 @@ struct FamilyHomeScreen: View {
     @State private var loadedIdentity: String?
     @AppStorage(HomeSection.storageKey) private var rawLayout = ""
     @State private var isEditingLayout = false
+    /// T-181 : en mode aîné, l'Accueil est fixe et réduit à l'essentiel (pas d'édition des sections).
+    @Environment(\.isSeniorMode) private var isSeniorMode
 
     var body: some View {
         NavigationStack {
@@ -27,7 +29,7 @@ struct FamilyHomeScreen: View {
                     StateView(
                         state: viewModel.state,
                         empty: .init(title: "Rien pour l'instant", systemImage: "basket",
-                                     message: "Aucune commande ni aucun lot dans ton quartier. Reviens un peu plus tard."),
+                                     message: "L'Accueil réunit les commandes de ton groupe et les lots près de chez toi. Les producteurs en ajoutent chaque semaine : actualise pour voir les nouveautés."),
                         retry: { await viewModel.load() }
                     ) { content in
                         FamilyHomeContent(
@@ -46,7 +48,7 @@ struct FamilyHomeScreen: View {
             .profileToolbar()
             .toolbar {
                 // B-037 : sections réorganisables (ordre, masquage, Réinitialiser).
-                if viewModel?.state.value != nil {
+                if viewModel?.state.value != nil, !isSeniorMode {
                     ToolbarItem(placement: .topBarLeading) {
                         Button("Modifier l'accueil", systemImage: "square.3.layers.3d.down.right") {
                             isEditingLayout = true
@@ -69,6 +71,8 @@ struct FamilyHomeScreen: View {
         }
         // Bascule de portail : le voile attend que l'accueil ait son contenu.
         .portalContentReady(.family, when: isContentReady)
+        // FB-19 : « Salut, moi c'est Noisette », avant les bulles de la visite guidée.
+        .guidedTourWelcome(isReady: viewModel?.state.value != nil)
         // Retour au premier plan ou du réseau : `load()` garde le contenu affiché pendant le rechargement.
         .refreshOnForeground { await viewModel?.load() }
         .task(id: identity) {
@@ -154,6 +158,7 @@ private struct FamilyHomeContent: View {
 
     @AppStorage(HomeSection.storageKey) private var rawLayout = ""
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Environment(\.isSeniorMode) private var isSeniorMode
     @Environment(\.appContext) private var context
     @Environment(SessionContextStore.self) private var contextStore: SessionContextStore?
     /// Groupes du ménage : à partir de deux, l'Accueil propose de changer de groupe actif.
@@ -164,8 +169,10 @@ private struct FamilyHomeContent: View {
     @State private var showsAllOffers = false
 
     private var sections: [HomeSection] {
-        SectionLayout(raw: rawLayout, defaults: HomeSection.allCases.map(\.rawValue))
+        let chosen = SectionLayout(raw: rawLayout, defaults: HomeSection.allCases.map(\.rawValue))
             .visible.compactMap(HomeSection.init(rawValue:))
+        // T-181 : mode aîné = ma commande et mon groupe seulement.
+        return SeniorMode.visibleHomeSections(chosen, isSenior: isSeniorMode)
     }
 
     var body: some View {
@@ -189,6 +196,7 @@ private struct FamilyHomeContent: View {
             .animation(reduceMotion ? nil : .smooth, value: sections)
             .padding(.horizontal, 16)
             .padding(.bottom, 24)
+            .guidedTourTip(.home)
         }
         // Pendant le réarrangement, l'Accueil n'est qu'un aperçu : pas de toucher par erreur sur une carte inclinée.
         .allowsHitTesting(!isArrangingSections)
@@ -236,8 +244,10 @@ private struct FamilyHomeContent: View {
         return VStack(alignment: .leading, spacing: 24) {
             VStack(alignment: .leading, spacing: 12) {
                 GrenierSectionHeader(
-                    mine.count > 1 ? String(localized: "Tes commandes en cours") : String(localized: "Ta commande en cours"),
-                    systemImage: "cart.fill"
+                    isSeniorMode ? (SeniorMode.plainTitle(for: .orders) ?? "")
+                        : mine.count > 1 ? String(localized: "Tes commandes en cours") : String(localized: "Ta commande en cours"),
+                    systemImage: "cart.fill",
+                    info: .tiers
                 )
                 if mine.isEmpty {
                     NoOrderCard(hasOffersBelow: !content.newOffers.isEmpty)
@@ -249,7 +259,7 @@ private struct FamilyHomeContent: View {
                 }
             }
 
-            if !others.isEmpty {
+            if !others.isEmpty, !isSeniorMode {
                 VStack(alignment: .leading, spacing: 12) {
                     GrenierSectionHeader(String(localized: "Commandes ouvertes de \(content.group.name)"), systemImage: GrenierSymbol.groups)
                     ForEach(Array(others.enumerated()), id: \.element.id) { index, summary in
@@ -270,7 +280,7 @@ private struct FamilyHomeContent: View {
         let filtered = HomeOfferFilter.filter(content.newOffers, category: category)
         let visibleCount = HomeOfferFilter.visibleCount(total: filtered.count, isExpanded: showsAllOffers)
         return VStack(alignment: .leading, spacing: 12) {
-            GrenierSectionHeader(String(localized: "Nouveaux lots près de toi"), systemImage: "sparkles")
+            GrenierSectionHeader(String(localized: "Nouveaux lots près de toi"), systemImage: "sparkles", info: .offers)
             if content.newOffers.isEmpty {
                 NoNewOfferCard()
             } else {
@@ -518,7 +528,7 @@ private struct StatChip: View {
     }
 }
 
-/// Une commande en cours : `OfferCard` + incitation au prochain palier, poussée vers la fiche du lot.
+/// Une commande en cours : `OfferCard` (qui porte déjà l'incitation au prochain palier) + ta part, poussée vers la fiche du lot.
 private struct OrderLink: View {
     let summary: OfferSummary
 
@@ -544,26 +554,10 @@ private struct OrderLink: View {
                     .symbolRenderingMode(.hierarchical)
                     .padding(.horizontal, 16)
                 }
-                if let nudge {
-                    Label(nudge, systemImage: GrenierSymbol.savings)
-                        .font(.subheadline.weight(.semibold))
-                        .foregroundStyle(Color.grenier)
-                        .symbolRenderingMode(.hierarchical)
-                        .padding(.horizontal, 16)
-                }
             }
         }
         .pressable()
         .accessibilityHint("Ouvre la fiche du lot.")
-    }
-
-    /// « Encore 2 parts pour débloquer −19 % » (les paliers comptent des parts).
-    private var nudge: String? {
-        let pricing = summary.pricing
-        guard let missing = pricing.sharesToNextTier, let percent = pricing.nextTierDiscountPercent, percent > 0 else {
-            return nil
-        }
-        return String(localized: "Encore \(missing) \(FrenchPlural.word(missing, "part", plural: "parts")) pour débloquer −\(percent) %")
     }
 }
 
@@ -573,7 +567,7 @@ private struct NewOfferRow: View {
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
 
     var body: some View {
-        let layout = dynamicTypeSize.isAccessibilitySize
+        let layout = isStacked
             ? AnyLayout(VStackLayout(alignment: .leading, spacing: 8))
             : AnyLayout(HStackLayout(alignment: .center, spacing: 12))
         layout {
@@ -591,8 +585,8 @@ private struct NewOfferRow: View {
                     .foregroundStyle(.texteSecondaire)
                     .symbolRenderingMode(.hierarchical)
             }
-            if !dynamicTypeSize.isAccessibilitySize { Spacer(minLength: 8) }
-            VStack(alignment: dynamicTypeSize.isAccessibilitySize ? .leading : .trailing, spacing: 4) {
+            if !isStacked { Spacer(minLength: 8) }
+            VStack(alignment: isStacked ? .leading : .trailing, spacing: 4) {
                 Text(Money.format(summary.pricing.currentPriceCents))
                     .priceStyle(.headline)
                     .foregroundStyle(.texte)
@@ -600,7 +594,7 @@ private struct NewOfferRow: View {
                     SavingsBadge(kind: .percent(summary.pricing.savingsPercent), compact: true)
                 }
             }
-            if !dynamicTypeSize.isAccessibilitySize {
+            if !isStacked {
                 Image(systemName: "chevron.right")
                     .font(.footnote.weight(.semibold))
                     .foregroundStyle(Color.texteSecondaire)
@@ -613,6 +607,9 @@ private struct NewOfferRow: View {
         .accessibilityElement(children: .combine)
         .accessibilityHint("Ouvre la fiche du lot.")
     }
+
+    /// Dès xxxLarge, le prix passe sous le texte : côte à côte, le nom et le vendeur se coupaient mot par mot.
+    private var isStacked: Bool { dynamicTypeSize >= .xxxLarge }
 }
 
 /// Carte Economie : « 48 $ économisés » (maquette F1).

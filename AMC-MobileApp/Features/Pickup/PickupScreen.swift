@@ -20,7 +20,7 @@ struct PickupScreen: View {
                     if case .empty = viewModel.state {
                         PickupIllustratedEmptyView(
                             title: "Aucune cueillette prévue",
-                            message: "Réserve ta part d'un lot : ton code QR et ton créneau apparaîtront ici.",
+                            message: "Ici, tu trouveras ton code QR, ton point et ton créneau pour récupérer tes parts. Réserve ta part d'un lot pour commencer.",
                             main: GrenierSymbol.qrCode,
                             satellites: ["basket.fill", "calendar.badge.clock", "mappin.and.ellipse"],
                             action: .browseOffers
@@ -45,6 +45,7 @@ struct PickupScreen: View {
                 }
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .guidedTourTip(.pickup)
             .grenierBackground()
             .navigationTitle("Cueillette")
             .profileToolbar()
@@ -266,7 +267,7 @@ private struct PickupCodeCard: View {
 
     var body: some View {
         VStack(spacing: 14) {
-            PickupSectionHeader(title: "Ton code de cueillette", systemImage: "qrcode.viewfinder")
+            PickupSectionHeader(title: "Ton code de cueillette", systemImage: "qrcode.viewfinder", info: .pickup)
                 .frame(maxWidth: .infinity, alignment: .leading)
             PickupQRImage(payload: content.qrPayload)
                 .frame(width: min(qrSize, 300), height: min(qrSize, 300))
@@ -530,16 +531,21 @@ private struct PickupSectionHeader: View {
     let title: LocalizedStringKey
     let systemImage: String
     var tint: Color = .grenier
+    /// Bouton « i » à côté du titre (FB-08).
+    var info: InfoTopic?
 
     var body: some View {
-        Label {
-            Text(title).font(.headline).foregroundStyle(.texte)
-        } icon: {
-            Image(systemName: systemImage)
-                .symbolRenderingMode(.hierarchical)
-                .foregroundStyle(tint)
+        HStack(spacing: 2) {
+            Label {
+                Text(title).font(.headline).foregroundStyle(.texte)
+            } icon: {
+                Image(systemName: systemImage)
+                    .symbolRenderingMode(.hierarchical)
+                    .foregroundStyle(tint)
+            }
+            .accessibilityAddTraits(.isHeader)
+            if let info { InfoButton(topic: info) }
         }
-        .accessibilityAddTraits(.isHeader)
     }
 }
 

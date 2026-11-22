@@ -59,7 +59,7 @@ private struct PublicVendorContent: View {
                     .grenierBackground()
             case .empty:
                 ContentUnavailableView("Producteur introuvable", systemImage: "storefront",
-                                       description: Text("Ce producteur n'est plus sur LeGrenier."))
+                                       description: Text("Ce producteur a quitté LeGrenier ou son lien n'est plus valide. D'autres producteurs du quartier t'attendent sur l'Accueil."))
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
                     .grenierBackground()
             case .loaded(let profile):

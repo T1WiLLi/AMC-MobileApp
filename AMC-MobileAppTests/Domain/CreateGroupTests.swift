@@ -14,8 +14,16 @@ struct CreateGroupTests {
         GroupRules.Draft(name: name, neighborhood: "Villeray", centerGeohash: "f25dvk7", radiusMeters: 1_200, isPublic: isPublic)
     }
 
+    /// T-180 : Amina est aussi membre de Parc-Extension (parcours de démo) ; ces tests partent d'Amina dans
+    /// 2 groupes (limite de 3 pas atteinte), on retire donc son entrée de Parc-Extension.
+    private static var data: FakeData {
+        var data = FakeData.montreal
+        data.members[ID.parcExtension] = data.members[ID.parcExtension]?.filter { $0.householdId != ID.aminaHousehold }
+        return data
+    }
+
     private static func repository() -> FakeGroupRepository {
-        let data = FakeData.montreal
+        let data = Self.data
         return FakeGroupRepository(groups: data.groups, members: data.members, invitations: data.invitations)
     }
 
@@ -82,7 +90,7 @@ struct CreateGroupTests {
     // MARK: ViewModel
 
     private static func viewModel(householdId: String = ID.aminaHousehold) -> CreateGroupViewModel {
-        CreateGroupViewModel(repositories: .fake(behavior: .instant), userId: ID.amina, householdId: householdId)
+        CreateGroupViewModel(repositories: .fake(behavior: .instant, data: Self.data), userId: ID.amina, householdId: householdId)
     }
 
     @Test func formIsPrefilledFromTheHousehold() async {
@@ -120,7 +128,7 @@ struct CreateGroupTests {
     }
 
     @Test func theLimitBlocksTheForm() async {
-        let repositories = AppRepositories.fake(behavior: .instant)
+        let repositories = AppRepositories.fake(behavior: .instant, data: Self.data)
         _ = try? await repositories.groups.createGroup(Self.draft(), byUserId: ID.amina, householdId: ID.aminaHousehold)
         let model = CreateGroupViewModel(repositories: repositories, userId: ID.amina, householdId: ID.aminaHousehold)
         await model.load()

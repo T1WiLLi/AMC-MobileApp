@@ -1,6 +1,7 @@
 // HouseholdProfileViewModel.swift
 // RQ-015 (ménage : nom, taille, quartier) et RQ-020 (statut subventionné par code d'organisme, privé).
 // T-159 : membres du ménage, demandes pour le rejoindre (le propriétaire accepte ou refuse), retrait d'un membre.
+// FB-22 : le propriétaire cède son rôle avant de partir ; membres, propriétaire et demandes se mettent à jour en direct.
 
 import Foundation
 import Observation
@@ -62,6 +63,10 @@ final class HouseholdProfileViewModel {
     private(set) var acceptCount = 0
     /// La personne a quitté le ménage : la session doit être rechargée.
     private(set) var didLeave = false
+    /// La personne a été retirée du ménage par le propriétaire (vu en direct) : la session doit être rechargée.
+    private(set) var wasRemoved = false
+    /// Incrémenté quand le rôle de propriétaire change de main (haptique, animation de la couronne).
+    private(set) var ownershipChangeCount = 0
 
     init(repositories: AppRepositories, privateStore: any HouseholdPrivateStore,
          userId: String, householdId: String, issuedCodes: Set<String> = []) {
@@ -156,12 +161,77 @@ final class HouseholdProfileViewModel {
         }
     }
 
+    /// Le propriétaire cède son rôle à un autre membre (FB-22). Il pourra ensuite quitter le ménage.
+    func transferOwnership(to member: Member) async {
+        guard isOwner, !member.isMe else { return }
+        await membershipChange(member.id) {
+            let household = try await self.repositories.users.transferOwnership(
+                ofHousehold: self.householdId, to: member.id, byUserId: self.userId
+            )
+            self.state = .loaded(household)
+            self.joinRequests = []
+            self.ownershipChangeCount += 1
+        }
+    }
+
+    /// Le propriétaire ne peut pas partir tant qu'il reste d'autres membres : il doit d'abord céder son rôle.
+    var mustTransferBeforeLeaving: Bool { isOwner && members.count > 1 }
+
     /// Un membre (pas le propriétaire) quitte le ménage ; il retrouve son propre ménage au rechargement de la session.
     func leave() async {
-        guard !isOwner else { return }
+        guard !isOwner else {
+            if mustTransferBeforeLeaving {
+                membershipError = .invalidInput(String(localized: "Nomme d'abord un autre membre propriétaire, puis quitte le ménage."))
+            }
+            return
+        }
         await membershipChange(userId) {
             _ = try await self.repositories.users.removeMember(self.userId, fromHousehold: self.householdId, byUserId: self.userId)
             self.didLeave = true
+        }
+    }
+
+    // MARK: Temps réel (FB-22)
+
+    /// Suit le ménage et, pour le propriétaire, ses demandes en attente, jusqu'à l'annulation de la tâche
+    /// (`.task` de l'écran). Les champs en cours d'édition (nom, taille) ne sont jamais écrasés.
+    func observe() async {
+        let households = await repositories.users.observeHousehold(id: householdId)
+        var requestsTask: Task<Void, Never>?
+        defer { requestsTask?.cancel() }
+        do {
+            for try await household in households {
+                guard household.userIds.contains(userId) else {
+                    // Retiré par le propriétaire pendant qu'on regardait l'écran.
+                    wasRemoved = true
+                    return
+                }
+                let previousOwner = state.value.flatMap(HouseholdMembership.ownerId(of:))
+                state = .loaded(household)
+                let owner = HouseholdMembership.ownerId(of: household)
+                if let previousOwner, previousOwner != owner { ownershipChangeCount += 1 }
+                if isOwner {
+                    if requestsTask == nil { requestsTask = Task { await self.observeJoinRequests() } }
+                } else {
+                    requestsTask?.cancel()
+                    requestsTask = nil
+                    joinRequests = []
+                }
+            }
+        } catch AppError.permissionDenied {
+            // Plus membre : les règles refusent la lecture du ménage.
+            wasRemoved = true
+        } catch {
+            // Réseau, etc. : on garde le dernier état connu ; `.refreshable` relit.
+        }
+    }
+
+    private func observeJoinRequests() async {
+        let stream = await repositories.users.observeJoinRequests(ofHousehold: householdId, byUserId: userId)
+        do {
+            for try await requests in stream { joinRequests = requests }
+        } catch {
+            // Propriété cédée (accès refusé) ou réseau : la liste ne bouge plus, l'écran reste utilisable.
         }
     }
 

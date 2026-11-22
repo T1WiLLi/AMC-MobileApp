@@ -34,7 +34,7 @@ struct OrganizationImpactScreen: View {
                         OrganizationSectionTitle("Notre histoire", systemImage: "clock.arrow.circlepath")
                         if model.timeline.isEmpty {
                             EmptyStateView(title: "Pas encore d'histoire", systemImage: "leaf",
-                                           message: "Finance un premier panier pour commencer.")
+                                           message: "Chaque panier financé par ton organisme laisse une trace ici. Finance un premier panier pour commencer l'histoire.")
                         }
                         ForEach(Array(model.timeline.enumerated()), id: \.element.id) { index, event in
                             TimelineRow(event: event)

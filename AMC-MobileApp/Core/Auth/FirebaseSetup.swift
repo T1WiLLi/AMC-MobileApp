@@ -111,7 +111,8 @@ enum FirebaseSetup {
         #if canImport(FirebaseAuth) && canImport(GoogleSignIn)
         if mode.usesFirebase { return FirebaseAuthService() }
         #endif
-        return FakeAuthService()
+        // Démo hors ligne : aucun courriel ne part vraiment, le lien se « touche » tout seul.
+        return FakeAuthService(autoVerifyEmailAfter: .seconds(2))
     }
 }
 

@@ -67,9 +67,11 @@ struct GroupsScreen: View {
                     GroupsLoadingSkeleton()
                 }
             }
+            .guidedTourTip(.groups)
             .grenierBackground()
             .navigationTitle("Groupes")
             .profileToolbar()
+            .infoToolbarButton(.group)
             .toolbar {
                 if showsCloseButton {
                     ToolbarItem(placement: .topBarLeading) {
@@ -145,12 +147,22 @@ struct GroupsScreen: View {
             guard code != nil, let code = inviteLinks?.consume() else { return }
             joinCode = JoinCodeRequest(code: code)
         }
-        .task {
-            guard viewModel == nil else { return }
-            let model = GroupsViewModel(repositories: context.repositories, householdId: context.householdId)
+        .task { await startViewModel() }
+    }
+
+    /// Crée le modèle au premier passage, puis suit les groupes du ménage (FB-22) tant que l'onglet vit :
+    /// quand un autre membre rejoint ou quitte un groupe, la liste et l'Accueil suivent.
+    private func startViewModel() async {
+        let model: GroupsViewModel
+        if let existing = viewModel {
+            model = existing
+        } else {
+            model = GroupsViewModel(repositories: context.repositories, householdId: context.householdId)
             viewModel = model
             await model.load()
         }
+        let store = contextStore
+        await model.observeHouseholdGroups { await store?.reload() }
     }
 }
 

@@ -2,7 +2,8 @@ import SwiftUI
 
 /// Écran de connexion et d'inscription (T-124, revu en FB-01) : une seule colonne sur le fond crème,
 /// dans l'ordre de lecture — marque LeGrenier, titre, champs, action principale, « ou », Google —
-/// et le lien qui bascule connexion ↔ inscription posé en bas, au-dessus de la zone sûre.
+/// et le lien qui bascule connexion ↔ inscription juste sous Google, dans le défilement : il ne chevauche
+/// jamais les boutons ni les champs, même sur petit écran, clavier ouvert ou en Dynamic Type AX.
 struct SignInScreen: View {
     let session: SessionViewModel
     @State private var mode: EmailAuthForm.Mode = .signIn
@@ -28,7 +29,10 @@ struct SignInScreen: View {
 
                 OrSeparator(title: "ou")
 
-                googleButton
+                VStack(spacing: 8) {
+                    googleButton
+                    modeSwitch
+                }
             }
             .padding(.horizontal, 24)
             .padding(.top, 16)
@@ -38,12 +42,6 @@ struct SignInScreen: View {
         }
         .scrollDismissesKeyboard(.interactively)
         .scrollBounceBehavior(.basedOnSize)
-        .safeAreaInset(edge: .bottom, spacing: 0) {
-            modeSwitch
-                .frame(maxWidth: .infinity)
-                .padding(.horizontal, 24)
-                .padding(.bottom, 4)
-        }
         .grenierBackground()
         .tint(.grenier)
         .animation(reduceMotion ? nil : .smooth, value: session.errorMessage)
@@ -95,20 +93,28 @@ struct SignInScreen: View {
         Button {
             mode = mode == .signIn ? .signUp : .signIn
         } label: {
-            HStack(spacing: 4) {
-                Text(mode == .signIn ? String(localized: "Nouveau ici ?") : String(localized: "Déjà membre ?"))
-                    .foregroundStyle(Color.texteSecondaire)
-                Text(mode == .signIn ? String(localized: "Créer un compte") : String(localized: "Se connecter"))
-                    .fontWeight(.bold)
-                    .foregroundStyle(Color.grenier)
+            // Sur une ligne si elle tient, sinon sur deux (petit écran, Dynamic Type AX) : jamais tronqué.
+            ViewThatFits(in: .horizontal) {
+                HStack(spacing: 4) { modeSwitchTexts }
+                VStack(spacing: 2) { modeSwitchTexts }
             }
             .font(.subheadline)
-            .frame(minHeight: 44)
+            .multilineTextAlignment(.center)
+            .frame(maxWidth: .infinity, minHeight: 44)
             .contentTransition(.opacity)
             .contentShape(.rect)
         }
         .buttonStyle(.plain)
         .sensoryFeedback(.selection, trigger: mode)
+    }
+
+    @ViewBuilder
+    private var modeSwitchTexts: some View {
+        Text(mode == .signIn ? String(localized: "Nouveau ici ?") : String(localized: "Déjà membre ?"))
+            .foregroundStyle(Color.texteSecondaire)
+        Text(mode == .signIn ? String(localized: "Créer un compte") : String(localized: "Se connecter"))
+            .fontWeight(.bold)
+            .foregroundStyle(Color.grenier)
     }
 }
 

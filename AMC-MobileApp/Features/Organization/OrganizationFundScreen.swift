@@ -41,8 +41,8 @@ struct OrganizationFundScreen: View {
                                 title: "Aucun groupe ici",
                                 systemImage: filter == .sponsored ? "hands.and.sparkles" : "checkmark.seal",
                                 message: filter == .sponsored
-                                    ? "Parraine un groupe dans l'onglet Parrainages."
-                                    : "Tous les groupes sont couverts pour l'instant."
+                                    ? "Les groupes que ton organisme parraine apparaissent ici. Parraine un premier groupe dans l'onglet Parrainages."
+                                    : "Ici apparaissent les groupes qui ont besoin d'aide. Tous sont couverts pour l'instant : merci !"
                             )
                         }
                         ForEach(Array(groups.enumerated()), id: \.element.id) { index, profile in

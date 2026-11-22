@@ -60,6 +60,37 @@ struct EmailSessionTests {
         #expect(step == .app)
     }
 
+    @Test func fakeDemoVerifiesAsSoonAsAsked() async {
+        let (session, _, _) = makeSession(FakeAuthService(latency: .zero, autoVerifyEmailAfter: .seconds(3600)))
+        await session.signUp(email: "amina@example.com", password: "secret12", displayName: "Amina")
+        #expect(session.pendingVerificationUser != nil)
+        let verified = await session.checkEmailVerification()
+        #expect(verified)
+        #expect(session.currentUser?.isEmailVerified == true)
+        #expect(session.verificationMessage == nil)
+    }
+
+    @Test func fakeDemoVerifiesByItselfAfterDelay() async throws {
+        let (session, _, _) = makeSession(FakeAuthService(latency: .zero, autoVerifyEmailAfter: .milliseconds(50)))
+        let observer = Task { await session.observeSession() }
+        defer { observer.cancel() }
+        await session.signUp(email: "amina@example.com", password: "secret12", displayName: "Amina")
+        #expect(session.pendingVerificationUser != nil)
+        for _ in 0..<100 where session.currentUser == nil {
+            try await Task.sleep(for: .milliseconds(20))
+        }
+        #expect(session.currentUser?.isEmailVerified == true)
+        #expect(session.pendingVerificationUser == nil)
+    }
+
+    @Test func fakeWithoutAutoVerifyStaysUnverified() async throws {
+        let (session, _, _) = makeSession()
+        await session.signUp(email: "amina@example.com", password: "secret12", displayName: "Amina")
+        try await Task.sleep(for: .milliseconds(100))
+        #expect(session.pendingVerificationUser != nil)
+        #expect(!(await session.checkEmailVerification()))
+    }
+
     @Test func silentCheckOnForegroundShowsNothing() async {
         let (session, _, _) = makeSession()
         await session.signUp(email: "amina@example.com", password: "secret12", displayName: "Amina")

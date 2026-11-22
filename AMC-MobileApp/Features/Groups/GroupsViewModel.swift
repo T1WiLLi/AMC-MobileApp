@@ -2,6 +2,7 @@
 // Onglet Groupes (T-019) : groupes de quartier publics, avec rejoindre / quitter.
 // B-056 : « Tes groupes » contient aussi tes groupes privés ; les autres sont les groupes publics,
 // du plus proche au plus loin du ménage. Un groupe privé n'est jamais listé : on y entre avec un code.
+// FB-22 : un membre du ménage qui rejoint ou quitte un groupe apparaît chez les autres en direct.
 
 import Foundation
 import Observation
@@ -28,6 +29,8 @@ final class GroupsViewModel {
     private(set) var pendingGroupIds: Set<String> = []
     /// Dernière erreur d'une action (rejoindre / quitter), à montrer en alerte ; remise à nil par la vue.
     var actionError: AppError?
+    /// FB-22 : incrémenté quand un autre membre du ménage rejoint ou quitte un groupe (la session doit suivre).
+    private(set) var householdMembershipChangeCount = 0
 
     private let repositories: AppRepositories
     private let householdId: String
@@ -84,6 +87,24 @@ final class GroupsViewModel {
                 }
             }
         return mine + others
+    }
+
+    /// FB-22 : suit les groupes du ménage jusqu'à l'annulation de la tâche (`.task` de l'écran). Quand un autre
+    /// membre du ménage rejoint ou quitte un groupe sur son téléphone, la liste est relue.
+    func observeHouseholdGroups(onChange: () async -> Void = {}) async {
+        let stream = await repositories.groups.observeGroupIds(ofHousehold: householdId)
+        do {
+            for try await ids in stream {
+                guard let items = state.value else { continue }
+                let shown = Set(items.filter(\.isMember).map(\.id))
+                guard ids != shown, pendingGroupIds.isEmpty else { continue }
+                await load()
+                householdMembershipChangeCount += 1
+                await onChange()
+            }
+        } catch {
+            // Réseau ou accès : la liste reste telle quelle ; `.refreshable` relit.
+        }
     }
 
     /// B-056 : après une entrée avec un code (feuille « Rejoindre avec un code »), le groupe passe dans « Tes groupes ».

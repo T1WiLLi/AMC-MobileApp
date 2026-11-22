@@ -219,7 +219,7 @@ final class ProductEditorViewModel {
         guard !name.isEmpty else { throw .invalidInput(String(localized: "Donne un nom au produit.")) }
         guard name.count <= 80 else { throw .invalidInput(String(localized: "Le nom du produit doit faire 80 caractères ou moins.")) }
         guard !unit.isEmpty else {
-            throw .invalidInput(String(localized: "Indique l'unité de vente (par exemple « sac de 10 kg » ou « douzaine »)."))
+            throw .invalidInput(String(localized: "Choisis l'unité de vente (kg, unité, douzaine…)."))
         }
         guard !origin.isEmpty else { throw .invalidInput(String(localized: "Indique la provenance du produit (par exemple « Mirabel, QC »).")) }
         guard !Self.trimmed(referencePriceText).isEmpty else {

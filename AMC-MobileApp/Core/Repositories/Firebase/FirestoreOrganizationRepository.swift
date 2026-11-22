@@ -90,7 +90,7 @@ nonisolated final class FirestoreOrganizationRepository: OrganizationRepository,
             guard groupSnapshot.exists else { throw AppError.notFound }
             let group = try FirestoreVendorRepository.decode(NeighborhoodGroup.self, groupSnapshot)
             let fundSnapshot = try transaction.getDocument(fundRef)
-            var fundDocument = fundSnapshot.exists
+            let fundDocument = fundSnapshot.exists
                 ? try fundSnapshot.data(as: SolidarityFundDocument.self)
                 : SolidarityFundDocument()
 
@@ -98,8 +98,13 @@ nonisolated final class FirestoreOrganizationRepository: OrganizationRepository,
                 request, to: Self.profile(group, fund: fundDocument),
                 organizationId: organizationId, donationId: donationRef.documentID, date: now
             )
-            fundDocument.entries = fund.entries
-            transaction.setData(try Firestore.Encoder().encode(fundDocument), forDocument: fundRef)
+            // T-194 : on AJOUTE la ligne (arrayUnion) au lieu de réécrire le fonds. Les règles n'acceptent qu'une
+            // ligne de plus à la fin, liée à ce don ; l'historique existant et les autres champs ne sont pas touchés.
+            guard let creditedEntry = fund.entries.last else { throw AppError.unknown("Don sans ligne de fonds.") }
+            transaction.setData(
+                ["entries": FieldValue.arrayUnion([try Firestore.Encoder().encode(creditedEntry)])],
+                forDocument: fundRef, merge: true
+            )
             transaction.setData(try Firestore.Encoder().encode(donation), forDocument: donationRef)
             return donation
         }
@@ -120,7 +125,12 @@ nonisolated final class FirestoreOrganizationRepository: OrganizationRepository,
                 )
             sponsorship.monthlyBasketGoal = monthlyBasketGoal
             let batch = db.batch()
-            batch.setData(try Firestore.Encoder().encode(sponsorship), forDocument: ref)
+            if existing.exists {
+                // Les règles ne laissent changer que l'objectif d'un parrainage existant.
+                batch.updateData(["monthlyBasketGoal": monthlyBasketGoal], forDocument: ref)
+            } else {
+                batch.setData(try Firestore.Encoder().encode(sponsorship), forDocument: ref)
+            }
             batch.setData(
                 ["sponsorOrganizationIds": FieldValue.arrayUnion([organizationId])],
                 forDocument: fundRef(groupId), merge: true

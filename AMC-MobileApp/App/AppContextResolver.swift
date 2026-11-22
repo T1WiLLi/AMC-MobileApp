@@ -12,7 +12,8 @@ import Foundation
 ///   il se pose à la fin de l'onboarding producteur (`createVendor`, T-158), ou par le seed.
 /// - `householdId` : celui du profil, ou vide si la personne n'a pas de ménage (vendeur seul) ;
 /// - `groupId` : le groupe préféré s'il fait encore partie des groupes du ménage, sinon le premier par nom, sinon nil ;
-/// - `vendorId` : celui du profil, ou vide.
+/// - `vendorId` : celui du profil, ou vide ;
+/// - `organizationId` (T-194) : celui du profil (posé par le seed), ou vide : sans lui, le portail Organisme reste fermé.
 nonisolated struct AppContextResolver: Sendable {
     var repositories: AppRepositories
 
@@ -127,6 +128,7 @@ nonisolated struct AppContextResolver: Sendable {
             groupId: groupId,
             vendorId: profile.vendorId ?? "",
             status: .resolved,
+            organizationId: profile.organizationId ?? "",
             needsOnboarding: profile.needsOnboarding
         )
     }

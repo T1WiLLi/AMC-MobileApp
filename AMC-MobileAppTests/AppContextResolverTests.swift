@@ -8,9 +8,11 @@ struct AppContextResolverTests {
     // MARK: Données (mêmes formes que le seed : users/{uid}.householdId, vendorId, adhésions)
 
     private static func user(_ id: String, household: String? = nil, vendor: String? = nil,
-                             roles: [AppUser.Role] = [.family]) -> AppUser {
-        AppUser(id: id, displayName: id, photoURL: nil, language: .french, roles: roles, neighborhood: "parc-extension",
-                dietaryPreferences: [], seniorMode: false, householdId: household, vendorId: vendor)
+                             roles: [AppUser.Role] = [.family], organization: String? = nil) -> AppUser {
+        var user = AppUser(id: id, displayName: id, photoURL: nil, language: .french, roles: roles, neighborhood: "parc-extension",
+                           dietaryPreferences: [], seniorMode: false, householdId: household, vendorId: vendor)
+        user.organizationId = organization
+        return user
     }
 
     private static func group(_ id: String, name: String) -> NeighborhoodGroup {
@@ -35,6 +37,7 @@ struct AppContextResolverTests {
             user("user-amina", household: "household-amina"),
             user("user-ferme-lafleur", vendor: "vendor-ferme-lafleur", roles: [.vendor]),
             user("user-jean", household: "household-jean", roles: [.host]),
+            user("user-banque", roles: [.organization], organization: "org-banque-cdn"),
         ])
         let groups = FakeGroupRepository(
             groups: [group("group-rosemont", name: "Rosemont en commun"), group("group-parc-extension", name: "Voisins de Parc-Ex")],
@@ -51,6 +54,28 @@ struct AppContextResolverTests {
 
     private static func authUser(_ id: String, name: String = "Nouvelle Voisine", email: String = "voisine@example.com") -> AuthUser {
         AuthUser(id: id, displayName: name, email: email, photoURL: nil)
+    }
+
+    // MARK: Organisme (T-194)
+
+    @Test func accountAttachedToAnOrganizationOpensThePortal() async throws {
+        let context = try await AppContextResolver(repositories: Self.fixture().repositories)
+            .resolve(user: Self.authUser("user-banque"))
+        #expect(context.organizationId == "org-banque-cdn")
+        #expect(context.hasOrganization)
+    }
+
+    @Test func accountWithoutOrganizationStaysOutOfThePortal() async throws {
+        let context = try await AppContextResolver(repositories: Self.fixture().repositories)
+            .resolve(user: Self.authUser("user-amina"))
+        #expect(context.organizationId.isEmpty)
+        #expect(!context.hasOrganization)
+    }
+
+    @Test func newAccountNeverGetsAnOrganization() async throws {
+        let context = try await AppContextResolver(repositories: Self.fixture().repositories)
+            .resolve(user: Self.authUser("user-neuf"))
+        #expect(!context.hasOrganization)
     }
 
     // MARK: Résolution

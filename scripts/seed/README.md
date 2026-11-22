@@ -48,3 +48,19 @@ npx --yes firebase-tools@15.37.0 emulators:exec --project demo-grenier-seed-test
 Le test `seedDemo.integration.ts` lance la commande deux fois sur un projet jetable, avec puis sans `GRENIER_DEMO_PASSWORD`. Il vérifie la suppression d’un compte et d’un document en sous-collection, le contenu de Firestore (sous-collections comprises) et la connexion des trois personas à chaque passage. Arrêtez les autres émulateurs qui occupent les ports par défaut avant de lancer ce test.
 
 `seedFirestore.integration.ts` lance `seedFirestore.ts` deux fois sur le même projet : il vérifie qu’un document et un compte étrangers au seed survivent, que les comptes sont créés puis mis à jour, et que les personas se connectent avec le mot de passe courant.
+
+## Portail Organismes (T-194)
+
+`seedOrganization.ts` crée l'organisme de démo (banque alimentaire de Côte-des-Neiges : 5 dons simulés, 2 parrainages, le fonds de solidarité de 3 groupes). Il ne supprime rien et n'écrase ni les membres de l'organisme ni le solde d'un fonds déjà présent. `seedOrgMember.ts` rattache un compte existant (`users/{uid}.organizationId`, champ que les règles interdisent au client) : le compte doit s'être connecté une fois et l'organisme doit exister. Les deux sont en **dry-run par défaut** : rien n'est écrit sans `--yes`. Il faut d'abord que les groupes de démo existent (`seed:firestore`).
+
+```sh
+# Émulateur (défaut)
+npm --prefix scripts/seed run seed:org -- --yes
+npm --prefix scripts/seed run seed:org-member -- --email amina@demo.grenier.local --yes
+
+# Projet réel : à lancer par un humain (dry-run d'abord)
+npm --prefix scripts/seed run seed:org -- --target cloud
+npm --prefix scripts/seed run seed:org -- --target cloud --yes
+npm --prefix scripts/seed run seed:org-member -- --email <courriel> --target cloud
+npm --prefix scripts/seed run seed:org-member -- --email <courriel> --target cloud --yes
+```

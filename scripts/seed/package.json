@@ -6,11 +6,13 @@
   "scripts": {
     "seedDemo": "node seedDemo.ts",
     "check": "tsc --noEmit",
-    "test": "node --test catalog.test.ts richDemo.test.ts backfillMemberUserId.test.ts aggregateBoroughStats.test.ts",
+    "test": "node --test catalog.test.ts richDemo.test.ts backfillMemberUserId.test.ts organizations.test.ts aggregateBoroughStats.test.ts",
     "test:emulators": "node --test --test-concurrency=1 seedDemo.integration.ts seedFirestore.integration.ts backfillMemberUserId.integration.ts aggregateBoroughStats.integration.ts",
     "seed:firestore": "node seedFirestore.ts",
     "backfill:members": "node backfillMemberUserId.ts",
-    "aggregate:boroughs": "node aggregateBoroughStats.ts"
+    "aggregate:boroughs": "node aggregateBoroughStats.ts",
+    "seed:org": "node seedOrganization.ts",
+    "seed:org-member": "node seedOrgMember.ts"
   },
   "dependencies": { "firebase-admin": "14.5.1" },
   "devDependencies": { "@types/node": "22.15.3", "typescript": "5.9.3" }

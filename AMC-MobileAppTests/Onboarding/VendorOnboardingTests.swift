@@ -176,6 +176,72 @@ struct VendorOnboardingTests {
         #expect(try await fixture.vendors.vendor(id: model.vendorId).photoURLs.isEmpty)
     }
 
+    // MARK: Photos (multi-sélection)
+
+    /// Sources de photos distinctes : la taille des données dit quelle photo c'est.
+    private static func sources(_ sizes: [Int]) -> [VendorOnboardingViewModel.PhotoSource] {
+        sizes.map { size in { Data(repeating: 7, count: size) } }
+    }
+
+    @Test func severalPhotosAreAddedAtOnceInOrder() async throws {
+        let fixture = Self.fixture()
+        let model = await Self.filledToPhotos(fixture)
+        #expect(model.remainingPhotoSlots == VendorOnboardingViewModel.Rules.maxPhotos)
+        #expect(await model.addPhotos(Self.sources([11, 22, 33])) == 3)
+        #expect(model.photoURLs.count == 3)
+        #expect(model.remainingPhotoSlots == VendorOnboardingViewModel.Rules.maxPhotos - 3)
+        #expect(model.photoError == nil)
+        #expect(!model.isAddingPhoto)
+        #expect(model.loadingPhotoCount == 0)
+        #expect(model.photosSummary == FrenchPlural.count(3, "photo"))
+
+        await model.next()
+        await model.next()
+        // L'ordre du choix est gardé jusqu'au vendeur : la première photo est la couverture.
+        let vendor = try await fixture.vendors.vendor(id: model.vendorId)
+        #expect(vendor.photoURLs.map(\.lastPathComponent) == ["11.jpg", "22.jpg", "33.jpg"])
+    }
+
+    @Test func newPhotosGoAfterTheCover() async throws {
+        let fixture = Self.fixture()
+        let model = await Self.filledToPhotos(fixture)
+        #expect(await model.addPhoto(data: Data(repeating: 1, count: 5)))
+        let cover = try #require(model.photoURLs.first)
+        #expect(await model.addPhotos(Self.sources([6, 8])) == 2)
+        #expect(model.photoURLs.first == cover)
+        #expect(model.photoURLs.count == 3)
+
+        await model.next()
+        await model.next()
+        let vendor = try await fixture.vendors.vendor(id: model.vendorId)
+        #expect(vendor.photoURLs.map(\.lastPathComponent) == ["5.jpg", "6.jpg", "8.jpg"])
+    }
+
+    @Test func aSelectionStopsAtThePhotoLimit() async {
+        let model = await Self.filledToPhotos(Self.fixture())
+        let max = VendorOnboardingViewModel.Rules.maxPhotos
+        #expect(await model.addPhotos(Self.sources(Array(1...(max - 2)))) == max - 2)
+        #expect(model.remainingPhotoSlots == 2)
+        // Trois choisies pour deux places : les deux premières sont gardées, et on le dit.
+        #expect(await model.addPhotos(Self.sources([101, 102, 103])) == 2)
+        #expect(model.photoURLs.count == max)
+        #expect(model.remainingPhotoSlots == 0)
+        #expect(!model.canAddPhoto)
+        #expect(model.photoError != nil)
+        // Plus aucune place.
+        #expect(await model.addPhotos(Self.sources([200])) == 0)
+        #expect(model.photoURLs.count == max)
+    }
+
+    @Test func unreadablePhotosAreSkipped() async {
+        let model = await Self.filledToPhotos(Self.fixture())
+        let sources: [VendorOnboardingViewModel.PhotoSource] = [{ Data([1, 2]) }, { nil }, { Data() }, { Data([3]) }]
+        #expect(await model.addPhotos(sources) == 2)
+        #expect(model.photoURLs.count == 2)
+        #expect(model.photoError != nil)
+        #expect(await model.addPhotos([]) == 0)
+    }
+
     @Test func finishingWithAProductPublishesIt() async throws {
         let fixture = Self.fixture()
         let model = await Self.filledToPhotos(fixture)

@@ -10,7 +10,7 @@ struct VendorOnboardingScreen: View {
     /// « Plus tard » à la première étape : revient au portail Familles.
     private let onCancel: (() -> Void)?
 
-    @State private var pickedItem: PhotosPickerItem?
+    @State private var pickedItems: [PhotosPickerItem] = []
 
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
@@ -42,7 +42,10 @@ struct VendorOnboardingScreen: View {
             .scrollBounceBehavior(.basedOnSize)
             .scrollDismissesKeyboard(.interactively)
             .animation(animation, value: model.step)
-            .safeAreaInset(edge: .bottom, spacing: 0) { bottomBar }
+            // Barre (et non simple inset) : le contenu défile au-dessus du bouton, avec l'effet de bord
+            // iOS 26 qui l'estompe dessous au lieu de le laisser recouvert par le bouton.
+            .safeAreaBar(edge: .bottom, spacing: 0) { bottomBar }
+            .scrollEdgeEffectStyle(.soft, for: .bottom)
             .grenierBackground()
             .toolbar { toolbar }
             .navigationBarTitleDisplayMode(.inline)
@@ -51,9 +54,9 @@ struct VendorOnboardingScreen: View {
         .grenierHaptic(.selection, trigger: model.categories)
         .grenierHaptic(.selection, trigger: model.neighborhoods)
         .grenierHaptic(.success, trigger: model.step == .done)
-        .onChange(of: pickedItem) { _, item in
-            guard let item else { return }
-            Task { await addPhoto(from: item) }
+        .onChange(of: pickedItems) { _, items in
+            guard !items.isEmpty else { return }
+            Task { await addPhotos(from: items) }
         }
     }
 
@@ -296,12 +299,11 @@ struct VendorOnboardingScreen: View {
 
     private var photosStep: some View {
         VStack(alignment: .leading, spacing: 16) {
-            LazyVGrid(columns: [GridItem(.adaptive(minimum: dynamicTypeSize.isAccessibilitySize ? 220 : 140), spacing: 12)], spacing: 12) {
+            LazyVGrid(columns: photoColumns, spacing: 12) {
                 ForEach(Array(model.photoURLs.enumerated()), id: \.element) { index, url in
-                    MediaImage(url: url)
-                        .frame(maxWidth: .infinity)
-                        .aspectRatio(1, contentMode: .fill)
-                        .clipShape(.rect(cornerRadius: 18))
+                    PhotoSquare {
+                        MediaImage(url: url)
+                    }
                         .overlay(alignment: .topTrailing) {
                             Button("Retirer la photo", systemImage: "xmark") {
                                 withAnimation(animation) { model.removePhoto(url) }
@@ -325,16 +327,35 @@ struct VendorOnboardingScreen: View {
                         .accessibilityLabel(index == 0 ? "Photo de couverture" : "Photo \(index + 1)")
                         .grenierAppear(index: index)
                 }
-                if model.canAddPhoto || model.isAddingPhoto {
-                    let isAddingPhoto = model.isAddingPhoto
-                    PhotosPicker(selection: $pickedItem, matching: .images, photoLibrary: .shared()) {
-                        AddVendorPhotoLabel(isLoading: isAddingPhoto)
+                ForEach(0..<model.loadingPhotoCount, id: \.self) { _ in
+                    PhotoSquare {
+                        ZStack {
+                            Color.grenier.opacity(0.12)
+                            ProgressView()
+                                .tint(.grenier)
+                        }
+                    }
+                    .accessibilityElement()
+                    .accessibilityLabel("Photo en cours d'ajout")
+                    .transition(.opacity)
+                }
+                if model.canAddPhoto {
+                    let hasPhotos = !model.photoURLs.isEmpty
+                    PhotosPicker(
+                        selection: $pickedItems,
+                        maxSelectionCount: model.remainingPhotoSlots,
+                        selectionBehavior: .ordered,
+                        matching: .images,
+                        photoLibrary: .shared()
+                    ) {
+                        AddVendorPhotoLabel(hasPhotos: hasPhotos)
                     }
                     .buttonStyle(.plain)
-                    .disabled(model.isAddingPhoto)
-                    .accessibilityHint("Ouvre ta photothèque.")
+                    .accessibilityHint("Ouvre ta photothèque. Tu peux choisir plusieurs photos d'un coup.")
                 }
             }
+            .animation(animation, value: model.photoURLs)
+            .animation(animation, value: model.loadingPhotoCount)
             if let error = model.photoError {
                 Label(error.localizedDescription, systemImage: "exclamationmark.triangle.fill")
                     .font(.footnote)
@@ -346,10 +367,18 @@ struct VendorOnboardingScreen: View {
         }
     }
 
-    private func addPhoto(from item: PhotosPickerItem) async {
-        defer { pickedItem = nil }
-        guard let data = try? await item.loadTransferable(type: Data.self) else { return }
-        await model.addPhoto(data: data)
+    /// Deux colonnes égales (une seule en très grand texte) : photos, attentes et tuile d'ajout s'alignent.
+    private var photoColumns: [GridItem] {
+        let count = dynamicTypeSize.isAccessibilitySize ? 1 : 2
+        return Array(repeating: GridItem(.flexible(), spacing: 12), count: count)
+    }
+
+    private func addPhotos(from items: [PhotosPickerItem]) async {
+        defer { pickedItems = [] }
+        let sources: [VendorOnboardingViewModel.PhotoSource] = items.map { item in
+            { try? await item.loadTransferable(type: Data.self) }
+        }
+        await model.addPhotos(sources)
     }
 
     // MARK: 5. Premier produit
@@ -553,33 +582,44 @@ struct VendorOnboardingScreen: View {
 
 // MARK: - Ajout de photo
 
-/// Tuile « Ajouter une photo » (vue à part : le libellé de PhotosPicker est un contexte non isolé).
-private struct AddVendorPhotoLabel: View {
-    let isLoading: Bool
+/// Case carrée de la grille des photos : toutes les tuiles (photo, attente, ajout) ont la même taille,
+/// quelle que soit l'image, pour que les rangées restent alignées.
+private struct PhotoSquare<Content: View>: View {
+    @ViewBuilder var content: Content
 
     var body: some View {
-        VStack(spacing: 8) {
-            if isLoading {
-                ProgressView()
-            } else {
+        Color.clear
+            .aspectRatio(1, contentMode: .fit)
+            .overlay { content }
+            .clipShape(.rect(cornerRadius: 18))
+            .contentShape(.rect(cornerRadius: 18))
+    }
+}
+
+/// Tuile « Ajouter des photos » (vue à part : le libellé de PhotosPicker est un contexte non isolé).
+private struct AddVendorPhotoLabel: View {
+    let hasPhotos: Bool
+
+    var body: some View {
+        PhotoSquare {
+            VStack(spacing: 8) {
                 Image(systemName: "photo.badge.plus")
                     .font(.largeTitle)
                     .symbolRenderingMode(.hierarchical)
-                Text("Ajouter une photo")
+                Text(hasPhotos ? "Ajouter d'autres photos" : "Ajouter des photos")
                     .font(.subheadline.weight(.semibold))
                     .multilineTextAlignment(.center)
+                    .minimumScaleFactor(0.8)
+            }
+            .foregroundStyle(Color.grenier)
+            .padding(12)
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .background(Color.grenier.opacity(0.12))
+            .overlay {
+                RoundedRectangle(cornerRadius: 18)
+                    .strokeBorder(Color.grenier.opacity(0.4), style: StrokeStyle(lineWidth: 1.5, dash: [5, 4]))
             }
         }
-        .foregroundStyle(Color.grenier)
-        .padding(12)
-        .frame(maxWidth: .infinity, minHeight: 140)
-        .aspectRatio(1, contentMode: .fit)
-        .background(Color.grenier.opacity(0.12), in: .rect(cornerRadius: 18))
-        .overlay {
-            RoundedRectangle(cornerRadius: 18)
-                .strokeBorder(Color.grenier.opacity(0.4), style: StrokeStyle(lineWidth: 1.5, dash: [5, 4]))
-        }
-        .contentShape(.rect(cornerRadius: 18))
     }
 }
 

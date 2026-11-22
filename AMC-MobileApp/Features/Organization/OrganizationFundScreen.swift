@@ -65,8 +65,6 @@ struct OrganizationFundScreen: View {
                             }
                             .grenierAppear(index: index)
                         }
-                        SimulationNotice()
-                            .padding(.top, 8)
                     }
                     .padding(16)
                 }

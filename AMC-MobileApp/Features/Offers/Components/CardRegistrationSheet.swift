@@ -44,8 +44,6 @@ struct CardRegistrationSheet: View {
                                 systemImage: "lock.shield.fill")
                     reassurance(String(localized: "Plus le groupe grandit, plus le prix baisse : tu paies le prix du dernier palier atteint."),
                                 systemImage: "arrow.down.forward.circle.fill")
-                    reassurance(String(localized: "Paiement simulé pour la démo : aucun argent réel."),
-                                systemImage: "testtube.2")
                 }
                 .grenierCard()
 

@@ -70,7 +70,7 @@ final class OfferDetailViewModel {
         var maxPriceCents: Cents
         /// Panier suspendu choisi (0 = aucun), compris dans `maxPriceCents`.
         var donationCents: Cents
-        /// `PaymentSimulator.methodLabel` (« Apple Pay (démo) »).
+        /// `PaymentSimulator.methodLabel` (« Apple Pay »).
         var methodLabel: String
 
         var id: Self { self }

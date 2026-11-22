@@ -157,11 +157,6 @@ struct ReceiptSheet: View {
                     row("Commande", systemImage: "number", value: receipt.groupOrderId)
                 }
 
-                Section {
-                    Label("Paiement simulé pour la démo : aucun argent réel.", systemImage: "testtube.2")
-                        .font(.footnote)
-                        .foregroundStyle(.texteSecondaire)
-                }
             }
             .scrollContentBackground(.hidden)
             .grenierBackground()

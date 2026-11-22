@@ -40,8 +40,6 @@ struct OrganizationImpactScreen: View {
                             TimelineRow(event: event)
                                 .grenierAppear(index: 2 + index)
                         }
-                        SimulationNotice()
-                            .padding(.top, 8)
                     }
                     .padding(16)
                 }

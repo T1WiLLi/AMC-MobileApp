@@ -45,7 +45,6 @@ struct PickupScreen: View {
                 }
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
-            .guidedTourTip(.pickup)
             .grenierBackground()
             .navigationTitle("Cueillette")
             .profileToolbar()
@@ -123,6 +122,7 @@ private struct PickupContentView: View {
         ScrollView {
             VStack(alignment: .leading, spacing: 16) {
                 PickupHeroCard(content: content)
+                    .guidedTourAnchor(.pickup)
                 if content.isAllPickedUp {
                     PickupAllDoneCard(hostFirstName: content.hostFirstName)
                 }

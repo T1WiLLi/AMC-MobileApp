@@ -67,7 +67,6 @@ struct GroupsScreen: View {
                     GroupsLoadingSkeleton()
                 }
             }
-            .guidedTourTip(.groups)
             .grenierBackground()
             .navigationTitle("Groupes")
             .profileToolbar()
@@ -189,6 +188,7 @@ private struct GroupList: View {
                     nearbyCount: others.count,
                     familyCount: items.reduce(0) { $0 + $1.group.householdCount }
                 )
+                .guidedTourAnchor(.groups)
 
                 VStack(alignment: .leading, spacing: 12) {
                     GroupsSectionHeader(

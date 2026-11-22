@@ -1,6 +1,6 @@
 import SwiftUI
 
-/// Carte d'accueil de Noisette (FB-19), avant les bulles de la visite guidée.
+/// Carte d'accueil de Noisette (FB-19), avant les bulles de la visite guidée (`GuidedTourOverlay`).
 struct GuidedTourWelcomeCard: View {
     /// true : « C'est parti ! », false : « Plus tard ».
     let decide: (Bool) -> Void
@@ -49,7 +49,7 @@ struct GuidedTourWelcomeCard: View {
                     .tint(.grenier)
                 }
 
-                Label("Tu pourras revoir la visite dans le Profil.", systemImage: "person.crop.circle")
+                Label("Tu pourras revoir le tutoriel dans le Profil.", systemImage: "person.crop.circle")
                     .font(.footnote)
                     .foregroundStyle(Color.texteSecondaire)
                     .symbolRenderingMode(.hierarchical)
@@ -77,7 +77,10 @@ private struct GuidedTourWelcomeModifier: ViewModifier {
                     get: { isReady && tour.showsWelcome && !hasDecided },
                     set: { isPresented in if !isPresented { hasDecided = true } }
                 ),
-                onDismiss: { if hasDecided { tour.finishWelcome(accepted: accepted) } }
+                onDismiss: {
+                    guard hasDecided else { return }
+                    if accepted { tour.start() } else { tour.postpone() }
+                }
             ) {
                 GuidedTourWelcomeCard { decision in
                     accepted = decision

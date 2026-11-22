@@ -102,7 +102,7 @@ struct SignInScreen: View {
                 Task { await session.signInWithGoogle() }
             } label: {
                 HStack(spacing: 10) {
-                    if isSigningIn {
+                    if session.isSigningIn(with: .google) {
                         ProgressView()
                     } else {
                         Image(systemName: "g.circle.fill")

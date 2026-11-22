@@ -50,7 +50,20 @@ final class SessionViewModel {
         if case .awaitingVerification(let user) = state { user } else { nil }
     }
 
+    /// Méthode de connexion en cours : seul le bouton touché affiche un indicateur (FB-03).
+    enum AuthMethod: Equatable, Sendable {
+        case google
+        case email
+    }
+
     var isSigningIn: Bool { state == .signingIn }
+
+    /// Méthode dont la connexion est en cours (nil = aucune). Les autres boutons restent désactivés, sans indicateur.
+    private(set) var signingInMethod: AuthMethod?
+
+    func isSigningIn(with method: AuthMethod) -> Bool {
+        isSigningIn && signingInMethod == method
+    }
 
     private static func state(for user: AuthUser) -> State {
         user.needsEmailVerification ? .awaitingVerification(user) : .signedIn(user)
@@ -72,6 +85,8 @@ final class SessionViewModel {
         guard state != .signingIn else { return }
         errorMessage = nil
         emailAuthError = nil
+        signingInMethod = .google
+        defer { signingInMethod = nil }
         state = .signingIn
         do {
             state = .signedIn(try await auth.signInWithGoogle())
@@ -107,6 +122,8 @@ final class SessionViewModel {
         errorMessage = nil
         emailAuthError = nil
         verificationMessage = nil
+        signingInMethod = .email
+        defer { signingInMethod = nil }
         state = .signingIn
         do {
             state = Self.state(for: try await operation())

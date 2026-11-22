@@ -8,8 +8,8 @@ import Observation
 
 @Observable @MainActor
 final class HouseholdProfileViewModel {
-    /// Taille d'un ménage acceptée.
-    static let sizeRange = 1...12
+    /// Taille d'un ménage acceptée : la même que le serveur (V6).
+    static let sizeRange = HouseholdMembership.sizeRange
 
     private let repositories: AppRepositories
     private let privateStore: any HouseholdPrivateStore

@@ -87,6 +87,51 @@ struct HostPickupViewModelTests {
         #expect(stored?.pickedUpBy == "user-voisin-1")
     }
 
+    /// T-198 de bout en bout : la famille (Voisins 1) a deux commandes livrées chez Amina dans le même groupe. Sa
+    /// Cueillette montre UN QR ; l'hôte le scanne une fois et les deux parts sont remises.
+    @Test func oneGroupCodeScanHandsOverEveryOrderOfTheGroup() async throws {
+        var data = FakeData.demo
+        let second = FakeData.HostDemoID.onTheWayOrder
+        let index = try #require(data.groupOrders.firstIndex { $0.id == second })
+        data.groupOrders[index].status = .delivered
+        let repos = AppRepositories.fake(behavior: .instant, data: data)
+        let household = "household-voisin-1", member = "user-voisin-1"
+
+        // Côté famille : un seul groupe, un seul QR qui porte les deux commandes.
+        let family = PickupViewModel(repositories: repos, householdId: household, groupId: ID.villerayKitchen,
+                                     userId: member)
+        await family.load()
+        let content = try #require(family.state.value)
+        let group = try #require(content.groups.first { $0.id == ID.villerayKitchen })
+        let qr = try #require(group.qrPayload)
+        let orderIds = PickupDesk.bundledCodes(qr).compactMap { PickupDesk.parse($0)?.orderId }
+        #expect(Set(orderIds) == [FakeData.HostDemoID.deliveredOrder, second])
+
+        // Côté hôte : un scan, deux remises ; le bandeau parle de la commande affichée et de l'autre.
+        let host = HostPickupViewModel(repositories: repos, userId: ID.amina, householdId: ID.aminaHousehold,
+                                       groupId: ID.saintMichel)
+        await host.load()
+        await host.scan(qr)
+        #expect(host.outcome?.result.isSuccess == true)
+        #expect(host.outcome?.otherOrdersHandedOver == 1)
+        #expect(host.outcome?.othersMessage == "Aussi remise : 1 autre commande de ce groupe.")
+        for orderId in [FakeData.HostDemoID.deliveredOrder, second] {
+            let stored = try await repos.groupOrders.shares(ofGroupOrder: orderId).first { $0.householdId == household }
+            #expect(stored?.isPickedUp == true)
+            #expect(stored?.pickedUpBy == member)
+        }
+
+        // Rescanner le même QR : rien n'est remis deux fois.
+        await host.scan(qr)
+        #expect(host.outcome?.result == .alreadyPickedUp(try #require(
+            try await repos.groupOrders.shares(ofGroupOrder: host.selectedOrderId ?? "").first { $0.householdId == household })))
+        #expect(host.outcome?.otherOrdersHandedOver == 0)
+
+        // La Cueillette de la famille : tout est récupéré, plus de QR.
+        await family.load()
+        #expect(family.state.value?.groups.first?.qrPayload == nil)
+    }
+
     /// Côté famille : Amina est l'hôte de son point, son écran QR ne dit pas « Montre ce code à Amina ».
     @Test func hostSeesGenericInstructionOnHerOwnCode() async throws {
         let repos = AppRepositories.fake(behavior: .instant)

@@ -32,9 +32,12 @@ final class GroupRatingsViewModel {
     private let now: @Sendable () -> Date
     private var isMember = false
     private var isOwner = false
+    /// T-187 : fiche publique d'un groupe (visiteur) : moyenne, répartition et avis récents, sans « Noter ce groupe ».
+    let isReadOnly: Bool
 
     init(repositories: AppRepositories, groupId: String, householdId: String, userId: String?,
-         now: @escaping @Sendable () -> Date = { .now }) {
+         isReadOnly: Bool = false, now: @escaping @Sendable () -> Date = { .now }) {
+        self.isReadOnly = isReadOnly
         self.repositories = repositories
         self.groupId = groupId
         self.householdId = householdId
@@ -46,19 +49,20 @@ final class GroupRatingsViewModel {
         self.isMember = isMember
         self.isOwner = isOwner
         if state.value == nil { state = .loading }
-        let repositories = repositories, groupId = groupId, householdId = householdId
+        let repositories = repositories, groupId = groupId, householdId = householdId, isReadOnly = isReadOnly
         state = await .run {
             let ratings = try await repositories.groups.ratings(ofGroup: groupId)
             let mine = householdId.isEmpty ? nil : ratings.first { $0.householdId == householdId }
-            let proofs = (mine == nil && !isMember && !isOwner)
+            let proofs = (mine == nil && !isMember && !isOwner && !isReadOnly)
                 ? await Self.ordersWithShare(of: householdId, inGroup: groupId, repositories: repositories)
                 : []
+            let eligibility = GroupRatingRules.eligibility(householdId: householdId, isMember: isMember,
+                                                           isOwner: isOwner, existing: mine, ordersWithMyShare: proofs)
             return Content(
                 summary: RatingRules.summary(ofRatings: ratings.map(\.rating)),
                 recent: GroupRatingRules.recent(ratings),
                 myRating: mine,
-                eligibility: GroupRatingRules.eligibility(householdId: householdId, isMember: isMember, isOwner: isOwner,
-                                                          existing: mine, ordersWithMyShare: proofs)
+                eligibility: Self.displayedEligibility(eligibility, isReadOnly: isReadOnly)
             )
         }
     }
@@ -69,6 +73,7 @@ final class GroupRatingsViewModel {
     /// Enregistre (ou modifie) l'avis du ménage. Renvoie le groupe aux agrégats à jour, ou l'erreur à afficher.
     func save(rating: Int, comment: String) async -> Result<NeighborhoodGroup, AppError> {
         guard !householdId.isEmpty else { return .failure(.unauthenticated) }
+        guard !isReadOnly else { return .failure(.permissionDenied) }
         guard let current = state.value else { return .failure(.permissionDenied) }
         do {
             let displayName: String
@@ -85,6 +90,13 @@ final class GroupRatingsViewModel {
         } catch {
             return .failure(AppError(error))
         }
+    }
+
+    /// T-187 : en lecture seule, personne ne note (le créateur garde sa mention « Tu as créé ce groupe »).
+    nonisolated static func displayedEligibility(_ eligibility: GroupRatingEligibility,
+                                                 isReadOnly: Bool) -> GroupRatingEligibility {
+        guard isReadOnly else { return eligibility }
+        return eligibility == .owner ? .owner : .notEligible
     }
 
     /// Commandes terminées du groupe où le ménage avait une part (preuve d'ancien membre), les plus récentes d'abord.

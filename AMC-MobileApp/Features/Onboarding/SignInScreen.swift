@@ -33,6 +33,8 @@ struct SignInScreen: View {
         }
         .scrollDismissesKeyboard(.interactively)
         .scrollBounceBehavior(.basedOnSize)
+        // Le contenu part du haut de l'écran, comme la photo : la carte la chevauche de 24 exactement.
+        .ignoresSafeArea(edges: .top)
         .background(alignment: .top) {
             AuthPhotoHeader(height: headerHeight, cardOverlap: Self.cardOverlap)
         }

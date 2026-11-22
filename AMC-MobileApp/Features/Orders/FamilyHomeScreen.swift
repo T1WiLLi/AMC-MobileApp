@@ -282,7 +282,7 @@ private struct FamilyHomeContent: View {
 
             if !others.isEmpty {
                 VStack(alignment: .leading, spacing: 12) {
-                    GrenierSectionHeader(String(localized: "Commandes ouvertes de \(content.group.name)"), systemImage: GrenierSymbol.groups)
+                    GrenierSectionHeader(String(localized: "Commandes ouvertes du groupe"), systemImage: GrenierSymbol.groups)
                     ForEach(Array(others.enumerated()), id: \.element.id) { index, summary in
                         OrderLink(summary: summary)
                             .grenierAppear(index: mine.count + index)

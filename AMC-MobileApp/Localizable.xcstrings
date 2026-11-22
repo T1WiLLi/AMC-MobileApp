@@ -10259,12 +10259,12 @@
         }
       }
     },
-    "Commandes ouvertes de %@" : {
+    "Commandes ouvertes du groupe" : {
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "%@’s open orders"
+            "value" : "Your group’s open orders"
           }
         }
       }

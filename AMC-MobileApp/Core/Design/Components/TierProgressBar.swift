@@ -90,6 +90,8 @@ struct TierProgressBar: View {
     func fill(forSegment index: Int) -> Double {
         guard sorted.indices.contains(index) else { return 0 }
         let lower = sorted[index].minShares
+        // Dernier palier atteint (« Meilleur prix atteint ») : le segment est plein, pas vide.
+        if index == sorted.count - 1, committedShares >= lower { return 1 }
         let upper: Int
         if index + 1 < sorted.count {
             upper = sorted[index + 1].minShares

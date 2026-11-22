@@ -436,9 +436,9 @@ private struct DashboardContent: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 20) {
-            ForEach(sections, id: \.self) { section in
+            ForEach(Array(sections.enumerated()), id: \.element) { index, section in
                 view(for: section)
-                    .isoLayoutEditing(isActive: isEditingLayout, isDimmed: layout.hidden.contains(section.rawValue))
+                    .isoLayoutEditing(isActive: isEditingLayout, isDimmed: layout.hidden.contains(section.rawValue), index: index)
                     .transition(.opacity.combined(with: .scale(scale: 0.96)))
             }
         }

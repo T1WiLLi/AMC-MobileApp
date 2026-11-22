@@ -59,7 +59,7 @@ struct ProfileToolbarModifier: ViewModifier {
 private struct ProfileSheet: View {
     var body: some View {
         // Le bouton Fermer est dans la barre de l'écran racine du profil : il disparaît sur les écrans poussés
-        // (« Mon compte ») au lieu de passer par-dessus leur bouton « Enregistrer ».
+        // au lieu de passer par-dessus leurs boutons de barre.
         ProfileScreen(showsCloseButton: true)
             .scrollContentBackground(.hidden)
             .presentationBackground(Color.fond)

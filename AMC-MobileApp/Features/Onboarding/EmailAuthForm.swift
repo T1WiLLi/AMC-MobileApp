@@ -2,7 +2,7 @@ import SwiftUI
 
 /// Formulaire courriel et mot de passe de la feuille de connexion (T-124) : champs à étiquette intégrée,
 /// validation en direct, erreurs sous le champ concerné. À l'inscription : avatar qui prend l'initiale
-/// du prénom et règles du mot de passe en pastilles. Le mode est piloté par `SignInScreen`.
+/// du prénom et règles du mot de passe en liste à cocher. Le mode est piloté par `SignInScreen`.
 struct EmailAuthForm: View {
     enum Mode: String, CaseIterable, Identifiable {
         case signIn, signUp
@@ -150,7 +150,7 @@ struct EmailAuthForm: View {
                     Text(mode.title)
                         .font(.headline)
                         .contentTransition(.opacity)
-                    if isBusy {
+                    if session.isSigningIn(with: .email) {
                         ProgressView()
                     } else {
                         Image(systemName: "arrow.right")
@@ -195,7 +195,7 @@ struct EmailAuthForm: View {
 
     private var passwordIssue: String? {
         if let serverError, serverError.field == .password { return serverError.localizedDescription }
-        // En création, les pastilles montrent déjà la longueur : l'erreur n'apparaît qu'après un essai.
+        // En création, la liste des règles montre déjà la longueur : l'erreur n'apparaît qu'après un essai.
         if attemptedSubmit, let issue = EmailAuthValidation.passwordIssue(password) { return issue }
         if attemptedSubmit && password.isEmpty { return String(localized: "Entre ton mot de passe.") }
         return nil
@@ -245,9 +245,11 @@ struct EmailAuthForm: View {
                         .font(.caption.weight(.semibold))
                         .foregroundStyle(accent)
                         .accessibilityHidden(true)
+                    // Texte saisi en couleur principale (et non la teinte), curseur à la teinte Grenier (FB-01).
                     content()
                         .font(.body.weight(.medium))
-                        .foregroundStyle(Color.texte)
+                        .foregroundStyle(.primary)
+                        .tint(Color.grenier)
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
                 if isValid && issue == nil {
@@ -340,48 +342,42 @@ private struct WelcomeAvatar: View {
     }
 }
 
-/// Règles du mot de passe en pastilles qui passent au vert (création de compte).
-/// Seule la longueur est obligatoire ; chiffre et majuscule ou symbole sont des conseils.
+/// Règles du mot de passe en liste à cocher (création de compte, FB-02) : un cercle vide qui devient
+/// une coche verte quand la règle est remplie. Seule la longueur est obligatoire ; les deux autres sont des conseils.
 private struct PasswordRules: View {
     let password: String
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     private var rules: [(label: String, isMet: Bool)] {
         [
-            (String(localized: "\(EmailAuthValidation.minimumPasswordLength) caractères"),
+            (String(localized: "Au moins \(EmailAuthValidation.minimumPasswordLength) caractères"),
              password.count >= EmailAuthValidation.minimumPasswordLength),
-            (String(localized: "Un chiffre"), password.contains(where: \.isNumber)),
-            (String(localized: "Majuscule ou symbole"),
+            (String(localized: "Un chiffre (conseillé)"), password.contains(where: \.isNumber)),
+            (String(localized: "Une majuscule ou un symbole (conseillé)"),
              password.contains(where: \.isUppercase) || password.contains(where: { !$0.isLetter && !$0.isNumber }))
         ]
     }
 
     var body: some View {
-        // Sur une ligne si elles tiennent, sinon empilées (Dynamic Type).
-        ViewThatFits(in: .horizontal) {
-            HStack(spacing: 6) { chips(rules) }
-            VStack(alignment: .leading, spacing: 6) {
-                HStack(spacing: 6) { chips(Array(rules.prefix(2))) }
-                chips(Array(rules.suffix(1)))
+        VStack(alignment: .leading, spacing: 8) {
+            ForEach(rules, id: \.label) { rule in
+                HStack(alignment: .firstTextBaseline, spacing: 8) {
+                    Image(systemName: rule.isMet ? "checkmark.circle.fill" : "circle")
+                        .foregroundStyle(rule.isMet ? Color.economie : Color.texteSecondaire.opacity(0.6))
+                        .contentTransition(.symbolEffect(.replace))
+                        .symbolEffect(.bounce, options: .nonRepeating, value: reduceMotion ? false : rule.isMet)
+                    Text(rule.label)
+                        .foregroundStyle(rule.isMet ? Color.texte : Color.texteSecondaire)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+                .font(.footnote.weight(.medium))
+                .animation(reduceMotion ? nil : .smooth, value: rule.isMet)
             }
-            VStack(alignment: .leading, spacing: 6) { chips(rules) }
         }
+        .padding(.horizontal, 4)
         .frame(maxWidth: .infinity, alignment: .leading)
         .accessibilityElement(children: .combine)
         .accessibilityLabel(accessibilitySummary)
-    }
-
-    private func chips(_ rules: [(label: String, isMet: Bool)]) -> some View {
-        ForEach(rules, id: \.label) { rule in
-            Label(rule.label, systemImage: rule.isMet ? "checkmark" : "minus")
-                .font(.caption.weight(.semibold))
-                .foregroundStyle(rule.isMet ? Color.economie : Color.texteSecondaire)
-                .contentTransition(.symbolEffect(.replace))
-                .padding(.horizontal, 10)
-                .padding(.vertical, 6)
-                .background((rule.isMet ? Color.economie : Color.texteSecondaire).opacity(0.12), in: .capsule)
-                .fixedSize()
-                .animation(.smooth, value: rule.isMet)
-        }
     }
 
     private var accessibilitySummary: String {

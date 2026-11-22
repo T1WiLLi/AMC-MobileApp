@@ -93,6 +93,13 @@ private struct PortalChoiceGate: View {
                     onChosen()
                     return
                 }
+                // Compte déjà utilisé (onboarding fait) : le choix du portail ne sert qu'à la première arrivée.
+                // On le reprend de son profil (ménage → Familles, vendeur → Vendeurs) au lieu de le redemander.
+                if let choice = PortalChoice.restored(from: store.context) {
+                    choice.save()
+                    onChosen()
+                    return
+                }
             }
             showsChoice = true
         }

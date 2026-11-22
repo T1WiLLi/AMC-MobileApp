@@ -69,7 +69,7 @@ final class GroupFamiliesViewModel {
             let names = await Self.names(of: members.map(\.householdId), repositories: repositories)
             self.group = group
             let families = members.map {
-                Family(householdId: $0.householdId, name: names[$0.householdId], role: $0.role,
+                Family(householdId: $0.householdId, name: names[$0.householdId] ?? $0.householdName, role: $0.role,
                        isMine: $0.householdId == householdId)
             }
             // Ma famille d'abord, puis par nom ; sans nom en dernier.

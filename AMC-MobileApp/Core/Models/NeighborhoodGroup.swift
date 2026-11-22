@@ -132,6 +132,9 @@ nonisolated struct GroupMember: Identifiable, Codable, Sendable, Hashable {
     /// T-193 : compte qui a adhéré (uid, membre du ménage). Les ménages ne sont lisibles que par leurs membres : c'est
     /// ici que le groupe retrouve l'uid de l'héritier. Absent des adhésions d'avant T-193 (rattrapage `backfill:members`).
     var userId: String? = nil
+    /// Nom affiché de la famille (« Famille Tremblay »), lisible par tout le groupe : les ménages, eux, ne sont lisibles
+    /// que par leurs membres. Posé par le seed ; absent, la fiche retombe sur « Une famille du quartier ».
+    var householdName: String? = nil
 
     var id: String { householdId }
 }

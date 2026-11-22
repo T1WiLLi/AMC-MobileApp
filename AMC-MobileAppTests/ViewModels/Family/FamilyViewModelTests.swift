@@ -64,6 +64,17 @@ struct FamilyViewModelTests {
         #expect(content.launchedSavedCents == content.savedCents)
     }
 
+    @Test func openOrderSavingsAreOnlyAnEstimate() async throws {
+        let repos = repositories()
+        try await repos.groupOrders.setShare(quantity: 2, householdId: ID.aminaHousehold, groupOrderId: ID.potatoOrder)
+        var order = try await repos.groupOrders.groupOrder(id: ID.potatoOrder)
+        order.status = .open
+        let saved = try await FamilyHomeViewModel.savingsBreakdown(of: ID.aminaHousehold, in: [order], repositories: repos)
+        // Minimum pas encore atteint : l'Accueil dit « Tu économiseras », rien n'est « lancé ».
+        #expect(saved.total == 2 * (1_599 - 990))
+        #expect(saved.launched == 0)
+    }
+
     @Test func homeFailsOffline() async {
         let viewModel = FamilyHomeViewModel(repositories: repositories(.failing(.offline)), userId: ID.amina,
                                             householdId: ID.aminaHousehold, groupId: ID.saintMichel)

@@ -58,11 +58,18 @@ struct ProfileScreen: View {
                         Button {
                             showsVendorShop = true
                         } label: {
-                            Label {
-                                Text("Photos et zones desservies")
-                                    .foregroundStyle(Color.texte)
-                            } icon: {
-                                RowIcon(systemImage: "photo.on.rectangle.angled", tint: .grenier)
+                            HStack {
+                                Label {
+                                    Text("Ma vitrine")
+                                        .foregroundStyle(Color.texte)
+                                } icon: {
+                                    RowIcon(systemImage: "photo.on.rectangle.angled", tint: .grenier)
+                                }
+                                Spacer()
+                                Image(systemName: "chevron.right")
+                                    .font(.footnote.weight(.semibold))
+                                    .foregroundStyle(Color.texteSecondaire.opacity(0.6))
+                                    .accessibilityHidden(true)
                             }
                         }
                         .accessibilityHint("Ouvre ta vitrine : photos, description et zones desservies.")
@@ -206,6 +213,8 @@ struct ProfileScreen: View {
                 }
             }
             .scrollContentBackground(.hidden)
+            // Des sections bien détachées : chaque carte se lit comme un bloc.
+            .listSectionSpacing(28)
             .scrollDismissesKeyboard(.interactively)
             .grenierBackground()
             .navigationTitle("Profil")
@@ -291,6 +300,7 @@ private struct ProfileHeader: View {
     private var avatarSide: CGFloat { min(scaledAvatar, 128) }
 
     var body: some View {
+        // Le portail actif se lit sur le sélecteur juste en dessous : pas de pastille en double ici.
         VStack(spacing: 12) {
             if let user {
                 avatar(for: user)
@@ -317,15 +327,6 @@ private struct ProfileHeader: View {
                     .foregroundStyle(Color.texte)
             }
 
-            Label("Portail \(portal.title)", systemImage: portal.systemImage)
-                .font(.subheadline.weight(.semibold))
-                .foregroundStyle(Color.onAccent)
-                .contentTransition(.symbolEffect(.replace))
-                .padding(.horizontal, 14)
-                .padding(.vertical, 8)
-                .background(Color.grenier, in: .capsule)
-                .animation(reduceMotion ? nil : .smooth, value: portal)
-                .accessibilityLabel("Portail actif : \(portal.title)")
         }
         .frame(maxWidth: .infinity)
         .padding(.vertical, 20)
@@ -363,10 +364,28 @@ private struct ProfileSectionHeader: View {
     }
 
     var body: some View {
-        Label(title, systemImage: systemImage)
-            .symbolRenderingMode(.hierarchical)
-            .foregroundStyle(Color.grenier)
-            .accessibilityAddTraits(.isHeader)
+        Label {
+            Text(title)
+                .foregroundStyle(Color.texteSecondaire)
+        } icon: {
+            Image(systemName: systemImage)
+                .symbolRenderingMode(.hierarchical)
+                .foregroundStyle(Color.grenier)
+        }
+        .font(.subheadline.weight(.semibold))
+        .labelStyle(ProfileHeaderLabelStyle())
+        .padding(.leading, 4)
+        .accessibilityAddTraits(.isHeader)
+    }
+}
+
+/// Icône et titre serrés (le `Label` natif laisse un grand vide dans un en-tête de section).
+private struct ProfileHeaderLabelStyle: LabelStyle {
+    func makeBody(configuration: Configuration) -> some View {
+        HStack(spacing: 6) {
+            configuration.icon
+            configuration.title
+        }
     }
 }
 
@@ -458,7 +477,7 @@ private struct SecuritySection: View {
         } footer: {
             Label(
                 lock.biometry.canAuthenticate
-                    ? String(localized: "LeGrenier se verrouille quand tu quittes l'app. Ton code de cueillette et tes paiements restent protégés.")
+                    ? String(localized: "Verrouillé dès que tu quittes l'app.")
                     : String(localized: "Configure Face ID ou un code dans les Réglages de l'iPhone pour activer le verrou."),
                 systemImage: lock.isEnabled ? "lock.fill" : "lock.open.fill"
             )

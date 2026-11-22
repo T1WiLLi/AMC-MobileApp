@@ -18,13 +18,18 @@ final class FamilyHomeViewModel {
         /// Économie du ménage vs l'épicerie sur toutes ses parts dans le groupe (« 48 $ économisés »).
         var savedCents: Cents
 
-        /// « Amina » pour « Bonjour Amina ».
-        var firstName: String { user.displayName.split(separator: " ").first.map(String.init) ?? user.displayName }
+        /// « Amina » pour « Bonjour Amina » : le profil `users/{uid}` de la personne connectée, jamais une persona.
+        var firstName: String { FamilyHomeViewModel.firstName(from: user.displayName) }
         /// Commandes où le ménage a une part (« Ta commande en cours »).
         var myOrders: [OfferSummary] { currentOrders.filter(\.hasMyShare) }
     }
 
     private(set) var state: LoadState<Content> = .idle
+
+    /// Prénom du salut : premier mot du nom affiché (« Amina Benali » → « Amina »), vide si le nom est vide.
+    nonisolated static func firstName(from displayName: String) -> String {
+        displayName.split(whereSeparator: \.isWhitespace).first.map(String.init) ?? ""
+    }
 
     private let repositories: AppRepositories
     private let userId: String

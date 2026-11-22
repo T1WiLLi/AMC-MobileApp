@@ -753,9 +753,10 @@ private struct OfferDetailContent: View {
                     } else {
                         Label {
                             // La quantité est déjà dans le résumé à gauche : le bouton reste sur une ligne.
+                            // Aux tailles d'accessibilité (mode aîné), il passe sur plusieurs lignes plutôt que déborder.
                             Text(reserveTitle(content))
-                                .lineLimit(1)
-                                .fixedSize()
+                                .lineLimit(dynamicTypeSize.isAccessibilitySize ? nil : 1)
+                                .fixedSize(horizontal: !dynamicTypeSize.isAccessibilitySize, vertical: true)
                         } icon: {
                             Image(systemName: OfferDetailSymbol.reserve(
                                 myShare: content.myShareQuantity,

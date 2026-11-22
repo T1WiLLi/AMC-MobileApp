@@ -148,6 +148,10 @@ private struct FamilyHomeContent: View {
 
     @AppStorage(HomeSection.storageKey) private var rawLayout = ""
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Environment(\.appContext) private var context
+    @Environment(SessionContextStore.self) private var contextStore: SessionContextStore?
+    /// Groupes du ménage : à partir de deux, l'Accueil propose de changer de groupe actif.
+    @State private var householdGroups: [NeighborhoodGroup] = []
     /// Type de produit choisi dans « Nouveaux lots près de toi » (nil : tous).
     @State private var offerCategory: Product.Category?
     /// La liste des nouveaux lots est dépliée au-delà des premiers.
@@ -180,6 +184,12 @@ private struct FamilyHomeContent: View {
             .padding(.bottom, 24)
         }
         .grenierScrollEdge()
+        .task(id: "\(context.householdId)|\(content.group.id)") {
+            guard !context.householdId.isEmpty else { return }
+            if let groups = try? await context.repositories.groups.groups(ofHousehold: context.householdId) {
+                householdGroups = groups
+            }
+        }
         // Rechargement qui change les économies : retour haptique, le montant défile à l'écran.
         .grenierHaptic(.success, trigger: content.savedCents)
     }
@@ -188,11 +198,18 @@ private struct FamilyHomeContent: View {
     private func view(for section: HomeSection) -> some View {
         switch section {
         case .group:
-            GroupBanner(
-                group: content.group,
-                orderCount: content.currentOrders.count,
-                newOfferCount: content.newOffers.count
-            )
+            VStack(alignment: .leading, spacing: 8) {
+                GroupBanner(
+                    group: content.group,
+                    orderCount: content.currentOrders.count,
+                    newOfferCount: content.newOffers.count
+                )
+                if householdGroups.count > 1 {
+                    ActiveGroupMenu(groups: householdGroups, activeGroupId: content.group.id) { groupId in
+                        contextStore?.selectGroup(groupId)
+                    }
+                }
+            }
         case .savings:
             SavingsCard(savedCents: content.savedCents, orderCount: content.myOrders.count)
         case .orders:
@@ -350,6 +367,39 @@ private struct OfferCategoryChips: View {
 }
 
 // MARK: - En-tête du groupe
+
+/// « Changer de groupe » : le ménage fait partie de plusieurs groupes ; l'Accueil, la Cueillette et les lots
+/// suivent le groupe actif (mémorisé par `SessionContextStore.selectGroup`).
+private struct ActiveGroupMenu: View {
+    let groups: [NeighborhoodGroup]
+    let activeGroupId: String
+    let select: (String) -> Void
+
+    var body: some View {
+        Menu {
+            Picker("Groupe actif", selection: Binding(get: { activeGroupId }, set: { select($0) })) {
+                ForEach(groups) { group in
+                    Label {
+                        Text(group.name)
+                        Text(FrenchPlural.count(group.householdCount, "famille"))
+                    } icon: {
+                        Image(systemName: GrenierSymbol.groups)
+                    }
+                    .tag(group.id)
+                }
+            }
+            .pickerStyle(.inline)
+        } label: {
+            Label("Changer de groupe (\(groups.count))", systemImage: "arrow.triangle.swap")
+                .font(.subheadline.weight(.semibold))
+                .frame(maxWidth: .infinity, minHeight: 44)
+        }
+        .buttonStyle(.glass)
+        .tint(.grenier)
+        .sensoryFeedback(.selection, trigger: activeGroupId)
+        .accessibilityHint("Choisis le groupe affiché sur l'Accueil")
+    }
+}
 
 /// Bandeau du groupe en tête d'écran : icône, nom, quartier, et trois pastilles de chiffres.
 private struct GroupBanner: View {

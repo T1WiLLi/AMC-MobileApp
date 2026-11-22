@@ -277,11 +277,11 @@ private struct GroupDetailContent: View {
                     .accessibilityHidden(!showsNavigationTitle)
             }
         }
-        .task(id: content.isMember) {
+        .task(id: [content.isMember, viewModel.isCreator]) {
             let model = ratings ?? GroupRatingsViewModel(repositories: context.repositories, groupId: group.id,
                                                          householdId: context.householdId, userId: context.userId)
             ratings = model
-            await model.load(isMember: content.isMember)
+            await model.load(isMember: content.isMember, isOwner: viewModel.isCreator)
         }
         .task(id: viewModel.isCreator) {
             guard viewModel.isCreator, invitations == nil else { return }

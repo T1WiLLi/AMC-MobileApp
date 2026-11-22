@@ -1129,6 +1129,13 @@ describe('vendorReviews (T-157)', () => {
   test('le ménage qui a reçu le lot laisse un avis', async () => {
     await assertSucceeds(setDoc(doc(amina(), `vendorReviews/${reviewId}`), review()))
   })
+  test('le créateur du groupe ne note pas son propre groupe', async () => {
+    await seedMember()
+    await env.withSecurityRulesDisabled(async (context) => {
+      await updateDoc(doc(context.firestore(), groupPath), { createdBy: 'amina' })
+    })
+    await assertFails(rateBatch(amina(), rating(), 4, 1))
+  })
   test('sans commentaire, c’est permis', async () => {
     const { comment: _comment, ...withoutComment } = review()
     await assertSucceeds(setDoc(doc(amina(), `vendorReviews/${reviewId}`), withoutComment))

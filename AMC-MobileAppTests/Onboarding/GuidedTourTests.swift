@@ -62,8 +62,12 @@ struct GuidedTourTests {
         #expect(TourStep.vendorTiers.screen.isPushed)
     }
 
-    @Test func introStepsHaveNoElementAndOthersExpectOne() {
-        #expect(TourStep.allCases.filter { !$0.expectsAnchor } == [.intro, .vendorIntro])
+    @Test func introAndFormStepsHaveNoElementAndOthersExpectOne() {
+        #expect(TourStep.allCases.filter { !$0.expectsAnchor } == [.intro, .vendorIntro, .vendorTiers])
+        // Les boutons de la barre d'outils ont une place connue : SwiftUI ne donne pas leur cadre.
+        #expect(TourStep.allCases.filter { $0.toolbarSlot != nil } == [
+            .groupsActions, .profile, .vendorShop, .vendorCreate, .vendorProducts, .vendorProfile
+        ])
         // Un remplaçant existe pour les éléments qui peuvent manquer, dans la même visite.
         for step in TourStep.allCases {
             if let fallback = step.fallback { #expect(fallback.tour == step.tour) }
@@ -322,6 +326,12 @@ struct GuidedTourTests {
         #expect(tour.anchor(for: .pickup) == anchor)
         tour.removeAnchor(for: .pickup)
         #expect(tour.anchor(for: .pickup) == nil)
+    }
+
+    @Test func demoTourStepJumpsStraightToThatStep() {
+        let tour = makeTour(.racoonette)
+        tour.configureAtLaunch(arguments: ["-demoVendorTour", "-demoTourStep", "4"])
+        #expect(tour.currentStep == TourID.racoonette.steps[4])
     }
 
     @Test func newAnchorOfTheCurrentStepAsksForAScroll() {

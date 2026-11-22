@@ -27,16 +27,19 @@ struct GuidedTourOverlay: View {
     @State private var waitedOut = false
     @State private var scrollAttempts = 0
     @State private var lastScreen: TourScreen?
+    /// Marges de sécurité de l'écran (le voile les ignore pour couvrir toute la fenêtre, mais la bulle les respecte).
+    @State private var safeInsets = EdgeInsets()
 
     var body: some View {
         ZStack {
             if let step = tour.currentStep, let index = tour.machine.index {
                 GeometryReader { proxy in
-                    let spot = spotlight(settled, in: proxy)
-                    let showsBubble = !step.expectsAnchor || settled != nil || waitedOut
+                    let shown = step.toolbarSlot.map { toolbarAnchor($0, in: proxy) } ?? settled
+                    let spot = spotlight(shown, in: proxy)
+                    let showsBubble = !step.expectsAnchor || shown != nil || waitedOut
                     ZStack {
-                        TourScrim(spotlight: spot, cornerRadius: settled?.cornerRadius ?? 22)
-                        TourBubbleLayout(spot: spot, insets: proxy.safeAreaInsets) {
+                        TourScrim(spotlight: spot, cornerRadius: shown?.cornerRadius ?? 22)
+                        TourBubbleLayout(spot: spot, insets: safeInsets) {
                             TourBubble(
                                 step: step, index: index, count: tour.machine.steps.count, tour: tour,
                                 isEmpty: step.expectsAnchor && spot == nil
@@ -67,6 +70,7 @@ struct GuidedTourOverlay: View {
             }
         }
         .animation(reduceMotion ? nil : .smooth, value: tour.currentStep)
+        .onGeometryChange(for: EdgeInsets.self) { $0.safeAreaInsets } action: { safeInsets = $0 }
         .onChange(of: tour.currentStep == nil) { _, isOver in
             if isOver { settled = nil; lastScreen = nil }
         }
@@ -91,11 +95,19 @@ struct GuidedTourOverlay: View {
         guard step.expectsAnchor, step.isInContent, let live, scrollAttempts < 3 else { return }
         let area = proxy.size
         let rect = live.frame.insetBy(dx: -live.padding, dy: -live.padding)
-        let isComfortable = rect.minY >= proxy.safeAreaInsets.top + 44 && rect.maxY <= area.height - proxy.safeAreaInsets.bottom - 100
+        let isComfortable = rect.minY >= safeInsets.top + 44 && rect.maxY <= area.height - safeInsets.bottom - 100
         if !isComfortable {
             scrollAttempts += 1
             tour.requestScroll()
         }
+    }
+
+    /// Cadre d'un bouton de la barre d'outils à sa place habituelle (44 pt, sous l'encoche).
+    private func toolbarAnchor(_ slot: TourStep.ToolbarSlot, in proxy: GeometryProxy) -> TourAnchor {
+        let side: CGFloat = 44
+        let centerX = slot.isTrailing ? proxy.size.width - slot.fromEdge : slot.fromEdge
+        let frame = CGRect(x: centerX - side / 2, y: safeInsets.top + 22 - side / 2, width: side, height: side)
+        return TourAnchor(frame: frame, cornerRadius: side / 2, padding: 2)
     }
 
     /// Cadre à découper, dans le repère du voile ; nil s'il n'est pas (assez) à l'écran.
@@ -104,7 +116,7 @@ struct GuidedTourOverlay: View {
         let origin = proxy.frame(in: .global).origin
         let local = anchor.frame.offsetBy(dx: -origin.x, dy: -origin.y).insetBy(dx: -anchor.padding, dy: -anchor.padding)
         let screen = CGRect(origin: .zero, size: proxy.size)
-            .inset(by: UIEdgeInsets(top: proxy.safeAreaInsets.top, left: 0, bottom: proxy.safeAreaInsets.bottom, right: 0))
+            .inset(by: UIEdgeInsets(top: safeInsets.top, left: 0, bottom: safeInsets.bottom, right: 0))
         let visible = local.intersection(screen)
         // Trop peu visible, ou presque tout l'écran (une découpe qui ne montre plus rien).
         guard !visible.isNull, visible.height >= 30, visible.width >= 30,
@@ -114,13 +126,26 @@ struct GuidedTourOverlay: View {
 }
 
 extension TourStep {
-    /// L'élément est dans un contenu qui défile (et non dans la barre de navigation).
-    var isInContent: Bool {
+    /// Bouton de la barre d'outils : SwiftUI ne donne pas son cadre à l'écran (il est mesuré dans la barre), la
+    /// découpe est donc posée à sa place habituelle, à `fromEdge` pt du bord de l'écran (centre du bouton).
+    struct ToolbarSlot {
+        let isTrailing: Bool
+        let fromEdge: CGFloat
+    }
+
+    var toolbarSlot: ToolbarSlot? {
         switch self {
-        case .groupsActions, .profile, .vendorShop, .vendorCreate, .vendorProducts, .vendorProfile: false
-        default: true
+        case .profile, .vendorProfile: ToolbarSlot(isTrailing: true, fromEdge: 39)
+        case .groupsActions: ToolbarSlot(isTrailing: true, fromEdge: 153)
+        case .vendorShop: ToolbarSlot(isTrailing: false, fromEdge: 38)
+        case .vendorCreate: ToolbarSlot(isTrailing: true, fromEdge: 97)
+        case .vendorProducts: ToolbarSlot(isTrailing: false, fromEdge: 103)
+        default: nil
         }
     }
+
+    /// L'élément est dans un contenu qui défile (et non dans la barre de navigation).
+    var isInContent: Bool { toolbarSlot == nil }
 }
 
 // MARK: - Voile
@@ -174,8 +199,8 @@ private struct TourBubbleLayout: Layout {
         guard let bubble = subviews.first else { return }
         let width = min(bounds.width - 32, 520)
         let ideal = bubble.sizeThatFits(ProposedViewSize(width: width, height: nil)).height
-        let top = bounds.minY + insets.top + 8
-        let bottom = bounds.maxY - insets.bottom - 8
+        let top = insets.top + 8
+        let bottom = bounds.height - insets.bottom - 8
         let height: CGFloat
         let originY: CGFloat
         var anchorPoint = UnitPoint.top
@@ -202,7 +227,7 @@ private struct TourBubbleLayout: Layout {
             originY = top + (bottom - top - height) / 2
         }
         bubble.place(
-            at: CGPoint(x: bounds.midX, y: originY),
+            at: CGPoint(x: bounds.midX, y: bounds.minY + originY),
             anchor: anchorPoint,
             proposal: ProposedViewSize(width: width, height: height)
         )

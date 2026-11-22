@@ -104,7 +104,6 @@ struct TierEditorScreen: View {
                 chartSection
                 deadlineSection
             }
-            .guidedTourScroll(.racoonette)
             .scrollContentBackground(.hidden)
             .symbolRenderingMode(.hierarchical)
             .scrollDismissesKeyboard(.interactively)
@@ -257,7 +256,6 @@ struct TierEditorScreen: View {
                     focus: $focus
                 )
                 .id(ErrorAnchor.tier(tier.id))
-                .guidedTourAnchor(.vendorTiers, if: tier.id == model.tiers.first?.id, cornerRadius: 20, padding: 2)
                 .swipeActions(edge: .trailing, allowsFullSwipe: true) {
                     Button("Supprimer", systemImage: "trash", role: .destructive) {
                         withAnimation(motion) { model.removeTier(id: tier.id) }

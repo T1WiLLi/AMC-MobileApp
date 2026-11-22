@@ -308,6 +308,7 @@ private struct FamilyHomeContent: View {
         let visibleCount = HomeOfferFilter.visibleCount(total: filtered.count, isExpanded: showsAllOffers)
         return VStack(alignment: .leading, spacing: 12) {
             GrenierSectionHeader(String(localized: "Nouveaux lots près de toi"), systemImage: "sparkles", info: .offers)
+                .guidedTourAnchor(.homeOffers, cornerRadius: 16, padding: 8)
             if content.newOffers.isEmpty {
                 NoNewOfferCard()
             } else {
@@ -868,7 +869,7 @@ private struct TourAnchorIfFirst: ViewModifier {
 
     func body(content: Content) -> some View {
         if isFirst {
-            content.guidedTourAnchor(.homeOffers, cornerRadius: 20, padding: 2)
+            content
         } else {
             content
         }

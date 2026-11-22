@@ -172,7 +172,8 @@ nonisolated enum TourStep: String, Sendable, CaseIterable {
     /// Faux pour les étapes qui parlent de l'app en général : bulle au centre, sans découpe.
     var expectsAnchor: Bool {
         switch self {
-        case .intro, .vendorIntro: false
+        // Les lignes d'un Form ne sont créées qu'une fois à l'écran : pas de cadre fiable, l'éditeur s'explique au centre.
+        case .intro, .vendorIntro, .vendorTiers: false
         default: true
         }
     }
@@ -259,7 +260,7 @@ nonisolated enum TourStep: String, Sendable, CaseIterable {
         case .vendorDemand:
             String(localized: "La carte montre où les familles commandent et ce qu'elles souhaitent acheter. Touche une bulle pour lire leurs souhaits et « Proposer un lot ici ».")
         case .vendorRevenue:
-            String(localized: "Tes ventes dans le temps et produit par produit : tu vois tout de suite ce qui marche le mieux.")
+            String(localized: "Tes revenus prévus et tes chiffres clés, puis plus bas les ventes par produit : tu vois tout de suite ce qui marche le mieux.")
         case .vendorProfile:
             String(localized: "Ici : tes préférences, la langue, le mode aîné et « Revoir le tutoriel avec Racoonette » pour me retrouver. Bonne vente !")
         }
@@ -497,6 +498,14 @@ final class GuidedTour {
     func configureAtLaunch(arguments: [String] = ProcessInfo.processInfo.arguments) {
         guard isEnabled, GuidedTourPolicy.replaysAtLaunch(tour: tour, arguments: arguments) else { return }
         update { $0.replay() }
+        // QA : `-demoTourStep 7` saute directement à l'étape d'index 7 (sans passer par la carte d'accueil).
+        if let raw = arguments.firstIndex(of: "-demoTourStep").flatMap({ arguments.indices.contains($0 + 1) ? arguments[$0 + 1] : nil }),
+           let target = Int(raw) {
+            update { machine in
+                machine.start()
+                for _ in 0..<max(0, target) { machine.next() }
+            }
+        }
     }
 
     /// La carte d'accueil de la mascotte doit s'afficher.
@@ -588,7 +597,8 @@ private struct TourAnchorModifier: ViewModifier {
                 GuidedTour.instance(for: step.tour)
                     .updateAnchor(TourAnchor(frame: frame, cornerRadius: radius, padding: padding), for: step)
             }
-            .onDisappear { GuidedTour.instance(for: step.tour).removeAnchor(for: step) }
+            // Les éléments de la barre d'outils sont recréés par le système : leur cadre reste valable.
+            .onDisappear { if step.isInContent { GuidedTour.instance(for: step.tour).removeAnchor(for: step) } }
     }
 }
 

@@ -55,9 +55,9 @@ struct VendorRevenueContent: View {
             VStack(alignment: .leading, spacing: 12) {
                 TotalCard(revenue: revenue)
                 KeyFigures(revenue: revenue)
-                ProductStatsLink() // T-119 : statistiques de ventes par produit
             }
             .guidedTourAnchor(.vendorRevenue, padding: 4)
+            ProductStatsLink() // T-119 : statistiques de ventes par produit
 
             SectionTitle("Par lot", systemImage: "chart.bar.xaxis", tint: .grenier)
             OfferRevenueChart(offers: revenue.offers)

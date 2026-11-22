@@ -15,8 +15,10 @@ struct ProfileScreen: View {
     @Environment(PortalSwitchCoordinator.self) private var portalSwitch: PortalSwitchCoordinator?
     /// Portail touché : la pastille y glisse avant la fermeture de la feuille.
     @State private var pendingPortal: Portal?
-    /// T-122 : photo de profil, relue à chaque apparition (elle a pu changer dans « Mon compte »).
+    /// T-122 : photo de profil, relue à chaque apparition.
     @State private var photoURL: URL?
+    /// FB-06 : nom, photo et suppression du compte modifiés directement ici (session connectée seulement).
+    @State private var account: AccountViewModel?
     /// T-159 : demandes pour rejoindre le ménage en attente (propriétaire seulement), pastille sur « Mon ménage ».
     @State private var pendingJoinRequests = 0
     /// Ouvert en feuille : bouton Fermer dans la barre de l'écran racine seulement
@@ -27,7 +29,12 @@ struct ProfileScreen: View {
         NavigationStack {
             Form {
                 Section {
-                    ProfileHeader(user: session?.currentUser, portal: pendingPortal ?? portal, photoURL: photoURL)
+                    ProfileHeader(
+                        user: session?.currentUser,
+                        portal: pendingPortal ?? portal,
+                        photoURL: account?.user != nil ? account?.photoURL : photoURL,
+                        savedName: account?.user?.displayName
+                    )
                         .listRowInsets(EdgeInsets(top: 8, leading: 0, bottom: 8, trailing: 0))
                         .listRowBackground(Color.clear)
                         .grenierAppear(index: 0, style: .sheet)
@@ -109,11 +116,9 @@ struct ProfileScreen: View {
 
                 Section {
                     if let user = session?.currentUser {
-                        Label {
-                            Text(user.displayName)
-                                .foregroundStyle(Color.texte)
-                        } icon: {
-                            RowIcon(systemImage: "person.crop.circle.fill", tint: .grenier)
+                        // FB-06 : photo et nom se modifient ici, sans écran « Mon compte » de plus.
+                        if let account {
+                            AccountEditRows(model: account)
                         }
                         Label {
                             Text(user.email)
@@ -123,28 +128,11 @@ struct ProfileScreen: View {
                             RowIcon(systemImage: "envelope.fill", tint: .grenier)
                         }
                         .accessibilityLabel("Courriel : \(user.email)")
-                        if let session {
-                            NavigationLink {
-                                AccountScreen(model: AccountViewModel(
-                                    repositories: appContext.repositories, userId: appContext.userId, auth: session.auth
-                                ))
-                            } label: {
-                                Label {
-                                    Text("Modifier ou supprimer mon compte")
-                                } icon: {
-                                    // « person.crop.circle.badge.gearshape » n'existe pas dans SF Symbols : la tuile restait vide.
-                                    RowIcon(systemImage: "gearshape.fill", tint: .grenier)
-                                }
-                            }
-                        }
                         Button(role: .destructive) {
                             session?.signOut()
                         } label: {
-                            Label {
-                                Text("Se déconnecter")
-                            } icon: {
-                                RowIcon(systemImage: "rectangle.portrait.and.arrow.right", tint: .red)
-                            }
+                            Label("Se déconnecter", systemImage: "rectangle.portrait.and.arrow.right")
+                                .symbolRenderingMode(.hierarchical)
                         }
                     } else {
                         Label {
@@ -156,6 +144,16 @@ struct ProfileScreen: View {
                     }
                 } header: {
                     ProfileSectionHeader(String(localized: "Compte"), systemImage: "person.text.rectangle.fill")
+                } footer: {
+                    if account != nil {
+                        Text("Ta photo et ton nom apparaissent aux membres de ton groupe et à ton point de cueillette.")
+                    }
+                }
+
+                if session?.currentUser != nil, let account {
+                    AccountDeleteSection(model: account, session: session) {
+                        ProfileSectionHeader(String(localized: "Zone sensible"), systemImage: "exclamationmark.triangle.fill")
+                    }
                 }
 
                 Section {
@@ -167,6 +165,7 @@ struct ProfileScreen: View {
                 }
             }
             .scrollContentBackground(.hidden)
+            .scrollDismissesKeyboard(.interactively)
             .grenierBackground()
             .navigationTitle("Profil")
             .toolbar {
@@ -177,6 +176,11 @@ struct ProfileScreen: View {
                 }
             }
             .onAppear {
+                if account == nil, let session, session.currentUser != nil {
+                    account = AccountViewModel(
+                        repositories: appContext.repositories, userId: appContext.userId, auth: session.auth
+                    )
+                }
                 Task { photoURL = try? await appContext.repositories.users.user(id: appContext.userId).photoURL }
                 Task {
                     guard appContext.hasHousehold else { return }
@@ -242,6 +246,8 @@ private struct ProfileHeader: View {
     let portal: Portal
     /// T-122 : photo de `AppUser`, nil = initiales.
     var photoURL: URL? = nil
+    /// FB-06 : nom enregistré dans la section Compte (sinon celui de la session).
+    var savedName: String? = nil
 
     @ScaledMetric(relativeTo: .largeTitle) private var scaledAvatar: CGFloat = 84
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
@@ -254,7 +260,7 @@ private struct ProfileHeader: View {
             if let user {
                 avatar(for: user)
                 VStack(spacing: 4) {
-                    Text(user.displayName)
+                    Text(savedName ?? user.displayName)
                         .font(.title2.bold())
                         .fontDesign(.rounded)
                         .foregroundStyle(Color.texte)
@@ -296,7 +302,7 @@ private struct ProfileHeader: View {
 
     private func avatar(for user: AuthUser) -> some View {
         // T-122 : photo de profil (users/{uid}/media/avatar), sinon initiales.
-        AvatarView(name: user.displayName, photoURL: photoURL, size: avatarSide)
+        AvatarView(name: savedName ?? user.displayName, photoURL: photoURL, size: avatarSide)
             .overlay(alignment: .bottomTrailing) {
                 Image(systemName: "checkmark.seal.fill")
                     .font(.system(size: avatarSide * 0.26))
@@ -329,20 +335,16 @@ private struct ProfileSectionHeader: View {
     }
 }
 
-/// Icône de ligne dans une pastille teintée, comme dans Réglages.
+/// Icône de ligne : SF Symbol hiérarchique teinté, sans tuile de fond (FB-07),
+/// pour que toutes les lignes du profil s'alignent comme les `Label` natifs.
 private struct RowIcon: View {
     let systemImage: String
     let tint: Color
 
-    @ScaledMetric(relativeTo: .body) private var side: CGFloat = 30
-
     var body: some View {
         Image(systemName: systemImage)
-            .font(.body.weight(.semibold))
             .symbolRenderingMode(.hierarchical)
             .foregroundStyle(tint)
-            .frame(width: min(side, 48), height: min(side, 48))
-            .background(tint.opacity(0.14), in: .rect(cornerRadius: 8))
             .accessibilityHidden(true)
     }
 }

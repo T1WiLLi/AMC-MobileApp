@@ -57,15 +57,16 @@ struct RootView: View {
                     OrganizationTabView()
                 } else {
                     // Sans organisme rattaché, le portail planterait sur un chemin Firestore vide.
-                    ContextRequirementView(.organization) {
+                    // FB-16 : à la place, « Faire une demande » (courriel prérempli) ou retour aux Familles.
+                    OrganizationAccessRequestView {
                         portalSwitch.switchPortal(from: .organization, to: .family, reduceMotion: reduceMotion)
                     }
                 }
             }
         }
-        .animation(.smooth, value: portal)
-        // L'écran du portail recule sous le voile, puis reprend sa place quand le voile s'efface.
-        .scaleEffect(portalSwitch.phase.contentScale(reduceMotion: reduceMotion))
+        // FB-17 : pas d'animation implicite sur `portal` ; le coordinateur pilote seul la bascule.
+        // Le nouveau portail arrive un peu en retrait sous le voile, puis reprend sa place en se dévoilant.
+        .scaleEffect(portalSwitch.contentScale)
         .overlay(alignment: .top) {
             if isOffline {
                 OfflineBadge()
@@ -78,12 +79,9 @@ struct RootView: View {
         .grenierAnimation(.smooth, value: isOffline)
         .overlay { PortalSplashOverlay(phase: portalSwitch.phase) }
         .environment(portalSwitch)
-        .onChange(of: portalSwitch.phase) { _, phase in
-            // Le voile couvre l'écran : on change de portail d'un coup, sans animation visible.
-            guard case .presenting(let destination) = phase, destination != portal else { return }
-            var transaction = Transaction()
-            transaction.disablesAnimations = true
-            withTransaction(transaction) { portal = destination }
+        .onAppear {
+            // Le coordinateur change le portail lui-même, voile opaque et immobile, sans animation.
+            portalSwitch.applyPortal = { destination in portal = destination }
         }
         .grenierHaptic(.success, trigger: portalSwitch.completedSwitches) { _, count in count > 0 }
         .onChange(of: scenePhase, initial: true) { _, phase in

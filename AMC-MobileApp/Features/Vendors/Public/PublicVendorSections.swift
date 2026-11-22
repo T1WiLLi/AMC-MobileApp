@@ -211,7 +211,7 @@ private struct LastSaleCard: View {
 
 /// Textes d'une vente passée.
 nonisolated enum SaleText {
-    private static let locale = Locale(identifier: "fr_CA")
+    private static var locale: Locale { AppLanguage.formattingLocale }
 
     /// « Carottes nantaises · il y a 9 jours ».
     static func short(_ sale: VendorSale) -> String {

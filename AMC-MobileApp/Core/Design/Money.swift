@@ -2,7 +2,7 @@ import Foundation
 
 /// Formatage des montants Grenier (cents CAD → « 2,60 $ »), en français du Canada.
 enum Money {
-    private static let locale = Locale(identifier: "fr_CA")
+    private static var locale: Locale { AppLanguage.formattingLocale }
 
     /// « 2,60 $ »
     static func format(_ cents: Cents) -> String {

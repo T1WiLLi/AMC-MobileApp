@@ -659,7 +659,7 @@ private struct MaxBrightness {
 // MARK: - Formatage
 
 private enum PickupFormat {
-    private static let locale = Locale(identifier: "fr_CA")
+    private static var locale: Locale { AppLanguage.formattingLocale }
 
     /// « Cueillette dans 25 min », « Cueillette dans 3 h », « Cueillette dans 2 jours ».
     static func countdown(minutes: Int?) -> String {

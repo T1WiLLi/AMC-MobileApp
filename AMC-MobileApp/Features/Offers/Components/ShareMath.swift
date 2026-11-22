@@ -84,7 +84,7 @@ nonisolated enum ShareMath {
     static func quantityLabel(shares: Int, unit: String) -> String {
         if let weight = unitWeightKg(unit) {
             let total = Double(shares) * weight
-            let number = total.formatted(.number.precision(.fractionLength(0...1)).locale(Locale(identifier: "fr_CA")))
+            let number = total.formatted(.number.precision(.fractionLength(0...1)).locale(AppLanguage.formattingLocale))
             return "\(number) kg"
         }
         return "\(shares) \(shares > 1 ? pluralized(unit) : unit)"

@@ -256,7 +256,7 @@ private struct SlotCard: View {
 /// Formats des créneaux en français (« samedi 22 nov. », « 10 h – 11 h 30 »).
 enum SlotFormat {
     static func day(_ date: Date) -> String {
-        date.formatted(.dateTime.weekday(.wide).day().month(.abbreviated).locale(Locale(identifier: "fr_CA")))
+        date.formatted(.dateTime.weekday(.wide).day().month(.abbreviated).locale(AppLanguage.formattingLocale))
     }
 
     static func hour(_ date: Date) -> String {

@@ -103,7 +103,7 @@ final class FirebaseAuthService: AuthService {
 
     func sendEmailVerification() async throws {
         guard let user = Auth.auth().currentUser else { throw AuthError.notSignedIn }
-        Auth.auth().useAppLanguage()
+        Auth.auth().languageCode = AppLanguage.stored.resolvedCode  // T-171 : langue choisie dans l’app
         do {
             try await user.sendEmailVerification()
         } catch {
@@ -123,7 +123,7 @@ final class FirebaseAuthService: AuthService {
     }
 
     func sendPasswordReset(email: String) async throws {
-        Auth.auth().useAppLanguage()
+        Auth.auth().languageCode = AppLanguage.stored.resolvedCode  // T-171 : langue choisie dans l’app
         do {
             try await Auth.auth().sendPasswordReset(withEmail: Self.clean(email))
         } catch {

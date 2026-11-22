@@ -92,7 +92,7 @@ extension Receipt {
         if let payment, isPaid {
             lines.append(String(localized: "Total payé : \(Money.format(totalCents))"))
             let date = payment.date.formatted(
-                .dateTime.day().month(.wide).year().locale(Locale(identifier: "fr_CA"))
+                .dateTime.day().month(.wide).year().locale(AppLanguage.formattingLocale)
             )
             lines.append(String(localized: "Payé avec \(payment.methodLabel) le \(date)"))
         } else {

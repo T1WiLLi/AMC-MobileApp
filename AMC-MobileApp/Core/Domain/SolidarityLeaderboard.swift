@@ -154,7 +154,7 @@ nonisolated enum SolidarityLeaderboard {
         if entry.rank == 1 { return "En tête de Montréal : bravo !" }
         if let first = entry.championOf.first { return "\(first.championTitle) de la ville" }
         if let points = entry.pointsToNextRank {
-            let formatted = points.formatted(.number.precision(.fractionLength(0...1)).locale(Locale(identifier: "fr_CA")))
+            let formatted = points.formatted(.number.precision(.fractionLength(0...1)).locale(AppLanguage.formattingLocale))
             return entry.rank <= 3
                 ? "Plus que \(formatted) pts pour monter sur la marche au-dessus"
                 : "Plus que \(formatted) pts pour gagner une place"

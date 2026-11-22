@@ -112,7 +112,7 @@ struct OfferCard: View {
     }
 
     private var deadlineText: String {
-        offer.deadline.formatted(.dateTime.weekday(.wide).hour().locale(Locale(identifier: "fr_CA")))
+        offer.deadline.formatted(.dateTime.weekday(.wide).hour().locale(AppLanguage.formattingLocale))
     }
 }
 

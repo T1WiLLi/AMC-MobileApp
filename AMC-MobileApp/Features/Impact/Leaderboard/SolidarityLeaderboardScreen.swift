@@ -271,7 +271,7 @@ private struct LeaderboardRow: View {
     private var detail: String {
         let shown = metric ?? entry.strength
         let value = entry.perHousehold[shown] ?? 0
-        let locale = Locale(identifier: "fr_CA")
+        let locale = AppLanguage.formattingLocale
         let groups = "\(entry.stats.groupCount) \(entry.stats.groupCount > 1 ? "groupes" : "groupe")"
         let text: String = switch shown {
         case .baskets:
@@ -302,7 +302,7 @@ private struct MethodCard: View {
                         Label(metric.title, systemImage: metric.systemImage)
                             .symbolRenderingMode(.hierarchical)
                         Spacer()
-                        Text(metric.weight.formatted(.percent.precision(.fractionLength(0)).locale(Locale(identifier: "fr_CA"))))
+                        Text(metric.weight.formatted(.percent.precision(.fractionLength(0)).locale(AppLanguage.formattingLocale)))
                             .monospacedDigit()
                             .foregroundStyle(.texte)
                     }

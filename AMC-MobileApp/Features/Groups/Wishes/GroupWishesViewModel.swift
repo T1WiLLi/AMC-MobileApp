@@ -135,7 +135,7 @@ final class GroupWishesViewModel {
 
     /// « 12 kg », « 2,5 L », « 3 douzaines ».
     nonisolated static func quantityText(_ quantity: Double, unit: MeasureUnit) -> String {
-        let number = quantity.formatted(.number.precision(.fractionLength(0...1)).locale(Locale(identifier: "fr_CA")))
+        let number = quantity.formatted(.number.precision(.fractionLength(0...1)).locale(AppLanguage.formattingLocale))
         switch unit {
         case .kilogram, .liter: return "\(number) \(unit.title)"
         case .dozen, .unit: return "\(number) \(quantity > 1 ? unit.title + "s" : unit.title)"

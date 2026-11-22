@@ -111,6 +111,17 @@ final class PreferencesViewModel {
         await update { $0.seniorMode = isOn }
     }
 
+    /// T-171 : libellé d'un choix de langue de l'interface. « Langue de l'appareil » montre la langue résolue.
+    nonisolated static func title(of language: AppLanguage) -> String {
+        switch language {
+        case .system:
+            let resolved = AppUser.Language(rawValue: AppLanguage.system.resolvedCode) ?? .french
+            return String(localized: "Langue de l'appareil (\(title(of: resolved)))")
+        case .french: return title(of: AppUser.Language.french)
+        case .english: return title(of: AppUser.Language.english)
+        }
+    }
+
     nonisolated static func title(of language: AppUser.Language) -> String {
         switch language {
         case .french: "Français"

@@ -178,7 +178,7 @@ nonisolated enum PickupSchedule {
         }
     }
 
-    static let locale = Locale(identifier: "fr_CA")
+    static var locale: Locale { AppLanguage.formattingLocale }
 
     static func state(now: Date, slot: PickupSlot) -> State {
         if now < slot.start { return .upcoming }

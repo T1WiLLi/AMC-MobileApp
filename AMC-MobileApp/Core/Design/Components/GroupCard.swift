@@ -100,7 +100,7 @@ struct GroupCard: View {
 
     static func distanceText(_ meters: Int) -> String {
         if meters < 1_000 { return "\(meters) m" }
-        return (Double(meters) / 1_000).formatted(.number.precision(.fractionLength(1)).locale(Locale(identifier: "fr_CA"))) + " km"
+        return (Double(meters) / 1_000).formatted(.number.precision(.fractionLength(1)).locale(AppLanguage.formattingLocale)) + " km"
     }
 }
 

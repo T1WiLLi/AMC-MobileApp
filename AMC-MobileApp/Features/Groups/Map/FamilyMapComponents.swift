@@ -131,6 +131,9 @@ struct FamilyMapPin: View {
                         .padding(.horizontal, 10)
                         .padding(.vertical, 5)
                         .glassEffect(.regular, in: .capsule)
+                        // T-182 : étiquette sur la carte, plafonnée comme les autres surcouches (#223) ; à AX5 elle
+                        // sortait de l'écran. Le nom complet reste lisible dans la carte du lieu, en bas.
+                        .dynamicTypeSize(...DynamicTypeSize.accessibility1)
                         .fixedSize()
                         .alignmentGuide(.top) { $0[.bottom] + 6 }
                         .transition(.scale(scale: 0.6, anchor: .bottom).combined(with: .opacity))
@@ -248,13 +251,16 @@ struct FamilyMapCarousel: View {
     let places: [FamilyMapViewModel.Place]
     @Binding var selectedID: String?
     let reduceMotion: Bool
+    /// T-182 : hauteur maximale d'une carte aux tailles d'accessibilité ; au-delà, son texte défile.
+    var maxTileHeight: CGFloat? = nil
     let onOpen: (FamilyMapDestination) -> Void
 
     var body: some View {
         ScrollView(.horizontal) {
             LazyHStack(spacing: 10) {
                 ForEach(places) { place in
-                    FamilyMapPlaceTile(place: place, isSelected: place.id == selectedID, onOpen: onOpen)
+                    FamilyMapPlaceTile(place: place, isSelected: place.id == selectedID, maxHeight: maxTileHeight,
+                                       onOpen: onOpen)
                         .containerRelativeFrame(.horizontal)
                         .scrollTransition(.interactive) { content, phase in
                             content
@@ -268,6 +274,9 @@ struct FamilyMapCarousel: View {
         }
         .scrollTargetBehavior(.viewAligned)
         .scrollPosition(id: $selectedID, anchor: .center)
+        // T-182 : un ScrollView horizontal prend toute la hauteur offerte ; sans ce plafond, la couche du bas montait
+        // jusque sous la barre du haut et la pastille « Autour de … » cachait le milieu de la carte.
+        .fixedSize(horizontal: false, vertical: true)
         .scrollIndicators(.hidden)
         .contentMargins(.horizontal, 24, for: .scrollContent)
         .scrollClipDisabled()
@@ -281,64 +290,118 @@ struct FamilyMapCarousel: View {
 struct FamilyMapPlaceTile: View {
     let place: FamilyMapViewModel.Place
     let isSelected: Bool
+    /// T-182 : aux tailles d'accessibilité, la carte ne dépasse pas cette hauteur et son texte défile.
+    var maxHeight: CGFloat? = nil
     let onOpen: (FamilyMapDestination) -> Void
 
     @ScaledMetric(relativeTo: .headline) private var scaledThumbnail: CGFloat = 68
     private var thumbnail: CGFloat { min(scaledThumbnail, 96) }
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
+    private var isLarge: Bool { dynamicTypeSize.isAccessibilitySize }
+    @State private var contentHeight: CGFloat = 0
 
     var body: some View {
+        Group {
+            if isLarge, let maxHeight {
+                // Le texte entier, sans troncature : la carte prend la hauteur de son texte, jusqu'à `maxHeight`,
+                // puis il défile dedans (le bouton reste dedans).
+                ScrollView(.vertical) {
+                    card.onGeometryChange(for: CGFloat.self, of: \.size.height) { contentHeight = $0 }
+                }
+                .scrollBounceBehavior(.basedOnSize)
+                .scrollIndicators(.visible)
+                .frame(height: contentHeight > 0 ? min(contentHeight, maxHeight) : maxHeight)
+            } else {
+                card
+            }
+        }
+        .background(Color.surface, in: .rect(cornerRadius: 26))
+        .overlay {
+            RoundedRectangle(cornerRadius: 26)
+                .strokeBorder(place.kind.color.opacity(isSelected ? 0.9 : 0), lineWidth: 2)
+        }
+        .clipShape(.rect(cornerRadius: 26))
+        .shadow(color: .black.opacity(isSelected ? 0.18 : 0.1), radius: isSelected ? 14 : 8, y: 4)
+        .contextMenu { menu }
+    }
+
+    private var card: some View {
         Button(action: open) {
-            HStack(spacing: 14) {
-                if !dynamicTypeSize.isAccessibilitySize {
-                    FamilyMapThumbnail(kind: place.kind, photoURL: place.photoURL)
-                        .frame(width: thumbnail, height: thumbnail)
-                        .clipShape(.rect(cornerRadius: 18))
-                }
-                VStack(alignment: .leading, spacing: 3) {
-                    Label(place.kind.title, systemImage: place.kind.systemImage)
-                        .font(.caption.weight(.semibold))
-                        .symbolRenderingMode(.hierarchical)
-                        .foregroundStyle(place.kind.color)
-                    Text(place.name)
-                        .font(.headline)
-                        .foregroundStyle(Color.texte)
-                        .lineLimit(2)
-                    Text(place.subtitle)
-                        .font(.subheadline)
-                        .foregroundStyle(Color.texteSecondaire)
-                        .lineLimit(1)
-                    Label(place.distanceText, systemImage: "figure.walk")
-                        .font(.caption.weight(.semibold))
-                        .foregroundStyle(place.kind.color)
-                        .padding(.horizontal, 8)
-                        .padding(.vertical, 3)
-                        .background(place.kind.color.opacity(0.12), in: .capsule)
-                        .padding(.top, 2)
-                }
-                .frame(maxWidth: .infinity, alignment: .leading)
-                Image(systemName: place.destination == nil ? "arrow.triangle.turn.up.right.circle.fill" : "chevron.right.circle.fill")
-                    .font(.title2)
-                    .symbolRenderingMode(.hierarchical)
-                    .foregroundStyle(place.kind.color)
-                    .accessibilityHidden(true)
+            Group {
+                if isLarge { largeContent } else { regularContent }
             }
             .padding(14)
             .frame(maxWidth: .infinity, alignment: .leading)
-            .background(Color.surface, in: .rect(cornerRadius: 26))
-            .overlay {
-                RoundedRectangle(cornerRadius: 26)
-                    .strokeBorder(place.kind.color.opacity(isSelected ? 0.9 : 0), lineWidth: 2)
-            }
-            .shadow(color: .black.opacity(isSelected ? 0.18 : 0.1), radius: isSelected ? 14 : 8, y: 4)
             .contentShape(.rect(cornerRadius: 26))
         }
         .buttonStyle(.plain)
-        .contextMenu { menu }
         .accessibilityElement(children: .combine)
         .accessibilityLabel(place.accessibilityLabel + ", " + place.subtitle)
         .accessibilityHint(hint)
         .accessibilityAddTraits(isSelected ? [.isButton, .isSelected] : .isButton)
+    }
+
+    private var regularContent: some View {
+        HStack(spacing: 14) {
+            FamilyMapThumbnail(kind: place.kind, photoURL: place.photoURL)
+                .frame(width: thumbnail, height: thumbnail)
+                .clipShape(.rect(cornerRadius: 18))
+            VStack(alignment: .leading, spacing: 3) {
+                kindLabel
+                Text(place.name)
+                    .font(.headline)
+                    .foregroundStyle(Color.texte)
+                    .lineLimit(2)
+                Text(place.subtitle)
+                    .font(.subheadline)
+                    .foregroundStyle(Color.texteSecondaire)
+                    .lineLimit(1)
+                distanceBadge
+                    .padding(.top, 2)
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            actionSymbol
+        }
+    }
+
+    /// Aux tailles d'accessibilité : ni vignette ni symbole d'action (toute la carte se touche), pour laisser toute
+    /// la largeur à la sorte, au nom et à l'info, qui passent à la ligne au lieu d'être coupés.
+    private var largeContent: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            kindLabel
+            Text(place.name)
+                .font(.headline)
+                .foregroundStyle(Color.texte)
+            Text(place.subtitle)
+                .font(.subheadline)
+                .foregroundStyle(Color.texteSecondaire)
+            distanceBadge
+        }
+        .fixedSize(horizontal: false, vertical: true)
+    }
+
+    private var kindLabel: some View {
+        Label(place.kind.title, systemImage: place.kind.systemImage)
+            .font(.caption.weight(.semibold))
+            .symbolRenderingMode(.hierarchical)
+            .foregroundStyle(place.kind.color)
+    }
+
+    private var distanceBadge: some View {
+        Label(place.distanceText, systemImage: "figure.walk")
+            .font(.caption.weight(.semibold))
+            .foregroundStyle(place.kind.color)
+            .padding(.horizontal, 8)
+            .padding(.vertical, 3)
+            .background(place.kind.color.opacity(0.12), in: .capsule)
+    }
+
+    private var actionSymbol: some View {
+        Image(systemName: place.destination == nil ? "arrow.triangle.turn.up.right.circle.fill" : "chevron.right.circle.fill")
+            .font(.title2)
+            .symbolRenderingMode(.hierarchical)
+            .foregroundStyle(place.kind.color)
+            .accessibilityHidden(true)
     }
 
     private var hint: String {

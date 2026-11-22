@@ -40,6 +40,9 @@ struct FamilyMapScreen: View {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Environment(\.openURL) private var openURL
     @Environment(\.scenePhase) private var scenePhase
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
+    /// Hauteur de l'écran : plafonne la carte du lieu aux tailles d'accessibilité (T-182).
+    @State private var screenHeight: CGFloat = 800
 
     var body: some View {
         ZStack {
@@ -51,6 +54,7 @@ struct FamilyMapScreen: View {
                 Color.fond.ignoresSafeArea()
             }
         }
+        .onGeometryChange(for: CGFloat.self, of: \.size.height) { screenHeight = $0 }
         .safeAreaInset(edge: .top, spacing: 0) {
             if let viewModel { FamilyMapControlBar(viewModel: viewModel, reduceMotion: reduceMotion)
                     // Les pastilles flottent sur la carte : au-delà de ce plafond elles mangeaient l'écran.
@@ -108,21 +112,24 @@ struct FamilyMapScreen: View {
     private func bottomLayer(_ viewModel: FamilyMapViewModel) -> some View {
         VStack(spacing: 12) {
             GlassEffectContainer(spacing: 12) {
-                HStack(alignment: .bottom, spacing: 12) {
-                    FamilyMapOriginPill(viewModel: viewModel, authorization: location.authorization,
-                                        isLocating: location.isLocating, action: originTapped)
-                    Spacer(minLength: 0)
-                    VStack(spacing: 10) {
-                        MapCompass(scope: mapScope)
-                        Button("Recentrer la carte", systemImage: "scope", action: recenter)
-                            .labelStyle(.iconOnly)
-                            .font(.title3.weight(.semibold))
-                            .foregroundStyle(Color.grenier)
-                            .frame(width: 48, height: 48)
-                            .contentShape(.circle)
-                            .buttonStyle(.plain)
-                            .glassEffect(.regular.interactive(), in: .circle)
-                            .accessibilityHint(viewModel.origin?.title ?? "")
+                if dynamicTypeSize.isAccessibilitySize {
+                    // T-182 : la pastille prend toute la largeur pour passer à la ligne ; boussole et recentrage
+                    // montent au-dessus, côte à côte.
+                    VStack(alignment: .trailing, spacing: 10) {
+                        HStack(spacing: 10) {
+                            MapCompass(scope: mapScope)
+                            recenterButton(viewModel)
+                        }
+                        originPill(viewModel)
+                    }
+                } else {
+                    HStack(alignment: .bottom, spacing: 12) {
+                        originPill(viewModel)
+                        Spacer(minLength: 0)
+                        VStack(spacing: 10) {
+                            MapCompass(scope: mapScope)
+                            recenterButton(viewModel)
+                        }
                     }
                 }
             }
@@ -148,6 +155,7 @@ struct FamilyMapScreen: View {
                             set: { id in withAnimation(reduceMotion ? nil : .smooth) { viewModel.selectedPlaceID = id } }
                         ),
                         reduceMotion: reduceMotion,
+                        maxTileHeight: dynamicTypeSize.isAccessibilitySize ? max(screenHeight * 0.3, 180) : nil,
                         onOpen: { destination = $0 }
                     )
                     .transition(.move(edge: .bottom).combined(with: .opacity))
@@ -165,6 +173,25 @@ struct FamilyMapScreen: View {
         .padding(.bottom, 8)
         .animation(reduceMotion ? nil : .smooth, value: viewModel.places.isEmpty)
         .animation(reduceMotion ? nil : .smooth, value: needsLocationExplanation)
+    }
+
+    private func originPill(_ viewModel: FamilyMapViewModel) -> some View {
+        FamilyMapOriginPill(viewModel: viewModel, authorization: location.authorization,
+                            isLocating: location.isLocating, action: originTapped)
+    }
+
+    private func recenterButton(_ viewModel: FamilyMapViewModel) -> some View {
+        Button("Recentrer la carte", systemImage: "scope", action: recenter)
+            .labelStyle(.iconOnly)
+            .font(.title3.weight(.semibold))
+            .foregroundStyle(Color.grenier)
+            .frame(width: 48, height: 48)
+            .contentShape(.circle)
+            .buttonStyle(.plain)
+            .glassEffect(.regular.interactive(), in: .circle)
+            // Icône dans un rond de 48 pt : au-delà de XXXL, elle débordait sur la pastille (T-182).
+            .dynamicTypeSize(...DynamicTypeSize.xxxLarge)
+            .accessibilityHint(viewModel.origin?.title ?? "")
     }
 
     private var needsLocationExplanation: Bool {
@@ -419,27 +446,42 @@ private struct FamilyMapControlBar: View {
     @Bindable var viewModel: FamilyMapViewModel
     let reduceMotion: Bool
 
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
+
     var body: some View {
         GlassEffectContainer(spacing: 8) {
-            ScrollView(.horizontal) {
+            if dynamicTypeSize.isAccessibilitySize {
+                // T-182 : à AX1–AX5, trois puces ne tiennent pas sur une rangée et cachaient la moitié de la carte :
+                // le rayon reste, les filtres se replient dans un menu.
                 HStack(spacing: 8) {
                     FamilyMapRadiusPill(viewModel: viewModel, reduceMotion: reduceMotion)
+                        .fixedSize()
                     InfoButton(topic: .mapRadius).glassEffect(.regular.interactive(), in: .circle)
-                    ForEach(FamilyMapViewModel.Kind.allCases) { kind in
-                        FamilyMapKindChip(
-                            kind: kind,
-                            count: viewModel.countsInRadius[kind] ?? 0,
-                            isOn: viewModel.visibleKinds.contains(kind),
-                            reduceMotion: reduceMotion
-                        ) {
-                            withAnimation(reduceMotion ? nil : .smooth) { viewModel.toggle(kind) }
-                        }
-                    }
+                    Spacer(minLength: 0)
+                    FamilyMapKindMenu(viewModel: viewModel, reduceMotion: reduceMotion)
                 }
                 .padding(.horizontal, 16)
+            } else {
+                ScrollView(.horizontal) {
+                    HStack(spacing: 8) {
+                        FamilyMapRadiusPill(viewModel: viewModel, reduceMotion: reduceMotion)
+                        InfoButton(topic: .mapRadius).glassEffect(.regular.interactive(), in: .circle)
+                        ForEach(FamilyMapViewModel.Kind.allCases) { kind in
+                            FamilyMapKindChip(
+                                kind: kind,
+                                count: viewModel.countsInRadius[kind] ?? 0,
+                                isOn: viewModel.visibleKinds.contains(kind),
+                                reduceMotion: reduceMotion
+                            ) {
+                                withAnimation(reduceMotion ? nil : .smooth) { viewModel.toggle(kind) }
+                            }
+                        }
+                    }
+                    .padding(.horizontal, 16)
+                }
+                .scrollIndicators(.hidden)
+                .scrollClipDisabled()
             }
-            .scrollIndicators(.hidden)
-            .scrollClipDisabled()
         }
         // Surcouche de carte : comme dans Plans, le texte s'arrête à AX3 pour laisser voir la carte.
         .dynamicTypeSize(...DynamicTypeSize.accessibility3)
@@ -511,6 +553,58 @@ private struct FamilyMapKindChip: View {
     }
 }
 
+/// T-182 : filtres par sorte repliés en menu aux tailles d'accessibilité. Le libellé montre combien de sortes
+/// sont affichées ; le menu (texte système, sans plafond) liste chaque sorte avec son nombre de lieux.
+private struct FamilyMapKindMenu: View {
+    @Bindable var viewModel: FamilyMapViewModel
+    let reduceMotion: Bool
+
+    private var shownCount: Int { viewModel.visibleKinds.count }
+    private var allShown: Bool { shownCount == FamilyMapViewModel.Kind.allCases.count }
+
+    var body: some View {
+        Menu {
+            ForEach(FamilyMapViewModel.Kind.allCases) { kind in
+                Toggle(isOn: Binding(
+                    get: { viewModel.visibleKinds.contains(kind) },
+                    set: { _ in withAnimation(reduceMotion ? nil : .smooth) { viewModel.toggle(kind) } }
+                )) {
+                    Label("\(kind.pluralTitle) (\(viewModel.countsInRadius[kind] ?? 0))", systemImage: kind.systemImage)
+                }
+            }
+        } label: {
+            ViewThatFits(in: .horizontal) {
+                HStack(spacing: 6) {
+                    filterSymbol
+                    Text("\(shownCount)/\(FamilyMapViewModel.Kind.allCases.count)")
+                        .monospacedDigit()
+                        .foregroundStyle(Color.texte)
+                        .contentTransition(.numericText(value: Double(shownCount)))
+                }
+                filterSymbol
+            }
+            .font(.subheadline.weight(.bold))
+            .padding(.horizontal, 14)
+            .frame(minWidth: 44, minHeight: 44)
+            .contentShape(.capsule)
+        }
+        .menuActionDismissBehavior(.disabled)
+        .buttonStyle(.plain)
+        .glassEffect(.regular.interactive(), in: .capsule)
+        .animation(reduceMotion ? nil : .smooth, value: shownCount)
+        .accessibilityLabel("Sortes de lieux")
+        .accessibilityValue(String(localized: "\(shownCount) sur \(FamilyMapViewModel.Kind.allCases.count) affichées"))
+        .accessibilityHint("Choisis les sortes de lieux à afficher")
+    }
+
+    private var filterSymbol: some View {
+        Image(systemName: allShown ? "line.3.horizontal.decrease" : "line.3.horizontal.decrease.circle.fill")
+            .symbolRenderingMode(.hierarchical)
+            .foregroundStyle(Color.grenier)
+            .contentTransition(.symbolEffect(.replace))
+    }
+}
+
 // MARK: - Pastille « Autour de … »
 
 private struct FamilyMapOriginPill: View {
@@ -518,6 +612,11 @@ private struct FamilyMapOriginPill: View {
     let authorization: FamilyLocationRequester.Authorization
     let isLocating: Bool
     let action: () -> Void
+
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
+    private var isLarge: Bool { dynamicTypeSize.isAccessibilitySize }
+    /// Capsule (moitié de 48 pt) sur une ligne ; mêmes coins quand le texte passe à la ligne.
+    private var cornerRadius: CGFloat { 24 }
 
     private var symbol: String {
         if viewModel.origin?.isUserLocation == true { return "location.fill" }
@@ -531,13 +630,13 @@ private struct FamilyMapOriginPill: View {
 
     var body: some View {
         Button(action: action) {
-            HStack(spacing: 10) {
+            HStack(alignment: isLarge ? .firstTextBaseline : .center, spacing: 10) {
                 Image(systemName: symbol)
                     .font(.body.weight(.semibold))
                     .foregroundStyle(Color.grenier)
                     .contentTransition(.symbolEffect(.replace))
                     .symbolEffect(.pulse, isActive: isLocating)
-                    .frame(width: 24)
+                    .frame(minWidth: 24)
                 VStack(alignment: .leading, spacing: 0) {
                     Text(viewModel.origin?.title ?? String(localized: "Ton quartier"))
                         .font(.subheadline.weight(.semibold))
@@ -547,16 +646,20 @@ private struct FamilyMapOriginPill: View {
                         .foregroundStyle(Color.texteSecondaire)
                         .contentTransition(.numericText())
                 }
-                .lineLimit(2)
+                .lineLimit(isLarge ? nil : 2)
+                .fixedSize(horizontal: false, vertical: isLarge)
                 .multilineTextAlignment(.leading)
             }
             .padding(.horizontal, 14)
-            .padding(.vertical, 8)
+            .padding(.vertical, isLarge ? 12 : 8)
             .frame(minHeight: 48)
-            .contentShape(.capsule)
+            .frame(maxWidth: isLarge ? .infinity : nil, alignment: .leading)
+            .contentShape(.rect(cornerRadius: cornerRadius))
         }
         .buttonStyle(.plain)
-        .glassEffect(.regular.interactive(), in: .capsule)
+        // T-182 : en capsule, un texte sur plusieurs lignes donnait un grand cercle. Aux tailles d'accessibilité, la
+        // pastille prend la largeur et garde des coins de capsule (24 pt) sans s'arrondir en rond.
+        .glassEffect(.regular.interactive(), in: .rect(cornerRadius: cornerRadius))
         .accessibilityElement(children: .combine)
         .accessibilityHint(viewModel.origin?.isUserLocation == true
                            ? String(localized: "Recentre la carte sur ta position")

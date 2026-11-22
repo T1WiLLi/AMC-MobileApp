@@ -1,14 +1,16 @@
 import Charts
 import SwiftUI
 
-/// Onglet Tableau du portail Organismes (T-116) : qui on est, chiffres d'impact, financement par mois
-/// et les groupes qui ont le plus besoin d'aide maintenant.
+/// Onglet Tableau du portail Organismes (T-116) : qui on est, chiffres d'impact, financement par mois, la carte des
+/// groupes et des autres organismes (T-208), et les groupes qui ont le plus besoin d'aide maintenant.
 struct OrganizationDashboardScreen: View {
     let model: OrganizationPortalModel?
     /// Ouvre l'onglet Financer.
     var onShowAllGroups: () -> Void = {}
 
     @State private var donationTarget: GroupSolidarityProfile?
+    /// T-208 : carte des groupes et des organismes, en plein écran.
+    @State private var showsMap = false
     @State private var receiptTarget: OrganizationPaymentReceipt?
 
     var body: some View {
@@ -22,6 +24,10 @@ struct OrganizationDashboardScreen: View {
                             .grenierAppear(index: 1)
                         MonthlyFundingChart(months: model.impact.months)
                             .grenierAppear(index: 2)
+
+                        OrganizationSectionTitle("Sur la carte", systemImage: "map.fill", tint: .economie)
+                        OrganizationMapPreviewCard(model: model) { showsMap = true }
+                            .grenierAppear(index: 3)
 
                         OrganizationSectionTitle("Ils ont besoin de toi", systemImage: "exclamationmark.triangle.fill",
                                                  tint: .solidarite)
@@ -48,7 +54,7 @@ struct OrganizationDashboardScreen: View {
                                 .buttonStyle(.glass)
                                 .tint(.grenier)
                             }
-                            .grenierAppear(index: 3 + index)
+                            .grenierAppear(index: 4 + index)
                         }
                         Button(action: onShowAllGroups) {
                             Label("Voir tous les groupes", systemImage: "list.bullet")
@@ -75,8 +81,13 @@ struct OrganizationDashboardScreen: View {
                     .padding(16)
                 }
                 .refreshable { await model.load() }
+                // T-208 : toucher un groupe ouvre sa fiche publique.
+                .organizationGroupDestination(model: model)
                 .sheet(item: $donationTarget) { profile in
                     DonationSheet(model: model, groupId: profile.groupId)
+                }
+                .fullScreenCover(isPresented: $showsMap) {
+                    OrganizationMapScreen(model: model)
                 }
                 .sheet(item: $receiptTarget) { receipt in
                     OrganizationReceiptSheet(receipt: receipt)
@@ -101,9 +112,11 @@ private extension OrganizationDashboardScreen {
     }
 }
 
-/// Carte d'en-tête : icône du type d'organisme, nom, mission.
+/// Carte d'en-tête : bannière, photo de profil (à défaut, icône du type d'organisme), nom, mission.
 struct OrganizationHeroCard: View {
     let organization: Organization
+    @Environment(\.appTheme) private var theme
+    @ScaledMetric(relativeTo: .title) private var bannerHeight: CGFloat = 110
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     /// L'icône grandit avec le texte : un cadre fixe de 56 pt la coupait aux très grandes tailles.
@@ -115,10 +128,28 @@ struct OrganizationHeroCard: View {
         let layout = dynamicTypeSize.isAccessibilitySize
             ? AnyLayout(VStackLayout(alignment: .leading, spacing: 12))
             : AnyLayout(HStackLayout(alignment: .center, spacing: 12))
-        return VStack(alignment: .leading, spacing: 12) {
+        return VStack(alignment: .leading, spacing: 0) {
+            // T-208 : bannière de l'organisme (`organizations/{id}/media/banner`) ; à défaut, le dégradé Grenier.
+            MediaImage(url: organization.bannerURL) { GroupBannerFallback() }
+                .frame(maxWidth: .infinity)
+                .frame(height: min(bannerHeight, 160))
+                .clipped()
+                .accessibilityHidden(true)
+            content(layout)
+                .padding(16)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(Color.surface)
+        .clipShape(.rect(cornerRadius: theme.cornerRadius))
+        .onAppear { appeared = true }
+        .accessibilityElement(children: .combine)
+    }
+
+    private func content(_ layout: AnyLayout) -> some View {
+        VStack(alignment: .leading, spacing: 12) {
             layout {
-                // T-205 : logo de l'organisme (`organizations/{id}/media/logo`) ; à défaut, le symbole de son type.
-                MediaImage(url: MediaPath.organizationLogo(organizationId: organization.id).url) {
+                // T-208 : photo de profil de l'organisme (`organizations/{id}/media/logo`) ; à défaut, le symbole de son type.
+                MediaImage(url: organization.photoURL) {
                     Image(systemName: organization.kind.systemImage)
                         .font(.title)
                         .symbolRenderingMode(.hierarchical)
@@ -146,10 +177,6 @@ struct OrganizationHeroCard: View {
                 .foregroundStyle(Color.texte)
                 .fixedSize(horizontal: false, vertical: true)
         }
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .grenierCard()
-        .onAppear { appeared = true }
-        .accessibilityElement(children: .combine)
     }
 }
 

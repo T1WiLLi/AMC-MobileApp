@@ -25,6 +25,8 @@ rules_version = '2';
 //                                        comptes dont users/{uid}.organizationId == id ; ce champ vient du seed, jamais du client
 //   organizations/{id}/donations/{id}    don (T-194) ; créé par un membre avec le crédit du fonds, jamais modifié
 //   organizations/{id}/sponsorships/{g}  parrainage (T-194) ; géré par les membres de l'organisme
+//   organizationDirectory/{id}           fiche publique d'un organisme (T-208) : nom, type, quartier, position, médias ;
+//                                        lue par les comptes d'organisme (carte), écrite par le seed seulement
 //   groups/{id}/solidarity/fund          fonds de solidarité (T-194) ; lecture par les membres du groupe et les comptes
 //                                        d'organisme ; crédité par un don d'organisme ; aucun débit (T-195)
 //   groupOrders/{id}                     commande groupée ; lecture connectée, écriture serveur/seed seulement
@@ -1563,7 +1565,7 @@ service cloud.firestore {
     // vendors/{vendorId}/media/photo-{id}       photos de vitrine ; écrites et supprimées par le vendeur (T-157)
     // pickupPoints/{pointId}/media/photo        photo du point de cueillette ; écrite et supprimée par son hôte
     // households/{id}/media/photo               photo de famille (T-205) ; écrite par le seed seulement
-    // organizations/{id}/media/logo             logo d'organisme (T-205) ; écrit par le seed seulement
+    // organizations/{id}/media/{logo|banner}   photo de profil et bannière d'organisme (T-208) ; écrites par le seed seulement
     // Champs : data (bytes JPEG compressé par l'app, 300 Kio au plus ; un document Firestore est limité
     //   à 1 Mio), contentType == 'image/jpeg', width et height (entiers 1..4096), updatedAt == request.time.
     // Lecture : tout utilisateur connecté (une image de profil ou de groupe n'est pas de la PII sensible ;
@@ -1786,6 +1788,14 @@ service cloud.firestore {
           && isIntIn(request.resource.data.monthlyBasketGoal, 1, 1000);
         allow delete: if isOrgMember(orgId);
       }
+    }
+
+    // T-208 : fiche publique d'un organisme, pour la carte des organismes du portail. Le document `organizations/{id}`
+    // porte memberUserIds et reste réservé à ses membres ; celle-ci ne contient que des champs publics (nom, type,
+    // quartier, geohash, dates des médias). Lue par les comptes d'organisme ; écrite par le seed seulement.
+    match /organizationDirectory/{orgId} {
+      allow read: if isOrganizationAccount();
+      allow write: if false;
     }
 
     // Fonds de solidarité d'un groupe : un seul document, `fund`. Le solde se déduit de `entries`

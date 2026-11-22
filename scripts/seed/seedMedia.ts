@@ -3,7 +3,8 @@
 //   groups/<quartier>-photo.jpg (400×400) et -banner.jpg (1200×450)  → groups/{id}/media/{photo|banner} + photoUpdatedAt/bannerUpdatedAt
 //   vendors/<nom>.jpg (1000×750)                                      → vendors/{id}/media/photo-seed + photoURLs
 //   families/family-NN.jpg (400×400)                                  → households/{id}/media/photo
-//   organizations/food-bank.jpg (400×400)                             → organizations/{id}/media/logo
+//   organizations/<slug>-logo.jpg (400×400), food-bank.jpg à défaut    → organizations/{id}/media/logo
+//   (seed:org écrit aussi la bannière des organismes de démo, voir organizations.ts)
 // N'écrit que ce qui manque (une image déjà envoyée par quelqu'un reste) ; --force remplace aussi les images du seed.
 // Dry-run par défaut : rien n'est écrit sans --yes.
 //   Émulateur (défaut) : npm --prefix scripts/seed run seed:media [-- --yes]
@@ -13,6 +14,7 @@ import { readFile } from 'node:fs/promises'
 import { pathToFileURL } from 'node:url'
 import { parseArgs } from 'node:util'
 import { connect, type RestFields, type RestWrite } from './firestoreRest.ts'
+import { demoOrganizations } from './organizations.ts'
 
 export type ImageRef = { file: string, width: number, height: number }
 export type Inventory = {
@@ -96,7 +98,9 @@ export function planMediaWrites(inventory: Inventory, options: { force?: boolean
   }
   for (const organization of inventory.organizations) {
     if (organization.hasLogo && !options.force) continue
-    writes.push({ path: `organizations/${organization.id}/media/logo`, image: square('organizations/food-bank.jpg') })
+    const known = demoOrganizations.find(({ id }) => id === organization.id)
+    writes.push({ path: `organizations/${organization.id}/media/logo`,
+      image: square(known ? `organizations/${known.slug}-logo.jpg` : 'organizations/food-bank.jpg') })
   }
   return writes
 }

@@ -8,6 +8,18 @@ import SwiftUI
 /// bascule tout seul sur la fiche complète.
 /// T-187 : le visiteur lit aussi les avis des familles (sans noter) et voit tous les lots ouverts ; chaque lot
 /// s'ouvre en consultation (`GroupOfferRoute`) : produit, paliers, avancement, sans réserver.
+/// T-208 : ce qu'un visiteur qui n'est pas une famille (un organisme) voit en plus sur la fiche publique :
+/// une section à la place de « Pourquoi rejoindre », et ses actions à la place de « Rejoindre le groupe ».
+struct GroupVisitorAddOn {
+    var section: AnyView
+    var bar: AnyView
+
+    init(@ViewBuilder section: () -> some View, @ViewBuilder bar: () -> some View) {
+        self.section = AnyView(section())
+        self.bar = AnyView(bar())
+    }
+}
+
 struct GroupPublicContent: View {
     @Environment(\.groupTheme) private var theme
     @Environment(\.appContext) private var context
@@ -15,6 +27,7 @@ struct GroupPublicContent: View {
 
     let content: GroupDetailViewModel.Content
     let viewModel: GroupDetailViewModel
+    var addOn: GroupVisitorAddOn? = nil
 
     @State private var showsNavigationTitle = false
     /// T-187 : avis des familles en lecture seule.
@@ -36,8 +49,12 @@ struct GroupPublicContent: View {
                         GroupRatingsSection(model: ratings, groupName: theme.displayName ?? group.name,
                                             groupPhotoURL: group.photoURL)
                     }
-                    benefits
-                    if !group.isPublic { PrivateGroupNote(isMember: false) }
+                    if let addOn {
+                        addOn.section
+                    } else {
+                        benefits
+                        if !group.isPublic { PrivateGroupNote(isMember: false) }
+                    }
                 }
                 .padding(.horizontal, 16)
                 .padding(.bottom, 24)
@@ -59,7 +76,13 @@ struct GroupPublicContent: View {
                     .accessibilityHidden(!showsNavigationTitle)
             }
         }
-        .safeAreaInset(edge: .bottom) { GroupJoinBar(group: group, viewModel: viewModel) }
+        .safeAreaInset(edge: .bottom) {
+            if let addOn {
+                addOn.bar
+            } else {
+                GroupJoinBar(group: group, viewModel: viewModel)
+            }
+        }
         .task(id: group.id) {
             let model = ratings ?? GroupRatingsViewModel(repositories: context.repositories, groupId: group.id,
                                                          householdId: context.householdId, userId: context.userId,

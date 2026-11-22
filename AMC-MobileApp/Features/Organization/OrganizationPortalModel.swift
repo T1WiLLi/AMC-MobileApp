@@ -1,9 +1,13 @@
 // OrganizationPortalModel.swift
 // ViewModel partagé par les onglets du portail Organismes (T-116, RQ-081) : Tableau, Financer, Parrainages,
 // Impact et Recherche. Un seul modèle pour que chaque financement ou parrainage se voie partout tout de suite.
+// T-208 : les groupes sont ceux de la recherche de groupes du portail Famille (`GroupRepository.groups(inNeighborhood:
+// nil)`, même tri par distance via `GroupsViewModel.items`) ; le fonds, le besoin et le parrainage s'y ajoutent.
+// Les autres organismes (fiches publiques) alimentent la carte.
 //
 // Usage :
 //   @State private var model = OrganizationPortalModel(repository: context.repositories.organizations,
+//                                                      groups: context.repositories.groups,
 //                                                      organizationId: context.organizationId)
 //   .task { await model.loadIfNeeded() }  ·  .refreshable { await model.load() }
 
@@ -18,6 +22,8 @@ final class OrganizationPortalModel {
         var profiles: [GroupSolidarityProfile]
         var donations: [OrganizationDonation]
         var sponsorships: [Sponsorship]
+        /// T-208 : fiches publiques des organismes (carte), l'organisme connecté compris.
+        var directory: [OrganizationDirectoryEntry] = []
     }
 
     /// Une ligne du fil « Notre impact ».
@@ -55,10 +61,14 @@ final class OrganizationPortalModel {
     private(set) var actionError: AppError?
 
     private let repository: any OrganizationRepository
+    /// T-208 : source des groupes, la même que la recherche de groupes du portail Famille. nil (aperçus, tests du
+    /// registre seul) : les groupes du dépôt d'organismes.
+    private let groups: (any GroupRepository)?
     let organizationId: String
 
-    init(repository: any OrganizationRepository, organizationId: String) {
+    init(repository: any OrganizationRepository, groups: (any GroupRepository)? = nil, organizationId: String) {
         self.repository = repository
+        self.groups = groups
         self.organizationId = organizationId
     }
 
@@ -78,14 +88,17 @@ final class OrganizationPortalModel {
         if snapshot == nil { state = .loading }
         do {
             async let organization = repository.organization(id: organizationId)
-            async let profiles = repository.solidarityProfiles()
+            async let profiles = loadProfiles()
             async let donations = repository.donations(ofOrganization: organizationId)
             async let sponsorships = repository.sponsorships(ofOrganization: organizationId)
+            // La carte des organismes est un plus : sans elle (règles pas encore déployées), le portail reste utilisable.
+            async let directory = try? repository.directory()
             state = .loaded(Snapshot(
                 organization: try await organization,
                 profiles: try await profiles,
                 donations: try await donations,
-                sponsorships: try await sponsorships
+                sponsorships: try await sponsorships,
+                directory: await directory ?? []
             ))
         } catch {
             // Un rafraîchissement raté garde l'écran déjà chargé.
@@ -93,7 +106,64 @@ final class OrganizationPortalModel {
         }
     }
 
+    /// Les groupes publics de la recherche du portail Famille, avec leur fonds.
+    private func loadProfiles() async throws -> [GroupSolidarityProfile] {
+        guard let groups else { return try await repository.solidarityProfiles() }
+        return try await repository.solidarityProfiles(of: groups.groups(inNeighborhood: nil))
+    }
+
     // MARK: Lectures dérivées
+
+    /// T-208 : tous les groupes, dans l'ordre de la recherche de groupes du portail Famille (`GroupsViewModel.items`) :
+    /// du plus proche au plus loin du siège de l'organisme, par nom si la distance est inconnue.
+    var groupsByDistance: [GroupSolidarityProfile] {
+        guard let snapshot else { return [] }
+        let byId = Dictionary(snapshot.profiles.map { ($0.groupId, $0) }, uniquingKeysWith: { first, _ in first })
+        let ordered = GroupsViewModel.items(
+            publicGroups: snapshot.profiles.compactMap(\.group), householdGroups: [], neighborhood: nil,
+            origin: Geohash.center(of: snapshot.organization.geohash)
+        ).compactMap { byId[$0.id] }
+        // Profils sans groupe (anciennes données fake) : à la suite, par nom.
+        let rest = snapshot.profiles.filter { $0.group == nil }
+            .sorted { $0.groupName.localizedStandardCompare($1.groupName) == .orderedAscending }
+        return ordered + rest
+    }
+
+    /// Groupe affiché par la recherche de groupes (photo, bannière), nil s'il est inconnu.
+    func group(id: String) -> NeighborhoodGroup? {
+        profile(id: id)?.group
+    }
+
+    /// T-208 : les autres organismes (carte), sans l'organisme connecté.
+    var otherOrganizations: [OrganizationDirectoryEntry] {
+        (snapshot?.directory ?? []).filter { $0.id != organizationId }
+    }
+
+    /// T-208 : lieux de la carte du portail : les groupes de la liste, les autres organismes et le sien.
+    var mapPlaces: [OrganizationMapPlace] {
+        guard let snapshot else { return [] }
+        return Self.mapPlaces(groups: groupsByDistance, directory: snapshot.directory,
+                              organization: snapshot.organization)
+    }
+
+    /// Lieux localisables (geohash valide). L'organisme connecté y est même s'il manque à l'annuaire
+    /// (règles pas encore déployées) : sa propre position vient de son document.
+    nonisolated static func mapPlaces(
+        groups: [GroupSolidarityProfile], directory: [OrganizationDirectoryEntry], organization: Organization
+    ) -> [OrganizationMapPlace] {
+        var organizations = directory.filter { $0.id != organization.id }
+        organizations.insert(OrganizationDirectoryEntry(organization), at: 0)
+        let groupPlaces = groups.compactMap { profile -> OrganizationMapPlace? in
+            guard let coordinate = Geohash.center(of: profile.centerGeohash) else { return nil }
+            return OrganizationMapPlace(detail: .group(profile), coordinate: coordinate)
+        }
+        let organizationPlaces = organizations.compactMap { entry -> OrganizationMapPlace? in
+            guard let coordinate = Geohash.center(of: entry.geohash) else { return nil }
+            return OrganizationMapPlace(detail: .organization(entry, isMine: entry.id == organization.id),
+                                        coordinate: coordinate)
+        }
+        return groupPlaces + organizationPlaces
+    }
 
     var impact: OrganizationLedger.ImpactSummary {
         guard let snapshot else { return .empty }
@@ -115,8 +185,9 @@ final class OrganizationPortalModel {
         prioritizedGroups.filter { $0.isSponsored(by: organizationId) }
     }
 
+    /// Groupes à parrainer : tous les autres, dans l'ordre de la recherche de groupes (T-208).
     var sponsorableGroups: [GroupSolidarityProfile] {
-        prioritizedGroups.filter { !$0.isSponsored(by: organizationId) }
+        groupsByDistance.filter { !$0.isSponsored(by: organizationId) }
     }
 
     func profile(id: String) -> GroupSolidarityProfile? {
@@ -138,8 +209,8 @@ final class OrganizationPortalModel {
     /// Recherche par nom de groupe ou quartier, sans tenir compte des accents ni de la casse.
     var searchResults: [GroupSolidarityProfile] {
         let query = searchText.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !query.isEmpty else { return prioritizedGroups }
-        return prioritizedGroups.filter {
+        guard !query.isEmpty else { return groupsByDistance }
+        return groupsByDistance.filter {
             $0.groupName.localizedStandardContains(query) || $0.neighborhood.localizedStandardContains(query)
         }
     }
@@ -157,8 +228,13 @@ final class OrganizationPortalModel {
 
     /// « 1,2 km » depuis le siège de l'organisme ; nil sans géolocalisation.
     func distanceText(for profile: GroupSolidarityProfile) -> String? {
+        distanceText(toGeohash: profile.centerGeohash)
+    }
+
+    /// « 850 m », « 3,4 km » entre le siège de l'organisme et un geohash ; nil si l'un est inconnu.
+    func distanceText(toGeohash geohash: String) -> String? {
         guard let origin = snapshot?.organization.geohash,
-              let meters = OrganizationLedger.distanceMeters(from: origin, to: profile) else { return nil }
+              let meters = Geohash.distanceMeters(from: origin, to: geohash) else { return nil }
         if meters < 1_000 { return "\(Int((meters / 50).rounded()) * 50) m" }
         return Measurement(value: meters / 1_000, unit: UnitLength.kilometers)
             .formatted(.measurement(width: .abbreviated, usage: .asProvided, numberFormatStyle: .number.precision(.fractionLength(1)))
@@ -233,7 +309,9 @@ final class OrganizationPortalModel {
             let profile = try? await repository.solidarityProfile(groupId: groupId)
             if var snapshot {
                 snapshot.donations.insert(donation, at: 0)
-                if let profile, let index = snapshot.profiles.firstIndex(where: { $0.groupId == groupId }) {
+                if var profile, let index = snapshot.profiles.firstIndex(where: { $0.groupId == groupId }) {
+                    // Le groupe affiché (médias résolus) reste celui de la liste.
+                    profile.group = snapshot.profiles[index].group ?? profile.group
                     snapshot.profiles[index] = profile
                 }
                 state = .loaded(snapshot)
@@ -304,5 +382,53 @@ final class OrganizationPortalModel {
     func resetAction() {
         actionError = nil
         lastDonation = nil
+    }
+}
+
+/// T-208 : un lieu de la carte du portail Organismes : un groupe (avec son besoin) ou un organisme.
+nonisolated struct OrganizationMapPlace: Identifiable, Sendable, Equatable {
+    enum Detail: Sendable, Equatable {
+        case group(GroupSolidarityProfile)
+        case organization(OrganizationDirectoryEntry, isMine: Bool)
+    }
+
+    enum Kind: String, Sendable, CaseIterable, Identifiable {
+        case group
+        case organization
+
+        var id: String { rawValue }
+    }
+
+    var detail: Detail
+    var coordinate: Geohash.Coordinate
+
+    var kind: Kind {
+        if case .group = detail { .group } else { .organization }
+    }
+
+    /// « group:group-hochelaga », « organization:org-… » : unique entre les sortes.
+    var id: String {
+        switch detail {
+        case .group(let profile): "group:\(profile.groupId)"
+        case .organization(let entry, _): "organization:\(entry.id)"
+        }
+    }
+
+    var name: String {
+        switch detail {
+        case .group(let profile): profile.groupName
+        case .organization(let entry, _): entry.name
+        }
+    }
+
+    var photoURL: URL? {
+        switch detail {
+        case .group(let profile): profile.group?.photoURL
+        case .organization(let entry, _): entry.photoURL
+        }
+    }
+
+    var isMine: Bool {
+        if case .organization(_, true) = detail { true } else { false }
     }
 }

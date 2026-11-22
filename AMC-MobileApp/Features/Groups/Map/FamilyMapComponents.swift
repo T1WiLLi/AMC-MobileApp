@@ -58,17 +58,30 @@ extension FamilyMapViewModel.Place {
 
 /// Photo du groupe ou du producteur ; à défaut (ou pendant le chargement), le symbole de la sorte sur un dégradé.
 struct FamilyMapThumbnail: View {
-    let kind: FamilyMapViewModel.Kind
+    /// T-208 : couleur et symbole de la sorte de lieu (la carte du portail Organismes a ses propres sortes).
+    let tint: Color
+    let systemImage: String
     let photoURL: URL?
     var symbolScale: CGFloat = 0.42
+
+    init(kind: FamilyMapViewModel.Kind, photoURL: URL?, symbolScale: CGFloat = 0.42) {
+        self.init(tint: kind.color, systemImage: kind.systemImage, photoURL: photoURL, symbolScale: symbolScale)
+    }
+
+    init(tint: Color, systemImage: String, photoURL: URL?, symbolScale: CGFloat = 0.42) {
+        self.tint = tint
+        self.systemImage = systemImage
+        self.photoURL = photoURL
+        self.symbolScale = symbolScale
+    }
 
     var body: some View {
         GeometryReader { proxy in
             MediaImage(url: photoURL) {
-                LinearGradient(colors: [kind.color, kind.color.opacity(0.75)], startPoint: .topLeading,
+                LinearGradient(colors: [tint, tint.opacity(0.75)], startPoint: .topLeading,
                                endPoint: .bottomTrailing)
                     .overlay {
-                        Image(systemName: kind.systemImage)
+                        Image(systemName: systemImage)
                             .font(.system(size: proxy.size.width * symbolScale, weight: .semibold))
                             .foregroundStyle(Color.onAccent)
                     }
@@ -83,12 +96,37 @@ struct FamilyMapThumbnail: View {
 /// Médaillon (photo ou symbole) cerclé de la couleur de la sorte, avec sa pointe ; quand il est choisi,
 /// il grossit, rebondit et affiche le nom du lieu au-dessus.
 struct FamilyMapPin: View {
-    let kind: FamilyMapViewModel.Kind
+    let tint: Color
+    let systemImage: String
     var photoURL: URL? = nil
     var name: String = ""
+    /// T-208 : médaillon carré aux coins arrondis plutôt que rond (organismes, distincts des groupes).
+    var isSquare = false
     let isSelected: Bool
     let reduceMotion: Bool
     let action: () -> Void
+
+    init(kind: FamilyMapViewModel.Kind, photoURL: URL? = nil, name: String = "", isSelected: Bool, reduceMotion: Bool,
+         action: @escaping () -> Void) {
+        self.init(tint: kind.color, systemImage: kind.systemImage, photoURL: photoURL, name: name,
+                  isSelected: isSelected, reduceMotion: reduceMotion, action: action)
+    }
+
+    init(tint: Color, systemImage: String, photoURL: URL? = nil, name: String = "", isSquare: Bool = false,
+         isSelected: Bool, reduceMotion: Bool, action: @escaping () -> Void) {
+        self.tint = tint
+        self.systemImage = systemImage
+        self.photoURL = photoURL
+        self.name = name
+        self.isSquare = isSquare
+        self.isSelected = isSelected
+        self.reduceMotion = reduceMotion
+        self.action = action
+    }
+
+    private var medallion: AnyShape {
+        isSquare ? AnyShape(RoundedRectangle(cornerRadius: size * 0.28, style: .continuous)) : AnyShape(Circle())
+    }
 
     @ScaledMetric(relativeTo: .body) private var scaledSize: CGFloat = 40
     private var size: CGFloat { min(scaledSize, 60) }
@@ -97,29 +135,29 @@ struct FamilyMapPin: View {
         Button(action: action) {
             VStack(spacing: 0) {
                 ZStack(alignment: .bottomTrailing) {
-                    FamilyMapThumbnail(kind: kind, photoURL: photoURL)
+                    FamilyMapThumbnail(tint: tint, systemImage: systemImage, photoURL: photoURL)
                         .frame(width: size, height: size)
-                        .clipShape(.circle)
+                        .clipShape(medallion)
                         .padding(2.5)
-                        .background(kind.color, in: .circle)
+                        .background(tint, in: medallion)
                         .padding(2)
-                        .background(Color.surface, in: .circle)
+                        .background(Color.surface, in: medallion)
                         .shadow(color: .black.opacity(isSelected ? 0.28 : 0.14), radius: isSelected ? 10 : 5, y: 3)
                         .symbolEffect(.bounce, value: reduceMotion ? false : isSelected)
                     if photoURL != nil {
                         // Photo : le symbole de la sorte reste lisible en pastille.
-                        Image(systemName: kind.systemImage)
+                        Image(systemName: systemImage)
                             .font(.system(size: size * 0.26, weight: .bold))
                             .foregroundStyle(Color.onAccent)
                             .frame(width: size * 0.46, height: size * 0.46)
-                            .background(kind.color, in: .circle)
+                            .background(tint, in: .circle)
                             .overlay(Circle().strokeBorder(Color.surface, lineWidth: 1.5))
                             .offset(x: 4, y: 2)
                     }
                 }
                 Image(systemName: "arrowtriangle.down.fill")
                     .font(.system(size: 10))
-                    .foregroundStyle(kind.color)
+                    .foregroundStyle(tint)
                     .offset(y: -2)
             }
             .overlay(alignment: .top) {

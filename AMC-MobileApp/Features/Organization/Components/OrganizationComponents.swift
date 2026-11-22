@@ -148,7 +148,9 @@ struct OrganizationStateContainer<Content: View>: View {
 
 // MARK: - Carte de groupe
 
-/// Carte d'un groupe : nom, quartier, distance, besoin, couverture, et ses actions.
+/// Carte d'un groupe : bannière et photo (comme dans la recherche de groupes du portail Famille), nom, quartier,
+/// distance, besoin, couverture, et ses actions. T-208 : toucher la carte ouvre la fiche publique du groupe
+/// (`OrganizationGroupRoute`, enregistrée par `.organizationGroupDestination(model:)` dans chaque onglet).
 struct GroupNeedCard<Actions: View>: View {
     let profile: GroupSolidarityProfile
     var distance: String?
@@ -156,13 +158,79 @@ struct GroupNeedCard<Actions: View>: View {
     @ViewBuilder let actions: () -> Actions
 
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
+    @Environment(\.appTheme) private var theme
+    @ScaledMetric(relativeTo: .headline) private var photoSize: CGFloat = 52
+    @ScaledMetric(relativeTo: .headline) private var bannerHeight: CGFloat = 88
+
+    private var route: OrganizationGroupRoute { OrganizationGroupRoute(groupId: profile.groupId) }
+    private var avatarSide: CGFloat { min(photoSize, 76) }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            let layout = dynamicTypeSize.isAccessibilitySize
-                ? AnyLayout(VStackLayout(alignment: .leading, spacing: 8))
-                : AnyLayout(HStackLayout(alignment: .top, spacing: 12))
-            layout {
+        VStack(alignment: .leading, spacing: 0) {
+            NavigationLink(value: route) {
+                VStack(alignment: .leading, spacing: 0) {
+                    if let group = profile.group {
+                        banner(group)
+                    }
+                    summary
+                        .padding(.horizontal, 16)
+                        .padding(.top, profile.group == nil ? 16 : avatarSide / 2 + 8)
+                }
+                .contentShape(.rect)
+            }
+            .buttonStyle(.plain)
+            .accessibilityElement(children: .combine)
+            .accessibilityHint("Ouvre la fiche du groupe.")
+            VStack(alignment: .leading, spacing: 12) {
+                CoverageBar(profile: profile)
+                HStack(spacing: 6) {
+                    Label(FrenchPlural.count(profile.householdCount, "ménage"), systemImage: "house.fill")
+                    Text("·")
+                    Label("\(Money.formatRounded(profile.basketPriceCents)) le panier", systemImage: "basket.fill")
+                }
+                .font(.caption)
+                .foregroundStyle(Color.texteSecondaire)
+                .symbolRenderingMode(.hierarchical)
+                .accessibilityElement(children: .combine)
+                actions()
+            }
+            .padding([.horizontal, .bottom], 16)
+            .padding(.top, 12)
+        }
+        .background(Color.surface)
+        .clipShape(.rect(cornerRadius: theme.cornerRadius))
+        .grenierZoomSource(route)
+    }
+
+    /// Bannière du groupe (dégradé Grenier s'il n'en a pas), sa photo qui la chevauche et le badge de besoin.
+    private func banner(_ group: NeighborhoodGroup) -> some View {
+        GroupBannerImage(group: group)
+            .frame(maxWidth: .infinity)
+            .frame(height: min(bannerHeight, 130))
+            .clipped()
+            .overlay(alignment: .bottom) {
+                LinearGradient(colors: [.clear, .black.opacity(0.25)], startPoint: .top, endPoint: .bottom)
+                    .frame(height: 40)
+            }
+            .overlay(alignment: .topTrailing) {
+                NeedBadge(level: profile.needLevel)
+                    .background(.thinMaterial, in: .capsule)
+                    .padding(10)
+            }
+            .overlay(alignment: .bottomLeading) {
+                GroupAvatarView(group: group, size: avatarSide, showsRing: true)
+                    .shadow(color: .black.opacity(0.15), radius: 8, y: 4)
+                    .offset(x: 16, y: avatarSide / 2)
+            }
+            .accessibilityHidden(true)
+    }
+
+    private var summary: some View {
+        let layout = dynamicTypeSize.isAccessibilitySize
+            ? AnyLayout(VStackLayout(alignment: .leading, spacing: 8))
+            : AnyLayout(HStackLayout(alignment: .top, spacing: 12))
+        return layout {
+            if profile.group == nil {
                 Image(systemName: "person.3.fill")
                     .font(.title3)
                     .symbolRenderingMode(.hierarchical)
@@ -170,45 +238,41 @@ struct GroupNeedCard<Actions: View>: View {
                     .frame(width: 44, height: 44)
                     .background(profile.needLevel.tint.opacity(0.12), in: .rect(cornerRadius: 12))
                     .accessibilityHidden(true)
-                VStack(alignment: .leading, spacing: 4) {
-                    Text(profile.groupName)
-                        .font(.headline)
-                        .foregroundStyle(Color.texte)
-                        .fixedSize(horizontal: false, vertical: true)
-                    HStack(spacing: 8) {
-                        Label(MontrealNeighborhood.displayName(for: profile.neighborhood), systemImage: "mappin.and.ellipse")
-                        if let distance {
-                            Label(distance, systemImage: "location.fill")
-                        }
+            }
+            VStack(alignment: .leading, spacing: 4) {
+                Text(profile.groupName)
+                    .font(.headline)
+                    .foregroundStyle(Color.texte)
+                    .fixedSize(horizontal: false, vertical: true)
+                HStack(spacing: 8) {
+                    Label(MontrealNeighborhood.displayName(for: profile.neighborhood), systemImage: "mappin.and.ellipse")
+                    if let distance {
+                        Label(distance, systemImage: "location.fill")
                     }
-                    .font(.caption)
-                    .foregroundStyle(Color.texteSecondaire)
-                    .labelStyle(.titleAndIcon)
-                    .symbolRenderingMode(.hierarchical)
                 }
-                Spacer(minLength: 0)
-                VStack(alignment: dynamicTypeSize.isAccessibilitySize ? .leading : .trailing, spacing: 6) {
+                .font(.caption)
+                .foregroundStyle(Color.texteSecondaire)
+                .labelStyle(.titleAndIcon)
+                .symbolRenderingMode(.hierarchical)
+            }
+            Spacer(minLength: 0)
+            VStack(alignment: dynamicTypeSize.isAccessibilitySize ? .leading : .trailing, spacing: 6) {
+                if profile.group == nil {
                     NeedBadge(level: profile.needLevel)
-                    if isSponsored {
-                        Label("Parrainé", systemImage: "hands.and.sparkles.fill")
-                            .font(.caption2.weight(.semibold))
-                            .foregroundStyle(Color.grenier)
-                            .symbolRenderingMode(.hierarchical)
-                    }
+                }
+                if isSponsored {
+                    Label("Parrainé", systemImage: "hands.and.sparkles.fill")
+                        .font(.caption2.weight(.semibold))
+                        .foregroundStyle(Color.grenier)
+                        .symbolRenderingMode(.hierarchical)
+                }
+                if !dynamicTypeSize.isAccessibilitySize {
+                    Image(systemName: "chevron.right")
+                        .font(.footnote.weight(.semibold))
+                        .foregroundStyle(Color.texteSecondaire)
+                        .accessibilityHidden(true)
                 }
             }
-            CoverageBar(profile: profile)
-            HStack(spacing: 6) {
-                Label(FrenchPlural.count(profile.householdCount, "ménage"), systemImage: "house.fill")
-                Text("·")
-                Label("\(Money.formatRounded(profile.basketPriceCents)) le panier", systemImage: "basket.fill")
-            }
-            .font(.caption)
-            .foregroundStyle(Color.texteSecondaire)
-            .symbolRenderingMode(.hierarchical)
-            .accessibilityElement(children: .combine)
-            actions()
         }
-        .grenierCard()
     }
 }

@@ -34,7 +34,8 @@ struct OrganizationTabView: View {
         .grenierHaptic(.selection, trigger: selection)
         .task {
             let model = self.model ?? OrganizationPortalModel(
-                repository: context.repositories.organizations, organizationId: context.organizationId
+                repository: context.repositories.organizations, groups: context.repositories.groups,
+                organizationId: context.organizationId
             )
             self.model = model
             await model.loadIfNeeded()

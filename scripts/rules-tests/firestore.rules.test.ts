@@ -1986,6 +1986,48 @@ describe('portail Organismes (T-194)', () => {
     })
   })
 
+  // T-208 : carte des organismes. La fiche publique ne porte aucun membre ; organizations/{id} reste privé.
+  describe('organizationDirectory/{id}', () => {
+    const entry = {
+      id: 'org-autre', name: 'Centre communautaire Les Pommiers', kind: 'communityCenter', neighborhood: 'saint-michel',
+      geohash: 'f25ehx1', photoUpdatedAt: Timestamp.now(), bannerUpdatedAt: Timestamp.now()
+    }
+    beforeEach(async () => {
+      await env.withSecurityRulesDisabled(async (c) => {
+        await setDoc(doc(c.firestore(), 'organizationDirectory/org-autre'), entry)
+        await setDoc(doc(c.firestore(), `organizationDirectory/${orgId}`), { ...entry, id: orgId, name: orgDoc.name })
+      })
+    })
+    test('un compte d’organisme lit et liste les fiches des autres organismes', async () => {
+      await assertSucceeds(getDoc(doc(orgUser(), 'organizationDirectory/org-autre')))
+      const snap = await assertSucceeds(getDocs(collection(orgUser(), 'organizationDirectory')))
+      assert.equal(snap.size, 2)
+      // Le document privé d'un autre organisme (memberUserIds) reste illisible.
+      await assertFails(getDoc(doc(orgUser(), 'organizations/org-autre')))
+      await assertFails(getDocs(collection(orgUser(), 'organizations')))
+    })
+    test('une famille, un vendeur ou un anonyme ne la lit pas', async () => {
+      await assertFails(getDoc(doc(amina(), 'organizationDirectory/org-autre')))
+      await assertFails(getDocs(collection(amina(), 'organizationDirectory')))
+      await assertFails(getDoc(doc(anonymous(), 'organizationDirectory/org-autre')))
+    })
+    test('personne ne l’écrit depuis l’app, même un membre de l’organisme', async () => {
+      await assertFails(setDoc(doc(otherOrgUser(), 'organizationDirectory/org-autre'), { ...entry, name: 'Autre nom' }))
+      await assertFails(updateDoc(doc(orgUser(), `organizationDirectory/${orgId}`), { name: 'x' }))
+      await assertFails(setDoc(doc(orgUser(), 'organizationDirectory/org-neuf'), { ...entry, id: 'org-neuf' }))
+      await assertFails(deleteDoc(doc(orgUser(), 'organizationDirectory/org-autre')))
+    })
+    test('photo de profil et bannière d’un organisme : lues par tout compte connecté, écrites par personne', async () => {
+      const media = { data: Bytes.fromUint8Array(new Uint8Array([0xff, 0xd8])), contentType: 'image/jpeg', width: 1200, height: 450, updatedAt: Timestamp.now() }
+      await env.withSecurityRulesDisabled(async (c) => {
+        await setDoc(doc(c.firestore(), 'organizations/org-autre/media/banner'), media)
+      })
+      await assertSucceeds(getDoc(doc(orgUser(), 'organizations/org-autre/media/banner')))
+      await assertSucceeds(getDoc(doc(amina(), 'organizations/org-autre/media/banner')))
+      await assertFails(setDoc(doc(otherOrgUser(), 'organizations/org-autre/media/banner'), { ...media, updatedAt: serverTimestamp() }))
+    })
+  })
+
   describe('dons et crédit du fonds', () => {
     test('un membre crée un don et crédite le fonds dans la même écriture (fonds absent)', async () => {
       await assertSucceeds(donateBatch(orgUser()))

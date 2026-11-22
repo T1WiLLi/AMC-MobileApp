@@ -52,7 +52,7 @@ final class MapKitAddressValidator: NSObject, AddressValidating {
         }
     }
 
-    func validate(_ text: String) async -> ValidatedAddress? {
+    func validate(_ text: String) async throws -> ValidatedAddress? {
         let text = text.trimmingCharacters(in: .whitespacesAndNewlines)
         guard AddressMatching.civicNumber(in: text) != nil else { return nil }
         let request: MKLocalSearch.Request
@@ -64,7 +64,14 @@ final class MapKitAddressValidator: NSObject, AddressValidating {
         }
         request.resultTypes = .address
         request.region = region
-        guard let response = try? await MKLocalSearch(request: request).start() else { return nil }
+        let response: MKLocalSearch.Response
+        do {
+            response = try await MKLocalSearch(request: request).start()
+        } catch let error as MKError where error.code == .placemarkNotFound {
+            // Apple a bien cherché et n'a rien trouvé : vraiment introuvable.
+            return nil
+        }
+        // Toute autre erreur (réseau, service indisponible, limite de requêtes) remonte : vérification impossible.
         return response.mapItems.lazy.compactMap { Self.validated(from: $0, input: text) }.first
     }
 

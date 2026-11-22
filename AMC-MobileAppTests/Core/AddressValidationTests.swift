@@ -49,6 +49,23 @@ struct AddressValidationTests {
         #expect(address.geohash().hasPrefix("f25"), "Montréal")
     }
 
+    /// Q-039 : une erreur réseau n'est pas « introuvable » : l'adresse tapée est gardée, sans bloquer.
+    @Test func offlineValidationKeepsTypedAddressWithoutBlocking() async {
+        let model = AddressFieldModel(validator: FakeAddressValidator(isOffline: true))
+        #expect(await model.validate("8150 boul. Pie-IX") == "8150 boul. Pie-IX")
+        #expect(model.status(for: "8150 boul. Pie-IX") == .unverified)
+        #expect(!model.blocksSaving("8150 boul. Pie-IX"))
+        #expect(model.isAccepted("8150 boul. Pie-IX"))
+        #expect(model.validatedAddress(for: "8150 boul. Pie-IX") == nil, "pas de position inventée")
+        #expect(await model.ensureValid("8150 boul. Pie-IX") == "8150 boul. Pie-IX")
+    }
+
+    @Test func offlineEnsureValidAcceptsUncheckedAddress() async {
+        let model = AddressFieldModel(validator: FakeAddressValidator(isOffline: true))
+        #expect(await model.ensureValid("1234 rue Jarry") == "1234 rue Jarry")
+        #expect(model.status(for: "1234 rue Jarry") == .unverified)
+    }
+
     @Test func unknownAddressIsNotFoundAndBlocksSaving() async {
         let model = AddressFieldModel(validator: FakeAddressValidator())
         #expect(await model.validate("99999 rue Inexistante") == nil)

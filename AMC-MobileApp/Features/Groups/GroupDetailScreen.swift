@@ -41,8 +41,15 @@ struct GroupDetailScreen: View {
                 case .failed(let error):
                     GroupsErrorState(error: error, retry: { await viewModel.load() })
                 case .loaded(let content):
-                    GroupDetailContent(content: content, viewModel: viewModel,
-                                       imageEditor: viewModel.isCoordinator ? imageEditor : nil)
+                    // T-172 (FB-13) : un visiteur voit la fiche publique ; un membre (ou un coordonnateur) la fiche complète.
+                    if content.audience.isMember || viewModel.isCoordinator {
+                        GroupDetailContent(content: content, viewModel: viewModel,
+                                           imageEditor: viewModel.isCoordinator ? imageEditor : nil)
+                            .transition(.opacity)
+                    } else {
+                        GroupPublicContent(content: content, viewModel: viewModel)
+                            .transition(.opacity)
+                    }
                 }
             } else {
                 GroupsLoadingScene(title: "Chargement du groupe…", systemImage: GrenierSymbol.map)
@@ -53,6 +60,8 @@ struct GroupDetailScreen: View {
         .environment(\.groupTheme, theme)
         .tint(theme.accent)
         .animation(reduceMotion ? nil : .smooth(duration: 0.45), value: theme)
+        // Rejoindre : la fiche publique laisse place à la fiche complète en fondu.
+        .animation(reduceMotion ? nil : .smooth, value: viewModel?.state.value?.isMember)
         .navigationTitle(theme.displayName ?? "Groupe")
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {

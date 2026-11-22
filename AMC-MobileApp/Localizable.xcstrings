@@ -29665,12 +29665,12 @@
         }
       }
     },
-    "Dès que tu as reçu les produits, marque la livraison comme arrivée : les familles voient « Arrivée ! Viens la chercher » dans leur app et peuvent venir. Le scan et « Récupéré » s'activent à ce moment-là." : {
+    "Produits reçus ? Marque-la comme arrivée : les familles sont prévenues et le scan s'active." : {
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "As soon as you have received the products, mark the delivery as arrived: families see “Arrived! Come pick it up” in their app and can come. Scanning and “Picked up” turn on at that moment."
+            "value" : "Products received? Mark it as arrived: families are notified and scanning turns on."
           }
         }
       }

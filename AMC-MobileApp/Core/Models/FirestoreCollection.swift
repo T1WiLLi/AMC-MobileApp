@@ -18,6 +18,11 @@ nonisolated enum FirestoreCollection {
     /// T-157 : avis des familles sur les producteurs (`vendorReviews/{vendorId}_{householdId}`).
     static let vendorReviews = "vendorReviews"
 
+    /// T-159 : index d'adresse des ménages (`householdAddresses/{lookupId}`), lu par id exact seulement.
+    static let householdAddresses = "householdAddresses"
+
+    /// T-159 : demandes pour rejoindre un ménage (`households/{id}/joinRequests/{uid}`).
+    static func joinRequests(ofHousehold householdId: String) -> String { "households/\(householdId)/joinRequests" }
     static func householdPrivate(_ householdId: String) -> String { "households/\(householdId)/private" }
     static func members(ofGroup groupId: String) -> String { "groups/\(groupId)/members" }
     static func shares(ofGroupOrder groupOrderId: String) -> String { "groupOrders/\(groupOrderId)/shares" }

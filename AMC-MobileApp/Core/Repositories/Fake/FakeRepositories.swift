@@ -8,10 +8,18 @@ actor FakeUserRepository: UserRepository {
     private var users: [String: AppUser]
     private var households: [String: Household]
 
-    init(behavior: FakeBehavior = .instant, users: [AppUser] = [], households: [Household] = []) {
+    /// T-159 : index d'adresse (lookupId → ménage) et demandes (householdId → userId → demande).
+    private var addresses: [String: HouseholdAddressEntry]
+    private var joinRequests: [String: [String: HouseholdJoinRequest]]
+
+    init(behavior: FakeBehavior = .instant, users: [AppUser] = [], households: [Household] = [],
+         addresses: [HouseholdAddressEntry] = [], joinRequests: [HouseholdJoinRequest] = []) {
         self.behavior = behavior
         self.users = Dictionary(uniqueKeysWithValues: users.map { ($0.id, $0) })
         self.households = Dictionary(uniqueKeysWithValues: households.map { ($0.id, $0) })
+        self.addresses = Dictionary(uniqueKeysWithValues: addresses.map { ($0.id, $0) })
+        self.joinRequests = Dictionary(grouping: joinRequests, by: \.householdId)
+            .mapValues { Dictionary(uniqueKeysWithValues: $0.map { ($0.userId, $0) }) }
     }
 
     func user(id: String) async throws -> AppUser {
@@ -22,6 +30,11 @@ actor FakeUserRepository: UserRepository {
 
     func saveUser(_ user: AppUser) async throws {
         try await behavior.simulate()
+        // T-159 (firestore.rules) : on ne pointe que vers un ménage dont on est membre.
+        if let householdId = user.householdId, householdId != users[user.id]?.householdId,
+           let household = households[householdId], !household.userIds.contains(user.id) {
+            throw AppError.permissionDenied
+        }
         users[user.id] = user
     }
 
@@ -34,6 +47,70 @@ actor FakeUserRepository: UserRepository {
     func saveHousehold(_ household: Household) async throws {
         try await behavior.simulate()
         households[household.id] = household
+    }
+
+    // MARK: T-159 — ménage partagé (mêmes règles que firestore.rules)
+
+    func householdAddress(lookupId: String) async throws -> HouseholdAddressEntry? {
+        try await behavior.simulate()
+        return addresses[lookupId]
+    }
+
+    func registerHouseholdAddress(_ entry: HouseholdAddressEntry) async throws {
+        try await behavior.simulate()
+        guard let household = households[entry.householdId], HouseholdMembership.isOwner(entry.ownerId, of: household) else {
+            throw AppError.permissionDenied
+        }
+        if let existing = addresses[entry.id], existing.ownerId != entry.ownerId { return }
+        addresses[entry.id] = entry
+    }
+
+    func requestToJoin(_ request: HouseholdJoinRequest) async throws {
+        try await behavior.simulate()
+        guard let household = households[request.householdId] else { throw AppError.notFound }
+        guard !household.userIds.contains(request.userId) else { throw AppError.invalidInput(String(localized: "Tu fais déjà partie de ce ménage.")) }
+        var pending = request
+        pending.status = .pending
+        joinRequests[request.householdId, default: [:]][request.userId] = pending
+    }
+
+    func joinRequest(householdId: String, userId: String) async throws -> HouseholdJoinRequest? {
+        try await behavior.simulate()
+        return joinRequests[householdId]?[userId]
+    }
+
+    func joinRequests(ofHousehold householdId: String, byUserId userId: String) async throws -> [HouseholdJoinRequest] {
+        try await behavior.simulate()
+        guard let household = households[householdId] else { throw AppError.notFound }
+        guard HouseholdMembership.isOwner(userId, of: household) else { throw AppError.permissionDenied }
+        return (joinRequests[householdId] ?? [:]).values
+            .filter { $0.status == .pending }
+            .sorted { $0.createdAt < $1.createdAt }
+    }
+
+    func deleteJoinRequest(householdId: String, userId: String) async throws {
+        try await behavior.simulate()
+        joinRequests[householdId]?[userId] = nil
+    }
+
+    func acceptJoinRequest(householdId: String, userId: String, byUserId ownerId: String) async throws -> Household {
+        try await behavior.simulate()
+        guard let household = households[householdId], var request = joinRequests[householdId]?[userId] else {
+            throw AppError.notFound
+        }
+        let updated = try HouseholdMembership.accepting(request, in: household, byUserId: ownerId)
+        households[householdId] = updated
+        request.status = .accepted
+        joinRequests[householdId]?[userId] = request
+        return updated
+    }
+
+    func removeMember(_ userId: String, fromHousehold householdId: String, byUserId callerId: String) async throws -> Household {
+        try await behavior.simulate()
+        guard let household = households[householdId] else { throw AppError.notFound }
+        let updated = try HouseholdMembership.removing(userId, from: household, byUserId: callerId)
+        households[householdId] = updated
+        return updated
     }
 
     /// Suppression du compte (`FakeAuthService.deleteAccount()`) : retire l'uid du ménage, puis efface l'utilisateur.

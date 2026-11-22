@@ -9,6 +9,9 @@ rules_version = '2';
 //   users/{uid}                          profil ; lu et écrit par son propriétaire seulement
 //   households/{id}                      ménage ; lu et écrit par ses membres (userIds)
 //   households/{id}/private/profile      isSubsidized, referralCode ; membres du ménage seulement
+//   households/{id}/joinRequests/{uid}   demande pour rejoindre (T-159) ; créée par la personne, lue et acceptée
+//                                        par le propriétaire du ménage (ownerId)
+//   householdAddresses/{sha256}          ménage inscrit à une adresse (T-159) ; lecture par id exact seulement
 //   groups/{id}                          groupe de quartier ; lecture par tout utilisateur connecté ;
 //                                        seul householdCount bouge, avec l'adhésion (T-099)
 //   groups/{id}/members/{householdId}    adhésion ; un ménage s'ajoute ou se retire lui-même
@@ -100,7 +103,8 @@ service cloud.firestore {
     function isValidUser(data) {
       return data.keys().hasOnly(['id', 'displayName', 'photoURL', 'language', 'roles', 'neighborhood',
                                   'dietaryPreferences', 'seniorMode', 'householdId', 'vendorId',
-                                  'photoUpdatedAt', 'favoriteCategories', 'onboardingCompleted'])
+                                  'photoUpdatedAt', 'favoriteCategories', 'onboardingCompleted',
+                                  'pendingHouseholdId'])
         && data.keys().hasAll(['id', 'displayName', 'language', 'roles', 'neighborhood',
                                'dietaryPreferences', 'seniorMode'])
         && isShortString(data.displayName, 1, 80)
@@ -112,6 +116,7 @@ service cloud.firestore {
         && data.seniorMode is bool
         && isOptionalString(data, 'photoURL', 2048)
         && isOptionalString(data, 'householdId', 128)
+        && isOptionalString(data, 'pendingHouseholdId', 128)
         // Avatar en bytes (T-132) : horodatage posé avec l'image, pour invalider le cache des autres appareils.
         && (!('photoUpdatedAt' in data) || data.photoUpdatedAt == null || data.photoUpdatedAt is timestamp)
         // Onboarding après l'inscription (T-156) : catégories aimées (Product.Category) et drapeau « fini ».
@@ -133,16 +138,31 @@ service cloud.firestore {
         && getAfter(vendorPath).data.get('ownerId', '') == userId;
     }
 
+    // T-159 : householdId n'est accepté que si l'uid figure dans userIds de ce ménage (vide = pas de ménage).
+    // getAfter : marche quand le ménage est écrit dans le même batch que le profil.
+    function isOwnHouseholdLink(userId) {
+      let householdId = request.resource.data.get('householdId', '');
+      let path = /databases/$(database)/documents/households/$(householdId);
+      return householdId == null || householdId == ''
+        || (householdId is string && existsAfter(path) && userId in getAfter(path).data.userIds);
+    }
+
+    function isHouseholdLinkUnchanged() {
+      return request.resource.data.get('householdId', '') == resource.data.get('householdId', '');
+    }
+
     match /users/{userId} {
       allow read: if isOwner(userId);
       allow create: if isOwner(userId)
         && isValidUser(request.resource.data)
         && request.resource.data.id == userId
-        && !('vendorId' in request.resource.data);
+        && !('vendorId' in request.resource.data)
+        && isOwnHouseholdLink(userId);
       allow update: if isOwner(userId)
         && isValidUser(request.resource.data)
         && areImmutableFieldsUnchanged(['id'])
-        && (areImmutableFieldsUnchanged(['vendorId']) || isClaimingOwnVendor(userId));
+        && (areImmutableFieldsUnchanged(['vendorId']) || isClaimingOwnVendor(userId))
+        && (isHouseholdLinkUnchanged() || isOwnHouseholdLink(userId));
       allow delete: if isOwner(userId);
     }
 
@@ -151,26 +171,119 @@ service cloud.firestore {
     // ---------------------------------------------------------------
 
     function isValidHousehold(data) {
-      return data.keys().hasOnly(['id', 'name', 'size', 'geohash', 'userIds', 'groupId'])
+      return data.keys().hasOnly(['id', 'name', 'size', 'geohash', 'userIds', 'groupId',
+                                  'ownerId', 'addressKey', 'memberNames'])
         && data.keys().hasAll(['id', 'name', 'size', 'geohash', 'userIds'])
         && isShortString(data.name, 1, 80)
         && isIntIn(data.size, 1, 30)
         && isShortString(data.geohash, 0, 12)
         && data.userIds is list && data.userIds.size() >= 1 && data.userIds.size() <= 10
-        && isOptionalString(data, 'groupId', 128);
+        && isOptionalString(data, 'groupId', 128)
+        // T-159 : propriétaire, clé d'adresse normalisée, noms des membres (uid → nom).
+        && isOptionalString(data, 'ownerId', 128)
+        && isOptionalString(data, 'addressKey', 200)
+        && (!('memberNames' in data) || data.memberNames == null
+            || (data.memberNames is map && data.memberNames.size() <= 10));
+    }
+
+    // Propriétaire du ménage : ownerId, sinon (ménage d'avant T-159) le premier compte de userIds.
+    function householdOwner(data) {
+      return data.get('ownerId', null) is string && data.ownerId != '' ? data.ownerId : data.userIds[0];
+    }
+
+    function isHouseholdOwnerOf(householdId) {
+      let path = /databases/$(database)/documents/households/$(householdId);
+      return isAuthenticated() && exists(path) && householdOwner(get(path).data) == request.auth.uid;
+    }
+
+    function userIdsBefore() { return resource.data.userIds.toSet(); }
+    function userIdsAfter() { return request.resource.data.userIds.toSet(); }
+
+    // ownerId ne change pas ; un ménage d'avant T-159 peut le poser une fois, sur son propriétaire implicite.
+    function isOwnerIdKept() {
+      return request.resource.data.get('ownerId', null) == resource.data.get('ownerId', null)
+        || (resource.data.get('ownerId', null) == null
+            && request.resource.data.get('ownerId', null) == householdOwner(resource.data));
+    }
+
+    // Le propriétaire accepte UNE demande : l'uid ajouté a une demande en attente (le statut passe à accepted
+    // dans le même batch).
+    function isAcceptingJoinRequest(householdId) {
+      let added = userIdsAfter().difference(userIdsBefore());
+      let newUserId = request.resource.data.userIds[request.resource.data.userIds.size() - 1];
+      return householdOwner(resource.data) == request.auth.uid
+        && added.size() == 1 && userIdsBefore().difference(userIdsAfter()).size() == 0
+        && added.hasAll([newUserId])
+        && exists(/databases/$(database)/documents/households/$(householdId)/joinRequests/$(newUserId))
+        && get(/databases/$(database)/documents/households/$(householdId)/joinRequests/$(newUserId)).data.status == 'pending';
+    }
+
+    // Un compte quitte le ménage : retiré par le propriétaire, ou parti de lui-même. Jamais le propriétaire.
+    function isRemovingMember() {
+      let removed = userIdsBefore().difference(userIdsAfter());
+      return removed.size() == 1 && userIdsAfter().difference(userIdsBefore()).size() == 0
+        && !removed.hasAny([householdOwner(resource.data)])
+        && (householdOwner(resource.data) == request.auth.uid || removed.hasAll([request.auth.uid]))
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['userIds', 'memberNames']);
     }
 
     match /households/{householdId} {
       allow read: if isAuthenticated() && request.auth.uid in resource.data.userIds;
+      // Un ménage neuf ne contient que son créateur, qui en est le propriétaire.
       allow create: if isAuthenticated()
         && isValidHousehold(request.resource.data)
         && request.resource.data.id == householdId
-        && request.auth.uid in request.resource.data.userIds;
+        && request.resource.data.userIds == [request.auth.uid]
+        && request.resource.data.get('ownerId', request.auth.uid) == request.auth.uid;
+      // Un membre modifie nom, taille, quartier, adresse ; seul le propriétaire change userIds (T-159),
+      // sauf pour se retirer soi-même.
       allow update: if isAuthenticated()
         && request.auth.uid in resource.data.userIds
         && isValidHousehold(request.resource.data)
-        && areImmutableFieldsUnchanged(['id']);
+        && areImmutableFieldsUnchanged(['id'])
+        && isOwnerIdKept()
+        && (userIdsAfter() == userIdsBefore()
+            || isAcceptingJoinRequest(householdId)
+            || isRemovingMember());
       allow delete: if false;
+
+      // -------------------------------------------------------------
+      // households/{householdId}/joinRequests/{userId} — T-159
+      // -------------------------------------------------------------
+      // Champs : householdId, userId (= id du doc), displayName, householdName (nom vu par la personne en attente),
+      //   createdAt (timestamp), status (pending | accepted).
+      // La personne crée SA demande (pas déjà membre), la relit, l'annule. Le propriétaire liste les demandes,
+      // en accepte une (statut accepted, uid ajouté dans le même batch) ou la refuse (suppression).
+      match /joinRequests/{userId} {
+        function isValidJoinRequest(data) {
+          return data.keys().hasOnly(['householdId', 'userId', 'displayName', 'householdName', 'createdAt', 'status'])
+            && data.keys().hasAll(['householdId', 'userId', 'displayName', 'createdAt', 'status'])
+            && data.householdId == householdId
+            && data.userId == userId
+            && isShortString(data.displayName, 1, 80)
+            && isOptionalString(data, 'householdName', 80)
+            && data.createdAt is timestamp
+            && data.status in ['pending', 'accepted'];
+        }
+
+        allow get: if isOwner(userId) || isHouseholdOwnerOf(householdId);
+        allow list: if isHouseholdOwnerOf(householdId);
+        allow create: if isOwner(userId)
+          && isValidJoinRequest(request.resource.data)
+          && request.resource.data.status == 'pending'
+          && exists(/databases/$(database)/documents/households/$(householdId))
+          && !(userId in get(/databases/$(database)/documents/households/$(householdId)).data.userIds);
+        // La personne renvoie sa demande (en attente) ; le propriétaire l'accepte une fois l'uid dans le ménage.
+        allow update: if isValidJoinRequest(request.resource.data)
+          && ((isOwner(userId) && request.resource.data.status == 'pending'
+               && !(userId in get(/databases/$(database)/documents/households/$(householdId)).data.userIds))
+              || (isHouseholdOwnerOf(householdId)
+                  && resource.data.status == 'pending'
+                  && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status'])
+                  && request.resource.data.status == 'accepted'
+                  && userId in getAfter(/databases/$(database)/documents/households/$(householdId)).data.userIds));
+        allow delete: if isOwner(userId) || isHouseholdOwnerOf(householdId);
+      }
 
       match /private/{docId} {
         allow read: if isMemberOfHousehold(householdId);
@@ -185,6 +298,34 @@ service cloud.firestore {
                   && request.resource.data.referralCode.matches('ORG-[A-Z]{2}-[0-9]{4}[0-9X]')));
         allow delete: if false;
       }
+    }
+
+    // ---------------------------------------------------------------
+    // householdAddresses/{lookupId} — T-159
+    // ---------------------------------------------------------------
+    // Id = SHA-256 de la clé d'adresse normalisée (HouseholdAddress). Champs : id, householdId, name, ownerId.
+    // Lecture par id exact seulement (jamais de liste) : il faut connaître l'adresse pour trouver le ménage,
+    // et on n'apprend que son nom. Seul le propriétaire du ménage inscrit, renomme ou retire son adresse.
+    function isValidHouseholdAddress(data, lookupId) {
+      let path = /databases/$(database)/documents/households/$(data.householdId);
+      return data.keys().hasOnly(['id', 'householdId', 'name', 'ownerId'])
+        && data.keys().hasAll(['id', 'householdId', 'name', 'ownerId'])
+        && data.id == lookupId
+        && lookupId.matches('[0-9a-f]{64}')
+        && isShortString(data.householdId, 1, 128)
+        && isShortString(data.name, 1, 80)
+        && data.ownerId == request.auth.uid
+        && existsAfter(path)
+        && householdOwner(getAfter(path).data) == request.auth.uid;
+    }
+
+    match /householdAddresses/{lookupId} {
+      allow get: if isAuthenticated();
+      allow list: if false;
+      allow create: if isAuthenticated() && isValidHouseholdAddress(request.resource.data, lookupId);
+      allow update: if isAuthenticated() && resource.data.ownerId == request.auth.uid
+        && isValidHouseholdAddress(request.resource.data, lookupId);
+      allow delete: if isAuthenticated() && resource.data.ownerId == request.auth.uid;
     }
 
     // ---------------------------------------------------------------

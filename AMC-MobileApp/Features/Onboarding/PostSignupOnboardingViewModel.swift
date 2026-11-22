@@ -14,6 +14,10 @@ final class PostSignupOnboardingViewModel {
         case tastes
         case neighborhood
         case household
+        /// T-159 : un ménage est déjà inscrit à cette adresse — le rejoindre ou en créer un nouveau.
+        case joinChoice
+        /// T-159 : demande envoyée, en attente du propriétaire.
+        case waiting
         case done
 
         static func < (lhs: Step, rhs: Step) -> Bool { lhs.rawValue < rhs.rawValue }
@@ -26,6 +30,8 @@ final class PostSignupOnboardingViewModel {
             case .tastes: String(localized: "Qu'est-ce que tu aimes acheter ?")
             case .neighborhood: String(localized: "Où habites-tu ?")
             case .household: String(localized: "Ton ménage")
+            case .joinChoice: String(localized: "Ta famille est déjà inscrite ?")
+            case .waiting: String(localized: "Demande envoyée")
             case .done: String(localized: "Tout est prêt !")
             }
         }
@@ -33,8 +39,10 @@ final class PostSignupOnboardingViewModel {
         var subtitle: String {
             switch self {
             case .tastes: String(localized: "On mettra ces lots en premier. Tu pourras changer d'avis dans ton profil.")
-            case .neighborhood: String(localized: "Ton code postal nous dit quels groupes sont près de chez toi. On ne garde jamais ton adresse.")
-            case .household: String(localized: "Le nombre de personnes aide l'organisateur à prévoir les quantités.")
+            case .neighborhood: String(localized: "Ton code postal nous dit quels groupes sont près de chez toi.")
+            case .household: String(localized: "Ton adresse sert seulement à retrouver ta famille si elle utilise déjà LeGrenier. Personne d'autre ne la voit.")
+            case .joinChoice: String(localized: "Un ménage existe déjà à cette adresse. Rejoins-le pour partager vos groupes, vos commandes et vos cueillettes.")
+            case .waiting: String(localized: "Le propriétaire du ménage doit accepter ta demande. Tu peux fermer l'app : tu entreras dans le ménage dès qu'il aura accepté.")
             case .done: String(localized: "Voici ce qu'on a retenu. Ton tableau de bord t'attend.")
             }
         }
@@ -44,6 +52,8 @@ final class PostSignupOnboardingViewModel {
             case .tastes: "basket.fill"
             case .neighborhood: "mappin.and.ellipse"
             case .household: "person.2.fill"
+            case .joinChoice: "house.and.flag.fill"
+            case .waiting: "hourglass"
             case .done: "checkmark.seal.fill"
             }
         }
@@ -84,6 +94,17 @@ final class PostSignupOnboardingViewModel {
     var householdName = ""
     var householdSize = 1
 
+    // Adresse (T-159) : numéro et rue ici, code postal partagé avec l'étape quartier.
+    var streetNumber = ""
+    var street = ""
+    /// Ménage trouvé à l'adresse saisie (son nom seulement), `nil` s'il n'y en a pas.
+    private(set) var match: HouseholdAddressEntry?
+    /// Demande envoyée, tant qu'elle attend le propriétaire.
+    private(set) var joinRequest: HouseholdJoinRequest?
+    /// La demande a disparu sans être acceptée : le propriétaire l'a refusée.
+    private(set) var joinDeclined = false
+    private(set) var isCheckingJoin = false
+
     private(set) var isSaving = false
     private(set) var saveError: AppError?
 
@@ -111,6 +132,12 @@ final class PostSignupOnboardingViewModel {
             }
             apply(user: user, household: household)
             loadState = .loaded(user)
+            // Relancé pendant l'attente (app fermée) : on revient sur l'écran d'attente.
+            if let pendingId = user.pendingHouseholdId, !pendingId.isEmpty {
+                joinRequest = try? await repositories.users.joinRequest(householdId: pendingId, userId: userId)
+                step = .waiting
+                await checkJoin()
+            }
         } catch {
             loadState = .failed(AppError(error))
         }
@@ -124,6 +151,29 @@ final class PostSignupOnboardingViewModel {
         householdName = household?.name ?? Self.defaultHouseholdName(for: user.displayName)
         householdSize = min(max(household?.size ?? 1, Self.sizeRange.lowerBound), Self.sizeRange.upperBound)
     }
+
+    // MARK: Adresse (T-159)
+
+    var address: HouseholdAddress {
+        HouseholdAddress(streetNumber: streetNumber, street: street, postalCode: postalCode)
+    }
+
+    /// Adresse laissée vide : facultative (pas de recherche de ménage, rien d'enregistré).
+    var isAddressEmpty: Bool {
+        streetNumber.trimmingCharacters(in: .whitespaces).isEmpty && street.trimmingCharacters(in: .whitespaces).isEmpty
+    }
+
+    /// Message sous les champs d'adresse commencée mais incomplète, ou `nil` (complète ou laissée vide).
+    var addressError: String? {
+        if isAddressEmpty { return nil }
+        if address.normalizedNumber.isEmpty { return String(localized: "Entre ton numéro civique (ex. 1234).") }
+        if address.normalizedStreet.isEmpty { return String(localized: "Entre le nom de ta rue (ex. rue Jarry Est).") }
+        if address.normalizedPostalCode.isEmpty { return String(localized: "Entre ton code postal (ex. H2R 1A1).") }
+        return nil
+    }
+
+    /// Nom du ménage trouvé ou demandé (« Famille Benali »).
+    var matchName: String { match?.name ?? joinRequest?.householdName ?? String(localized: "ce ménage") }
 
     /// « Famille Benali » à partir de « Amina Benali » ; « Ménage d'Amina » s'il n'y a qu'un prénom.
     nonisolated static func defaultHouseholdName(for displayName: String) -> String {
@@ -180,12 +230,14 @@ final class PostSignupOnboardingViewModel {
         switch step {
         case .tastes: return true
         case .neighborhood: return neighborhood != nil
-        case .household: return nameError == nil && Self.sizeRange.contains(householdSize)
+        case .household: return nameError == nil && addressError == nil && Self.sizeRange.contains(householdSize)
+        case .joinChoice: return match != nil
+        case .waiting: return !isCheckingJoin
         case .done: return true
         }
     }
 
-    var canGoBack: Bool { step != .tastes && step != .done && !isSaving }
+    var canGoBack: Bool { step != .tastes && step != .done && step != .waiting && !isSaving }
 
     /// Rang de l'étape à remplir (1 à 3), pour « Étape 2 sur 3 ».
     var stepNumber: Int { (Step.formSteps.firstIndex(of: step) ?? Step.formSteps.count - 1) + 1 }
@@ -200,15 +252,128 @@ final class PostSignupOnboardingViewModel {
         case .tastes: step = .neighborhood
         case .neighborhood: step = .household
         case .household:
-            if await save() { step = .done }
+            // Un ménage existe déjà à cette adresse (et ce n'est pas le nôtre) : on propose de le rejoindre.
+            if let found = await lookUpAddress() {
+                match = found
+                step = .joinChoice
+            } else if await save() {
+                step = .done
+            }
+        case .joinChoice:
+            if await requestJoin() { step = .waiting }
+        case .waiting:
+            if joinDeclined {
+                if await save() { step = .done }
+            } else {
+                await checkJoin()
+            }
         case .done: break
         }
     }
 
     func back() {
-        guard canGoBack, let previous = Step(rawValue: step.rawValue - 1) else { return }
+        guard canGoBack else { return }
+        let previous: Step? = step == .joinChoice ? .household : Step(rawValue: step.rawValue - 1)
+        guard let previous else { return }
         step = previous
         saveError = nil
+    }
+
+    // MARK: Rejoindre un ménage (T-159)
+
+    /// Ménage inscrit à l'adresse saisie, sauf le nôtre. `nil` sans adresse, sans ménage, ou si la lecture échoue
+    /// (on crée alors un ménage, comme avant T-159).
+    private func lookUpAddress() async -> HouseholdAddressEntry? {
+        guard let lookupId = address.lookupId,
+              let found = try? await repositories.users.householdAddress(lookupId: lookupId) else { return nil }
+        let own = household?.id ?? householdId
+        guard found.householdId != own, found.ownerId != userId else { return nil }
+        return found
+    }
+
+    /// « Rejoindre » : envoie la demande et garde les préférences. L'onboarding reste ouvert (écran d'attente)
+    /// jusqu'à l'acceptation, même si l'app est relancée (`pendingHouseholdId`).
+    @discardableResult
+    func requestJoin() async -> Bool {
+        guard var user = loadState.value, let match, let neighborhood else { return false }
+        isSaving = true
+        saveError = nil
+        joinDeclined = false
+        defer { isSaving = false }
+        let request = HouseholdJoinRequest(householdId: match.householdId, userId: userId, displayName: user.displayName,
+                                           householdName: match.name, createdAt: .now, status: .pending)
+        applyPreferences(to: &user, neighborhood: neighborhood)
+        user.pendingHouseholdId = match.householdId
+        do {
+            try await repositories.users.requestToJoin(request)
+            try await repositories.users.saveUser(user)
+            joinRequest = request
+            loadState = .loaded(user)
+            return true
+        } catch {
+            saveError = AppError(error)
+            return false
+        }
+    }
+
+    /// Regarde si le propriétaire a répondu. Acceptée : le profil pointe vers le ménage, onboarding fini.
+    /// Disparue : refusée (on propose de créer un ménage). Sinon : on attend encore.
+    func checkJoin() async {
+        guard var user = loadState.value, let pendingId = user.pendingHouseholdId, !pendingId.isEmpty else { return }
+        isCheckingJoin = true
+        defer { isCheckingJoin = false }
+        do {
+            let current = try await repositories.users.joinRequest(householdId: pendingId, userId: userId)
+            guard let current else {
+                joinDeclined = true
+                return
+            }
+            joinRequest = current
+            guard current.status == .accepted else { return }
+            user = try await AppContextResolver(repositories: repositories).finishJoinIfAccepted(user)
+            user.onboardingCompleted = true
+            try await repositories.users.saveUser(user)
+            loadState = .loaded(user)
+            savedHouseholdId = pendingId
+            joinedHouseholdName = current.householdName ?? match?.name
+            joinDeclined = false
+            step = .done
+        } catch {
+            saveError = AppError(error)
+        }
+    }
+
+    /// Annule la demande et revient au choix (ou au ménage, si on ne connaît plus l'adresse trouvée).
+    func cancelJoin() async {
+        guard var user = loadState.value else { return }
+        isSaving = true
+        saveError = nil
+        defer { isSaving = false }
+        do {
+            if let pendingId = user.pendingHouseholdId, !pendingId.isEmpty {
+                try await repositories.users.deleteJoinRequest(householdId: pendingId, userId: userId)
+            }
+            user.pendingHouseholdId = nil
+            try await repositories.users.saveUser(user)
+            loadState = .loaded(user)
+            joinRequest = nil
+            joinDeclined = false
+            step = match == nil ? .household : .joinChoice
+        } catch {
+            saveError = AppError(error)
+        }
+    }
+
+    /// « Créer un nouveau ménage » (au choix, ou à la place d'une demande en attente ou refusée).
+    @discardableResult
+    func createOwnHousehold() async -> Bool {
+        if loadState.value?.pendingHouseholdId != nil {
+            await cancelJoin()
+            guard saveError == nil else { return false }
+        }
+        guard await save() else { return false }
+        step = .done
+        return true
     }
 
     // MARK: Enregistrement
@@ -235,17 +400,24 @@ final class PostSignupOnboardingViewModel {
         household.size = householdSize
         household.geohash = neighborhood.geohash
         if !household.userIds.contains(userId) { household.userIds.append(userId) }
+        // T-159 : propriétaire (le créateur), clé d'adresse, nom affiché du membre.
+        if household.ownerId == nil { household.ownerId = HouseholdMembership.ownerId(of: household) ?? userId }
+        if let key = address.key { household.addressKey = key }
+        household.memberNames = (household.memberNames ?? [:]).merging([userId: user.displayName]) { _, new in new }
 
         user.householdId = household.id
-        user.neighborhood = neighborhood.name
-        // Ordre stable (celui des enums) pour ne pas réécrire le document pour rien.
-        user.dietaryPreferences = DietaryTag.allCases.filter(dietaryPreferences.contains)
-        user.favoriteCategories = Product.Category.allCases.filter(favoriteCategories.contains)
-        if !user.roles.contains(.family) { user.roles.append(.family) }
+        user.pendingHouseholdId = nil
+        applyPreferences(to: &user, neighborhood: neighborhood)
         user.onboardingCompleted = true
 
         do {
             try await repositories.users.saveHousehold(household)
+            // Inscription à l'adresse : un détail (adresse déjà prise par un autre ménage, hors ligne…).
+            if let lookupId = address.lookupId, HouseholdMembership.isOwner(userId, of: household) {
+                try? await repositories.users.registerHouseholdAddress(
+                    HouseholdAddressEntry(id: lookupId, householdId: household.id, name: household.name, ownerId: userId)
+                )
+            }
             try await repositories.users.saveUser(user)
             self.household = household
             loadState = .loaded(user)
@@ -255,6 +427,14 @@ final class PostSignupOnboardingViewModel {
             saveError = AppError(error)
             return false
         }
+    }
+
+    private func applyPreferences(to user: inout AppUser, neighborhood: MontrealNeighborhood) {
+        user.neighborhood = neighborhood.name
+        // Ordre stable (celui des enums) pour ne pas réécrire le document pour rien.
+        user.dietaryPreferences = DietaryTag.allCases.filter(dietaryPreferences.contains)
+        user.favoriteCategories = Product.Category.allCases.filter(favoriteCategories.contains)
+        if !user.roles.contains(.family) { user.roles.append(.family) }
     }
 
     /// « Plus tard » : on ne remontre pas l'onboarding, sans rien changer d'autre au profil.
@@ -290,10 +470,22 @@ final class PostSignupOnboardingViewModel {
         return titles.isEmpty ? String(localized: "Aucune") : titles.formatted(.list(type: .and).locale(Self.frenchLocale))
     }
 
-    /// « Famille Benali · 4 personnes ».
+    /// « Famille Benali · 4 personnes », ou « Famille Benali · tu en fais partie » après avoir rejoint un ménage.
     var householdSummary: String {
-        "\(trimmedName) · \(FrenchPlural.count(householdSize, "personne"))"
+        if let joinedHouseholdName { return String(localized: "\(joinedHouseholdName) · tu en fais partie") }
+        return "\(trimmedName) · \(FrenchPlural.count(householdSize, "personne"))"
     }
+
+    /// Nom du ménage rejoint (T-159), `nil` si la personne a créé le sien.
+    private(set) var joinedHouseholdName: String?
+
+    #if DEBUG
+    /// Previews : montre directement le choix « Rejoindre ou créer ».
+    func previewJoinChoice(_ match: HouseholdAddressEntry) {
+        self.match = match
+        step = .joinChoice
+    }
+    #endif
 
     // MARK: Portail
 

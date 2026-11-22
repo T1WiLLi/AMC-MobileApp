@@ -17,6 +17,8 @@ struct ProfileScreen: View {
     @State private var pendingPortal: Portal?
     /// T-122 : photo de profil, relue à chaque apparition (elle a pu changer dans « Mon compte »).
     @State private var photoURL: URL?
+    /// T-159 : demandes pour rejoindre le ménage en attente (propriétaire seulement), pastille sur « Mon ménage ».
+    @State private var pendingJoinRequests = 0
     /// Ouvert en feuille : bouton Fermer dans la barre de l'écran racine seulement
     /// (un bouton superposé à la feuille passait par-dessus « Enregistrer » des écrans poussés).
     var showsCloseButton = false
@@ -54,6 +56,8 @@ struct ProfileScreen: View {
                             RowIcon(systemImage: "house.fill", tint: .solidarite)
                         }
                     }
+                    .badge(pendingJoinRequests)
+                    .accessibilityHint(pendingJoinRequests > 0 ? String(localized: "\(pendingJoinRequests) demande(s) pour rejoindre ton ménage") : "")
                     NavigationLink {
                         PreferencesLink()
                     } label: {
@@ -174,6 +178,11 @@ struct ProfileScreen: View {
             }
             .onAppear {
                 Task { photoURL = try? await appContext.repositories.users.user(id: appContext.userId).photoURL }
+                Task {
+                    guard appContext.hasHousehold else { return }
+                    pendingJoinRequests = (try? await appContext.repositories.users
+                        .joinRequests(ofHousehold: appContext.householdId, byUserId: appContext.userId).count) ?? 0
+                }
             }
         }
         // B-035 : la feuille ouverte suit le thème choisi en direct.

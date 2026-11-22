@@ -128,7 +128,7 @@ struct AccountViewModelTests {
         #expect(auth.deletedAccountIds == [AuthUser.sample.id])
         await #expect(throws: AppError.notFound) { try await users.user(id: userId) }
         let household = try await users.household(id: householdId)
-        #expect(household.userIds == ["user-karim"])
+        #expect(household.userIds == [FakeData.ID.yacine, "user-karim"])
     }
 
     @Test func deletionEndsSession() async {

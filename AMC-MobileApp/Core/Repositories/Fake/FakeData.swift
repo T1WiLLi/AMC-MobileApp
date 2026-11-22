@@ -19,11 +19,15 @@ nonisolated struct FakeData: Sendable {
     var pickupPoints: [PickupPoint]
     /// B-056 : invitations à usage unique des groupes privés.
     var invitations: [GroupInvitation] = []
+    /// T-159 : demandes pour rejoindre un ménage (Nadia attend la réponse d'Amina dans la démo).
+    var joinRequests: [HouseholdJoinRequest] = []
 
     /// Ids utiles dans les previews et les tests.
     enum ID {
         static let amina = "user-amina"
         static let aminaHousehold = "household-benali"
+        /// T-159 : deuxième membre du ménage Benali (sans profil dans la démo).
+        static let yacine = "user-yacine-benali"
         static let saintMichel = "group-saint-michel"
         static let hochelaga = "group-hochelaga"
         /// B-056 : groupe privé créé par Amina, sur invitation seulement.
@@ -86,7 +90,11 @@ nonisolated struct FakeData: Sendable {
                         seniorMode: false, householdId: ID.aminaHousehold, vendorId: nil),
             ],
             households: [
-                Household(id: ID.aminaHousehold, name: "Famille Benali", size: 5, geohash: "f25dv", userIds: [ID.amina]),
+                // T-159 : Amina a créé le ménage, Yacine l'a rejoint ; Nadia attend sa réponse (joinRequests).
+                Household(id: ID.aminaHousehold, name: "Famille Benali", size: 5, geohash: "f25dv",
+                          userIds: [ID.amina, ID.yacine], ownerId: ID.amina,
+                          addressKey: "7420saintmichelboulevard-h2a2z8",
+                          memberNames: [ID.amina: "Amina Benali", ID.yacine: "Yacine Benali"]),
             ] + neighborHouseholds,
             groups: [
                 NeighborhoodGroup(id: ID.saintMichel, name: "Voisins de Saint-Michel", neighborhood: "Saint-Michel",
@@ -191,6 +199,10 @@ nonisolated struct FakeData: Sendable {
                                 usedAt: now.addingTimeInterval(-5 * day)),
                 GroupInvitation(code: "VILX9P", groupId: ID.villerayKitchen, createdBy: ID.amina,
                                 createdAt: now.addingTimeInterval(-4 * day), revokedAt: now.addingTimeInterval(-3 * day)),
+            ],
+            joinRequests: [
+                HouseholdJoinRequest(householdId: ID.aminaHousehold, userId: "user-nadia-benali", displayName: "Nadia Benali",
+                                     householdName: "Famille Benali", createdAt: now.addingTimeInterval(-25 * 60), status: .pending),
             ]
         )
     }()

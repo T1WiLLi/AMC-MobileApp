@@ -10,8 +10,9 @@ struct PostSignupOnboardingScreen: View {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     @FocusState private var focus: Field?
+    @Environment(\.scenePhase) private var scenePhase
 
-    private enum Field { case postalCode, name }
+    private enum Field { case postalCode, name, streetNumber, street, addressPostalCode }
 
     init(model: PostSignupOnboardingViewModel, onFinish: @escaping (String) -> Void = { _ in }) {
         _model = State(initialValue: model)
@@ -40,6 +41,20 @@ struct PostSignupOnboardingScreen: View {
         .grenierHaptic(.selection, trigger: model.favoriteCategories)
         .grenierHaptic(.selection, trigger: model.dietaryPreferences)
         .grenierHaptic(.success, trigger: model.step == .done)
+        .grenierHaptic(.success, trigger: model.step == .waiting)
+        // T-159 : en attente du propriétaire, on regarde régulièrement (et au retour dans l'app) s'il a répondu.
+        .task(id: model.step) {
+            guard model.step == .waiting else { return }
+            while !Task.isCancelled {
+                try? await Task.sleep(for: .seconds(5))
+                guard !Task.isCancelled, model.step == .waiting, !model.joinDeclined else { return }
+                await model.checkJoin()
+            }
+        }
+        .onChange(of: scenePhase) { _, phase in
+            guard phase == .active, model.step == .waiting else { return }
+            Task { await model.checkJoin() }
+        }
     }
 
     // MARK: Barre du haut
@@ -128,6 +143,8 @@ struct PostSignupOnboardingScreen: View {
         case .tastes: tastesStep
         case .neighborhood: neighborhoodStep
         case .household: householdStep
+        case .joinChoice: joinChoiceStep
+        case .waiting: waitingStep
         case .done: doneStep
         }
     }
@@ -288,6 +305,8 @@ struct PostSignupOnboardingScreen: View {
                 }
             }
 
+            addressCard
+
             card {
                 Stepper(value: $model.householdSize, in: PostSignupOnboardingViewModel.sizeRange) {
                     Label {
@@ -320,6 +339,219 @@ struct PostSignupOnboardingScreen: View {
                     .fixedSize(horizontal: false, vertical: true)
                     .grenierTransition(.banner)
             }
+        }
+    }
+
+    /// T-159 : adresse du ménage (numéro, rue, code postal), privée.
+    private var addressCard: some View {
+        card {
+            VStack(alignment: .leading, spacing: 10) {
+                Label("Adresse (facultatif)", systemImage: "mappin.circle.fill")
+                    .font(.headline)
+                    .foregroundStyle(Color.texte)
+                    .symbolRenderingMode(.hierarchical)
+                ViewThatFits(in: .horizontal) {
+                    HStack(spacing: 8) {
+                        numberField.frame(maxWidth: 110)
+                        streetField
+                    }
+                    VStack(spacing: 8) {
+                        numberField
+                        streetField
+                    }
+                }
+                TextField("Code postal", text: $model.postalCode, prompt: Text("H2R 1A1"))
+                    .font(.title3)
+                    .textContentType(.postalCode)
+                    .textInputAutocapitalization(.characters)
+                    .autocorrectionDisabled()
+                    .submitLabel(.done)
+                    .focused($focus, equals: .addressPostalCode)
+                    .padding(12)
+                    .background(AppTheme.fond, in: .rect(cornerRadius: 12))
+                    .accessibilityLabel("Code postal")
+                if let error = model.addressError {
+                    Label(error, systemImage: "exclamationmark.circle.fill")
+                        .font(.footnote)
+                        .foregroundStyle(.red)
+                        .fixedSize(horizontal: false, vertical: true)
+                } else {
+                    Label("Pour retrouver ta famille si elle est déjà inscrite. Seuls les membres de ton ménage voient ton adresse.", systemImage: "lock.fill")
+                        .font(.footnote)
+                        .foregroundStyle(Color.texteSecondaire)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+            }
+        }
+    }
+
+    private var numberField: some View {
+        TextField("Numéro", text: $model.streetNumber, prompt: Text("1234"))
+            .font(.title3)
+            .keyboardType(.numbersAndPunctuation)
+            .textContentType(.streetAddressLine1)
+            .submitLabel(.next)
+            .focused($focus, equals: .streetNumber)
+            .onSubmit { focus = .street }
+            .padding(12)
+            .background(AppTheme.fond, in: .rect(cornerRadius: 12))
+            .accessibilityLabel("Numéro civique")
+    }
+
+    private var streetField: some View {
+        TextField("Rue", text: $model.street, prompt: Text("rue Jarry Est"))
+            .font(.title3)
+            .textContentType(.streetAddressLine1)
+            .submitLabel(.next)
+            .focused($focus, equals: .street)
+            .onSubmit { focus = .addressPostalCode }
+            .padding(12)
+            .background(AppTheme.fond, in: .rect(cornerRadius: 12))
+            .accessibilityLabel("Rue")
+    }
+
+    // MARK: 3 bis. Rejoindre ou créer (T-159)
+
+    private var joinChoiceStep: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            card {
+                HStack(alignment: .top, spacing: 14) {
+                    Image(systemName: "house.fill")
+                        .font(.title2)
+                        .symbolRenderingMode(.hierarchical)
+                        .foregroundStyle(Color.grenier)
+                        .frame(width: 52, height: 52)
+                        .background(Color.grenier.opacity(0.12), in: .circle)
+                        .symbolEffect(.bounce, value: reduceMotion ? 0 : 1)
+                        .accessibilityHidden(true)
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text("Ménage trouvé à ton adresse")
+                            .font(.subheadline)
+                            .foregroundStyle(Color.texteSecondaire)
+                        Text(model.matchName)
+                            .font(.title2.bold())
+                            .foregroundStyle(Color.texte)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
+                }
+                .accessibilityElement(children: .combine)
+            }
+            .grenierAppear(index: 0)
+
+            VStack(alignment: .leading, spacing: 10) {
+                benefitRow("Mêmes groupes de quartier", systemImage: "person.3.fill")
+                benefitRow("Mêmes commandes et réservations", systemImage: "cart.fill")
+                benefitRow("Une seule cueillette, par n'importe qui du ménage", systemImage: "qrcode")
+            }
+            .grenierAppear(index: 1)
+
+            Button {
+                Task { await model.createOwnHousehold() }
+            } label: {
+                Label("Créer un nouveau ménage", systemImage: "plus.circle")
+                    .frame(maxWidth: .infinity, minHeight: 44)
+            }
+            .buttonStyle(.glass)
+            .disabled(model.isSaving)
+            .accessibilityHint("Crée un ménage séparé, même à cette adresse")
+            .grenierAppear(index: 2)
+
+            saveErrorLabel
+        }
+    }
+
+    private func benefitRow(_ title: LocalizedStringKey, systemImage: String) -> some View {
+        Label {
+            Text(title)
+                .font(.body)
+                .foregroundStyle(Color.texte)
+                .fixedSize(horizontal: false, vertical: true)
+        } icon: {
+            Image(systemName: systemImage)
+                .symbolRenderingMode(.hierarchical)
+                .foregroundStyle(Color.grenier)
+        }
+    }
+
+    // MARK: 3 ter. En attente du propriétaire (T-159)
+
+    private var waitingStep: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            card {
+                HStack(alignment: .top, spacing: 14) {
+                    Image(systemName: model.joinDeclined ? "xmark.circle.fill" : "hourglass")
+                        .font(.title2)
+                        .symbolRenderingMode(.hierarchical)
+                        .foregroundStyle(model.joinDeclined ? Color.secondary : Color.grenier)
+                        .frame(width: 52, height: 52)
+                        .background((model.joinDeclined ? Color.secondary : Color.grenier).opacity(0.12), in: .circle)
+                        .symbolEffect(.pulse, isActive: !reduceMotion && !model.joinDeclined)
+                        .contentTransition(.symbolEffect(.replace))
+                        .accessibilityHidden(true)
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text(model.matchName)
+                            .font(.title3.bold())
+                            .foregroundStyle(Color.texte)
+                            .fixedSize(horizontal: false, vertical: true)
+                        Text(model.joinDeclined
+                             ? String(localized: "Ta demande n'a pas été acceptée. Crée ton propre ménage pour continuer.")
+                             : String(localized: "En attente du propriétaire du ménage…"))
+                            .font(.subheadline)
+                            .foregroundStyle(Color.texteSecondaire)
+                            .fixedSize(horizontal: false, vertical: true)
+                        if let sent = model.joinRequest?.createdAt, !model.joinDeclined {
+                            Text("Envoyée \(sent, format: .relative(presentation: .named))")
+                                .font(.footnote)
+                                .foregroundStyle(Color.texteSecondaire)
+                        }
+                    }
+                }
+                .accessibilityElement(children: .combine)
+            }
+            .animation(animation, value: model.joinDeclined)
+
+            if !model.joinDeclined {
+                ViewThatFits(in: .horizontal) {
+                    HStack(spacing: 12) { cancelJoinButton; createInsteadButton }
+                    VStack(spacing: 12) { cancelJoinButton; createInsteadButton }
+                }
+            }
+
+            saveErrorLabel
+        }
+    }
+
+    private var cancelJoinButton: some View {
+        Button(role: .cancel) {
+            Task { await model.cancelJoin() }
+        } label: {
+            Label("Annuler la demande", systemImage: "xmark")
+                .frame(maxWidth: .infinity, minHeight: 44)
+        }
+        .buttonStyle(.glass)
+        .disabled(model.isSaving)
+    }
+
+    private var createInsteadButton: some View {
+        Button {
+            Task { await model.createOwnHousehold() }
+        } label: {
+            Label("Créer mon ménage", systemImage: "plus.circle")
+                .frame(maxWidth: .infinity, minHeight: 44)
+        }
+        .buttonStyle(.glass)
+        .disabled(model.isSaving)
+        .accessibilityHint("Annule la demande et crée un ménage à toi")
+    }
+
+    @ViewBuilder
+    private var saveErrorLabel: some View {
+        if let error = model.saveError {
+            Label(error.localizedDescription, systemImage: "exclamationmark.triangle.fill")
+                .font(.footnote)
+                .foregroundStyle(.red)
+                .fixedSize(horizontal: false, vertical: true)
+                .grenierTransition(.banner)
         }
     }
 
@@ -373,7 +605,11 @@ struct PostSignupOnboardingScreen: View {
     private var primaryTitle: String {
         switch model.step {
         case .tastes, .neighborhood: String(localized: "Continuer")
-        case .household: model.isSaving ? String(localized: "Enregistrement…") : String(localized: "Créer mon ménage")
+        case .household: model.isSaving ? String(localized: "Enregistrement…") : String(localized: "Continuer")
+        case .joinChoice: String(localized: "Rejoindre \(model.matchName)")
+        case .waiting:
+            model.joinDeclined ? String(localized: "Créer mon ménage")
+                : model.isCheckingJoin ? String(localized: "Vérification…") : String(localized: "Vérifier maintenant")
         case .done: String(localized: "Ouvrir mon tableau de bord")
         }
     }
@@ -384,6 +620,9 @@ struct PostSignupOnboardingScreen: View {
         case .neighborhood:
             model.canContinue ? String(localized: "Passe au ménage") : String(localized: "Entre ton code postal ou choisis un quartier")
         case .household: String(localized: "Enregistre tes préférences et ton ménage")
+        case .joinChoice: String(localized: "Envoie une demande au propriétaire du ménage")
+        case .waiting:
+            model.joinDeclined ? String(localized: "Crée un ménage à toi") : String(localized: "Regarde si le propriétaire a accepté")
         case .done: String(localized: "Ouvre le portail Familles")
         }
     }
@@ -529,6 +768,22 @@ private enum OnboardingPreview {
         repositories.users = FakeUserRepository(users: [user], households: [household])
         return PostSignupOnboardingViewModel(repositories: repositories, userId: user.id, householdId: household.id)
     }
+
+    /// T-159 : demande envoyée à la Famille Benali, en attente.
+    static func waitingModel() -> PostSignupOnboardingViewModel {
+        let user = AppUser(
+            id: "user-karim", displayName: "Karim Benali", photoURL: nil, language: .french, roles: [.family],
+            neighborhood: "Villeray", dietaryPreferences: [], seniorMode: false, householdId: "household-user-karim",
+            vendorId: nil, onboardingCompleted: false, pendingHouseholdId: "household-amina"
+        )
+        let own = Household(id: "household-user-karim", name: "Ménage de Karim", size: 1, geohash: "", userIds: [user.id])
+        let amina = Household(id: "household-amina", name: "Famille Benali", size: 4, geohash: "f25du", userIds: ["amina"], ownerId: "amina")
+        let request = HouseholdJoinRequest(householdId: amina.id, userId: user.id, displayName: user.displayName,
+                                           householdName: amina.name, createdAt: .now.addingTimeInterval(-300), status: .pending)
+        var repositories = AppRepositories.fake(behavior: .instant)
+        repositories.users = FakeUserRepository(users: [user], households: [own, amina], joinRequests: [request])
+        return PostSignupOnboardingViewModel(repositories: repositories, userId: user.id, householdId: own.id)
+    }
 }
 
 #Preview("Goûts") {
@@ -542,6 +797,25 @@ private enum OnboardingPreview {
 
 #Preview("AX5") {
     PostSignupOnboardingScreen(model: OnboardingPreview.model())
+        .dynamicTypeSize(.accessibility5)
+}
+
+#Preview("Ménage trouvé à l'adresse") {
+    let model = OnboardingPreview.model()
+    PostSignupOnboardingScreen(model: model)
+        .task {
+            await model.load()
+            model.previewJoinChoice(HouseholdAddressEntry(id: "a", householdId: "household-amina", name: "Famille Benali", ownerId: "amina"))
+        }
+}
+
+#Preview("En attente du propriétaire, sombre") {
+    PostSignupOnboardingScreen(model: OnboardingPreview.waitingModel())
+        .preferredColorScheme(.dark)
+}
+
+#Preview("En attente, AX5") {
+    PostSignupOnboardingScreen(model: OnboardingPreview.waitingModel())
         .dynamicTypeSize(.accessibility5)
 }
 #endif

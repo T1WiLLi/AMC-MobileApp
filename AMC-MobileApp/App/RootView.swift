@@ -10,6 +10,8 @@ struct RootView: View {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     /// Bascule animée de portail (T-123), demandée depuis le profil ou le menu du bouton Profil.
     @State private var portalSwitch = PortalSwitchCoordinator()
+    /// T-159 : l'app est passée en arrière-plan ; le contexte sera relu au retour.
+    @State private var wasInBackground = false
     /// Contexte de la session (T-127) : un portail ne s'ouvre que si le compte a ce qu'il lui faut.
     @Environment(\.appContext) private var context
     @Environment(SessionContextStore.self) private var contextStore: SessionContextStore?
@@ -86,6 +88,12 @@ struct RootView: View {
         .grenierHaptic(.success, trigger: portalSwitch.completedSwitches) { _, count in count > 0 }
         .onChange(of: scenePhase, initial: true) { _, phase in
             network?.scenePhaseChanged(to: phase)
+            // T-159 : au retour de l'arrière-plan, un autre membre du ménage a pu rejoindre ou quitter un groupe.
+            if phase == .background { wasInBackground = true }
+            if phase == .active, wasInBackground {
+                wasInBackground = false
+                Task { await contextStore?.reload() }
+            }
         }
         .onChange(of: isOffline) { _, offline in
             AccessibilityNotification.Announcement(offline ? String(localized: "Hors ligne") : String(localized: "De retour en ligne")).post()

@@ -42,6 +42,102 @@ nonisolated final class FirestoreUserRepository: UserRepository, @unchecked Send
     func saveHousehold(_ household: Household) async throws {
         try await FirestoreDocument.save(household, to: householdRef(household.id))
     }
+
+    // MARK: T-159 — ménage partagé
+
+    private func addressRef(_ lookupId: String) -> DocumentReference {
+        db.collection(FirestoreCollection.householdAddresses).document(lookupId)
+    }
+
+    private func joinRequestRef(householdId: String, userId: String) -> DocumentReference {
+        db.collection(FirestoreCollection.joinRequests(ofHousehold: householdId)).document(userId)
+    }
+
+    func householdAddress(lookupId: String) async throws -> HouseholdAddressEntry? {
+        do {
+            return try await FirestoreDocument.fetch(HouseholdAddressEntry.self, addressRef(lookupId), idKey: "id")
+        } catch AppError.notFound {
+            return nil
+        }
+    }
+
+    func registerHouseholdAddress(_ entry: HouseholdAddressEntry) async throws {
+        // Adresse déjà prise par un autre ménage : la règle refuse l'écriture, et c'est voulu (le premier reste).
+        if let existing = try await householdAddress(lookupId: entry.id), existing.ownerId != entry.ownerId { return }
+        try await FirestoreDocument.save(entry, to: addressRef(entry.id))
+    }
+
+    func requestToJoin(_ request: HouseholdJoinRequest) async throws {
+        var pending = request
+        pending.status = .pending
+        // Écrase une ancienne demande de la même personne (pas de merge : statut et date repartent à neuf).
+        do {
+            let data = try Firestore.Encoder().encode(pending)
+            try await joinRequestRef(householdId: request.householdId, userId: request.userId).setData(data)
+        } catch {
+            throw FirestoreGroupOrderRepository.appError(from: error)
+        }
+    }
+
+    func joinRequest(householdId: String, userId: String) async throws -> HouseholdJoinRequest? {
+        do {
+            return try await FirestoreDocument.fetch(HouseholdJoinRequest.self,
+                                                     joinRequestRef(householdId: householdId, userId: userId),
+                                                     idKey: "userId")
+        } catch AppError.notFound {
+            return nil
+        }
+    }
+
+    func joinRequests(ofHousehold householdId: String, byUserId userId: String) async throws -> [HouseholdJoinRequest] {
+        let query = db.collection(FirestoreCollection.joinRequests(ofHousehold: householdId))
+            .whereField("status", isEqualTo: HouseholdJoinRequest.Status.pending.rawValue)
+        return try await FirestoreDocument.query(HouseholdJoinRequest.self, query, idKey: "userId")
+            .sorted { $0.createdAt < $1.createdAt }
+    }
+
+    func deleteJoinRequest(householdId: String, userId: String) async throws {
+        do {
+            try await joinRequestRef(householdId: householdId, userId: userId).delete()
+        } catch {
+            throw FirestoreGroupOrderRepository.appError(from: error)
+        }
+    }
+
+    /// Un batch : ménage (userIds + memberNames) et demande (`accepted`) bougent ensemble (la règle du ménage
+    /// vérifie que la demande existe, celle de la demande que l'uid est bien entré dans le ménage).
+    func acceptJoinRequest(householdId: String, userId: String, byUserId ownerId: String) async throws -> Household {
+        let household = try await household(id: householdId)
+        guard let request = try await joinRequest(householdId: householdId, userId: userId) else { throw AppError.notFound }
+        let updated = try HouseholdMembership.accepting(request, in: household, byUserId: ownerId)
+        let batch = db.batch()
+        batch.updateData([
+            "userIds": FieldValue.arrayUnion([userId]),
+            "memberNames.\(userId)": request.displayName,
+        ], forDocument: householdRef(householdId))
+        batch.updateData(["status": HouseholdJoinRequest.Status.accepted.rawValue],
+                         forDocument: joinRequestRef(householdId: householdId, userId: userId))
+        do {
+            try await batch.commit()
+        } catch {
+            throw FirestoreGroupOrderRepository.appError(from: error)
+        }
+        return updated
+    }
+
+    func removeMember(_ userId: String, fromHousehold householdId: String, byUserId callerId: String) async throws -> Household {
+        let household = try await household(id: householdId)
+        let updated = try HouseholdMembership.removing(userId, from: household, byUserId: callerId)
+        do {
+            try await householdRef(householdId).updateData([
+                "userIds": FieldValue.arrayRemove([userId]),
+                "memberNames.\(userId)": FieldValue.delete(),
+            ])
+        } catch {
+            throw FirestoreGroupOrderRepository.appError(from: error)
+        }
+        return updated
+    }
 }
 
 /// Lecture, écriture et décodage communs aux dépôts Firestore de B-017 et B-018.

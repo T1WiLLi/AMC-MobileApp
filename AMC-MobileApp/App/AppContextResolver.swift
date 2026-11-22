@@ -22,13 +22,61 @@ nonisolated struct AppContextResolver: Sendable {
 
     /// Contexte résolu de `user`. Lève une `AppError` si une lecture échoue (hors ligne, règles).
     func resolve(user: AuthUser, preferredGroupId: String? = nil) async throws -> AppContext {
-        let profile: AppUser
+        var profile: AppUser
         do {
             profile = try await repositories.users.user(id: user.id)
         } catch AppError.notFound {
             profile = try await createProfile(for: user)
         }
+        profile = try await finishJoinIfAccepted(profile)
+        profile = try await leaveHouseholdIfRemoved(profile, user: user)
         return try await context(for: profile, preferredGroupId: preferredGroupId)
+    }
+
+    // MARK: - Ménage partagé (T-159)
+
+    /// Demande pour rejoindre un ménage acceptée par son propriétaire : le profil pointe maintenant vers ce ménage
+    /// (la règle vérifie que l'uid est dans `userIds`), et la demande, devenue inutile, est supprimée.
+    /// Demande toujours en attente, ou supprimée (refusée) : le profil ne change pas.
+    func finishJoinIfAccepted(_ profile: AppUser) async throws -> AppUser {
+        guard let pendingId = profile.pendingHouseholdId, !pendingId.isEmpty else { return profile }
+        guard let request = try await repositories.users.joinRequest(householdId: pendingId, userId: profile.id),
+              request.status == .accepted else { return profile }
+        var profile = profile
+        profile.householdId = pendingId
+        profile.pendingHouseholdId = nil
+        if !profile.roles.contains(.family) { profile.roles.append(.family) }
+        try await repositories.users.saveUser(profile)
+        try? await repositories.users.deleteJoinRequest(householdId: pendingId, userId: profile.id)
+        return profile
+    }
+
+    /// Le propriétaire a retiré la personne du ménage : elle retrouve son propre ménage (`household-{uid}`),
+    /// recréé s'il le faut, pour que le portail Familles marche encore.
+    private func leaveHouseholdIfRemoved(_ profile: AppUser, user: AuthUser) async throws -> AppUser {
+        guard let householdId = profile.householdId, !householdId.isEmpty,
+              householdId != Self.householdId(forUserId: profile.id) else { return profile }
+        do {
+            let household = try await repositories.users.household(id: householdId)
+            if household.userIds.contains(profile.id) { return profile }
+        } catch AppError.permissionDenied {
+            // Plus membre : les règles refusent la lecture du ménage. On continue.
+        } catch {
+            // Hors ligne, document absent des fakes… : on ne touche pas au profil.
+            return profile
+        }
+        let own: Household
+        if let existing = try? await repositories.users.household(id: Self.householdId(forUserId: profile.id)),
+           existing.userIds.contains(profile.id) {
+            own = existing
+        } else {
+            own = Self.newHousehold(for: user)
+            try await repositories.users.saveHousehold(own)
+        }
+        var profile = profile
+        profile.householdId = own.id
+        try await repositories.users.saveUser(profile)
+        return profile
     }
 
     /// Crée un ménage pour un profil qui n'en a pas (CTA « Créer mon ménage ») et renvoie le contexte à jour.
@@ -122,7 +170,9 @@ nonisolated struct AppContextResolver: Sendable {
             name: "Ménage de \(displayName(for: user))",
             size: 1,
             geohash: "",
-            userIds: [user.id]
+            userIds: [user.id],
+            ownerId: user.id,
+            memberNames: [user.id: displayName(for: user)]
         )
     }
 

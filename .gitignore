@@ -17,3 +17,6 @@ ui-debug.log
 
 # Worktrees locaux des agents Claude Code
 .claude/worktrees/
+
+# Pipeline IPA : copie temporaire du plist Firebase pendant une build sous un autre bundle ID.
+AMC-MobileApp/GoogleService-Info.plist.pipeline-backup

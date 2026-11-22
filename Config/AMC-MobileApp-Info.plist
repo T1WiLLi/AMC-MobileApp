@@ -19,6 +19,9 @@
 	<!-- Live Activity de la commande (cible GrenierWidgets, Core/LiveActivity), démarrée localement. -->
 	<key>NSSupportsLiveActivities</key>
 	<true/>
+	<!-- App Group partagé avec GrenierWidgets (SharedLanguage), dérivé du bundle ID de la build. -->
+	<key>GrenierAppGroup</key>
+	<string>group.$(GRENIER_BUNDLE_ID)</string>
 	<key>CFBundleURLTypes</key>
 	<array>
 		<dict>
@@ -28,7 +31,7 @@
 			<string>google-sign-in</string>
 			<key>CFBundleURLSchemes</key>
 			<array>
-				<string>com.googleusercontent.apps.959550736484-74nu238bfp7b7lfsj19tqccnmptpek7v</string>
+				<string>$(GRENIER_GOOGLE_URL_SCHEME)</string>
 			</array>
 		</dict>
 		<!-- Liens d'invitation à un groupe (B-058) : grenier://join/<code>, routés par InviteLinkRouter. -->

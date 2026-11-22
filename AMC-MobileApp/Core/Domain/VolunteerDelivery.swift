@@ -64,7 +64,7 @@ nonisolated enum VolunteerDelivery {
 
         var systemImage: String {
             switch self {
-            case .senior: "figure.walk.cane"
+            case .senior: "figure.walk.motion"
             case .reducedMobility: "figure.roll"
             }
         }

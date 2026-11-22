@@ -118,7 +118,8 @@ final class PickupViewModel {
         return Content(
             pickupPoint: point,
             slot: slot,
-            hostFirstName: host?.displayName.split(separator: " ").first.map(String.init),
+            // Quand le membre est lui-même l'hôte du point, « Montre ce code à Amina » n'a pas de sens : on dit « l'hôte ».
+            hostFirstName: host.flatMap { $0.id == userId ? nil : $0.displayName.split(separator: " ").first.map(String.init) },
             items: items,
             // Le QR est celui de la part du ménage (le même pour tous ses membres), suivi du membre qui le montre.
             qrPayload: qrCodes.first.map { PickupDesk.memberCode($0, memberId: userId) }

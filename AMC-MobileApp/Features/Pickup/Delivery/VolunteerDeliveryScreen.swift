@@ -99,7 +99,7 @@ private struct DeliveryFamilyView: View {
                 .grenierTransition(.cardAppear)
             } else if content.orderOptions.isEmpty {
                 DeliveryEmptyCard(
-                    symbol: "basket.fill", satellites: ["house.fill", "figure.walk.cane"],
+                    symbol: "basket.fill", satellites: ["house.fill", "figure.walk.motion"],
                     title: "Rien à te faire livrer",
                     message: "Réserve ta part d'un lot : tu pourras ensuite demander qu'un voisin te l'apporte.",
                     actionTitle: "Je livre plutôt un voisin", actionSymbol: "figure.walk"
@@ -138,7 +138,7 @@ private struct DeliveryFamilyHero: View {
 
     var body: some View {
         HStack(spacing: 16) {
-            PickupSymbolScene(main: "figure.walk.cane", satellites: ["house.fill", "heart.fill", "basket.fill"],
+            PickupSymbolScene(main: "figure.walk.motion", satellites: ["house.fill", "heart.fill", "basket.fill"],
                               diameter: min(diameter, 110))
             VStack(alignment: .leading, spacing: 6) {
                 Text("Un voisin t'apporte ta part")

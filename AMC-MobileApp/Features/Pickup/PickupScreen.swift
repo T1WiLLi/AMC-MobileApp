@@ -309,7 +309,7 @@ private struct PickupCodeCard: View {
     }
 
     private var hostInstruction: String {
-        content.hostFirstName.map { String(localized: "Montre ce code à \($0)") } ?? String(localized: "Montre ce code à ton hôte")
+        content.hostFirstName.map { String(localized: "Montre ce code à \($0)") } ?? String(localized: "Montre ce code à l'hôte")
     }
 
     private var articles: String {

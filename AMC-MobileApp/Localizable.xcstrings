@@ -30194,6 +30194,66 @@
           }
         }
       }
+    },
+    "Ajouter des photos" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Add photos"
+          }
+        }
+      }
+    },
+    "Ajouter d'autres photos" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Add more photos"
+          }
+        }
+      }
+    },
+    "Photo en cours d'ajout" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Adding photo"
+          }
+        }
+      }
+    },
+    "Ouvre ta photothèque. Tu peux choisir plusieurs photos d'un coup." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Opens your photo library. You can pick several photos at once."
+          }
+        }
+      }
+    },
+    "Tu peux ajouter 10 photos au plus : les premières choisies ont été gardées." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "You can add up to 10 photos: the first ones you picked were kept."
+          }
+        }
+      }
+    },
+    "Certaines images n'ont pas pu être lues." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Some images couldn't be read."
+          }
+        }
+      }
     }
   },
   "version" : "1.0"

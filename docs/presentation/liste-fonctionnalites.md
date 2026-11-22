@@ -5,7 +5,7 @@
 
 **Équipe :** Zachari Lavallée, William Beaudin, Yann Cedrick Kouekam, Samuel Courchesne · **Sphère principale :** sécurité alimentaire (la faim à Montréal) · **Plateforme :** iOS 26 natif (SwiftUI, Liquid Glass) · **Backend :** Firebase (Auth, Firestore), sans serveur
 
-État au 2026-11-22, vérifié dans le code de `main` (`431a301`, `AMC-MobileApp/Features/`) : 336 PR mergées, environ 1 600 tests unitaires. Chaque ligne se teste dans l'app installée.
+État au 2026-11-22, vérifié dans le code de `main` (`ee64011`, `AMC-MobileApp/Features/`) : environ 355 PR mergées, environ 1 600 tests unitaires. Chaque ligne se teste dans l'app installée.
 
 **Légende :** ✅ fonctionne dans l'app · 🟡 présente mais partielle · 💳 fonctionne de bout en bout, mais aucun argent réel ne circule (pas de processeur de paiement branché).
 
@@ -45,7 +45,7 @@ Onglets : **Accueil · Groupes · Cueillette · Impact · Recherche**.
 | Chercher un lot ou un produit, avec filtres par catégorie | ✅ |
 | Fiche d'un lot : producteur, origine, paliers de prix, nombre de familles engagées, temps restant | ✅ |
 | Choisir sa part (ex. un sac de 5 kg) et voir tout de suite le prix, l'économie et le prix maximum à payer | ✅ |
-| Réserver sa part, la modifier ou l'annuler tant que la commande est ouverte | ✅ |
+| Réserver sa part, la modifier ou l'annuler tant que la commande est ouverte (l'annulation demande une confirmation) | ✅ |
 | Prix par palier en temps réel : la barre montre combien de parts il manque pour le palier suivant | ✅ |
 | Célébration « Palier débloqué ! » quand ma part fait baisser le prix de tout le groupe | ✅ |
 | Avertissement quand le minimum de lancement d'un lot risque de ne pas être atteint | ✅ |
@@ -69,7 +69,7 @@ Onglets : **Accueil · Groupes · Cueillette · Impact · Recherche**.
 | Planificateur du mois : mes besoins et mon budget, et les lots qui y répondent | ✅ |
 | Cueillette rangée par groupe : un seul code QR par groupe pour toutes mes commandes, adresse, créneau, itinéraire à pied, liste de ce que je récupère | ✅ |
 | Code de cueillette protégé par un jeton privé ; une seule cueillette par ménage, « Récupéré par » le membre qui s'est présenté | ✅ |
-| Suivi de la commande : « En route », puis « Arrivée ! Viens la chercher » quand l'hôte la marque comme arrivée | ✅ |
+| Suivi de la commande : « En route », puis « Arrivée ! Viens la chercher » quand l'hôte la marque comme arrivée ; remerciement après la remise | ✅ |
 | Réserver un créneau de cueillette | ✅ |
 | Devenir hôte : offrir son garage ou son entrée comme point de cueillette, avec adresse vérifiée, photo, créneaux et capacité | ✅ |
 | Écran de l'hôte : « Marquer comme arrivée », puis « Remettre les parts » en scannant le QR du groupe (ou en tapant le code sans caméra), listes « À servir » et « Servis », recherche | ✅ |
@@ -93,8 +93,8 @@ Onglets : **Tableau · Lots · Demande · Revenus**. Ouvert à tout producteur, 
 | « Ma vitrine » : description, photos, coups de cœur, zones desservies, comme les familles la voient | ✅ |
 | « Mes produits » : créer, modifier et retirer un produit avec photo, réutilisable d'un lot à l'autre | ✅ |
 | Publier un lot : produit, part structurée (contenant, poids, valeur), quantité, minimum de lancement, date de fermeture | ✅ |
-| Éditeur de paliers de prix avec courbe d'aperçu (10 paliers et 10 000 parts au plus) | ✅ |
-| Conditions et prix d'un lot figés une fois publié | ✅ |
+| Éditeur de lot par sections et éditeur de paliers de prix avec courbe d'aperçu (10 paliers et 10 000 parts au plus) | ✅ |
+| Conditions et prix d'un lot figés une fois publié (cadenas et explication dans l'éditeur) | ✅ |
 | Cycle de vie d'un lot : pause, retrait, duplication | ✅ |
 | Fermer sa commande soi-même depuis l'onglet Lots (« Confirmer la commande ») ; état « Fermée, en préparation » sur les cartes | ✅ |
 | Carte de la demande : où les familles commandent et ce qu'elles souhaitent, bulles regroupées selon le zoom, « Proposer un lot ici » | ✅ |
@@ -111,8 +111,10 @@ Onglets : **Tableau · Financer · Parrainages · Impact · Recherche**. Pour le
 |---|---|
 | Tableau : fonds disponible, paniers financés, familles aidées | ✅ |
 | Dons : financer des paniers suspendus ou donner au fonds de solidarité d'un groupe, avec aperçu en direct (paniers, familles couvertes) et remerciement animé | 💳 |
+| Étape de paiement comme une vraie, pour les dons et les parrainages : carte style Apple Pay, Face ID ou code, « Traitement… », puis reçu ou refus (rien n'est enregistré en cas de refus) | 💳 |
 | Le don alimente le fonds de solidarité du groupe, qui paie les parts des ménages admissibles à la clôture | 💳 |
-| Chercher et filtrer les groupes, voir ceux qui en ont le plus besoin | ✅ |
+| Les mêmes groupes que la recherche du portail Famille, avec bannière, photo et fiche publique ; chercher et filtrer, voir ceux qui en ont le plus besoin | ✅ |
+| Carte des groupes et des autres organismes de Montréal | ✅ |
 | Parrainer un groupe de quartier, suivre ses parrainages | ✅ |
 | Impact de l'organisme : familles aidées, dollars versés, par quartier | ✅ |
 

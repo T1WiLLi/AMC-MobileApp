@@ -17,6 +17,9 @@ final class FamilyHomeViewModel {
         var newOffers: [OfferSummary]
         /// Économie du ménage vs l'épicerie sur toutes ses parts dans le groupe (« 48 $ économisés »).
         var savedCents: Cents
+        /// Part de `savedCents` venant de commandes déjà lancées (palier minimum atteint ou clôturée).
+        /// 0 tant que rien n'est lancé : l'Accueil parle alors d'économie à venir, pas réalisée.
+        var launchedSavedCents: Cents = 0
 
         /// « Amina » pour « Bonjour Amina » : le profil `users/{uid}` de la personne connectée, jamais une persona.
         var firstName: String { FamilyHomeViewModel.firstName(from: user.displayName) }
@@ -56,7 +59,7 @@ final class FamilyHomeViewModel {
             let (user, group, orders, allActive) = try await (userLoad, groupLoad, ordersLoad, feedLoad)
             let activeOrders = orders.filter(OfferSummaryLoader.isActive)
 
-            async let saved = Self.savings(of: householdId, in: orders, repositories: repositories)
+            async let saved = Self.savingsBreakdown(of: householdId, in: orders, repositories: repositories)
             let orderOffers = try await Self.offers(for: activeOrders, repositories: repositories)
             async let current = OfferSummaryLoader.summaries(
                 for: orderOffers, groupOrders: activeOrders, householdId: householdId, repositories: repositories
@@ -68,13 +71,14 @@ final class FamilyHomeViewModel {
                 for: feed, groupOrders: [], householdId: householdId, repositories: repositories
             )
 
-            let (currentSummaries, newSummaries, savedCents) = try await (current, newOffers, saved)
+            let (currentSummaries, newSummaries, savedBreakdown) = try await (current, newOffers, saved)
             return Content(
                 user: user,
                 group: group,
                 currentOrders: currentSummaries.filter(\.hasMyShare) + currentSummaries.filter { !$0.hasMyShare },
                 newOffers: newSummaries,
-                savedCents: savedCents
+                savedCents: savedBreakdown.total,
+                launchedSavedCents: savedBreakdown.launched
             )
         }
     }
@@ -95,7 +99,16 @@ final class FamilyHomeViewModel {
     nonisolated static func savings(
         of householdId: String, in orders: [GroupOrder], repositories: AppRepositories
     ) async throws -> Cents {
+        try await savingsBreakdown(of: householdId, in: orders, repositories: repositories).total
+    }
+
+    /// Économie totale et part déjà « lancée » : une commande `open` n'a pas atteint son minimum,
+    /// son économie n'est qu'une estimation.
+    nonisolated static func savingsBreakdown(
+        of householdId: String, in orders: [GroupOrder], repositories: AppRepositories
+    ) async throws -> (total: Cents, launched: Cents) {
         var total: Cents = 0
+        var launched: Cents = 0
         for order in orders where order.status != .cancelled {
             let shares = try await repositories.groupOrders.shares(ofGroupOrder: order.id)
             guard let share = shares.first(where: { $0.householdId == householdId }), share.quantity > 0 else { continue }
@@ -103,8 +116,10 @@ final class FamilyHomeViewModel {
             let product = try await repositories.vendors.product(id: offer.productId)
             let price = share.finalUnitPriceCents
                 ?? OfferPricing(offer: offer, product: product, committedShares: order.committedShares).currentPriceCents
-            total += max(0, product.referenceGroceryPriceCents - price) * share.quantity
+            let saved = max(0, product.referenceGroceryPriceCents - price) * share.quantity
+            total += saved
+            if order.status != .open { launched += saved }
         }
-        return total
+        return (total, launched)
     }
 }

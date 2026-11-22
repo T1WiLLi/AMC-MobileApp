@@ -16,6 +16,7 @@ nonisolated extension FakeData {
     func withHostDemoOrder(now: Date = .now) -> FakeData {
         var data = self
         let orderId = HostDemoID.deliveredOrder
+        guard !data.groupOrders.contains(where: { $0.id == orderId }) else { return data }
         let neighbours = (1...3).map { "household-voisin-\($0)" }
         let shares = zip(neighbours, [2, 1, 1]).enumerated().map { index, pair in
             let (householdId, quantity) = pair

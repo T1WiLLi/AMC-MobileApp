@@ -19,6 +19,7 @@ struct MinimumRiskBadge: View {
             } icon: {
                 Image(systemName: "exclamationmark.triangle.fill")
                     .symbolRenderingMode(.hierarchical)
+                    .foregroundStyle(tint)
                     .symbolEffect(.pulse, options: .repeating, isActive: !reduceMotion)
             }
             .font(compact ? .caption.bold() : .subheadline.weight(.semibold))
@@ -26,8 +27,8 @@ struct MinimumRiskBadge: View {
             .monospacedDigit()
             .padding(.horizontal, compact ? 8 : 12)
             .padding(.vertical, compact ? 4 : 6)
-            .foregroundStyle(tint)
-            .background(tint.opacity(0.14), in: .capsule)
+            .foregroundStyle(Color.texte)
+            .background(tint.opacity(0.18), in: .capsule)
             .accessibilityElement(children: .ignore)
             .accessibilityLabel("\(levelLabel) : \(message)")
         }

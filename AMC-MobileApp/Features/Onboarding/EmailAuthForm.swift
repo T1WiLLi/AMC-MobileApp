@@ -291,7 +291,7 @@ struct EmailAuthForm: View {
             ZStack(alignment: .leading) {
                 if text.isEmpty {
                     Text(placeholder)
-                        .foregroundStyle(Color.texteSecondaire.opacity(0.75))
+                        .foregroundStyle(Color.texteSecondaire)
                         .lineLimit(1)
                         .minimumScaleFactor(0.5)
                         .allowsHitTesting(false)
@@ -387,7 +387,7 @@ private struct PasswordRules: View {
             ForEach(rules, id: \.label) { rule in
                 HStack(alignment: .firstTextBaseline, spacing: 8) {
                     Image(systemName: rule.isMet ? "checkmark.circle.fill" : "circle")
-                        .foregroundStyle(rule.isMet ? Color.economie : Color.texteSecondaire.opacity(0.6))
+                        .foregroundStyle(rule.isMet ? Color.economie : Color.texteSecondaire)
                         .contentTransition(.symbolEffect(.replace))
                         .symbolEffect(.bounce, options: .nonRepeating, value: reduceMotion ? false : rule.isMet)
                     Text(rule.label)
@@ -460,7 +460,7 @@ private struct PasswordResetSheet: View {
                             ZStack(alignment: .leading) {
                                 if email.isEmpty {
                                     Text("nom@exemple.ca")
-                                        .foregroundStyle(Color.texteSecondaire.opacity(0.75))
+                                        .foregroundStyle(Color.texteSecondaire)
                                         .allowsHitTesting(false)
                                         .accessibilityHidden(true)
                                 }

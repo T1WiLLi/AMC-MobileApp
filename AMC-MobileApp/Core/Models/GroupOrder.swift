@@ -42,6 +42,10 @@ nonisolated struct Share: Identifiable, Codable, Sendable, Hashable {
     var updatedAt: Date? = nil
     /// Début du créneau de cueillette réservé par le ménage (RQ-064) ; nil = pas encore choisi.
     var pickupSlotStart: Date? = nil
+    /// T-159 : membre du ménage (uid) qui a récupéré la part ; nil si inconnu ou pas encore récupérée.
+    var pickedUpBy: String? = nil
+    /// T-159 : moment de la remise.
+    var pickedUpAt: Date? = nil
 
     var id: String { householdId }
 

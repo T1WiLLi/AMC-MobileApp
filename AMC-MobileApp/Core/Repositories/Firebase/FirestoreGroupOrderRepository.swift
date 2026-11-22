@@ -395,6 +395,32 @@ nonisolated final class FirestoreGroupOrderRepository: GroupOrderRepository, @un
         return share
     }
 
+    /// T-159 : une transaction relit la part avant de la marquer : deux scans en même temps n'en remettent qu'un.
+    func confirmPickup(code: String, groupOrderId: String, at date: Date) async throws -> PickupDesk.ScanResult {
+        let order = try await groupOrder(id: groupOrderId)
+        let qrCode = PickupDesk.splitMemberCode(code).qrCode
+        guard PickupDesk.canPickUp(order.status),
+              let householdId = ShareAllocator.householdId(fromQRCode: qrCode, orderId: groupOrderId) else {
+            return PickupDesk.scan(code, order: order, shares: [], at: date)
+        }
+        let shareRef = sharesRef(groupOrderId).document(householdId)
+        return try await runTransaction { transaction in
+            let snapshot = try transaction.getDocument(shareRef)
+            let shares = snapshot.exists ? [try Self.decodeShare(snapshot)] : []
+            let result = PickupDesk.scan(code, order: order, shares: shares, at: date)
+            if case .pickedUp(let share) = result {
+                var data: [String: Any] = [
+                    "isPickedUp": true,
+                    "pickedUpAt": Timestamp(date: date),
+                    "updatedAt": Timestamp(date: date),
+                ]
+                if let memberId = share.pickedUpBy { data["pickedUpBy"] = memberId }
+                transaction.updateData(data, forDocument: shareRef)
+            }
+            return result
+        }
+    }
+
     // MARK: - Requêtes et décodage
 
     private func query(_ query: Query) async throws -> [GroupOrder] {

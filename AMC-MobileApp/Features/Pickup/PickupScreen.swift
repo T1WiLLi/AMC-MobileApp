@@ -57,7 +57,8 @@ struct PickupScreen: View {
             guard context.hasGroup, let groupId = context.groupId else { viewModel = nil; loadedGroupId = nil; return }
             guard viewModel == nil || loadedGroupId != groupId else { return }
             loadedGroupId = groupId
-            let model = PickupViewModel(repositories: context.repositories, householdId: context.householdId, groupId: groupId)
+            let model = PickupViewModel(repositories: context.repositories, householdId: context.householdId, groupId: groupId,
+                                        userId: context.userId)
             viewModel = model
             await model.load()
         }
@@ -391,10 +392,17 @@ private struct PickupItemsCard: View {
         }
     }
 
+    /// T-159 : la part du ménage n'est récupérée qu'une fois ; tous les membres voient qui l'a prise.
+    private func statusText(_ item: PickupViewModel.Item) -> String {
+        guard item.isPickedUp else { return String(localized: "Prêt à récupérer") }
+        if let name = item.pickedUpByName { return String(localized: "Récupéré par \(name)") }
+        return String(localized: "Récupéré")
+    }
+
     private func statusBadge(_ item: PickupViewModel.Item) -> some View {
         let tint: Color = item.isPickedUp ? .economie : .grenier
         return Label {
-            Text(item.isPickedUp ? String(localized: "Récupéré") : String(localized: "Prêt à récupérer"))
+            Text(statusText(item))
         } icon: {
             Image(systemName: item.isPickedUp ? "checkmark.circle.fill" : "shippingbox.and.arrow.backward.fill")
                 .contentTransition(reduceMotion ? .identity : .symbolEffect(.replace))

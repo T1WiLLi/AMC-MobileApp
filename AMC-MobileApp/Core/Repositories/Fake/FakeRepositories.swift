@@ -556,6 +556,20 @@ actor FakeGroupOrderRepository: GroupOrderRepository {
         return share
     }
 
+    func confirmPickup(code: String, groupOrderId: String, at date: Date) async throws -> PickupDesk.ScanResult {
+        try await behavior.simulate()
+        guard let order = groupOrders[groupOrderId] else { throw AppError.notFound }
+        var orderShares = shares[groupOrderId, default: []]
+        let result = PickupDesk.scan(code, order: order, shares: orderShares, at: date)
+        if case .pickedUp(let share) = result, let index = orderShares.firstIndex(where: { $0.householdId == share.householdId }) {
+            var updated = share
+            updated.updatedAt = date
+            orderShares[index] = updated
+            shares[groupOrderId] = orderShares
+        }
+        return result
+    }
+
     func observeGroupOrder(id: String) async -> AsyncThrowingStream<GroupOrder, any Error> {
         let (stream, continuation) = AsyncThrowingStream<GroupOrder, any Error>.makeStream()
         guard let order = groupOrders[id] else {

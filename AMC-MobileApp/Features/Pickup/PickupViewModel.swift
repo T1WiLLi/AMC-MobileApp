@@ -17,6 +17,8 @@ final class PickupViewModel {
         /// Prix à payer à la cueillette (prix final si figé, sinon palier courant).
         var totalCents: Cents
         var isPickedUp: Bool
+        /// T-159 : prénom du membre du ménage qui a récupéré la part (« Récupéré par Amina »).
+        var pickedUpByName: String? = nil
 
         var id: String { groupOrderId }
     }
@@ -48,11 +50,14 @@ final class PickupViewModel {
     private let repositories: AppRepositories
     private let householdId: String
     private let groupId: String
+    /// T-159 : membre connecté ; son uid suit le QR du ménage pour noter qui récupère la part.
+    private let userId: String
 
-    init(repositories: AppRepositories, householdId: String, groupId: String) {
+    init(repositories: AppRepositories, householdId: String, groupId: String, userId: String = "") {
         self.repositories = repositories
         self.householdId = householdId
         self.groupId = groupId
+        self.userId = userId
     }
 
     func load() async {
@@ -61,9 +66,10 @@ final class PickupViewModel {
         case .loaded, .empty: break
         default: state = .loading
         }
-        let repositories = repositories, householdId = householdId, groupId = groupId
+        let repositories = repositories, householdId = householdId, groupId = groupId, userId = userId
         do {
-            let content = try await Self.content(householdId: householdId, groupId: groupId, repositories: repositories)
+            let content = try await Self.content(householdId: householdId, groupId: groupId, userId: userId,
+                                                 repositories: repositories)
             if let content { state = .loaded(content) } else { state = .empty }
         } catch {
             state = .failed(AppError(error))
@@ -71,8 +77,10 @@ final class PickupViewModel {
     }
 
     nonisolated private static func content(
-        householdId: String, groupId: String, repositories: AppRepositories
+        householdId: String, groupId: String, userId: String, repositories: AppRepositories
     ) async throws -> Content? {
+        // Noms des membres (« Récupéré par Amina ») : un détail, jamais bloquant.
+        let household = try? await repositories.users.household(id: householdId)
         let orders = try await repositories.groupOrders.groupOrders(ofGroup: groupId)
             .filter { $0.status != .cancelled && $0.status != .delivered }
         var items: [Item] = []
@@ -87,7 +95,8 @@ final class PickupViewModel {
             let price = share.finalUnitPriceCents
                 ?? OfferPricing(offer: offer, product: product, committedShares: order.committedShares).currentPriceCents
             items.append(Item(groupOrderId: order.id, product: product, offer: offer, quantity: share.quantity,
-                              totalCents: price * share.quantity, isPickedUp: share.isPickedUp))
+                              totalCents: price * share.quantity, isPickedUp: share.isPickedUp,
+                              pickedUpByName: share.pickedUpBy.flatMap { HouseholdMembership.firstName(of: $0, in: household) }))
             if let code = share.qrCode { qrCodes.append(code) }
             pickupPointId = pickupPointId ?? order.pickupPointId
             slots += order.pickupSlots
@@ -110,7 +119,9 @@ final class PickupViewModel {
             slot: slot,
             hostFirstName: host?.displayName.split(separator: " ").first.map(String.init),
             items: items,
-            qrPayload: qrCodes.first ?? "grenier://cueillette/\(groupId)/\(householdId)",
+            // Le QR est celui de la part du ménage (le même pour tous ses membres), suivi du membre qui le montre.
+            qrPayload: qrCodes.first.map { PickupDesk.memberCode($0, memberId: userId) }
+                ?? "grenier://cueillette/\(groupId)/\(householdId)",
             orderCode: code
         )
     }

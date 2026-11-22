@@ -244,6 +244,7 @@ struct GroupInvitationTests {
         #expect(model.activeCount == 2)
         let message = GroupInvitationsViewModel.shareMessage(groupName: group.name, invitation: created)
         #expect(message.contains("https://grenier.app/join/\(created.code)"))
+        #expect(message.contains("sur LeGrenier, un groupe privé"))
 
         await model.revoke(created)
         #expect(model.lastCreated == nil)

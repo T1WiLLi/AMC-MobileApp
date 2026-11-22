@@ -87,20 +87,31 @@ enum AuthError: LocalizedError, Equatable {
 
 /// Faux service : connexion instantanée (avec latence simulée), erreur activable pour les previews.
 /// Les comptes courriel vivent en mémoire ; `markEmailVerified()` simule le lien touché dans Mail.
+/// Avec `autoVerifyEmailAfter` (mode démo `-useFakeData`), le courriel se vérifie tout seul.
 final class FakeAuthService: AuthService {
     private(set) var currentUser: AuthUser?
     var nextError: AuthError?
     /// Latence simulée des appels courriel (`.zero` dans les tests).
     var latency: Duration
+    /// Mode démo : délai après l'envoi du lien au bout duquel le courriel se vérifie tout seul (la session le voit
+    /// sans rien toucher), et « J'ai vérifié mon courriel » vérifie tout de suite. nil = jamais (previews, tests).
+    let autoVerifyEmailAfter: Duration?
+    private var autoVerifyTask: Task<Void, Never>?
     private(set) var sentVerificationCount = 0
     private(set) var passwordResetEmails: [String] = []
     private var accounts: [String: (password: String, user: AuthUser)] = [:]
     private var continuation: AsyncStream<AuthUser?>.Continuation?
 
-    init(signedInUser: AuthUser? = nil, nextError: AuthError? = nil, latency: Duration = .milliseconds(400)) {
+    init(
+        signedInUser: AuthUser? = nil,
+        nextError: AuthError? = nil,
+        latency: Duration = .milliseconds(400),
+        autoVerifyEmailAfter: Duration? = nil
+    ) {
         self.currentUser = signedInUser
         self.nextError = nextError
         self.latency = latency
+        self.autoVerifyEmailAfter = autoVerifyEmailAfter
         if let signedInUser, signedInUser.usesPassword {
             accounts[signedInUser.email.lowercased()] = ("motdepasse", signedInUser)
         }
@@ -144,6 +155,17 @@ final class FakeAuthService: AuthService {
         accounts[key] = (accounts[key]?.password ?? "motdepasse", verified)
     }
 
+    /// Mode démo : vérifie le courriel après `delay` et le signale à la session (comme si l'app l'avait relu).
+    private func scheduleAutoVerification(after delay: Duration) {
+        autoVerifyTask?.cancel()
+        autoVerifyTask = Task { [weak self] in
+            try? await Task.sleep(for: delay)
+            guard !Task.isCancelled, let self, let user = self.currentUser, !user.isEmailVerified else { return }
+            self.markEmailVerified()
+            self.setCurrentUser(self.accounts[user.email.lowercased()]?.user ?? user)
+        }
+    }
+
     func signUp(email: String, password: String, displayName: String) async throws -> AuthUser {
         try await simulateCall()
         let key = email.trimmingCharacters(in: .whitespaces).lowercased()
@@ -177,11 +199,13 @@ final class FakeAuthService: AuthService {
         try await simulateCall()
         guard currentUser != nil else { throw AuthError.notSignedIn }
         sentVerificationCount += 1
+        if let autoVerifyEmailAfter { scheduleAutoVerification(after: autoVerifyEmailAfter) }
     }
 
     func reloadUser() async throws -> AuthUser {
         try await simulateCall()
         guard let user = currentUser else { throw AuthError.notSignedIn }
+        if autoVerifyEmailAfter != nil { markEmailVerified() }
         let refreshed = accounts[user.email.lowercased()]?.user ?? user
         currentUser = refreshed
         return refreshed
@@ -223,6 +247,7 @@ final class FakeAuthService: AuthService {
     }
 
     private func setCurrentUser(_ user: AuthUser?) {
+        if user?.id != currentUser?.id { autoVerifyTask?.cancel() }
         currentUser = user
         continuation?.yield(user)
     }

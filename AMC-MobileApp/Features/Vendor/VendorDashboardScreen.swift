@@ -461,13 +461,13 @@ private struct DashboardContent: View {
         case .closingSoon:
             if !dashboard.closingSoon.isEmpty {
                 VStack(alignment: .leading, spacing: 20) {
-                    SectionTitle(String(localized: "Se termine bientôt"), systemImage: "hourglass", pulses: true)
+                    SectionTitle(String(localized: "Se termine bientôt"), systemImage: "hourglass", pulses: true, info: .closingSoon)
                     ClosingSoonCard(offers: dashboard.closingSoon)
                 }
             }
         case .offers:
             VStack(alignment: .leading, spacing: 20) {
-                SectionTitle(String(localized: "Lots ouverts"), systemImage: "shippingbox.fill")
+                SectionTitle(String(localized: "Lots ouverts"), systemImage: "shippingbox.fill", info: .vendorOffers)
                 let categories = dashboard.offers.compactMap { $0.product?.category }
                 // Une catégorie choisie qui n'a plus de lot (après un rechargement) retombe sur « Tous ».
                 let category = offerCategory.flatMap { categories.contains($0) ? $0 : nil }
@@ -499,14 +499,24 @@ private struct SectionTitle: View {
     let title: String
     let systemImage: String
     let pulses: Bool
+    /// Bouton « i » qui explique la section (T-209).
+    let info: InfoTopic?
 
-    init(_ title: String, systemImage: String, pulses: Bool = false) {
+    init(_ title: String, systemImage: String, pulses: Bool = false, info: InfoTopic? = nil) {
         self.title = title
         self.systemImage = systemImage
         self.pulses = pulses
+        self.info = info
     }
 
     var body: some View {
+        HStack(spacing: 2) {
+            label
+            if let info { InfoButton(topic: info) }
+        }
+    }
+
+    private var label: some View {
         Label {
             Text(title)
                 .foregroundStyle(.texte)

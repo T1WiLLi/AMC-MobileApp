@@ -57,7 +57,7 @@ nonisolated enum InfoTopic: String, CaseIterable, Identifiable, Sendable {
         case .pickupCode:
             String(localized: "L'hôte scanne ce code et te remet toutes tes parts du groupe. Les articles encore ouverts s'ajoutent au code à leur clôture. La luminosité monte au maximum pour faciliter le scan.")
         case .pickupCodePending:
-            String(localized: "Quand la commande ferme, ton code de cueillette s'affiche ici. On te prévient ensuite dès que la livraison arrive.")
+            String(localized: "Quand la commande est confirmée par le vendeur, ton code de cueillette s'affiche ici. On te prévient ensuite dès que la livraison arrive.")
         case .pickupSlot:
             String(localized: "Un créneau, c'est l'heure où tu passes chercher ton panier. Choisis celui qui t'arrange : ça évite la file au point de cueillette.")
         case .mapRadius:

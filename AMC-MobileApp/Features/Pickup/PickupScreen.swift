@@ -154,11 +154,14 @@ private struct PickupContentView: View {
                     PickupCodeCard(group: group)
                         .guidedTourAnchor(.pickup)
                 }
+                // T-211 : un seul lieu : sa carte « Point de cueillette » suit le code, dans la section Cueillette.
+                if content.places.count == 1, let place = content.places.first {
+                    pointCard(place)
+                }
                 // Une section par lieu : ses articles, son point (ou « Lieu à confirmer ») et son montant.
                 ForEach(Array(content.places.enumerated()), id: \.element.id) { index, place in
                     placeSection(place, index: index)
                 }
-                PickupRateVendorsCard(items: content.items) // T-157 : noter le producteur après la cueillette
                 if let point = content.pickupPoint {
                     PickupNeighbourHelpCard(pickupPoint: point, slot: content.slot) // RQ-069, RQ-070
                 }
@@ -220,9 +223,17 @@ private struct PickupContentView: View {
                 .padding(.top, index == 0 ? 4 : 12)
         }
         PickupItemsCard(items: place.items)
+        // Un seul lieu : sa carte est déjà sous le code de cueillette (T-211).
+        if count > 1 {
+            pointCard(place)
+        }
+    }
+
+    @ViewBuilder
+    private func pointCard(_ place: PickupViewModel.Place) -> some View {
         if let point = place.pickupPoint {
             // Le lieu, une seule fois : nom (sauf s'il titre déjà la section), adresse, montant et itinéraire.
-            PickupPointSummaryCard(point: point, totalCents: place.totalCents, showsName: count == 1)
+            PickupPointSummaryCard(point: point, totalCents: place.totalCents, showsName: content.places.count == 1)
         } else {
             // Lot réservé, mais le groupe n'a pas encore choisi où cueillir.
             PickupPointPendingCard(totalCents: place.totalCents)
@@ -470,7 +481,8 @@ private struct PickupGroupPicker: View {
 }
 
 /// Carte du code du groupe choisi (T-198) : UN QR pour toutes ses commandes fermées (l'hôte le scanne une fois et
-/// remet toutes les parts qu'il garde). Sans commande fermée, pas de faux QR : « Ton code apparaîtra à la clôture ».
+/// remet toutes les parts qu'il garde). Sans commande confirmée, pas de faux QR : « Ton code apparaîtra quand le
+/// vendeur confirmera la commande ».
 /// Retour samuel : peu de texte sur la carte, les explications sont dans le bouton « i » du titre.
 private struct PickupCodeCard: View {
     let group: PickupViewModel.GroupPickup
@@ -496,7 +508,8 @@ private struct PickupCodeCard: View {
                         .accessibilityLabel("Code QR de cueillette du groupe \(group.title)")
                 }
             case .awaitingClosure:
-                PickupInfoLabel(text: String(localized: "Ton code apparaîtra à la clôture"), systemImage: "lock.fill")
+                PickupInfoLabel(text: String(localized: "Ton code apparaîtra quand le vendeur confirmera la commande"),
+                                systemImage: "lock.fill")
                     .frame(maxWidth: .infinity, alignment: .leading)
             case .allPickedUp:
                 PickupInfoLabel(text: String(localized: "Tout est récupéré"), systemImage: "checkmark.seal.fill")
@@ -821,41 +834,6 @@ private struct PickupInfoLabel: View {
                 .foregroundStyle(Color.grenier)
         }
         .font(font)
-    }
-}
-
-/// Après la cueillette (T-157) : un lien par producteur dont une part est récupérée, vers sa page pour le noter.
-private struct PickupRateVendorsCard: View {
-    let items: [PickupViewModel.Item]
-
-    var body: some View {
-        let picked = Dictionary(grouping: items.filter(\.isPickedUp), by: \.offer.vendorId)
-            .compactMap { vendorId, items in items.first.map { (vendorId: vendorId, item: $0) } }
-            .sorted { $0.item.product.name < $1.item.product.name }
-        if !picked.isEmpty {
-            VStack(alignment: .leading, spacing: 12) {
-                Label("Comment était ton lot ?", systemImage: "star.bubble.fill")
-                    .font(.headline)
-                    .symbolRenderingMode(.hierarchical)
-                    .foregroundStyle(.texte)
-                Text("Ta note aide les autres familles à choisir leurs producteurs.")
-                    .font(.subheadline)
-                    .foregroundStyle(.texteSecondaire)
-                ForEach(picked, id: \.vendorId) { entry in
-                    NavigationLink {
-                        PublicVendorScreen(vendorId: entry.vendorId)
-                    } label: {
-                        Label("Noter le producteur · \(entry.item.product.name)", systemImage: "star.leadinghalf.filled")
-                            .fontWeight(.semibold)
-                            .frame(maxWidth: .infinity, minHeight: 32)
-                    }
-                    .buttonStyle(.glass)
-                    .tint(.grenier)
-                }
-            }
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .grenierCard()
-        }
     }
 }
 

@@ -184,6 +184,8 @@ private struct FamilyHomeContent: View {
     @State private var householdGroups: [NeighborhoodGroup] = []
     /// Type de produit choisi dans « Nouveaux lots près de toi » (nil : tous).
     @State private var offerCategory: Product.Category?
+    /// Filtre par type de produit de « Tes commandes en cours » (nil = toutes).
+    @State private var orderCategory: Product.Category?
     /// La liste des nouveaux lots est dépliée au-delà des premiers.
     @State private var showsAllOffers = false
 
@@ -260,18 +262,34 @@ private struct FamilyHomeContent: View {
     // MARK: Commandes en cours
 
     private var currentOrdersSection: some View {
-        let mine = content.myOrders
+        let allMine = content.myOrders
+        let mineCategories = allMine.map(\.product.category)
+        // Une catégorie choisie qui n'a plus de commande (après un rechargement) retombe sur « Toutes ».
+        let mineCategory = orderCategory.flatMap { mineCategories.contains($0) ? $0 : nil }
+        let mine = HomeOfferFilter.filter(allMine, category: mineCategory)
         let others = content.currentOrders.filter { !$0.hasMyShare }
         return VStack(alignment: .leading, spacing: 24) {
             VStack(alignment: .leading, spacing: 12) {
                 GrenierSectionHeader(
-                    mine.count > 1 ? String(localized: "Tes commandes en cours") : String(localized: "Ta commande en cours"),
+                    allMine.count > 1 ? String(localized: "Tes commandes en cours") : String(localized: "Ta commande en cours"),
                     systemImage: "cart.fill",
                     info: .tiers
                 )
-                if mine.isEmpty {
+                if allMine.isEmpty {
                     NoOrderCard(hasOffersBelow: !content.newOffers.isEmpty)
                 } else {
+                    if HomeOfferFilter.showsChips(mineCategories) {
+                        OfferCategoryChips(
+                            counts: HomeOfferFilter.categoryCounts(mineCategories),
+                            total: allMine.count,
+                            selection: mineCategory,
+                            reduceMotion: reduceMotion
+                        ) { newValue in
+                            withAnimation(reduceMotion ? nil : .smooth) {
+                                orderCategory = newValue
+                            }
+                        }
+                    }
                     ForEach(Array(mine.enumerated()), id: \.element.id) { index, summary in
                         OrderLink(summary: summary)
                             .grenierAppear(index: index)

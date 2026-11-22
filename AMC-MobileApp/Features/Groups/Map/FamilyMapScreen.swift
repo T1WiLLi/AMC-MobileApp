@@ -19,8 +19,10 @@ struct FamilyMapScreen: View {
     /// L'explication de la position a reçu une réponse (autoriser ou rester sur le quartier) : on ne la remontre plus.
     @AppStorage("familyMap.locationExplained") private var locationExplained = false
 
-    /// T-157 : producteur touché sur la carte, dont on pousse la page.
-    @State private var openedVendor: OpenedVendor?
+    /// Écran poussé depuis la carte (groupe, producteur ou lot). Poussé ici plutôt que par un
+    /// `NavigationLink(value:)` : la carte est elle-même poussée par un lien à destination, et un lien à valeur
+    /// la réinitialisait sans rien ouvrir.
+    @State private var destination: FamilyMapDestination?
 
     @Namespace private var mapScope
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
@@ -30,7 +32,7 @@ struct FamilyMapScreen: View {
     var body: some View {
         ZStack {
             if let viewModel {
-                FamilyMapCanvas(viewModel: viewModel, camera: $camera, openedVendor: $openedVendor, scope: mapScope,
+                FamilyMapCanvas(viewModel: viewModel, camera: $camera, destination: $destination, scope: mapScope,
                                 reduceMotion: reduceMotion)
                     .ignoresSafeArea()
             } else {
@@ -44,7 +46,13 @@ struct FamilyMapScreen: View {
             if let viewModel { bottomLayer(viewModel) }
         }
         .mapScope(mapScope)
-        .navigationDestination(item: $openedVendor) { PublicVendorScreen(vendorId: $0.id) }
+        .navigationDestination(item: $destination) { destination in
+            switch destination {
+            case .group(let id): GroupDetailScreen(groupId: id)
+            case .vendor(let id): PublicVendorScreen(vendorId: id)
+            case .offer(let id): OfferDetailScreen(offerId: id)
+            }
+        }
         .navigationTitle("Carte du quartier")
         .navigationBarTitleDisplayMode(.inline)
         .toolbarVisibility(.hidden, for: .tabBar)
@@ -104,7 +112,7 @@ struct FamilyMapScreen: View {
                         )
                         .transition(.move(edge: .bottom).combined(with: .opacity))
                     } else if let place = viewModel.selectedPlace {
-                        FamilyMapPlaceCard(place: place) {
+                        FamilyMapPlaceCard(place: place, onOpen: { destination = $0 }) {
                             withAnimation(reduceMotion ? nil : .smooth) { viewModel.selectedPlaceID = nil }
                         }
                         .id(place.id)
@@ -167,7 +175,7 @@ struct FamilyMapScreen: View {
 private struct FamilyMapCanvas: View {
     @Bindable var viewModel: FamilyMapViewModel
     @Binding var camera: MapCameraPosition
-    @Binding var openedVendor: OpenedVendor?
+    @Binding var destination: FamilyMapDestination?
     let scope: Namespace.ID
     let reduceMotion: Bool
 
@@ -195,7 +203,7 @@ private struct FamilyMapCanvas: View {
                         // T-157 : un producteur ouvre directement sa page (la fiche reste sélectionnée au retour).
                         if case .producer(let vendor, _, _) = place.detail {
                             viewModel.selectedPlaceID = place.id
-                            openedVendor = OpenedVendor(id: vendor.id)
+                            destination = .vendor(vendor.id)
                             return
                         }
                         withAnimation(reduceMotion ? nil : .smooth) {
@@ -438,9 +446,11 @@ private struct FamilyMapErrorCard: View {
     }
 }
 
-/// Producteur à ouvrir depuis la carte (T-157).
-struct OpenedVendor: Identifiable, Hashable {
-    let id: String
+/// Écran ouvert depuis la carte : la fiche d'un lieu ou le pin d'un producteur.
+enum FamilyMapDestination: Hashable {
+    case group(String)
+    case vendor(String)
+    case offer(String)
 }
 
 // MARK: - Montréal et coordonnées

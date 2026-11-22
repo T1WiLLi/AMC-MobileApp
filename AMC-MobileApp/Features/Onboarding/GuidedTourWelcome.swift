@@ -5,6 +5,8 @@ struct GuidedTourWelcomeCard: View {
     var tour: TourID = .noisette
     /// true : « C'est parti ! », false : « Plus tard ».
     let decide: (Bool) -> Void
+    /// Hauteur du contenu (marges comprises), pour que la feuille épouse la carte au lieu d'une hauteur fixe.
+    var onContentHeight: (CGFloat) -> Void = { _ in }
 
     @State private var accepted = false
 
@@ -56,6 +58,7 @@ struct GuidedTourWelcomeCard: View {
                     .symbolRenderingMode(.hierarchical)
             }
             .padding(24)
+            .onGeometryChange(for: CGFloat.self) { $0.size.height } action: { onContentHeight($0) }
         }
         .scrollBounceBehavior(.basedOnSize)
         .sensoryFeedback(.success, trigger: accepted)
@@ -71,6 +74,14 @@ private struct GuidedTourWelcomeModifier: ViewModifier {
     /// qu'une fois la feuille partie, pour que la première bulle ne se présente pas pendant qu'elle se retire.
     @State private var hasDecided = false
     @State private var accepted = false
+    /// Hauteur de la carte : la moitié d'écran (`.medium`) coupait la dernière ligne en anglais et en grand texte.
+    @State private var contentHeight: CGFloat?
+    @State private var detent: PresentationDetent = .medium
+
+    /// Hauteur ajustée au contenu ; au-delà, la feuille s'ouvre en grand et la carte défile.
+    private var fittedDetent: PresentationDetent {
+        contentHeight.map { .height($0) } ?? .medium
+    }
 
     func body(content: Content) -> some View {
         content
@@ -87,8 +98,12 @@ private struct GuidedTourWelcomeModifier: ViewModifier {
                 GuidedTourWelcomeCard(tour: tourID) { decision in
                     accepted = decision
                     hasDecided = true
+                } onContentHeight: { height in
+                    let wasFitted = detent == fittedDetent
+                    contentHeight = height.rounded(.up)
+                    if wasFitted { detent = fittedDetent }
                 }
-                .presentationDetents([.medium, .large])
+                .presentationDetents([fittedDetent, .large], selection: $detent)
             }
             // « Revoir la visite guidée » : la carte peut revenir.
             .onChange(of: tour.showsWelcome) { _, showsWelcome in

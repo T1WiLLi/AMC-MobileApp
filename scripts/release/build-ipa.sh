@@ -9,6 +9,8 @@
 #   --build     Numéro de build (CFBundleVersion). Défaut : nombre de commits sur HEAD (toujours croissant).
 #   --method    release-testing (ad hoc, défaut) ou debugging (développement).
 #   --bundle-id Bundle ID de l'app (défaut ca.amc2026.mobileapp). Le widget prend <bundle>.widgets, l'App Group group.<bundle>.
+#   --no-app-group  Signe sans App Group (aucun entitlement) : utile si l'équipe n'a pas le groupe group.<bundle>
+#               et que personne n'est admin pour le créer. Seul effet : le widget suit la langue de l'appareil.
 #   --firebase-plist  GoogleService-Info.plist de l'app Firebase qui correspond à ce bundle ID (défaut : celui du dépôt).
 #
 # Équipe du Cégep (6A6TQRFTWB) : ca.amc2026.mobileapp appartient à une autre équipe, donc
@@ -31,6 +33,7 @@ BUILD=""
 METHOD="release-testing"
 BUNDLE_ID="ca.amc2026.mobileapp"
 FIREBASE_PLIST=""
+NO_APP_GROUP=0
 RELEASE=0
 DRAFT=0
 NOTES=""
@@ -43,10 +46,11 @@ while [[ $# -gt 0 ]]; do
     --method) METHOD="$2"; shift 2 ;;
     --bundle-id) BUNDLE_ID="$2"; shift 2 ;;
     --firebase-plist) FIREBASE_PLIST="$2"; shift 2 ;;
+    --no-app-group) NO_APP_GROUP=1; shift ;;
     --release) RELEASE=1; shift ;;
     --draft) DRAFT=1; shift ;;
     --notes) NOTES="$2"; shift 2 ;;
-    -h|--help) sed -n '2,25p' "$0"; exit 0 ;;
+    -h|--help) sed -n '2,27p' "$0"; exit 0 ;;
     *) echo "Option inconnue : $1" >&2; exit 2 ;;
   esac
 done
@@ -93,6 +97,11 @@ fi
 step "Packages Swift"
 xcodebuild -resolvePackageDependencies -project "$PROJECT" -scheme "$SCHEME" >"$OUT/resolve.log" 2>&1 || { tail -20 "$OUT/resolve.log"; fail "résolution des packages"; }
 
+ENTITLEMENTS_OVERRIDE=()
+if [[ $NO_APP_GROUP -eq 1 ]]; then
+  ENTITLEMENTS_OVERRIDE=("CODE_SIGN_ENTITLEMENTS=")
+  echo "⚠ --no-app-group : signature sans App Group, le widget suivra la langue de l'appareil."
+fi
 step "Archive Release $VERSION ($BUILD), équipe $TEAM, bundle $BUNDLE_ID"
 xcodebuild archive \
   -project "$PROJECT" -scheme "$SCHEME" -configuration Release \
@@ -101,6 +110,7 @@ xcodebuild archive \
   -allowProvisioningUpdates \
   DEVELOPMENT_TEAM="$TEAM" \
   GRENIER_BUNDLE_ID="$BUNDLE_ID" GRENIER_GOOGLE_URL_SCHEME="$GOOGLE_SCHEME" \
+  ${ENTITLEMENTS_OVERRIDE[@]+"${ENTITLEMENTS_OVERRIDE[@]}"} \
   MARKETING_VERSION="$VERSION" CURRENT_PROJECT_VERSION="$BUILD" \
   >"$OUT/archive.log" 2>&1 || { grep -E "error:|\*\* ARCHIVE" "$OUT/archive.log" | head -20; fail "archive (journal : $OUT/archive.log)"; }
 

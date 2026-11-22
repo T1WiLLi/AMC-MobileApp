@@ -68,6 +68,15 @@ enum Portal: String, CaseIterable, Identifiable, Sendable {
         }
     }
 
+    /// Peut-on choisir ce portail à l'accueil ? Un compte ne devient pas organisme de lui-même : l'équipe
+    /// Grenier relie le compte à l'organisme (`users/{uid}.organizationId`), voir `OrganizationAccessRequestView`.
+    var isSelectableAtOnboarding: Bool { self != .organization }
+
+    /// Explication affichée sous une carte non sélectionnable.
+    var unavailableReason: String? {
+        isSelectableAtOnboarding ? nil : String(localized: "Les organismes sont ajoutés par l'équipe Grenier. Écris-nous pour inscrire le tien.")
+    }
+
     /// Clé `@AppStorage` du portail actif.
     static let storageKey = "activePortal"
 }

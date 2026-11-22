@@ -340,6 +340,16 @@
         }
       }
     },
+    "Les organismes sont ajoutés par l'équipe Grenier. Écris-nous pour inscrire le tien." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Organizations are added by the Grenier team. Write to us to register yours."
+          }
+        }
+      }
+    },
     "Les paliers, ta force" : {
       "localizations" : {
         "en" : {

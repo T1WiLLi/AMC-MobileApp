@@ -1,8 +1,29 @@
 import PhotosUI
 import SwiftUI
 
-// « Mon compte » (T-103, RQ-021, FB-06) : photo, nom affiché et suppression du compte,
-// directement dans les réglages (`ProfileScreen`), sans écran de plus.
+// « Mon compte » (T-103, RQ-021, FB-06) : photo et nom affiché dans la page « Modifier le compte »,
+// poussée depuis la section Compte du Profil ; suppression du compte dans la « Zone sensible » du Profil.
+
+/// Page « Modifier le compte » : photo et nom affiché. Partage le `AccountViewModel` du Profil,
+/// pour que l'en-tête et la ligne Compte suivent ce qui est enregistré ici.
+struct AccountEditScreen: View {
+    let model: AccountViewModel
+
+    var body: some View {
+        Form {
+            Section {
+                AccountEditRows(model: model)
+            } footer: {
+                Text("Ta photo et ton nom apparaissent aux membres de ton groupe et à ton point de cueillette.")
+            }
+        }
+        .scrollContentBackground(.hidden)
+        .scrollDismissesKeyboard(.interactively)
+        .grenierBackground()
+        .navigationTitle("Modifier le compte")
+        .navigationBarTitleDisplayMode(.inline)
+    }
+}
 
 /// Lignes « photo » et « nom affiché » à poser dans la section Compte d'un `Form`.
 /// Le bouton « Enregistrer » n'apparaît que lorsqu'il y a des changements.
@@ -289,6 +310,10 @@ private struct AccountSectionsPreview: View {
             .navigationTitle("Profil")
         }
     }
+}
+
+#Preview("Modifier le compte") {
+    NavigationStack { AccountEditScreen(model: previewModel()) }
 }
 
 #Preview("Clair") {

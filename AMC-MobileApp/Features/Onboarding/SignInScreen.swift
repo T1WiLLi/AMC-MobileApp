@@ -1,97 +1,87 @@
 import SwiftUI
 
-/// Écran de connexion et d'inscription (T-124, refondu) : une colonne sur le fond crème avec un halo chaud
-/// en haut — marque LeGrenier, sélecteur Connexion / Inscription, carte de champs, action principale, « ou »,
-/// Google. Tout est dans le défilement : rien ne se chevauche, même sur petit écran, clavier ouvert ou en AX.
+/// Écran de connexion et d'inscription (T-124, refonte photo T-201) : un en-tête photo plein cadre (étal de
+/// marché) avec le titre et l'accroche, puis une carte crème qui le chevauche — sélecteur Connexion /
+/// Inscription, champs groupés, action principale, « ou », Google. La photo reste en place ; la carte défile
+/// par-dessus, donc rien ne se coupe en grand texte ou clavier ouvert.
 struct SignInScreen: View {
     let session: SessionViewModel
     @State private var mode: EmailAuthForm.Mode = .signIn
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
 
+    /// Hauteur de la photo (depuis le haut de l'écran) et recouvrement de la carte sur elle.
+    private static let signInHeaderHeight: CGFloat = 292
+    private static let signUpHeaderHeight: CGFloat = 232
+    private static let cardOverlap: CGFloat = 24
+
     private var isSigningIn: Bool { session.state == .signingIn }
+
+    /// En très grand texte, le titre et l'accroche demandent plus de place dans la photo.
+    private var headerHeight: CGFloat {
+        let base = mode == .signIn ? Self.signInHeaderHeight : Self.signUpHeaderHeight
+        return dynamicTypeSize.isAccessibilitySize ? base + 110 : base
+    }
 
     var body: some View {
         ScrollView {
-            VStack(spacing: 24) {
-                SignInBrandHeader(isCompact: mode == .signUp)
-
-                modePicker
-
-                if let message = session.errorMessage {
-                    SignInErrorBanner(message: message)
-                        .transition(.opacity.combined(with: .scale(scale: 0.95)))
-                }
-
-                EmailAuthForm(session: session, mode: $mode)
-
-                OrSeparator(title: "ou")
-
-                googleButton
-
-                Label("Gratuit, sans engagement", systemImage: "gift.fill")
-                    .font(.footnote)
-                    .foregroundStyle(Color.texteSecondaire)
-                    .symbolRenderingMode(.hierarchical)
-                    .multilineTextAlignment(.center)
+            VStack(spacing: 0) {
+                Color.clear.frame(height: headerHeight - Self.cardOverlap)
+                card
             }
-            .padding(.horizontal, 24)
-            .padding(.top, 12)
-            .padding(.bottom, 24)
-            .frame(maxWidth: 520)
             .frame(maxWidth: .infinity)
         }
         .scrollDismissesKeyboard(.interactively)
         .scrollBounceBehavior(.basedOnSize)
-        .background(alignment: .top) { heroGlow }
+        // Le contenu part du haut de l'écran, comme la photo : la carte la chevauche de 24 exactement.
+        .ignoresSafeArea(edges: .top)
+        .background(alignment: .top) {
+            AuthPhotoHeader(height: headerHeight, cardOverlap: Self.cardOverlap)
+        }
         .grenierBackground()
         .tint(.grenier)
         .animation(reduceMotion ? nil : .smooth, value: session.errorMessage)
         .animation(reduceMotion ? nil : .smooth, value: mode)
         .sensoryFeedback(.error, trigger: session.errorMessage) { _, new in new != nil }
         .sensoryFeedback(.selection, trigger: mode)
+        .onChange(of: session.errorMessage) { _, new in
+            if let new { AccessibilityNotification.Announcement(new).post() }
+        }
     }
 
-    /// Halo chaud derrière la marque, qui se fond dans le crème.
-    private var heroGlow: some View {
-        RadialGradient(
-            colors: [Color.grenier.opacity(0.22), Color.grenier.opacity(0)],
-            center: .top,
-            startRadius: 0,
-            endRadius: 420
-        )
-        .frame(height: 520)
-        .ignoresSafeArea()
-        .accessibilityHidden(true)
-    }
+    /// Carte de contenu : coins hauts arrondis, fond crème de l'app, 14 entre les blocs.
+    private var card: some View {
+        VStack(spacing: 14) {
+            AuthModePicker(mode: $mode)
+                .padding(.bottom, 8)
 
-    /// Connexion / Inscription : segments natifs ; en très grand texte, un lien sur deux lignes (jamais tronqué).
-    @ViewBuilder
-    private var modePicker: some View {
-        if dynamicTypeSize.isAccessibilitySize {
-            Button {
-                mode = mode == .signIn ? .signUp : .signIn
-            } label: {
-                VStack(spacing: 2) {
-                    Text(mode == .signIn ? String(localized: "Nouveau ici ?") : String(localized: "Déjà membre ?"))
-                        .foregroundStyle(Color.texteSecondaire)
-                    Text(mode == .signIn ? String(localized: "Créer un compte") : String(localized: "Se connecter"))
-                        .fontWeight(.bold)
-                        .foregroundStyle(Color.grenier)
-                }
-                .font(.subheadline)
+            if let message = session.errorMessage {
+                AuthErrorLine(message: message)
+                    .transition(.opacity)
+            }
+
+            EmailAuthForm(session: session, mode: $mode)
+
+            OrSeparator(title: "ou")
+
+            googleButton
+
+            Text("Gratuit, sans engagement · aucune carte demandée")
+                .font(.footnote)
+                .foregroundStyle(Color.texteSecondaire)
                 .multilineTextAlignment(.center)
-                .frame(maxWidth: .infinity, minHeight: 44)
-                .contentShape(.rect)
-            }
-            .buttonStyle(.plain)
-        } else {
-            Picker("Mode", selection: $mode) {
-                Text("Connexion").tag(EmailAuthForm.Mode.signIn)
-                Text("Inscription").tag(EmailAuthForm.Mode.signUp)
-            }
-            .pickerStyle(.segmented)
-            .controlSize(.large)
+                .fixedSize(horizontal: false, vertical: true)
+                .padding(.top, 2)
+        }
+        .padding(.top, 32)
+        .padding(.horizontal, 20)
+        .padding(.bottom, 28)
+        .frame(maxWidth: 520)
+        .frame(maxWidth: .infinity)
+        .background(alignment: .top) {
+            UnevenRoundedRectangle(topLeadingRadius: 28, topTrailingRadius: 28, style: .continuous)
+                .fill(AppTheme.fond)
+                .frame(maxWidth: .infinity)
         }
     }
 
@@ -105,89 +95,113 @@ struct SignInScreen: View {
                 } else {
                     GoogleLogo()
                 }
-                Text(mode == .signIn ? String(localized: "Continuer avec Google") : String(localized: "S'inscrire avec Google"))
+                Text("Continuer avec Google")
                     .font(.headline)
-                    // Couleur de texte explicite : dans un bouton en verre, `.primary` prendrait la teinte.
                     .foregroundStyle(Color.texte)
                     .contentTransition(.opacity)
             }
-            .frame(maxWidth: .infinity, minHeight: 48)
+            .frame(maxWidth: .infinity, minHeight: 52)
+            .background(Color.surface, in: .capsule)
+            .overlay(Capsule().strokeBorder(Color.texteSecondaire.opacity(0.25), lineWidth: 1))
+            .contentShape(.capsule)
         }
-        .buttonStyle(.glass)
+        .buttonStyle(.plain)
         .disabled(isSigningIn)
         .accessibilityHint("Ouvre la connexion Google")
     }
 }
 
-/// En-tête de marque : emblème LeGrenier dans un carré au dégradé, nom et accroche.
-/// À l'inscription, l'accroche cède sa place pour garder le formulaire visible.
-private struct SignInBrandHeader: View {
-    let isCompact: Bool
-    /// Nom, emblème et accroche de la marque (B-032, `Core/Design/Brand/brand.json`).
-    @Environment(\.brand) private var brand
-    @Environment(\.accessibilityReduceMotion) private var reduceMotion
-    @ScaledMetric(relativeTo: .largeTitle) private var emblemSide: CGFloat = 72
-    @State private var appeared = false
+/// En-tête photo plein cadre : l'étal de marché passe sous la barre d'état, un voile brun foncé monte du bas
+/// pour porter le titre et l'accroche. Décoratif : l'image est cachée à VoiceOver, le titre est un en-tête.
+private struct AuthPhotoHeader: View {
+    let height: CGFloat
+    let cardOverlap: CGFloat
 
-    /// Dégradé fixe (Grenier clair vers brun) : l'emblème blanc garde son contraste en clair comme en sombre.
-    private static let gradient = LinearGradient(
-        colors: [
-            Color(red: 0xC2 / 255, green: 0x5E / 255, blue: 0x22 / 255),
-            Color(red: 0x7A / 255, green: 0x35 / 255, blue: 0x10 / 255)
-        ],
-        startPoint: .topLeading,
-        endPoint: .bottomTrailing
-    )
-
-    private var side: CGFloat { min(emblemSide, 104) * (isCompact ? 0.78 : 1) }
+    /// Noir brun du voile (#2B1D14) et blancs du texte posé sur la photo, fixes en clair comme en sombre.
+    private static let veil = Color(red: 0x2B / 255, green: 0x1D / 255, blue: 0x14 / 255)
+    private static let titleColor = Color(red: 0xFB / 255, green: 0xF6 / 255, blue: 0xEE / 255)
 
     var body: some View {
-        VStack(spacing: 14) {
-            Image(systemName: brand.logo.symbol)
-                .font(.system(size: side * 0.46, weight: .semibold))
-                .foregroundStyle(.white)
-                .symbolEffect(.bounce, options: .nonRepeating, value: appeared && !reduceMotion)
-                .frame(width: side, height: side)
-                .background(Self.gradient, in: .rect(cornerRadius: side * 0.28, style: .continuous))
-                .overlay(alignment: .topTrailing) {
-                    Image(systemName: "leaf.fill")
-                        .font(.system(size: side * 0.18, weight: .bold))
-                        .foregroundStyle(Color.economie)
-                        .frame(width: side * 0.36, height: side * 0.36)
-                        .background(Color.surface, in: .circle)
-                        .shadow(color: .black.opacity(0.12), radius: 3, y: 1)
-                        .offset(x: side * 0.12, y: -side * 0.12)
-                }
-                .shadow(color: Color.grenier.opacity(0.35), radius: 18, y: 8)
-                .background {
-                    Circle()
-                        .fill(Color.surface.opacity(0.55))
-                        .frame(width: side * 1.7, height: side * 1.7)
-                        .overlay(Circle().strokeBorder(Color.grenier.opacity(0.12), lineWidth: 1))
-                }
-                .padding(.vertical, side * 0.18)
-                .accessibilityHidden(true)
-
-            VStack(spacing: 4) {
-                Text(brand.name)
-                    .font(.largeTitle.weight(.heavy))
-                    .kerning(-0.5)
-                    .fontDesign(.rounded)
-                    .foregroundStyle(Color.texte)
-                if !isCompact {
-                    Text("Le gros, à petit prix, entre voisins.")
-                        .font(.subheadline)
-                        .foregroundStyle(Color.texteSecondaire)
-                        .fixedSize(horizontal: false, vertical: true)
-                        .transition(.opacity)
-                }
+        Image("IntroSolution")
+            .resizable()
+            .scaledToFill()
+            .frame(maxWidth: .infinity)
+            .frame(height: height)
+            .clipped()
+            .overlay {
+                LinearGradient(
+                    stops: [
+                        .init(color: .clear, location: 0),
+                        .init(color: .clear, location: 0.35),
+                        .init(color: Self.veil.opacity(0.72), location: 1)
+                    ],
+                    startPoint: .top,
+                    endPoint: .bottom
+                )
             }
-            .multilineTextAlignment(.center)
+            .accessibilityHidden(true)
+            .overlay(alignment: .bottomLeading) {
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("Le Grenier")
+                        .font(.largeTitle.weight(.heavy))
+                        .tracking(-0.6)
+                        .foregroundStyle(Self.titleColor)
+                        .accessibilityAddTraits(.isHeader)
+                    Text("Le gros, à petit prix, entre voisins.")
+                        .font(.callout)
+                        .foregroundStyle(.white.opacity(0.92))
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+                .padding(.horizontal, 24)
+                .padding(.bottom, cardOverlap + 22)
+                .frame(maxWidth: .infinity, alignment: .leading)
+            }
+            .ignoresSafeArea(edges: .top)
+    }
+}
+
+/// Sélecteur Connexion / Inscription : pilule sable, segment actif blanc qui glisse (`matchedGeometryEffect`).
+/// En très grand texte, les segments passent l'un sous l'autre pour ne jamais être tronqués.
+private struct AuthModePicker: View {
+    @Binding var mode: EmailAuthForm.Mode
+    @Namespace private var selection
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
+
+    var body: some View {
+        let layout = dynamicTypeSize.isAccessibilitySize
+            ? AnyLayout(VStackLayout(spacing: 4))
+            : AnyLayout(HStackLayout(spacing: 4))
+        layout {
+            ForEach(EmailAuthForm.Mode.allCases) { segment($0) }
         }
-        .frame(maxWidth: .infinity)
-        .padding(.top, 8)
-        .accessibilityElement(children: .combine)
-        .onAppear { appeared = true }
+        .padding(5)
+        .background(Color.piste, in: .rect(cornerRadius: 26, style: .continuous))
+    }
+
+    private func segment(_ candidate: EmailAuthForm.Mode) -> some View {
+        let isActive = mode == candidate
+        return Button {
+            withAnimation(reduceMotion ? nil : .smooth) { mode = candidate }
+        } label: {
+            Text(candidate.segmentTitle)
+                .font(.callout.weight(isActive ? .semibold : .medium))
+                .foregroundStyle(isActive ? Color.texte : Color.texteSecondaire)
+                .lineLimit(1)
+                .minimumScaleFactor(0.8)
+                .frame(maxWidth: .infinity, minHeight: 42)
+                .background {
+                    if isActive {
+                        RoundedRectangle(cornerRadius: 21, style: .continuous)
+                            .fill(Color.surface)
+                            .shadow(color: .black.opacity(0.1), radius: 4, y: 1)
+                            .matchedGeometryEffect(id: "activeSegment", in: selection)
+                    }
+                }
+                .contentShape(.rect)
+        }
+        .buttonStyle(.plain)
+        .accessibilityAddTraits(isActive ? .isSelected : [])
     }
 }
 
@@ -227,32 +241,17 @@ struct GoogleLogo: View {
     }
 }
 
-/// Erreur de connexion (Google) : carte rouge pâle, icône dans un carré, frétille à l'apparition.
-private struct SignInErrorBanner: View {
+/// Erreur de connexion (Google) : une ligne rouge avec son icône, comme sous les champs du formulaire.
+private struct AuthErrorLine: View {
     let message: String
-    @Environment(\.accessibilityReduceMotion) private var reduceMotion
-    @State private var hasAppeared = false
 
     var body: some View {
-        HStack(alignment: .top, spacing: 12) {
-            Image(systemName: "exclamationmark.triangle.fill")
-                .symbolRenderingMode(.hierarchical)
-                .foregroundStyle(.red)
-                .frame(width: 32, height: 32)
-                .background(Color.red.opacity(0.14), in: .rect(cornerRadius: 10))
-                .symbolEffect(.wiggle, options: .nonRepeating, value: reduceMotion ? false : hasAppeared)
-                .accessibilityHidden(true)
-            Text(message)
-                .font(.subheadline)
-                .foregroundStyle(Color.texte)
-                .fixedSize(horizontal: false, vertical: true)
-        }
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(14)
-        .background(Color.red.opacity(0.09), in: .rect(cornerRadius: 16))
-        .accessibilityElement(children: .combine)
-        .accessibilityLabel("Erreur : \(message)")
-        .onAppear { hasAppeared = true }
+        Label(message, systemImage: "exclamationmark.circle")
+            .font(.footnote.weight(.semibold))
+            .foregroundStyle(.red)
+            .fixedSize(horizontal: false, vertical: true)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(.horizontal, 6)
     }
 }
 

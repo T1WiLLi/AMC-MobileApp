@@ -250,6 +250,16 @@
         }
       }
     },
+    "Connexion…" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Signing in…"
+          }
+        }
+      }
+    },
     "Coordonnateur" : {
       "localizations" : {
         "en" : {
@@ -310,6 +320,16 @@
         }
       }
     },
+    "Gratuit, sans engagement · aucune carte demandée" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Free, no commitment · no card required"
+          }
+        }
+      }
+    },
     "Ici : tes préférences, la langue, le mode aîné (plus gros et plus simple) et « Revoir le tutoriel avec Noisette » pour me retrouver. Bonne cueillette !" : {
       "localizations" : {
         "en" : {
@@ -356,6 +376,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "The map shows where families order and what they'd like to buy. Tap a bubble to read their wishes and “Propose a bundle here”."
+          }
+        }
+      }
+    },
+    "Le Grenier" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Le Grenier"
           }
         }
       }

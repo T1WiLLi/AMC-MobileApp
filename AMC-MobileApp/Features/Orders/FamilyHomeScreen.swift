@@ -71,6 +71,8 @@ struct FamilyHomeScreen: View {
         }
         // Bascule de portail : le voile attend que l'accueil ait son contenu.
         .portalContentReady(.family, when: isContentReady)
+        // FB-19 : « Salut, moi c'est Noisette », avant les bulles de la visite guidée.
+        .guidedTourWelcome(isReady: viewModel?.state.value != nil)
         // Retour au premier plan ou du réseau : `load()` garde le contenu affiché pendant le rechargement.
         .refreshOnForeground { await viewModel?.load() }
         .task(id: identity) {
@@ -194,6 +196,7 @@ private struct FamilyHomeContent: View {
             .animation(reduceMotion ? nil : .smooth, value: sections)
             .padding(.horizontal, 16)
             .padding(.bottom, 24)
+            .guidedTourTip(.home)
         }
         // Pendant le réarrangement, l'Accueil n'est qu'un aperçu : pas de toucher par erreur sur une carte inclinée.
         .allowsHitTesting(!isArrangingSections)

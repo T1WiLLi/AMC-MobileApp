@@ -21,6 +21,8 @@ struct ProfileScreen: View {
     @State private var account: AccountViewModel?
     /// T-159 : demandes pour rejoindre le ménage en attente (propriétaire seulement), pastille sur « Mon ménage ».
     @State private var pendingJoinRequests = 0
+    /// Portail vendeur : feuille « Ma vitrine ».
+    @State private var showsVendorShop = false
     /// Ouvert en feuille : bouton Fermer dans la barre de l'écran racine seulement
     /// (un bouton superposé à la feuille passait par-dessus « Enregistrer » des écrans poussés).
     var showsCloseButton = false
@@ -54,17 +56,32 @@ struct ProfileScreen: View {
 
                 // T-075 : profil famille (RQ-015, RQ-017 à RQ-020), écrans dans Features/Profile/.
                 Section {
-                    NavigationLink {
-                        HouseholdProfileLink()
-                    } label: {
-                        Label {
-                            Text("Mon ménage")
-                        } icon: {
-                            RowIcon(systemImage: "house.fill", tint: .solidarite)
+                    if portal == .vendor, !appContext.vendorId.isEmpty {
+                        // Portail vendeur : la vitrine remplace le ménage, qui ne le concerne pas.
+                        Button {
+                            showsVendorShop = true
+                        } label: {
+                            Label {
+                                Text("Photos et zones desservies")
+                                    .foregroundStyle(Color.texte)
+                            } icon: {
+                                RowIcon(systemImage: "photo.on.rectangle.angled", tint: .grenier)
+                            }
                         }
+                        .accessibilityHint("Ouvre ta vitrine : photos, description et zones desservies.")
+                    } else {
+                        NavigationLink {
+                            HouseholdProfileLink()
+                        } label: {
+                            Label {
+                                Text("Mon ménage")
+                            } icon: {
+                                RowIcon(systemImage: "house.fill", tint: .solidarite)
+                            }
+                        }
+                        .badge(pendingJoinRequests)
+                        .accessibilityHint(pendingJoinRequests > 0 ? String(localized: "\(pendingJoinRequests) demande(s) pour rejoindre ton ménage") : "")
                     }
-                    .badge(pendingJoinRequests)
-                    .accessibilityHint(pendingJoinRequests > 0 ? String(localized: "\(pendingJoinRequests) demande(s) pour rejoindre ton ménage") : "")
                     NavigationLink {
                         PreferencesLink()
                     } label: {
@@ -196,6 +213,10 @@ struct ProfileScreen: View {
             .scrollDismissesKeyboard(.interactively)
             .grenierBackground()
             .navigationTitle("Profil")
+            .sheet(isPresented: $showsVendorShop) {
+                VendorProfileScreen(repositories: appContext.repositories, vendorId: appContext.vendorId)
+                    .presentationDetents([.large])
+            }
             .toolbar {
                 if showsCloseButton {
                     ToolbarItem(placement: .topBarTrailing) {

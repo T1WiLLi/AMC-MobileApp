@@ -35,6 +35,9 @@ final class AddressFieldModel {
         case validating
         case valid
         case notFound
+        /// Vérification impossible (réseau, service Apple) : l'adresse tapée est gardée telle quelle,
+        /// sans bloquer l'enregistrement. Ce n'est pas « introuvable ».
+        case unverified
     }
 
     let style: Style
@@ -44,6 +47,7 @@ final class AddressFieldModel {
     private(set) var validated: ValidatedAddress?
     private(set) var validatedText: String?
     private(set) var notFoundText: String?
+    private(set) var unverifiedText: String?
     private(set) var validatingText: String?
     private var savedText: String?
 
@@ -70,6 +74,7 @@ final class AddressFieldModel {
         if validatingText == trimmed { return .validating }
         if validatedText == trimmed { return .valid }
         if notFoundText == trimmed { return .notFound }
+        if unverifiedText == trimmed { return .unverified }
         if savedText == trimmed { return .saved }
         return .edited
     }
@@ -77,7 +82,7 @@ final class AddressFieldModel {
     /// Le texte peut-il être enregistré tel quel ? (vide compte si le champ est facultatif)
     func isAccepted(_ text: String, optional: Bool = false) -> Bool {
         switch status(for: text) {
-        case .saved, .valid: true
+        case .saved, .valid, .unverified: true
         case .empty: optional
         case .edited, .validating, .notFound: false
         }
@@ -120,7 +125,17 @@ final class AddressFieldModel {
         suggestions = []
         validatingText = trimmed
         let query = [trimmed, context.map(Self.trim)].compactMap { $0 }.filter { !$0.isEmpty }.joined(separator: ", ")
-        let result = await validator.validate(query)
+        let result: ValidatedAddress?
+        do {
+            result = try await validator.validate(query)
+        } catch {
+            // Vérification impossible : on garde l'adresse tapée, sans la déclarer introuvable.
+            guard validatingText == trimmed else { return trimmed }
+            validatingText = nil
+            unverifiedText = trimmed
+            notFoundText = nil
+            return trimmed
+        }
         // Une autre vérification a commencé entre-temps : la plus récente gagne.
         guard validatingText == trimmed else { return result.map { display($0, typed: trimmed) } }
         validatingText = nil

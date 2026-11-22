@@ -154,7 +154,7 @@ struct HostPickupViewModelTests {
     /// scanne et la part est remise au membre qui le montre.
     @Test func familyQRCarriesAPrivateTokenThatTheHostAccepts() async throws {
         var data = FakeData.montreal
-        data.groupOrders[0].status = .closed
+        data.groupOrders[0].status = .delivered
         let orderId = data.groupOrders[0].id
         if !(data.shares[orderId] ?? []).contains(where: { $0.householdId == ID.aminaHousehold }) {
             data.shares[orderId, default: []].append(Share(
@@ -166,7 +166,7 @@ struct HostPickupViewModelTests {
         let family = PickupViewModel(repositories: repos, householdId: ID.aminaHousehold, groupId: ID.saintMichel,
                                      userId: ID.amina)
         await family.load()
-        let payload = try #require(family.state.value?.qrPayload)
+        let payload = try #require(family.state.value?.items.first { $0.groupOrderId == orderId }?.pickupCode)
         let parsed = try #require(PickupDesk.parse(payload))
         #expect(parsed.orderId == orderId)
         #expect(parsed.householdId == ID.aminaHousehold)
@@ -174,7 +174,7 @@ struct HostPickupViewModelTests {
         #expect(parsed.memberId == ID.amina)
         // Rouvrir l'écran garde le même jeton.
         await family.load()
-        #expect(family.state.value?.qrPayload == payload)
+        #expect(family.state.value?.items.first { $0.groupOrderId == orderId }?.pickupCode == payload)
 
         let host = HostPickupViewModel(repositories: repos, userId: ID.amina, householdId: ID.aminaHousehold,
                                        groupId: ID.saintMichel)

@@ -756,12 +756,12 @@ describe('attaques : code de cueillette d’une autre famille', () => {
   beforeEach(async () => {
     await env.withSecurityRulesDisabled(async (c) => {
       const db = c.firestore()
-      // Commande fermée, cueillette chez Fatima (hôte, simple membre du ménage household-fatima hors groupe).
+      // Commande arrivée (livrée), cueillette chez Fatima (hôte, ménage household-fatima hors groupe).
       await setDoc(doc(db, 'users/fatima'), user('fatima', 'household-fatima'))
       await setDoc(doc(db, 'households/household-fatima'), { id: 'household-fatima', name: 'f', size: 1, geohash: 'f25', userIds: ['fatima'] })
       await setDoc(doc(db, 'pickupPoints/pickup-fatima'), { id: 'pickup-fatima', hostUserId: 'fatima', name: 'Cour', address: '2 rue', capacity: 40, accessibility: [], slots: [] })
       await setDoc(doc(db, 'groupOrders/order-pret'), {
-        ...dueOrder, id: 'order-pret', status: 'closed', pickupPointId: 'pickup-fatima'
+        ...dueOrder, id: 'order-pret', status: 'delivered', pickupPointId: 'pickup-fatima'
       })
       await setDoc(doc(db, sharePath), { ...closedShare('household-amina', 4, 739), isPaid: true })
       await setDoc(doc(db, 'groupOrders/order-pret/shares/household-bob'), { ...closedShare('household-bob', 6, 739), isPaid: true })

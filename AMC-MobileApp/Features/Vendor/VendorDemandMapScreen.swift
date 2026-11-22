@@ -1079,6 +1079,7 @@ extension MKCoordinateRegion {
 
 // MARK: - Previews
 
+#if DEBUG
 #Preview("Clair") {
     VendorDemandMapScreen(repositories: .fake(data: .demandMapDemo), vendorId: FakeData.ID.fermeRive) { _ in }
 }
@@ -1100,3 +1101,4 @@ extension MKCoordinateRegion {
 #Preview("Erreur") {
     VendorDemandMapScreen(repositories: .fake(behavior: .failing(.offline)), vendorId: FakeData.ID.fermeRive)
 }
+#endif

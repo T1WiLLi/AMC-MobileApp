@@ -309,6 +309,7 @@ private struct BrandingTextField: View {
     }
 }
 
+#if DEBUG
 #Preview("Marque du groupe") {
     GroupBrandingEditorScreen(
         viewModel: GroupBrandingEditorViewModel(
@@ -329,3 +330,4 @@ private struct BrandingTextField: View {
     )
     .preferredColorScheme(.dark)
 }
+#endif

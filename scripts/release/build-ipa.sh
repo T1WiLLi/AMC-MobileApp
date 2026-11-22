@@ -18,7 +18,7 @@
 #   --draft     Avec --release : release en brouillon (visible seulement par les collaborateurs).
 #   --notes     Fichier Markdown des notes de release (sinon générées depuis les commits).
 #
-# Prérequis : Xcode 26 ou plus, compte de l'équipe connecté dans Xcode › Settings › Accounts,
+# Prérequis : Xcode 26 ou plus récent, compte de l'équipe connecté dans Xcode › Settings › Accounts,
 # AMC-MobileApp/GoogleService-Info.plist présent (jamais commité), appareils de test enregistrés dans l'équipe.
 # Tout ce qui est produit va dans build/release/ (ignoré par git).
 set -euo pipefail
@@ -72,8 +72,7 @@ GOOGLE_SCHEME=$(/usr/libexec/PlistBuddy -c "Print :REVERSED_CLIENT_ID" "$REPO_PL
 [[ -n "$GOOGLE_SCHEME" ]] || fail "REVERSED_CLIENT_ID absent du plist Firebase : Google Sign-In ne reviendrait pas dans l'app."
 git ls-files --error-unmatch AMC-MobileApp/GoogleService-Info.plist >/dev/null 2>&1 && fail "GoogleService-Info.plist est suivi par git : retire-le avant de builder."
 XCODE_VERSION=$(xcodebuild -version | sed -n 1p)
-XCODE_MAJOR=$(echo "$XCODE_VERSION" | sed -E 's/^Xcode ([0-9]+).*/\1/')
-[[ "$XCODE_MAJOR" =~ ^[0-9]+$ && "$XCODE_MAJOR" -ge 26 ]] || fail "Xcode 26 ou plus requis ($XCODE_VERSION)."
+XCODE_MAJOR=$(echo "$XCODE_VERSION" | sed -E "s/Xcode ([0-9]+).*/\1/"); (( XCODE_MAJOR >= 26 )) || fail "Xcode 26 ou plus récent requis ($XCODE_VERSION)."
 
 PROJECT=AMC-MobileApp.xcodeproj
 SCHEME=AMC-MobileApp

@@ -880,7 +880,6 @@ private extension AppContext {
         return context
     }
 }
-#endif
 
 #Preview("Clair") {
     NavigationStack { ProductStatsScreen() }
@@ -915,3 +914,4 @@ private extension AppContext {
     }
     .environment(\.appContext, .statsPreview(.fake(data: .productStatsDemo)))
 }
+#endif

@@ -1,16 +1,6 @@
 {
   "sourceLanguage" : "fr",
   "strings" : {
-    " · vérifié" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : " · verified"
-          }
-        }
-      }
-    },
     " pour %lld %@." : {
       "localizations" : {
         "en" : {
@@ -33,16 +23,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : " percent"
-          }
-        }
-      }
-    },
-    " sur 5" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : " out of 5"
           }
         }
       }
@@ -83,6 +63,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "·"
+          }
+        }
+      }
+    },
+    "· %@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "· %@"
           }
         }
       }
@@ -309,6 +299,16 @@
           "stringUnit" : {
             "state" : "new",
             "value" : "%1$@ · comptoir à %2$@"
+          }
+        }
+      }
+    },
+    "%@ · pas de lot ouvert" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ · no open bundle"
           }
         }
       }
@@ -3279,6 +3279,16 @@
         }
       }
     },
+    "Ancienne famille du groupe" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Former family in the group"
+          }
+        }
+      }
+    },
     "Annule la demande et crée un ménage à toi" : {
       "localizations" : {
         "en" : {
@@ -4071,6 +4081,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Around %@"
+          }
+        }
+      }
+    },
+    "Autour de Montréal" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Around Montreal"
           }
         }
       }
@@ -5253,6 +5273,16 @@
         }
       }
     },
+    "Change ta note ou ton commentaire" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Change your rating or comment"
+          }
+        }
+      }
+    },
     "Changement non enregistré" : {
       "localizations" : {
         "en" : {
@@ -5469,6 +5499,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Loading your profile"
+          }
+        }
+      }
+    },
+    "Chargement des avis" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Loading reviews"
           }
         }
       }
@@ -6301,6 +6341,16 @@
         }
       }
     },
+    "Comment ça se passe dans ce groupe ?" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "How are things going in this group?"
+          }
+        }
+      }
+    },
     "Comment était ton lot ?" : {
       "localizations" : {
         "en" : {
@@ -6557,6 +6607,26 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Co-op"
+          }
+        }
+      }
+    },
+    "Coordonné par %@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Coordinated by %@"
+          }
+        }
+      }
+    },
+    "Coordonné par des voisins bénévoles" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Coordinated by volunteer neighbours"
           }
         }
       }
@@ -7037,6 +7107,16 @@
         }
       }
     },
+    "Cueillette à deux pas" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pickup just steps away"
+          }
+        }
+      }
+    },
     "Cueillette dans %lld %@" : {
       "localizations" : {
         "en" : {
@@ -7313,6 +7393,16 @@
         }
       }
     },
+    "de rayon" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "radius"
+          }
+        }
+      }
+    },
     "De retour en ligne" : {
       "localizations" : {
         "en" : {
@@ -7491,6 +7581,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Request my producer profile"
+          }
+        }
+      }
+    },
+    "Demander une invitation" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ask for an invitation"
           }
         }
       }
@@ -7947,6 +8047,16 @@
         }
       }
     },
+    "Donne de 1 à 5 étoiles et un commentaire court" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Give 1 to 5 stars and a short comment"
+          }
+        }
+      }
+    },
     "Donne un nom à ton ménage (ex. « Famille Benali »)." : {
       "localizations" : {
         "en" : {
@@ -8247,6 +8357,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Waiting for the household owner…"
+          }
+        }
+      }
+    },
+    "En ce moment dans le groupe" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Right now in the group"
           }
         }
       }
@@ -8801,6 +8921,16 @@
         }
       }
     },
+    "Envoie une demande à un voisin qui fait partie du groupe." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Send a request to a neighbour who's in the group."
+          }
+        }
+      }
+    },
     "Envoie une demande au propriétaire du ménage" : {
       "localizations" : {
         "en" : {
@@ -8917,6 +9047,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Try another neighbourhood."
+          }
+        }
+      }
+    },
+    "Et %@ pour les membres" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "And %@ for members"
           }
         }
       }
@@ -9153,6 +9293,16 @@
         }
       }
     },
+    "Famille du groupe · %@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Family in the group · %@"
+          }
+        }
+      }
+    },
     "famille engagée" : {
       "localizations" : {
         "en" : {
@@ -9329,16 +9479,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Close"
-          }
-        }
-      }
-    },
-    "Fermer les détails" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Close details"
           }
         }
       }
@@ -9635,6 +9775,16 @@
         }
       }
     },
+    "Gratuit et sans engagement" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Free, no commitment"
+          }
+        }
+      }
+    },
     "Gratuit, sans engagement" : {
       "localizations" : {
         "en" : {
@@ -9731,6 +9881,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Private group · %@"
+          }
+        }
+      }
+    },
+    "Groupe public" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Public group"
           }
         }
       }
@@ -9965,6 +10125,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "One step left: confirm your email address to open your account."
+          }
+        }
+      }
+    },
+    "Ils lancent les commandes et choisissent le point de cueillette du quartier." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "They start the orders and choose the neighbourhood pickup point."
           }
         }
       }
@@ -10305,6 +10475,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "I got my share"
+          }
+        }
+      }
+    },
+    "J'ai déjà une invitation" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "I already have an invitation"
           }
         }
       }
@@ -11263,6 +11443,16 @@
         }
       }
     },
+    "Le prix baisse à chaque famille" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The price drops with every family"
+          }
+        }
+      }
+    },
     "Le prix baisse quand d'autres familles se joignent au lot." : {
       "localizations" : {
         "en" : {
@@ -11747,6 +11937,16 @@
         }
       }
     },
+    "Lieux sur la carte" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Places on the map"
+          }
+        }
+      }
+    },
     "Lisibilité" : {
       "localizations" : {
         "en" : {
@@ -12167,6 +12367,16 @@
         }
       }
     },
+    "Membre du groupe" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Group member"
+          }
+        }
+      }
+    },
     "Membres" : {
       "localizations" : {
         "en" : {
@@ -12583,16 +12793,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Edit your description, photos, featured products and service areas, as families see them."
-          }
-        }
-      }
-    },
-    "Modifie ton avis" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Edit your review"
           }
         }
       }
@@ -13205,6 +13405,16 @@
         }
       }
     },
+    "Noter ce groupe" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Rate this group"
+          }
+        }
+      }
+    },
     "Noter ce producteur" : {
       "localizations" : {
         "en" : {
@@ -13611,6 +13821,16 @@
         }
       }
     },
+    "Organisation, ambiance, cueillettes…" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Organization, vibe, pickups…"
+          }
+        }
+      }
+    },
     "Organiser la cueillette" : {
       "localizations" : {
         "en" : {
@@ -13761,12 +13981,32 @@
         }
       }
     },
+    "Ouvre l'itinéraire à pied dans Plans" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Opens walking directions in Maps"
+          }
+        }
+      }
+    },
     "Ouvre la connexion Google" : {
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Opens Google sign-in"
+          }
+        }
+      }
+    },
+    "Ouvre la fiche du groupe" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Opens the group's page"
           }
         }
       }
@@ -13787,16 +14027,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Opens the bundle's page."
-          }
-        }
-      }
-    },
-    "Ouvre la page de %@ : avis, produits et prix" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Opens %@'s page: reviews, products and prices"
           }
         }
       }
@@ -13949,16 +14179,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Opens sales stats for each product"
-          }
-        }
-      }
-    },
-    "Ouvre Plans" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Opens Maps"
           }
         }
       }
@@ -14745,12 +14965,12 @@
         }
       }
     },
-    "Pas de lot ouvert en ce moment" : {
+    "Pas de lot ouvert pour l'instant" : {
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "No open bundles right now"
+            "value" : "No open bundle for now"
           }
         }
       }
@@ -14821,6 +15041,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "No sales yet"
+          }
+        }
+      }
+    },
+    "Pas encore noté" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Not rated yet"
           }
         }
       }
@@ -15187,12 +15417,12 @@
         }
       }
     },
-    "Pince la carte pour zoomer ou dézoomer" : {
+    "Pince la carte pour zoomer ou dézoomer et changer le rayon" : {
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Pinch the map to zoom in or out"
+            "value" : "Pinch the map to zoom in or out and change the radius"
           }
         }
       }
@@ -15233,6 +15463,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "more shares, lower price"
+          }
+        }
+      }
+    },
+    "Plus le groupe commande, plus le palier descend pour tout le monde." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The more the group orders, the lower the tier price for everyone."
           }
         }
       }
@@ -15575,6 +15815,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Why trust them"
+          }
+        }
+      }
+    },
+    "Pourquoi rejoindre" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Why join"
           }
         }
       }
@@ -16105,6 +16355,16 @@
         }
       }
     },
+    "Public" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Public"
+          }
+        }
+      }
+    },
     "publié" : {
       "localizations" : {
         "en" : {
@@ -16475,22 +16735,6 @@
         }
       }
     },
-    "Rayon de %@ · %@" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "%@ radius · %@"
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "new",
-            "value" : "Rayon de %1$@ · %2$@"
-          }
-        }
-      }
-    },
     "Recadrée au centre, 400 × 400." : {
       "localizations" : {
         "en" : {
@@ -16517,6 +16761,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Recentres the map on your location"
+          }
+        }
+      }
+    },
+    "Recentrer la carte" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Recentre the map"
           }
         }
       }
@@ -16803,6 +17057,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Join %@ on LeGrenier: we buy in bulk as neighbours, straight from producers."
+          }
+        }
+      }
+    },
+    "Rejoins le groupe pour être averti dès qu'une commande est lancée." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Join the group to be notified as soon as an order starts."
           }
         }
       }
@@ -17609,6 +17873,16 @@
         }
       }
     },
+    "Salut ! Peux-tu m'envoyer une invitation pour rejoindre « %@ » sur LeGrenier ? Merci !" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hi! Could you send me an invitation to join “%@” on LeGrenier? Thanks!"
+          }
+        }
+      }
+    },
     "Salut %@ !" : {
       "localizations" : {
         "en" : {
@@ -17859,6 +18133,16 @@
         }
       }
     },
+    "Seules les familles membres du groupe, ou qui l'ont été, peuvent le noter." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Only families who are or were members of the group can rate it."
+          }
+        }
+      }
+    },
     "Seules les familles qui ont reçu un lot de ce producteur peuvent le noter." : {
       "localizations" : {
         "en" : {
@@ -17995,6 +18279,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Snappy: selection"
+          }
+        }
+      }
+    },
+    "Sois la première famille à dire comment ça se passe." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Be the first family to say how it's going."
           }
         }
       }
@@ -18939,6 +19233,16 @@
         }
       }
     },
+    "Ton ménage rejoint %@ et voit tous ses lots." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Your household joins %@ and sees all its bundles."
+          }
+        }
+      }
+    },
     "Ton mot de passe" : {
       "localizations" : {
         "en" : {
@@ -19535,6 +19839,16 @@
         }
       }
     },
+    "Tu choisis tes parts lot par lot et tu peux quitter quand tu veux." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "You choose your shares bundle by bundle and can leave anytime."
+          }
+        }
+      }
+    },
     "Tu dessers déjà ce quartier." : {
       "localizations" : {
         "en" : {
@@ -19603,16 +19917,6 @@
           "stringUnit" : {
             "state" : "new",
             "value" : "Tu es la %1$llde famille · ta part %2$@"
-          }
-        }
-      }
-    },
-    "Tu es membre" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "You’re a member"
           }
         }
       }
@@ -19839,16 +20143,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "You’ll go back to your own household. You can ask to join this one again."
-          }
-        }
-      }
-    },
-    "Tu sembles loin : carte sur ton quartier" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "You seem far away: map centred on your neighbourhood"
           }
         }
       }
@@ -20163,6 +20457,26 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "A closet or a corner of a garage"
+          }
+        }
+      }
+    },
+    "Un point de cueillette dans %@, à distance de marche." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "A pickup point in %@, within walking distance."
+          }
+        }
+      }
+    },
+    "Un point de cueillette dans ton quartier, à distance de marche." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "A pickup point in your neighbourhood, within walking distance."
           }
         }
       }
@@ -20713,12 +21027,32 @@
         }
       }
     },
+    "Voir le groupe" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "View group"
+          }
+        }
+      }
+    },
     "Voir le lot" : {
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "See bundle"
+          }
+        }
+      }
+    },
+    "Voir le producteur" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "View producer"
           }
         }
       }
@@ -20791,6 +21125,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "See its trend"
+          }
+        }
+      }
+    },
+    "Voir son lot" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "View their bundle"
           }
         }
       }
@@ -20911,16 +21255,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Areas served"
-          }
-        }
-      }
-    },
-    "Zoome ou dézoome la carte pour changer le rayon" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Zoom the map in or out to change the radius"
           }
         }
       }

@@ -99,7 +99,6 @@ struct TierEditorScreen: View {
     private var editor: some View {
         ScrollViewReader { proxy in
             Form {
-                if model.areTermsLocked { lockedTermsSection }
                 productSection
                 shareFormatSection
                 priceSection
@@ -133,30 +132,6 @@ struct TierEditorScreen: View {
                 if oldValue != nil { showsErrors = true }
             }
         }
-    }
-
-    // MARK: Conditions figées (lot publié)
-
-    /// Sécurité : un lot publié garde ses prix. On le dit en haut plutôt que de laisser des champs refusés à l'envoi.
-    private var lockedTermsSection: some View {
-        Section {
-            Label {
-                VStack(alignment: .leading, spacing: 4) {
-                    Text("Conditions figées")
-                        .font(.headline)
-                        .foregroundStyle(.texte)
-                    Text("Ce lot est publié : les paliers, le nombre de parts et la part ne changent plus, pour protéger les familles qui ont réservé. Tu peux encore repousser la date limite. Pour d'autres prix, duplique le lot.")
-                        .font(.subheadline)
-                        .foregroundStyle(.texteSecondaire)
-                        .fixedSize(horizontal: false, vertical: true)
-                }
-            } icon: {
-                Image(systemName: "lock.fill")
-                    .foregroundStyle(Color.grenier)
-            }
-            .accessibilityElement(children: .combine)
-        }
-        .listRowBackground(Color.surface)
     }
 
     // MARK: Produit, format d'une part, prix
@@ -389,12 +364,7 @@ struct TierEditorScreen: View {
         } footer: {
             if let message = errorMessage(for: .tiers) {
                 InlineError(message: message)
-            } else if model.areTermsLocked {
-                // T-203 : figés dès la publication, même sans réservation (« des familles ont réservé » était faux à 0 part).
-                Label("Paliers figés : le lot est publié, les familles voient ces prix.", systemImage: "lock.fill")
-                    .font(.footnote)
-                    .foregroundStyle(.texteSecondaire)
-            } else {
+            } else if !model.areTermsLocked {
                 Label("Glisse un palier vers la gauche pour le supprimer.", systemImage: "hand.draw.fill")
                     .font(.footnote)
                     .foregroundStyle(.texteSecondaire)

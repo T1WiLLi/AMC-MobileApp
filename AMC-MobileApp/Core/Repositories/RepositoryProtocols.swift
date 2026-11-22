@@ -12,6 +12,42 @@ nonisolated protocol UserRepository: Sendable {
     func saveUser(_ user: AppUser) async throws
     func household(id: String) async throws -> Household
     func saveHousehold(_ household: Household) async throws
+
+    // T-159 : plusieurs comptes dans un ménage.
+
+    /// Ménage inscrit à l'adresse `lookupId` (`HouseholdAddress.lookupId`), `nil` s'il n'y en a pas.
+    /// Lecture par id exact seulement : on ne liste jamais les adresses.
+    func householdAddress(lookupId: String) async throws -> HouseholdAddressEntry?
+    /// Inscrit le ménage à son adresse. Sans effet si un autre ménage y est déjà inscrit (le premier reste trouvable).
+    func registerHouseholdAddress(_ entry: HouseholdAddressEntry) async throws
+    /// Crée (ou remplace) la demande de `request.userId` pour rejoindre `request.householdId`.
+    func requestToJoin(_ request: HouseholdJoinRequest) async throws
+    /// Demande de `userId` pour `householdId`, `nil` si elle n'existe plus (refusée ou annulée).
+    func joinRequest(householdId: String, userId: String) async throws -> HouseholdJoinRequest?
+    /// Demandes en attente du ménage, les plus anciennes d'abord. Le propriétaire seulement (`.permissionDenied` sinon).
+    func joinRequests(ofHousehold householdId: String, byUserId userId: String) async throws -> [HouseholdJoinRequest]
+    /// Supprime la demande : annulée par la personne, ou refusée par le propriétaire.
+    func deleteJoinRequest(householdId: String, userId: String) async throws
+    /// Le propriétaire accepte : `userId` entre dans `userIds` et la demande passe à `.accepted`.
+    func acceptJoinRequest(householdId: String, userId: String, byUserId ownerId: String) async throws -> Household
+    /// Retire `userId` du ménage : le propriétaire retire un membre, ou un membre se retire lui-même.
+    func removeMember(_ userId: String, fromHousehold householdId: String, byUserId callerId: String) async throws -> Household
+}
+
+/// Doublures de test d'avant T-159 : pas de ménage partagé.
+extension UserRepository {
+    func householdAddress(lookupId: String) async throws -> HouseholdAddressEntry? { nil }
+    func registerHouseholdAddress(_ entry: HouseholdAddressEntry) async throws {}
+    func requestToJoin(_ request: HouseholdJoinRequest) async throws { throw AppError.permissionDenied }
+    func joinRequest(householdId: String, userId: String) async throws -> HouseholdJoinRequest? { nil }
+    func joinRequests(ofHousehold householdId: String, byUserId userId: String) async throws -> [HouseholdJoinRequest] { [] }
+    func deleteJoinRequest(householdId: String, userId: String) async throws {}
+    func acceptJoinRequest(householdId: String, userId: String, byUserId ownerId: String) async throws -> Household {
+        throw AppError.permissionDenied
+    }
+    func removeMember(_ userId: String, fromHousehold householdId: String, byUserId callerId: String) async throws -> Household {
+        throw AppError.permissionDenied
+    }
 }
 
 /// Groupes de quartier (`groups`) et leurs membres.
@@ -259,7 +295,8 @@ nonisolated struct AppRepositories: Sendable {
     /// Dépôts en mémoire remplis avec `FakeData` : previews, tests et mode `.fake` (`-useFakeData`) seulement.
     static func fake(behavior: FakeBehavior = .realistic, data: FakeData = .montreal) -> AppRepositories {
         AppRepositories(
-            users: FakeUserRepository(behavior: behavior, users: data.users, households: data.households),
+            users: FakeUserRepository(behavior: behavior, users: data.users, households: data.households,
+                                      joinRequests: data.joinRequests),
             groups: FakeGroupRepository(behavior: behavior, groups: data.groups, members: data.members,
                                         invitations: data.invitations),
             vendors: FakeVendorRepository(behavior: behavior, vendors: data.vendors, products: data.products),

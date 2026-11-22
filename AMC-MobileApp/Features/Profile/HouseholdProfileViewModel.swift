@@ -1,5 +1,6 @@
 // HouseholdProfileViewModel.swift
 // RQ-015 (ménage : nom, taille, quartier) et RQ-020 (statut subventionné par code d'organisme, privé).
+// T-159 : membres du ménage, demandes pour le rejoindre (le propriétaire accepte ou refuse), retrait d'un membre.
 
 import Foundation
 import Observation
@@ -44,6 +45,24 @@ final class HouseholdProfileViewModel {
     private(set) var isRedeeming = false
     private(set) var redeemCount = 0
 
+    // Membres et demandes (T-159).
+    nonisolated struct Member: Identifiable, Sendable, Hashable {
+        var id: String
+        var name: String
+        var isOwner: Bool
+        var isMe: Bool
+    }
+
+    /// Demandes en attente (le propriétaire seulement ; vide pour les autres membres).
+    private(set) var joinRequests: [HouseholdJoinRequest] = []
+    /// Demande ou membre en cours de traitement (bouton désactivé, indicateur).
+    private(set) var busyUserId: String?
+    private(set) var membershipError: AppError?
+    /// Incrémenté à chaque acceptation (haptique, animation du compteur).
+    private(set) var acceptCount = 0
+    /// La personne a quitté le ménage : la session doit être rechargée.
+    private(set) var didLeave = false
+
     init(repositories: AppRepositories, privateStore: any HouseholdPrivateStore,
          userId: String, householdId: String, issuedCodes: Set<String> = []) {
         self.repositories = repositories
@@ -73,8 +92,88 @@ final class HouseholdProfileViewModel {
             size = loadedHousehold.size
             neighborhood = MontrealNeighborhood.named(loadedUser.neighborhood)
             state = .loaded(loadedHousehold)
+            await loadJoinRequests()
         } catch {
             state = .failed(AppError(error))
+        }
+    }
+
+    /// Relit les demandes en attente (propriétaire seulement). Une erreur ici n'empêche pas d'éditer le ménage.
+    func loadJoinRequests() async {
+        guard isOwner else { joinRequests = []; return }
+        joinRequests = (try? await repositories.users.joinRequests(ofHousehold: householdId, byUserId: userId)) ?? joinRequests
+    }
+
+    // MARK: Membres et demandes (T-159)
+
+    var isOwner: Bool {
+        guard let household = state.value else { return false }
+        return HouseholdMembership.isOwner(userId, of: household)
+    }
+
+    /// Membres, propriétaire d'abord puis par nom ; « Toi » pour la personne connectée.
+    var members: [Member] {
+        guard let household = state.value else { return [] }
+        let owner = HouseholdMembership.ownerId(of: household)
+        return household.userIds.map { id in
+            let fallback = id == userId ? (user?.displayName ?? String(localized: "Toi")) : String(localized: "Membre")
+            return Member(id: id, name: household.memberNames?[id] ?? fallback, isOwner: id == owner, isMe: id == userId)
+        }
+        .sorted { lhs, rhs in
+            if lhs.isOwner != rhs.isOwner { return lhs.isOwner }
+            return lhs.name.localizedStandardCompare(rhs.name) == .orderedAscending
+        }
+    }
+
+    var ownerName: String? { members.first(where: \.isOwner)?.name }
+
+    func accept(_ request: HouseholdJoinRequest) async {
+        await membershipChange(request.userId) {
+            let household = try await self.repositories.users.acceptJoinRequest(
+                householdId: self.householdId, userId: request.userId, byUserId: self.userId
+            )
+            self.state = .loaded(household)
+            self.joinRequests.removeAll { $0.userId == request.userId }
+            self.acceptCount += 1
+        }
+    }
+
+    func decline(_ request: HouseholdJoinRequest) async {
+        await membershipChange(request.userId) {
+            try await self.repositories.users.deleteJoinRequest(householdId: self.householdId, userId: request.userId)
+            self.joinRequests.removeAll { $0.userId == request.userId }
+        }
+    }
+
+    /// Le propriétaire retire un autre membre.
+    func remove(_ member: Member) async {
+        guard isOwner, !member.isMe else { return }
+        await membershipChange(member.id) {
+            let household = try await self.repositories.users.removeMember(
+                member.id, fromHousehold: self.householdId, byUserId: self.userId
+            )
+            self.state = .loaded(household)
+        }
+    }
+
+    /// Un membre (pas le propriétaire) quitte le ménage ; il retrouve son propre ménage au rechargement de la session.
+    func leave() async {
+        guard !isOwner else { return }
+        await membershipChange(userId) {
+            _ = try await self.repositories.users.removeMember(self.userId, fromHousehold: self.householdId, byUserId: self.userId)
+            self.didLeave = true
+        }
+    }
+
+    private func membershipChange(_ targetId: String, _ change: () async throws -> Void) async {
+        guard busyUserId == nil else { return }
+        busyUserId = targetId
+        membershipError = nil
+        defer { busyUserId = nil }
+        do {
+            try await change()
+        } catch {
+            membershipError = AppError(error)
         }
     }
 

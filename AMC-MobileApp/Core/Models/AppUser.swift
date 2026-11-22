@@ -32,6 +32,9 @@ nonisolated struct AppUser: Identifiable, Codable, Sendable, Hashable {
     /// Onboarding après l'inscription (T-156) : `false` pour un compte tout neuf, `true` une fois fini.
     /// Absent (`nil`) sur les profils d'avant T-156.
     var onboardingCompleted: Bool? = nil
+    /// T-159 : ménage que la personne a demandé à rejoindre (`households/{id}/joinRequests/{uid}`), en attente
+    /// du propriétaire. Une fois acceptée, `householdId` y pointe et ce champ redevient `nil`.
+    var pendingHouseholdId: String? = nil
 
     /// Le compte n'a pas encore fini l'onboarding.
     /// Un profil sans drapeau (créé avant T-156 ou par un ancien build) le voit aussi tant qu'il n'a ni quartier

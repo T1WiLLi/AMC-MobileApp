@@ -189,6 +189,156 @@ describe('onboarding après l’inscription (T-156)', () => {
   })
 })
 
+describe('ménage partagé (T-159)', () => {
+  const karim = () => env.authenticatedContext('karim').firestore()
+  const karimUser = { ...aminaUser, id: 'karim', displayName: 'Karim Benali', householdId: 'household-karim' }
+  const lookupId = 'a'.repeat(64)
+  const request = (status = 'pending') => ({
+    householdId: 'household-amina', userId: 'karim', displayName: 'Karim Benali',
+    createdAt: Timestamp.now(), status
+  })
+
+  beforeEach(async () => {
+    await env.withSecurityRulesDisabled(async (context) => {
+      const db = context.firestore()
+      await setDoc(doc(db, 'users/karim'), karimUser)
+      await setDoc(doc(db, 'households/household-karim'), { id: 'household-karim', name: 'Ménage de Karim', size: 1, geohash: '', userIds: ['karim'], ownerId: 'karim' })
+      await setDoc(doc(db, 'households/household-amina'), {
+        id: 'household-amina', name: 'Famille Benali', size: 5, geohash: 'f25du', userIds: ['amina'],
+        ownerId: 'amina', addressKey: '1234jarryest-h2r1a1', memberNames: { amina: 'Amina' }
+      })
+    })
+  })
+
+  async function seedRequest(status = 'pending') {
+    await env.withSecurityRulesDisabled(async (context) => {
+      await setDoc(doc(context.firestore(), 'households/household-amina/joinRequests/karim'), request(status))
+    })
+  }
+
+  async function acceptAsAmina() {
+    const db = amina()
+    const batch = writeBatch(db)
+    batch.update(doc(db, 'households/household-amina'), { userIds: ['amina', 'karim'], 'memberNames.karim': 'Karim Benali' })
+    batch.update(doc(db, 'households/household-amina/joinRequests/karim'), { status: 'accepted' })
+    return batch.commit()
+  }
+
+  test('le propriétaire inscrit son adresse ; tout connecté la lit par son id exact', async () => {
+    await assertSucceeds(setDoc(doc(amina(), `householdAddresses/${lookupId}`),
+      { id: lookupId, householdId: 'household-amina', name: 'Famille Benali', ownerId: 'amina' }))
+    await assertSucceeds(getDoc(doc(karim(), `householdAddresses/${lookupId}`)))
+  })
+  test('personne ne liste les adresses', async () => {
+    await assertFails(getDocs(collection(karim(), 'householdAddresses')))
+    await assertFails(getDocs(query(collection(karim(), 'householdAddresses'), where('name', '==', 'Famille Benali'))))
+  })
+  test('on n’inscrit pas l’adresse du ménage d’un autre, ni par-dessus la sienne', async () => {
+    await assertFails(setDoc(doc(karim(), `householdAddresses/${lookupId}`),
+      { id: lookupId, householdId: 'household-amina', name: 'Famille Benali', ownerId: 'karim' }))
+    await assertSucceeds(setDoc(doc(amina(), `householdAddresses/${lookupId}`),
+      { id: lookupId, householdId: 'household-amina', name: 'Famille Benali', ownerId: 'amina' }))
+    await assertFails(setDoc(doc(karim(), `householdAddresses/${lookupId}`),
+      { id: lookupId, householdId: 'household-karim', name: 'Ménage de Karim', ownerId: 'karim' }))
+  })
+  test('id d’adresse : empreinte SHA-256 seulement (pas d’adresse en clair)', async () => {
+    await assertFails(setDoc(doc(amina(), 'householdAddresses/1234jarryest-h2r1a1'),
+      { id: '1234jarryest-h2r1a1', householdId: 'household-amina', name: 'Famille Benali', ownerId: 'amina' }))
+  })
+  test('la personne crée sa demande, la relit et l’annule', async () => {
+    const ref = doc(karim(), 'households/household-amina/joinRequests/karim')
+    await assertSucceeds(setDoc(ref, request()))
+    await assertSucceeds(getDoc(ref))
+    await assertSucceeds(deleteDoc(ref))
+  })
+  test('pas de demande au nom d’un autre, ni déjà acceptée', async () => {
+    await assertFails(setDoc(doc(intruder(), 'households/household-amina/joinRequests/karim'), request()))
+    await assertFails(setDoc(doc(karim(), 'households/household-amina/joinRequests/karim'), request('accepted')))
+  })
+  test('le demandeur ne lit toujours pas le ménage ni les autres demandes', async () => {
+    await seedRequest()
+    await assertFails(getDoc(doc(karim(), 'households/household-amina')))
+    await assertFails(getDocs(collection(karim(), 'households/household-amina/joinRequests')))
+  })
+  test('le propriétaire liste les demandes ; un étranger non', async () => {
+    await seedRequest()
+    await assertSucceeds(getDocs(collection(amina(), 'households/household-amina/joinRequests')))
+    await assertFails(getDocs(collection(intruder(), 'households/household-amina/joinRequests')))
+    await assertFails(getDoc(doc(intruder(), 'households/household-amina/joinRequests/karim')))
+  })
+  test('le propriétaire accepte : uid ajouté et demande acceptée dans un batch', async () => {
+    await seedRequest()
+    await assertSucceeds(acceptAsAmina())
+  })
+  test('pas d’ajout sans demande en attente', async () => {
+    await assertFails(updateDoc(doc(amina(), 'households/household-amina'), { userIds: ['amina', 'karim'] }))
+  })
+  test('le demandeur ne s’accepte pas lui-même', async () => {
+    await seedRequest()
+    await assertFails(updateDoc(doc(karim(), 'households/household-amina/joinRequests/karim'), { status: 'accepted' }))
+  })
+  test('un membre qui n’est pas propriétaire n’accepte pas', async () => {
+    await seedRequest()
+    await env.withSecurityRulesDisabled(async (context) => {
+      await updateDoc(doc(context.firestore(), 'households/household-amina'), { userIds: ['amina', 'intrus'] })
+      await setDoc(doc(context.firestore(), 'households/household-amina/joinRequests/karim'), request())
+    })
+    const db = intruder()
+    const batch = writeBatch(db)
+    batch.update(doc(db, 'households/household-amina'), { userIds: ['amina', 'intrus', 'karim'] })
+    batch.update(doc(db, 'households/household-amina/joinRequests/karim'), { status: 'accepted' })
+    await assertFails(batch.commit())
+  })
+  test('le propriétaire refuse : il supprime la demande', async () => {
+    await seedRequest()
+    await assertSucceeds(deleteDoc(doc(amina(), 'households/household-amina/joinRequests/karim')))
+  })
+  test('accepté, le demandeur pointe son profil vers le ménage et le lit', async () => {
+    await seedRequest()
+    await acceptAsAmina()
+    await assertSucceeds(updateDoc(doc(karim(), 'users/karim'), { householdId: 'household-amina', pendingHouseholdId: null }))
+    await assertSucceeds(getDoc(doc(karim(), 'households/household-amina')))
+    await assertSucceeds(deleteDoc(doc(karim(), 'households/household-amina/joinRequests/karim')))
+  })
+  test('householdId refusé vers un ménage dont on n’est pas membre', async () => {
+    await assertFails(updateDoc(doc(karim(), 'users/karim'), { householdId: 'household-amina' }))
+    await assertFails(updateDoc(doc(karim(), 'users/karim'), { householdId: 'household-inexistant' }))
+    await assertSucceeds(updateDoc(doc(karim(), 'users/karim'), { pendingHouseholdId: 'household-amina' }))
+  })
+  test('le propriétaire retire un membre ; le membre se retire lui-même ; pas un autre', async () => {
+    await env.withSecurityRulesDisabled(async (context) => {
+      await updateDoc(doc(context.firestore(), 'households/household-amina'), { userIds: ['amina', 'karim', 'intrus'] })
+    })
+    await assertFails(updateDoc(doc(intruder(), 'households/household-amina'), { userIds: ['amina', 'intrus'] }))
+    await assertSucceeds(updateDoc(doc(intruder(), 'households/household-amina'), { userIds: ['amina', 'karim'] }))
+    await assertSucceeds(updateDoc(doc(amina(), 'households/household-amina'), { userIds: ['amina'] }))
+  })
+  test('le propriétaire ne se retire pas et ne change pas de propriétaire', async () => {
+    await env.withSecurityRulesDisabled(async (context) => {
+      await updateDoc(doc(context.firestore(), 'households/household-amina'), { userIds: ['amina', 'karim'] })
+    })
+    await assertFails(updateDoc(doc(amina(), 'households/household-amina'), { userIds: ['karim'] }))
+    await assertFails(updateDoc(doc(karim(), 'households/household-amina'), { ownerId: 'karim' }))
+  })
+  test('un membre renomme le ménage sans toucher aux membres', async () => {
+    await env.withSecurityRulesDisabled(async (context) => {
+      await updateDoc(doc(context.firestore(), 'households/household-amina'), { userIds: ['amina', 'karim'] })
+    })
+    await assertSucceeds(updateDoc(doc(karim(), 'households/household-amina'), { name: 'Famille Benali-Haddad' }))
+  })
+  test('un ménage neuf ne contient que son créateur, propriétaire', async () => {
+    await assertSucceeds(setDoc(doc(karim(), 'households/h-k2'), { id: 'h-k2', name: 'K', size: 2, geohash: '', userIds: ['karim'], ownerId: 'karim' }))
+    await assertFails(setDoc(doc(karim(), 'households/h-k3'), { id: 'h-k3', name: 'K', size: 2, geohash: '', userIds: ['karim', 'amina'] }))
+    await assertFails(setDoc(doc(karim(), 'households/h-k4'), { id: 'h-k4', name: 'K', size: 2, geohash: '', userIds: ['karim'], ownerId: 'amina' }))
+  })
+  test('ménage d’avant T-159 : le premier compte pose ownerId sur lui-même', async () => {
+    await env.withSecurityRulesDisabled(async (context) => {
+      await setDoc(doc(context.firestore(), 'households/household-amina'), { id: 'household-amina', name: 'Famille Benali', size: 5, geohash: 'f25du', userIds: ['amina'] })
+    })
+    await assertSucceeds(updateDoc(doc(amina(), 'households/household-amina'), { ownerId: 'amina' }))
+  })
+})
+
 describe('groups/members', () => {
   const groupPath = 'groups/group-parc-extension'
   const memberPath = `${groupPath}/members/household-amina`

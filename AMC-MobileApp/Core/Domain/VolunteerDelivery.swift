@@ -281,12 +281,6 @@ nonisolated enum VolunteerDelivery {
         return released
     }
 
-    /// Code QR que le bénévole présente à l'hôte pour récupérer la part (révélé après la prise en charge).
-    static func pickupCode(for request: Request, viewerHouseholdId: String) -> String? {
-        guard request.status == .claimed, request.volunteerHouseholdId == viewerHouseholdId else { return nil }
-        return ShareAllocator.qrCode(orderId: request.groupOrderId, householdId: request.householdId)
-    }
-
     /// Le bénévole récupère la part chez l'hôte (même règle que la cueillette, `PickupDesk.scan`) et part.
     /// Renvoie la demande « en route » et la part marquée comme cueillie, à enregistrer.
     static func startRoute(
@@ -296,8 +290,9 @@ nonisolated enum VolunteerDelivery {
         guard request.status == .claimed else {
             throw AppError.invalidInput(String(localized: "Cette livraison n'est pas prête à partir."))
         }
-        let code = ShareAllocator.qrCode(orderId: request.groupOrderId, householdId: request.householdId)
-        let result = PickupDesk.scan(code, order: order, shares: shares)
+        // Sécurité : le bénévole n'a pas le code de la famille (jeton privé) ; même règle de remise que l'hôte.
+        let result = PickupDesk.handOver(householdId: request.householdId, order: order, shares: shares,
+                                         pickedUpBy: nil, at: now)
         guard case .pickedUp(let share) = result else {
             throw AppError.invalidInput(result.message)
         }

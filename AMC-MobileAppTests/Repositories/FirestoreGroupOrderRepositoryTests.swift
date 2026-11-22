@@ -352,7 +352,8 @@ struct FirestoreGroupOrderRepositoryTests {
         #expect(byHousehold[coordinatorHousehold]?.finalPriceCents == 5_600)
         #expect(byHousehold["household-voisin"]?.finalPriceCents == 4_000)
         #expect(byHousehold["household-voisin"]?.subsidyCents == 1_000)
-        #expect(shares.allSatisfy { $0.qrCode != nil })
+        // Sécurité : plus de code QR dans la part (lisible par le groupe) ; le jeton est privé (`pickupCode`).
+        #expect(shares.allSatisfy { $0.qrCode == nil })
         // E21-2 : chaque part payée au pot dans la même transaction (paiement simulé réussi).
         #expect(shares.allSatisfy { $0.isPaid })
         #expect(try await coordinator.repository.groupOrder(id: orderId).status == .closed)

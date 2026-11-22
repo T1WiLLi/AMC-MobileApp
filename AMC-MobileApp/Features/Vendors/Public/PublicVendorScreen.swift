@@ -357,8 +357,8 @@ private struct OpenOffersSection: View {
             VendorSectionHeader(title: String(localized: "Lots en cours"), systemImage: GrenierSymbol.offers, count: state.value?.count)
             switch state {
             case .loaded(let offers):
-                ForEach(Array(offers.enumerated()), id: \.element.id) { index, item in
-                    OpenOfferCard(item: item, isPrimary: index == 0)
+                ForEach(offers) { item in
+                    OpenOfferCard(item: item)
                 }
             case .empty:
                 ContentUnavailableView {
@@ -378,8 +378,6 @@ private struct OpenOffersSection: View {
 
 private struct OpenOfferCard: View {
     let item: PublicVendorViewModel.OpenOffer
-    /// Le lot le plus urgent porte la seule action principale de l'écran.
-    let isPrimary: Bool
 
     var body: some View {
         VStack(alignment: .leading, spacing: 14) {
@@ -425,21 +423,17 @@ private struct OpenOfferCard: View {
         }
     }
 
-    @ViewBuilder
     private var joinButton: some View {
         // Lien par vue, pas par valeur : la fiche producteur est aussi ouverte par `navigationDestination(item:)`
         // (carte du quartier), où un lien par valeur passait SOUS cette fiche et le lot ne s'affichait jamais.
-        let link = NavigationLink { OfferDetailScreen(offerId: item.route.offerId) } label: {
+        // Même style pour tous les lots : l'ancien bouton plein réservé au premier lot ne disait rien à la famille.
+        NavigationLink { OfferDetailScreen(offerId: item.route.offerId) } label: {
             Label("Rejoindre", systemImage: "person.badge.plus")
                 .font(.headline)
                 .frame(minHeight: 32)
         }
+        .buttonStyle(.glassProminent)
         .accessibilityHint("Ouvre le lot \(item.product.name) pour choisir ta part")
-        if isPrimary {
-            link.buttonStyle(.glassProminent)
-        } else {
-            link.buttonStyle(.glass).tint(.grenier)
-        }
     }
 
     private var deadlineText: String {

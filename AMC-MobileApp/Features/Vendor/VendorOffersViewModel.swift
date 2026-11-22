@@ -237,6 +237,8 @@ final class VendorOffersViewModel {
             var copy = source
             copy.id = "offer-\(UUID().uuidString.lowercased())"
             copy.status = .draft
+            // Nouveau lot : ses conditions restent modifiables jusqu'à sa publication.
+            copy.wasPublished = false
             copy.deadline = shifted > current ? shifted : current.addingTimeInterval(Self.duplicateDeadlineShift)
             try await self.repositories.offers.saveOffer(copy)
             created = copy

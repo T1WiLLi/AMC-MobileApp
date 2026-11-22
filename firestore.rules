@@ -29,6 +29,8 @@ rules_version = '2';
 //                                        d'organisme ; crédité par un don d'organisme ; aucun débit (T-195)
 //   groupOrders/{id}                     commande groupée ; lecture connectée, écriture serveur/seed seulement
 //   groupOrders/{id}/shares/{householdId} part d'un ménage ; le ménage la crée, change sa quantité, la retire
+//   groupOrders/{id}/shares/{householdId}/private/pickup  jeton secret du code de cueillette ; créé par le ménage,
+//                                        lu par le ménage, l'hôte du point de la commande et les coordonnateurs
 //   pickupPoints/{id}                    point de cueillette ; lecture connectée, l'hôte gère créneaux et capacité
 //
 // Points sensibles :
@@ -37,6 +39,10 @@ rules_version = '2';
 //   - vendors/{id} : un compte crée UN vendeur (id vendor-{uid}), non vérifié, sans note (onboarding T-158).
 //   - Dans une part, isPaid, finalPriceCents, subsidyCents, qrCode et isPickedUp ne sont pas modifiables
 //     par le client : ils viendront d'un processus de confiance.
+//   - Code de cueillette : la part (lisible par tout le groupe) ne porte plus de code utilisable (qrCode reste
+//     null) ; le jeton aléatoire vit dans shares/{h}/private/pickup, que les autres membres ne lisent pas.
+//   - Lot publié (status != 'draft', ou brouillon en pause marqué wasPublished) : paliers, nombre de parts,
+//     minimum et contenu d'une part sont figés (les familles ont engagé des parts à ces conditions).
 //   - Aucune lecture d'un document de PII (users, households, private) par quelqu'un d'extérieur.
 //   - Le seed (Admin SDK) contourne ces règles.
 // ===============================================================
@@ -901,7 +907,7 @@ service cloud.firestore {
     function isValidOffer(data) {
       let productPath = /databases/$(database)/documents/products/$(data.productId);
       return data.keys().hasOnly(['id', 'vendorId', 'productId', 'totalShares', 'shareUnit', 'share', 'tiers',
-                                  'minimumSharesToLaunch', 'deadline', 'zones', 'status'])
+                                  'minimumSharesToLaunch', 'deadline', 'zones', 'status', 'wasPublished'])
         && data.keys().hasAll(['id', 'vendorId', 'productId', 'totalShares', 'shareUnit', 'tiers',
                                'minimumSharesToLaunch', 'deadline', 'zones', 'status'])
         && isIntIn(data.totalShares, 1, 10000)
@@ -912,9 +918,26 @@ service cloud.firestore {
         && data.deadline is timestamp
         && isStringList(data.zones, 20)
         && data.status in ['draft', 'active', 'closed', 'cancelled']
+        && (!('wasPublished' in data) || data.wasPublished is bool)
         && data.productId is string
         && exists(productPath)
         && get(productPath).data.vendorId == data.vendorId;
+    }
+
+    // Lot déjà montré aux familles : publié, fermé, retiré, ou brouillon en pause (wasPublished, Offer.encode).
+    function isPublishedOffer(data) {
+      return data.status != 'draft' || data.get('wasPublished', false) == true;
+    }
+
+    // Conditions sur lesquelles les familles s'engagent : le prix final se calcule sur ces champs à la clôture.
+    // `share` (B-050) : un lot écrit avant B-050 ne l'a pas encore ; l'app l'ajoute à la première écriture
+    // (relu depuis shareUnit, qui, lui, ne bouge pas). Ensuite il est figé lui aussi.
+    function hasSameOfferTerms(after, before) {
+      return after.tiers == before.tiers
+        && after.totalShares == before.totalShares
+        && after.minimumSharesToLaunch == before.minimumSharesToLaunch
+        && after.shareUnit == before.shareUnit
+        && (!('share' in before) || after.get('share', null) == before.share);
     }
 
     match /offers/{offerId} {
@@ -929,7 +952,12 @@ service cloud.firestore {
         && isValidOffer(request.resource.data)
         // (1 ms de marge : saveOffer réécrit tout le lot, et l'aller-retour Date ↔ Timestamp peut décaler d'1 µs.)
         && (request.resource.data.deadline > resource.data.deadline - duration.value(1, 'ms')
-            || request.resource.data.deadline > request.time);
+            || request.resource.data.deadline > request.time)
+        // Sécurité (prix) : un lot publié garde ses paliers, ses parts et son minimum ; une pause (retour en
+        // brouillon) garde la marque wasPublished, sinon on rouvrirait les paliers en pausant le lot.
+        && (!isPublishedOffer(resource.data)
+            || (hasSameOfferTerms(request.resource.data, resource.data)
+                && isPublishedOffer(request.resource.data)));
       // Seulement un brouillon : un lot publié a des commandes qui le relisent (sinon elles restent bloquées).
       allow delete: if isVendorOf(resource.data.vendorId) && resource.data.status == 'draft';
     }
@@ -1178,7 +1206,9 @@ service cloud.firestore {
       }
 
       // T-159 : une part par ménage, remise UNE fois (isPickedUp false → true), par l'hôte ou un coordonnateur,
-      // seulement une fois la livraison arrivée (commande livrée). pickedUpBy = le membre du ménage qui s'est présenté (s'il est connu).
+      // seulement une fois la livraison arrivée (commande livrée). pickedUpBy est obligatoire : le membre du ménage
+      // dont le code a été scanné (PickupDesk.scan, jeton privé vérifié), ou l'hôte / le coordonnateur lui-même quand
+      // il confirme à la main (« Récupéré », PickupDesk.handOver) après avoir reconnu la famille.
       function isPickupConfirmation(householdId) {
         let order = orderDoc();
         let after = request.resource.data;
@@ -1187,9 +1217,9 @@ service cloud.firestore {
           && after.isPickedUp == true
           && after.diff(resource.data).affectedKeys().hasOnly(['isPickedUp', 'pickedUpBy', 'pickedUpAt', 'updatedAt'])
           && after.get('pickedUpAt', null) is timestamp
-          && (after.get('pickedUpBy', null) == null
-              || (after.pickedUpBy is string
-                  && after.pickedUpBy in get(/databases/$(database)/documents/households/$(householdId)).data.userIds))
+          && after.get('pickedUpBy', null) is string
+          && (after.pickedUpBy == request.auth.uid
+              || after.pickedUpBy in get(/databases/$(database)/documents/households/$(householdId)).data.userIds)
           && (isPickupHost(order) || isGroupCoordinator(order.groupId));
       }
 
@@ -1229,7 +1259,7 @@ service cloud.firestore {
       }
 
       // Clôture (ShareAllocator.allocate) : prix = quantité × prix du palier figé, subvention au plus le prix
-      // et seulement pour un ménage subventionné, QR de cette commande et de ce ménage.
+      // et seulement pour un ménage subventionné, sans code QR.
       function isClosingAllocation(data, householdId) {
         let order = orderAfter();
         let unitPriceCents = offerOf(order).tiers[order.currentTierIndex].priceCents;
@@ -1238,10 +1268,9 @@ service cloud.firestore {
           && data.subsidyCents <= data.finalPriceCents
           && (data.get('updatedAt', null) == null || data.updatedAt is timestamp)
           && (data.subsidyCents == 0 || isSubsidizedHousehold(householdId))
-          && data.get('qrCode', null) is string
-          && data.qrCode.matches('GRENIER:[^:]+:[^:]+:[0-9a-f]{8}')
-          && data.qrCode.split(':')[1] == orderId
-          && data.qrCode.split(':')[2] == householdId
+          // Sécurité : plus de code de cueillette dans la part (lisible par tout le groupe). Le jeton est privé
+          // (shares/{h}/private/pickup) ; un ancien code déjà posé reste tel quel, l'app le refuse au scan.
+          && isSameOptional(data, resource.data, 'qrCode')
           // E21-2 : paiement simulé à la clôture. isPaid ne change que pour passer à true, prix final posé.
           && (data.isPaid == resource.data.isPaid
               || (data.isPaid == true && data.get('finalPriceCents', null) is int));
@@ -1283,6 +1312,27 @@ service cloud.firestore {
             ));
 
         allow delete: if canChangeMyShare(householdId);
+
+        // Sécurité (vol de cueillette) : jeton aléatoire de 128 bits (32 hex) du code QR du ménage
+        // (`GRENIER:<commande>:<ménage>:<jeton>#<uid>`, PickupDesk.pickupCode). Créé une seule fois par un membre
+        // du ménage qui a une part ; jamais modifié. Lu par le ménage et par ceux qui vérifient le code :
+        // l'hôte du point de la commande et les coordonnateurs du groupe. Les autres membres du groupe, qui
+        // lisent la part, ne le lisent pas : ils ne peuvent ni copier ni recalculer le code d'une autre famille.
+        match /private/{docId} {
+          allow get: if docId == 'pickup'
+            && (isMemberOfHousehold(householdId)
+                || isPickupHost(orderDoc())
+                || isGroupCoordinator(orderDoc().groupId));
+          allow list: if false;
+          allow create: if docId == 'pickup'
+            && isMemberOfHousehold(householdId)
+            && exists(/databases/$(database)/documents/groupOrders/$(orderId)/shares/$(householdId))
+            && request.resource.data.keys().hasOnly(['code', 'createdAt'])
+            && request.resource.data.code is string
+            && request.resource.data.code.matches('[0-9a-f]{32}')
+            && (!('createdAt' in request.resource.data) || request.resource.data.createdAt is timestamp);
+          allow update, delete: if false;
+        }
       }
     }
 

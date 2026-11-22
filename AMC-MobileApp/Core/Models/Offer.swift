@@ -23,7 +23,13 @@ nonisolated struct Offer: Identifiable, Codable, Sendable, Hashable {
     var minimumSharesToLaunch: Int
     var deadline: Date
     var zones: [String]
-    var status: Status
+    /// Sortir d'un statut publié (pause : `.active` → `.draft`) garde la marque `wasPublished`.
+    var status: Status {
+        didSet { if oldValue != .draft { wasPublished = true } }
+    }
+    /// Sécurité : le lot a déjà été montré aux familles (un brouillon en pause l'a été). Avec `status != .draft`,
+    /// fige les conditions du lot (`areTermsLocked`, firestore.rules). Un lot dupliqué repart à `false`.
+    var wasPublished: Bool = false
 }
 
 nonisolated extension Offer {
@@ -33,6 +39,16 @@ nonisolated extension Offer {
     /// Index (dans `sortedTiers`) du palier atteint avec `committedShares` parts, nil si aucun.
     func tierIndex(forCommittedShares committedShares: Int) -> Int? {
         sortedTiers.lastIndex { committedShares >= $0.minShares }
+    }
+
+    /// Sécurité : lot publié (ou en pause après publication). Les familles ont engagé des parts à ces conditions :
+    /// paliers, nombre de parts, minimum pour lancer et contenu d'une part ne changent plus (firestore.rules).
+    var areTermsLocked: Bool { status != .draft || wasPublished }
+
+    /// Mêmes conditions d'engagement (champs figés par `areTermsLocked`).
+    func hasSameTerms(as other: Offer) -> Bool {
+        tiers == other.tiers && totalShares == other.totalShares
+            && minimumSharesToLaunch == other.minimumSharesToLaunch && share == other.share
     }
 
     /// Prochain palier à atteindre, nil si le dernier est déjà atteint.
@@ -71,6 +87,7 @@ nonisolated extension Offer {
 nonisolated extension Offer {
     private enum CodingKeys: String, CodingKey {
         case id, vendorId, productId, totalShares, shareUnit, share, tiers, minimumSharesToLaunch, deadline, zones, status
+        case wasPublished
     }
 
     /// Un document sans `share` (écrit avant B-050) relit `shareUnit`.
@@ -88,7 +105,8 @@ nonisolated extension Offer {
             minimumSharesToLaunch: try container.decode(Int.self, forKey: .minimumSharesToLaunch),
             deadline: try container.decode(Date.self, forKey: .deadline),
             zones: try container.decode([String].self, forKey: .zones),
-            status: try container.decode(Status.self, forKey: .status)
+            status: try container.decode(Status.self, forKey: .status),
+            wasPublished: try container.decodeIfPresent(Bool.self, forKey: .wasPublished) ?? false
         )
     }
 
@@ -106,5 +124,8 @@ nonisolated extension Offer {
         try container.encode(deadline, forKey: .deadline)
         try container.encode(zones, forKey: .zones)
         try container.encode(status, forKey: .status)
+        // Posé par la pause (`status` didSet) ; absent sinon, comme les documents d'avant. Un lot non brouillon est
+        // déjà figé par son statut. firestore.rules le garde une fois posé.
+        if wasPublished { try container.encode(true, forKey: .wasPublished) }
     }
 }

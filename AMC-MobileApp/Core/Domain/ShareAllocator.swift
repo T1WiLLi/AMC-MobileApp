@@ -1,12 +1,13 @@
 // ShareAllocator.swift
 // Répartition d'une commande groupée confirmée entre les ménages (E06 : RQ-055).
-// Prix final de chaque part, fonds de solidarité, arrondis au cent près, codes QR de cueillette.
+// Prix final de chaque part, fonds de solidarité, arrondis au cent près.
+// Le code de cueillette n'est plus posé ici : il dépend d'un jeton secret du ménage (`PickupDesk.pickupCode`).
 
 import Foundation
 
 nonisolated enum ShareAllocator {
     struct Allocation: Sendable, Equatable {
-        /// Parts avec `finalPriceCents`, `subsidyCents` et `qrCode` remplis, triées par ménage.
+        /// Parts avec `finalPriceCents` et `subsidyCents` remplis, triées par ménage (`qrCode` reste tel quel).
         var shares: [Share]
         /// Montant pris dans le fonds de solidarité (fonds du groupe + paniers suspendus de cette commande).
         var fundUsedCents: Cents
@@ -45,7 +46,6 @@ nonisolated enum ShareAllocator {
             var share = share
             share.finalPriceCents = share.quantity * unitPriceCents
             share.subsidyCents = 0
-            share.qrCode = qrCode(orderId: orderId, householdId: share.householdId)
             return share
         }
 
@@ -93,29 +93,6 @@ nonisolated enum ShareAllocator {
         return parts
     }
 
-    /// Préfixe de tout code QR de cueillette.
+    /// Préfixe de tout code QR de cueillette (`PickupDesk.pickupCode`).
     static let qrCodePrefix = "GRENIER:"
-
-    /// Code QR de cueillette : lisible par l'hôte, stable pour un même ménage et une même commande.
-    static func qrCode(orderId: String, householdId: String) -> String {
-        "\(qrCodePrefix)\(orderId):\(householdId):\(checksum("\(orderId)|\(householdId)"))"
-    }
-
-    /// Vérifie qu'un code scanné appartient bien à cette commande et n'a pas été modifié.
-    static func householdId(fromQRCode code: String, orderId: String) -> String? {
-        let parts = code.split(separator: ":", omittingEmptySubsequences: false).map(String.init)
-        guard parts.count == 4, parts[0] == "GRENIER", parts[1] == orderId,
-              parts[3] == checksum("\(orderId)|\(parts[2])") else { return nil }
-        return parts[2]
-    }
-
-    /// FNV-1a 32 bits en hexadécimal : détecte une faute de frappe ou un code d'une autre commande (pas de la sécurité).
-    private static func checksum(_ text: String) -> String {
-        var hash: UInt32 = 2_166_136_261
-        for byte in text.utf8 {
-            hash ^= UInt32(byte)
-            hash = hash &* 16_777_619
-        }
-        return String(format: "%08x", hash)
-    }
 }

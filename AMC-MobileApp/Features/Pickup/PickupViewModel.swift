@@ -23,7 +23,7 @@ final class PickupViewModel {
         var pickedUpByName: String? = nil
         /// Statut de la commande : fermée = en route, livrée = arrivée chez l'hôte (seulement là, on vient la chercher).
         var orderStatus: GroupOrder.Status = .open
-        /// Contenu du QR de CETTE commande (`PickupViewModel.qrPayload(for:share:memberId:)`), nil tant que la
+        /// Contenu du QR de CETTE commande (`PickupViewModel.qrPayload(for:code:memberId:)`), nil tant que la
         /// commande n'est pas fermée : l'hôte scanne un code par commande.
         var pickupCode: String? = nil
 
@@ -172,11 +172,16 @@ final class PickupViewModel {
                 ?? OfferPricing(offer: offer, product: product, committedShares: order.committedShares).currentPriceCents
             // Une commande livrée et récupérée depuis longtemps n'a plus rien à faire ici.
             guard !isLongDone(order: order, share: share) else { continue }
+            // Sécurité : le code porte le jeton privé du ménage (créé au besoin, `pickupCode`), jamais dérivé des
+            // ids publics. Seulement à partir de la clôture ; sans réseau, l'hôte confirme à la main (« Récupéré »).
+            let code = (order.status == .closed || order.status == .delivered) && !share.isPickedUp
+                ? try? await repositories.groupOrders.pickupCode(householdId: householdId, groupOrderId: order.id)
+                : nil
             let item = Item(groupOrderId: order.id, product: product, offer: offer, quantity: share.quantity,
                             totalCents: price * share.quantity, isPickedUp: share.isPickedUp,
                             pickedUpByName: share.pickedUpBy.flatMap { HouseholdMembership.firstName(of: $0, in: household) },
                             orderStatus: order.status,
-                            pickupCode: qrPayload(for: order, share: share, memberId: userId))
+                            pickupCode: qrPayload(for: order, code: code, memberId: userId))
             entries.append(Entry(item: item, pickupPointId: PickupPoint.resolvedId(for: order, in: allPoints),
                                  slots: order.pickupSlots))
         }
@@ -206,12 +211,13 @@ final class PickupViewModel {
         return Content(places: places(from: entries, points: points, hostFirstNames: hostFirstNames))
     }
 
-    /// Contenu du QR d'UNE commande : le code de la part du ménage (le même pour tous ses membres), suivi du membre
-    /// qui le montre. nil tant que la commande n'est pas fermée ou que la part n'a pas de code : pas de faux QR.
-    /// Seul endroit où le code est lu : à brancher sur le jeton privé de la part quand il existera.
-    nonisolated static func qrPayload(for order: GroupOrder, share: Share, memberId: String) -> String? {
+    /// Contenu du QR d'UNE commande : le code de la part du ménage (`GroupOrderRepository.pickupCode`, jeton privé,
+    /// le même pour tous ses membres), suivi du membre qui le montre. nil tant que la commande n'est pas fermée ou
+    /// sans code à jeton : pas de faux QR. L'ancien `share.qrCode` (dérivé des ids, refusé au scan) n'est jamais lu.
+    nonisolated static func qrPayload(for order: GroupOrder, code: String?, memberId: String) -> String? {
         guard order.status == .closed || order.status == .delivered,
-              let code = share.qrCode?.trimmingCharacters(in: .whitespacesAndNewlines), !code.isEmpty else { return nil }
+              let code = code?.trimmingCharacters(in: .whitespacesAndNewlines),
+              let parsed = PickupDesk.parse(code), !parsed.isLegacy else { return nil }
         return PickupDesk.memberCode(code, memberId: memberId)
     }
 

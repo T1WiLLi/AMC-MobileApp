@@ -9,6 +9,11 @@ import Charts
 import SwiftUI
 
 struct TierEditorScreen: View {
+    // Largeurs des champs du lot, calées sur leur plus long contenu : sans largeur fixe,
+    // les champs prenaient toute la place libre de la ligne.
+    @ScaledMetric(relativeTo: .body) private var countFieldWidth: CGFloat = 44
+    @ScaledMetric(relativeTo: .body) private var weightFieldWidth: CGFloat = 64
+    @ScaledMetric(relativeTo: .headline) private var valueFieldWidth: CGFloat = 76
     @State private var model: TierEditorViewModel
     private let onSaved: ((Offer) -> Void)?
 
@@ -146,8 +151,9 @@ struct TierEditorScreen: View {
             LabeledContent {
                 HStack(spacing: 6) {
                     IntegerField(label: String(localized: "Nombre de parts"), value: $model.totalShares)
+                        .frame(width: countFieldWidth)
                         .focused($focus, equals: .totalShares)
-                        .fieldBox(isInvalid: isInvalid(.quantity))
+                        .fieldBox(isInvalid: isInvalid(.quantity), compact: true)
                     Text(model.totalShares > 1 ? "parts" : "part")
                         .foregroundStyle(.texteSecondaire)
                         .lineLimit(1)
@@ -183,7 +189,7 @@ struct TierEditorScreen: View {
             LabeledContent {
                 HStack(spacing: 6) {
                     WeightField(label: "Poids", value: $model.share.weight.value)
-                        .frame(minWidth: 64)
+                        .frame(width: weightFieldWidth)
                         .focused($focus, equals: .shareWeight)
                         .fieldBox(isInvalid: isInvalid(.quantity) && !model.share.isValid, compact: true)
                     Picker("Unité", selection: $model.share.weight.unit) {
@@ -201,7 +207,7 @@ struct TierEditorScreen: View {
 
             LabeledContent {
                 PriceField(label: "Valeur d'une part", value: shareValue)
-                    .frame(minWidth: 96)
+                    .frame(width: valueFieldWidth)
                     .focused($focus, equals: .shareValue)
                     .fieldBox(isInvalid: false, compact: true)
             } label: {

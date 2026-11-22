@@ -57,7 +57,8 @@ struct RootView: View {
                     OrganizationTabView()
                 } else {
                     // Sans organisme rattaché, le portail planterait sur un chemin Firestore vide.
-                    ContextRequirementView(.organization) {
+                    // FB-16 : à la place, « Faire une demande » (courriel prérempli) ou retour aux Familles.
+                    OrganizationAccessRequestView {
                         portalSwitch.switchPortal(from: .organization, to: .family, reduceMotion: reduceMotion)
                     }
                 }

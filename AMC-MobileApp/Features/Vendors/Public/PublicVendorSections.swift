@@ -97,7 +97,7 @@ struct FeaturedProductsSection: View {
                         Text(product.name)
                             .font(.headline)
                             .foregroundStyle(.texte)
-                        Label("\(product.unit) · \(product.origin)", systemImage: "mappin")
+                        Label("\(product.displayUnit) · \(product.origin)", systemImage: "mappin")
                             .font(.caption)
                             .symbolRenderingMode(.hierarchical)
                             .foregroundStyle(.texteSecondaire)

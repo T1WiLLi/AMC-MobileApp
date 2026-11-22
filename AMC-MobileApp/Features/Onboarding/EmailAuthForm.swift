@@ -411,7 +411,7 @@ private struct PasswordRules: View {
         let met = rules.filter(\.isMet).map(\.label)
         return met.isEmpty
             ? String(localized: "Mot de passe : aucune règle remplie")
-            : String(localized: "Mot de passe, règles remplies : \(met.formatted(.list(type: .and)))")
+            : String(localized: "Mot de passe, règles remplies : \(met.formatted(.list(type: .and).locale(AppLanguage.formattingLocale)))")
     }
 }
 

@@ -25,17 +25,17 @@ nonisolated enum AppTheme: String, CaseIterable, Identifiable, Sendable {
 
     var title: String {
         switch self {
-        case .grenier: "LeGrenier"
-        case .fleuve: "Fleuve"
-        case .montRoyal: "Mont-Royal"
+        case .grenier: String(localized: "LeGrenier")
+        case .fleuve: String(localized: "Fleuve")
+        case .montRoyal: String(localized: "Mont-Royal")
         }
     }
 
     var subtitle: String {
         switch self {
-        case .grenier: "Orange chaleureux du marché"
-        case .fleuve: "Bleu du Saint-Laurent, coins plus nets"
-        case .montRoyal: "Vert des sentiers, coins plus ronds"
+        case .grenier: String(localized: "Orange chaleureux du marché")
+        case .fleuve: String(localized: "Bleu du Saint-Laurent, coins plus nets")
+        case .montRoyal: String(localized: "Vert des sentiers, coins plus ronds")
         }
     }
 

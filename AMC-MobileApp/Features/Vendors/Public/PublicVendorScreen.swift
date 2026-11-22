@@ -518,7 +518,7 @@ private struct ProductRow: View {
                 }
             }
             FlowLayout(spacing: 12) {
-                Label(product.unit, systemImage: "scalemass.fill")
+                Label(product.displayUnit, systemImage: "scalemass.fill")
                 Label(product.origin, systemImage: "mappin")
                 ForEach(product.tags, id: \.self) { tag in
                     Label(tag.publicTitle, systemImage: tag.publicSymbol)

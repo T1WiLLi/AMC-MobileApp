@@ -93,7 +93,7 @@ struct GroupCard: View {
     /// « 24 familles · cueillette rue Ogilvy · 450 m »
     var detailText: String {
         var parts = [FrenchPlural.count(group.householdCount, "famille")]
-        if let pickupLabel { parts.append("cueillette \(pickupLabel)") }
+        if let pickupLabel { parts.append(String(localized: "cueillette \(pickupLabel)")) }
         if let distanceMeters { parts.append(Self.distanceText(distanceMeters)) }
         return parts.joined(separator: " · ")
     }

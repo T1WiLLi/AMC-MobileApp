@@ -189,7 +189,7 @@ private struct MetricPicker: View {
     var body: some View {
         ScrollView(.horizontal, showsIndicators: false) {
             HStack(spacing: 8) {
-                chip(nil, title: "Score global", systemImage: "trophy.fill")
+                chip(nil, title: String(localized: "Score global"), systemImage: "trophy.fill")
                 ForEach(SolidarityLeaderboard.Metric.allCases) { item in
                     chip(item, title: item.title, systemImage: item.systemImage)
                 }

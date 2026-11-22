@@ -153,7 +153,7 @@ final class VolunteerDeliveryViewModel {
             var product: Product?
             if let offer { product = try? await repositories.vendors.product(id: offer.productId) }
             options.append(OrderOption(order: order, share: share, productName: product?.name ?? String(localized: "Ta commande"),
-                                       shareUnit: offer?.shareUnit ?? String(localized: "part")))
+                                       shareUnit: offer?.displayShareUnit ?? String(localized: "part")))
         }
 
         let geohash = household?.geohash ?? ""

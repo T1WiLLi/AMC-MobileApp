@@ -69,8 +69,14 @@
       "localizations" : {
         "fr" : {
           "stringUnit" : {
-            "state" : "new",
+            "state" : "translated",
             "value" : "%1$@ pour −%2$lld %%"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ for −%2$lld%%"
           }
         }
       }

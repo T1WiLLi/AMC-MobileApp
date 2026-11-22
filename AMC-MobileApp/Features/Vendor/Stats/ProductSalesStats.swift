@@ -191,7 +191,7 @@ nonisolated enum ProductSalesAggregator {
                 productId: offer.productId,
                 name: product?.name ?? offer.shareUnit,
                 category: product?.category,
-                shareUnit: offer.shareUnit,
+                shareUnit: offer.displayShareUnit,
                 weekStarts: weekStarts
             )
             builder.tierCount = max(builder.tierCount, offer.tiers.count)

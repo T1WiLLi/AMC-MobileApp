@@ -45,7 +45,7 @@ final class MediaImageLoader {
                 data = try await URLSession.shared.data(from: remote).0
             }
             guard let image = await Self.decode(data) else {
-                throw AppError.unknown("Image illisible.")
+                throw AppError.unknown(String(localized: "Image illisible."))
             }
             return image
         }

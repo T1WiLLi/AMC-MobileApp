@@ -67,7 +67,7 @@ nonisolated struct DeliveryManifest: Sendable, Equatable {
             var line = Line(
                 productId: offer.productId,
                 productName: productsById[offer.productId]?.name ?? String(localized: "Produit inconnu"),
-                shareUnit: offer.shareUnit,
+                shareUnit: offer.displayShareUnit,
                 totalShares: 0, households: 0, orderIds: []
             )
             line = grouped[pointKey]?[line.id] ?? line

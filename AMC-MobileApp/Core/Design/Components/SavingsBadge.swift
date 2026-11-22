@@ -48,7 +48,7 @@ struct SavingsBadge: View {
 
     private var label: String {
         switch kind {
-        case .percent(let value): compact ? "−\(value) %" : String(localized: "−\(value) % vs épicerie")
+        case .percent(let value): compact ? String(localized: "−\(value) %") : String(localized: "−\(value) % vs épicerie")
         case .amount(let cents): String(localized: "\(Money.formatRounded(cents)) économisés")
         }
     }

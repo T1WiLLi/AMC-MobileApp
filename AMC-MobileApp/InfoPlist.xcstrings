@@ -43,8 +43,14 @@
       "localizations" : {
         "fr" : {
           "stringUnit" : {
-            "state" : "new",
+            "state" : "translated",
             "value" : "LeGrenier utilise la caméra pour lire le code QR d'une famille quand tu lui remets sa part. Aucune image n'est enregistrée."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "LeGrenier uses the camera to read a family's QR code when you hand over their share. No image is saved."
           }
         }
       }

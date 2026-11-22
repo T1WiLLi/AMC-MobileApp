@@ -244,7 +244,7 @@ struct ProductEditorScreen: View {
     private var priceSection: some View {
         Section {
             fieldRow("cart.fill") {
-                TextField("Prix en épicerie", text: $model.referencePriceText, prompt: Text("0,00"))
+                TextField("Prix en épicerie", text: $model.referencePriceText, prompt: Text(verbatim: "0\(AppLanguage.decimalSeparator)00"))
                     .focused($focusedField, equals: .price)
                     .keyboardType(.decimalPad)
                     .monospacedDigit()

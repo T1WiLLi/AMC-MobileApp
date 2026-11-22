@@ -213,7 +213,7 @@ private struct OfferDetailContent: View {
                 celebration: celebration,
                 tiers: content.offer.tiers,
                 totalShares: content.offer.totalShares,
-                shareUnit: content.offer.shareUnit,
+                shareUnit: content.offer.displayShareUnit,
                 onDone: { viewModel.dismissCelebration() }
             )
         }

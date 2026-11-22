@@ -273,10 +273,10 @@ final class ProductEditorViewModel {
         return dollars * 100 + cents
     }
 
-    /// Cents → saisie française : 349 → « 3,49 ».
+    /// Cents → saisie dans la langue de l'app : 349 → « 3,49 » (français) ou « 3.49 » (anglais).
     nonisolated static func priceText(_ cents: Cents) -> String {
         let remainder = cents % 100
-        return "\(cents / 100)," + (remainder < 10 ? "0\(remainder)" : "\(remainder)")
+        return "\(cents / 100)\(AppLanguage.decimalSeparator)" + (remainder < 10 ? "0\(remainder)" : "\(remainder)")
     }
 
     private nonisolated static func trimmed(_ text: String) -> String {

@@ -219,7 +219,7 @@ struct SuspendedBasketPicker: View {
     /// « 3,50 » pour pré-remplir le champ avec un montant libre déjà choisi.
     static func editableText(_ cents: Cents) -> String {
         let value = max(0, cents)
-        return value % 100 == 0 ? "\(value / 100)" : String(format: "%d,%02d", value / 100, value % 100)
+        return value % 100 == 0 ? "\(value / 100)" : "\(value / 100)\(AppLanguage.decimalSeparator)" + String(format: "%02d", value % 100)
     }
 }
 

@@ -42,3 +42,13 @@
 - Feuilles ouvertes pendant le changement : la racine est recréée, la feuille perd son parent ; `appThemed()` repose `\.locale` à la racine de la feuille.
 - Widget / Live Activity : catalogue propre `GrenierWidgets/Localizable.xcstrings` (mêmes clés que les textes de `Shared/`), langue de l'appareil (pas d'App Group pour partager le choix de l'app).
 - Avant chaque PR : `xcodebuild -exportLocalizations …` (voir plus haut) puis traduire les clés sans `en` ; `python3`-check : aucune clé sans traduction anglaise.
+
+## Pièges repérés au balayage visuel (fr/en)
+
+- Un composant dont le paramètre est un `String` rendu par `Text(param)` / `Label(param, …)` affiche son texte tel quel : lui passer `String(localized: "…")`, jamais un littéral. Un composant qui fait `Text(LocalizedStringKey(param))` cherche la clé au **runtime** : Xcode ne l'extrait pas, il faut ajouter la clé à la main au catalogue (`extractionState: manual`).
+- Unités de vente : `Product.unit` et `Offer.shareUnit` sont le texte stocké (français). Pour l'affichage, `Product.displayUnit` et `Offer.displayShareUnit` (« bag of 5 kg »).
+- Saisie de prix : `AppLanguage.decimalSeparator` (virgule en français, point en anglais), jamais « , » en dur.
+- `.formatted(...)` (dates relatives, listes, nombres) sans `.locale(AppLanguage.formattingLocale)` suit la langue de l'appareil, pas celle de l'app.
+- `InfoPlist.xcstrings` : chaque phrase d'autorisation (caméra, position, Face ID) doit avoir son `en`.
+- Pourcentage : en anglais « 19% » (sans espace), en français « 19 % » ; la traduction anglaise de la clé enlève l'espace.
+- Tester le changement de langue avec l'interface (Profil › Préférences), pas en réécrivant les préférences du simulateur : `cfprefsd` garde l'ancienne valeur et l'app affiche un mélange.

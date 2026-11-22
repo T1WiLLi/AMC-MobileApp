@@ -531,7 +531,7 @@ private struct GroupMapHeader: View {
             GlassEffectContainer(spacing: 8) {
                 HStack(spacing: 8) {
                     mapBadge(group.neighborhood, systemImage: "mappin.circle.fill")
-                    mapBadge("Rayon \(GroupCard.distanceText(group.radiusMeters))", systemImage: "circle.dashed")
+                    mapBadge(String(localized: "Rayon \(GroupCard.distanceText(group.radiusMeters))"), systemImage: "circle.dashed")
                 }
             }
             .padding(12)

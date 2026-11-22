@@ -150,7 +150,7 @@ struct EmailAuthForm: View {
                     Text(mode.title)
                         .font(.headline)
                         .contentTransition(.opacity)
-                    if isBusy {
+                    if session.isSigningIn(with: .email) {
                         ProgressView()
                     } else {
                         Image(systemName: "arrow.right")

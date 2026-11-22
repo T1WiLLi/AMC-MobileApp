@@ -19,6 +19,9 @@ struct GroupsScreen: View {
     @State private var joinCode: JoinCodeRequest?
     /// B-059 : feuille « Créer un groupe ».
     @State private var isCreatingGroup = false
+    /// Ouvert en feuille (« Trouver un groupe » des états vides, FB-15) : bouton Fermer en tête.
+    var showsCloseButton = false
+    @Environment(\.dismiss) private var dismiss
 
     var body: some View {
         NavigationStack(path: $path) {
@@ -38,8 +41,17 @@ struct GroupsScreen: View {
                                 ]
                             ),
                             title: String(localized: "Aucun groupe près de toi"),
-                            message: String(localized: "Aucun groupe de quartier n'est ouvert pour l'instant. Reviens bientôt.")
+                            message: String(localized: "Aucun groupe de quartier n'est ouvert pour l'instant. Lance le tien : tes voisins pourront le rejoindre.")
                         ) {
+                            Button {
+                                isCreatingGroup = true
+                            } label: {
+                                Label("Créer un groupe", systemImage: "person.3.sequence.fill")
+                                    .fontWeight(.semibold)
+                            }
+                            .buttonStyle(.glassProminent)
+                            .tint(.grenier)
+                            .controlSize(.large)
                             Button {
                                 Task { await viewModel.load() }
                             } label: {
@@ -53,7 +65,9 @@ struct GroupsScreen: View {
                     case .failed(let error):
                         GroupsErrorState(error: error, retry: { await viewModel.load() })
                     case .loaded(let items):
-                        GroupList(items: items, viewModel: viewModel)
+                        GroupList(items: items, viewModel: viewModel) {
+                            isCreatingGroup = true
+                        }
                     }
                 } else {
                     GroupsLoadingSkeleton()
@@ -63,6 +77,13 @@ struct GroupsScreen: View {
             .navigationTitle("Groupes")
             .profileToolbar()
             .toolbar {
+                if showsCloseButton {
+                    ToolbarItem(placement: .topBarLeading) {
+                        Button("Fermer", systemImage: "xmark", role: .close) {
+                            dismiss()
+                        }
+                    }
+                }
                 ToolbarItem(placement: .topBarTrailing) {
                     Menu("Ajouter un groupe", systemImage: "plus") {
                         Button("Rejoindre avec un code", systemImage: "ticket") {
@@ -148,6 +169,8 @@ private struct JoinCodeRequest: Identifiable {
 private struct GroupList: View {
     let items: [GroupsViewModel.Item]
     let viewModel: GroupsViewModel
+    /// FB-10 : « Créer un groupe » bien visible, pas seulement dans le menu +.
+    let onCreateGroup: () -> Void
     @Environment(SessionContextStore.self) private var contextStore: SessionContextStore?
 
     var body: some View {
@@ -174,6 +197,9 @@ private struct GroupList: View {
                     }
                     rows(mine)
                 }
+
+                CreateGroupCard(hasGroup: !mine.isEmpty, action: onCreateGroup)
+                    .grenierTransition(.cardAppear)
 
                 if !others.isEmpty {
                     VStack(alignment: .leading, spacing: 12) {
@@ -297,6 +323,47 @@ private struct NoGroupYetCard: View {
         }
         .grenierCard(padding: 14)
         .accessibilityElement(children: .combine)
+    }
+}
+
+/// FB-10 : créer son propre groupe doit se trouver sans chercher. Carte visible dans la liste,
+/// en plus de l'entrée du menu + de la barre.
+private struct CreateGroupCard: View {
+    let hasGroup: Bool
+    let action: () -> Void
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            HStack(spacing: 14) {
+                Image(systemName: "person.3.sequence.fill")
+                    .font(.title2)
+                    .symbolRenderingMode(.hierarchical)
+                    .foregroundStyle(Color.grenier)
+                    .frame(width: 48, height: 48)
+                    .background(Color.grenier.opacity(0.12), in: .circle)
+                    .accessibilityHidden(true)
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(hasGroup ? "Un autre quartier ?" : "Pas de groupe qui te convient ?")
+                        .font(.headline)
+                        .foregroundStyle(.texte)
+                    Text("Crée ton groupe : ton ménage en devient le premier membre, puis invite tes voisins.")
+                        .font(.subheadline)
+                        .foregroundStyle(.texteSecondaire)
+                }
+                .fixedSize(horizontal: false, vertical: true)
+                Spacer(minLength: 0)
+            }
+            Button(action: action) {
+                Label("Créer un groupe", systemImage: "plus.circle.fill")
+                    .fontWeight(.semibold)
+                    .frame(maxWidth: .infinity)
+            }
+            .buttonStyle(.glassProminent)
+            .tint(.grenier)
+            .controlSize(.large)
+            .accessibilityHint("Ton ménage en devient le premier membre")
+        }
+        .grenierCard(padding: 16)
     }
 }
 

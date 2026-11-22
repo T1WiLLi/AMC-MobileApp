@@ -25,6 +25,8 @@ final class OfferDetailViewModel {
         var groupOrder: GroupOrder?
         /// Parts déjà réservées par le ménage (0 si aucune).
         var myShareQuantity: Int
+        /// Paniers suspendus déjà offerts par le ménage sur cette commande (`Share.suspendedAmountCents`).
+        var myDonationCents: Cents = 0
         /// Sans commande du groupe : la première réservation l'ouvrira (lot actif, date limite future, ménage dans un groupe).
         var canStartOrder: Bool = false
 
@@ -68,6 +70,12 @@ final class OfferDetailViewModel {
     private(set) var isLive = false
     /// +1 chaque fois qu'une autre famille fait monter le palier pendant l'écoute (jamais à la première émission).
     private(set) var tierUnlockCount = 0
+    /// Panier suspendu à ajouter à la validation (0, 5 ou 10 $), lié à `SuspendedBasketPicker`. Remis à 0 une fois offert.
+    var suspendedBasketCents: Cents = 0
+    /// Montant du dernier panier suspendu offert depuis cet écran (message de remerciement).
+    private(set) var lastDonationCents: Cents?
+    /// +1 à chaque panier suspendu enregistré (haptique et animation du cœur).
+    private(set) var donationCount = 0
     /// Numéro (1 = premier) du dernier palier franchi en direct par une autre famille.
     private(set) var lastUnlockedTierNumber: Int?
     /// Célébration à montrer pour le palier franchi en direct ; remise à nil par `dismissLiveUnlock()`.
@@ -107,6 +115,14 @@ final class OfferDetailViewModel {
     /// Total de la quantité choisie au prix projeté (« 26,00 $ »).
     var selectedTotalCents: Cents { projectedPricing?.totalCents(forShares: selectedQuantity) ?? 0 }
 
+    /// Montants proposés avant de valider : rien, 5 $ (en un geste) ou 10 $.
+    static let suspendedBasketPresetsCents: [Cents] = [0, 500, 1_000]
+
+    /// Total à payer à la cueillette : la part choisie, les paniers suspendus déjà offerts et celui qui est choisi.
+    var selectedTotalWithBasketCents: Cents {
+        selectedTotalCents + (state.value?.myDonationCents ?? 0) + max(0, suspendedBasketCents)
+    }
+
     /// Économie de la quantité choisie vs l'épicerie (« Tu économises 15 $ sur ta part »).
     var selectedSavingsCents: Cents { projectedPricing?.savingsCents(forShares: selectedQuantity) ?? 0 }
 
@@ -119,8 +135,9 @@ final class OfferDetailViewModel {
     /// Le bouton « Réserver » est actif.
     var canReserve: Bool {
         guard let content = state.value, content.isOpen, !isSaving else { return false }
-        return selectedQuantity > 0 && selectedQuantity != content.myShareQuantity
-            && quantityOptions.contains(selectedQuantity)
+        guard selectedQuantity > 0, quantityOptions.contains(selectedQuantity) else { return false }
+        // Part déjà réservée : on peut encore y ajouter un panier suspendu.
+        return selectedQuantity != content.myShareQuantity || suspendedBasketCents > 0
     }
 
     // MARK: Actions
@@ -133,19 +150,18 @@ final class OfferDetailViewModel {
             let product = try await repositories.vendors.product(id: offer.productId)
             let vendor = try await repositories.vendors.vendor(id: offer.vendorId)
             var order: GroupOrder?
-            var myQuantity = 0
+            var myShare: Share?
             if let groupId {
                 order = try await repositories.groupOrders.groupOrders(ofGroup: groupId)
                     .first { $0.offerId == offerId }
                 if let order {
-                    myQuantity = try await OfferSummaryLoader.shareQuantity(
-                        householdId: householdId, groupOrderId: order.id, repositories: repositories
-                    )
+                    myShare = try await repositories.groupOrders.share(ofHousehold: householdId, inGroupOrder: order.id)
                 }
             }
             let canStartOrder = order == nil && groupId != nil && offer.status == .active && offer.deadline > .now
             return Content(
-                offer: offer, product: product, vendor: vendor, groupOrder: order, myShareQuantity: myQuantity,
+                offer: offer, product: product, vendor: vendor, groupOrder: order,
+                myShareQuantity: myShare?.quantity ?? 0, myDonationCents: max(0, myShare?.suspendedAmountCents ?? 0),
                 canStartOrder: canStartOrder
             )
         }
@@ -154,9 +170,16 @@ final class OfferDetailViewModel {
         }
     }
 
-    /// Réserve `selectedQuantity` parts (ou change la part). Si un palier tombe, remplit `celebration`.
+    /// Réserve `selectedQuantity` parts (ou change la part), puis ajoute le panier suspendu choisi à la part.
+    /// Si un palier tombe, remplit `celebration`. Le panier suspendu n'est enregistré que si la part l'est.
     func reserve() async {
-        await setShare(quantity: selectedQuantity)
+        guard let content = state.value, !isSaving else { return }
+        if selectedQuantity != content.myShareQuantity {
+            guard await setShare(quantity: selectedQuantity) else { return }
+        }
+        if suspendedBasketCents > 0 {
+            await addSuspendedBasket(suspendedBasketCents)
+        }
     }
 
     /// Retire la part du ménage.
@@ -217,11 +240,34 @@ final class OfferDetailViewModel {
         )
     }
 
-    private func setShare(quantity: Int) async {
-        guard let content = state.value, !isSaving else { return }
+    /// Panier suspendu ajouté à la part du ménage (RQ-078), compté ensuite dans l'Impact.
+    private func addSuspendedBasket(_ amountCents: Cents) async {
+        guard let orderId = state.value?.groupOrder?.id else { return }
+        isSaving = true
+        defer { isSaving = false }
+        do {
+            let share = try await repositories.groupOrders.addSuspendedBasket(
+                amountCents: amountCents, householdId: householdId, groupOrderId: orderId
+            )
+            if var content = state.value {
+                content.myDonationCents = share.suspendedAmountCents
+                state = .loaded(content)
+            }
+            suspendedBasketCents = 0
+            lastDonationCents = amountCents
+            donationCount += 1
+        } catch {
+            actionError = AppError(error)
+        }
+    }
+
+    /// `true` si la part est enregistrée.
+    @discardableResult
+    private func setShare(quantity: Int) async -> Bool {
+        guard let content = state.value, !isSaving else { return false }
         guard content.groupOrder != nil || (content.canStartOrder && quantity > 0), let groupId else {
             actionError = .invalidInput(String(localized: "Rejoins un groupe de quartier pour réserver ce lot."))
-            return
+            return false
         }
         isSaving = true
         defer { isSaving = false }
@@ -240,6 +286,8 @@ final class OfferDetailViewModel {
             var newContent = content
             newContent.groupOrder = updated
             newContent.myShareQuantity = quantity
+            // Retirer sa part retire aussi son panier suspendu.
+            if quantity == 0 { newContent.myDonationCents = 0 }
             state = .loaded(newContent)
 
             let after = newContent.pricing
@@ -255,8 +303,10 @@ final class OfferDetailViewModel {
                     mySavingsCents: after.savingsCents(forShares: quantity)
                 )
             }
+            return true
         } catch {
             actionError = AppError(error)
+            return false
         }
     }
 

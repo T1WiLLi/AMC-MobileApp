@@ -199,6 +199,11 @@ nonisolated protocol GroupOrderRepository: Sendable {
     /// T-174 : part du ménage dans la commande, nil s'il n'en a pas. Lisible par le ménage lui-même, même
     /// après avoir quitté le groupe (preuve d'ancienne adhésion pour noter le groupe).
     func share(ofHousehold householdId: String, inGroupOrder groupOrderId: String) async throws -> Share?
+    /// RQ-078 : ajoute un panier suspendu (`amountCents`) à la part du ménage, avec `SolidarityLedger.addingSuspendedBasket`.
+    /// Le montant s'additionne au don déjà fait et l'Impact compte la part comme « panier suspendu ».
+    /// Lève `.notFound` sans part, `.orderClosed` si la commande est fermée, `.invalidInput` (montant).
+    @discardableResult
+    func addSuspendedBasket(amountCents: Cents, householdId: String, groupOrderId: String) async throws -> Share
 }
 
 /// Doublures de test d'avant T-159 : pas de remise de part.
@@ -209,6 +214,11 @@ extension GroupOrderRepository {
     }
 
     func confirmPickup(code: String, groupOrderId: String, at date: Date) async throws -> PickupDesk.ScanResult {
+        throw AppError.permissionDenied
+    }
+
+    /// Par défaut (doublure qui ne l'implémente pas) : refus explicite plutôt qu'un succès silencieux.
+    func addSuspendedBasket(amountCents: Cents, householdId: String, groupOrderId: String) async throws -> Share {
         throw AppError.permissionDenied
     }
 }

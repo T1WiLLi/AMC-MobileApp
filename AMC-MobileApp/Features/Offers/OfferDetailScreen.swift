@@ -231,6 +231,9 @@ private struct OfferDetailContent: View {
                     aboutCard(content)
                     groupSection(content)
                     shareSection(content)
+                    if content.isOpen && !viewModel.quantityOptions.isEmpty {
+                        OfferSuspendedBasketSection(viewModel: viewModel)
+                    }
                 }
                 .padding(.horizontal, 16)
                 .padding(.top, 28)
@@ -730,17 +733,17 @@ private struct OfferDetailContent: View {
         let quantity = Self.quantityLabel(viewModel.selectedQuantity, shareUnit: content.offer.shareUnit)
         return layout {
             VStack(alignment: .leading, spacing: 2) {
-                Text(Money.format(viewModel.selectedTotalCents))
+                Text(Money.format(viewModel.selectedTotalWithBasketCents))
                     .priceStyle(.title2.bold())
                     .foregroundStyle(.texte)
-                    .contentTransition(.numericText(value: Double(viewModel.selectedTotalCents)))
-                Label("\(quantity) · payé à la cueillette", systemImage: OfferDetailSymbol.payment)
+                    .contentTransition(.numericText(value: Double(viewModel.selectedTotalWithBasketCents)))
+                Label(totalCaption(content, quantity: quantity), systemImage: OfferDetailSymbol.payment)
                     .font(.footnote)
                     .symbolRenderingMode(.hierarchical)
                     .foregroundStyle(.texteSecondaire)
             }
             .accessibilityElement(children: .combine)
-            .accessibilityLabel("Total \(Money.format(viewModel.selectedTotalCents)) pour \(quantity), payé à la cueillette")
+            .accessibilityLabel(totalAccessibilityLabel(content, quantity: quantity))
 
             if !dynamicTypeSize.isAccessibilitySize { Spacer(minLength: 0) }
 
@@ -783,17 +786,41 @@ private struct OfferDetailContent: View {
         .grenierAnimation(.smooth, value: viewModel.selectedQuantity)
     }
 
+    /// Paniers suspendus inclus dans le total (déjà offerts + celui choisi avant de valider).
+    private func basketCents(_ content: OfferDetailViewModel.Content) -> Cents {
+        content.myDonationCents + viewModel.suspendedBasketCents
+    }
+
+    private func totalCaption(_ content: OfferDetailViewModel.Content, quantity: String) -> String {
+        let basket = basketCents(content)
+        guard basket > 0 else { return String(localized: "\(quantity) · payé à la cueillette") }
+        return String(localized: "\(quantity) + \(Money.formatRounded(basket)) suspendu · payé à la cueillette")
+    }
+
+    private func totalAccessibilityLabel(_ content: OfferDetailViewModel.Content, quantity: String) -> String {
+        let total = Money.format(viewModel.selectedTotalWithBasketCents)
+        let basket = basketCents(content)
+        guard basket > 0 else { return String(localized: "Total \(total) pour \(quantity), payé à la cueillette") }
+        return String(localized: "Total \(total) pour \(quantity) et un panier suspendu de \(Money.format(basket)), payé à la cueillette")
+    }
+
     /// Libellé court du bouton : la quantité choisie est affichée dans le résumé à côté.
     private func reserveTitle(_ content: OfferDetailViewModel.Content) -> String {
         if content.myShareQuantity == 0 { return String(localized: "Réserver") }
-        if content.myShareQuantity == viewModel.selectedQuantity { return String(localized: "Part réservée") }
+        if content.myShareQuantity == viewModel.selectedQuantity {
+            return viewModel.suspendedBasketCents > 0 ? String(localized: "Offrir") : String(localized: "Part réservée")
+        }
         return String(localized: "Modifier ma part")
     }
 
     /// VoiceOver garde la quantité dans le libellé du bouton.
     private func reserveAccessibilityTitle(_ content: OfferDetailViewModel.Content, quantity: String) -> String {
         if content.myShareQuantity == 0 { return String(localized: "Réserver \(quantity)") }
-        if content.myShareQuantity == viewModel.selectedQuantity { return String(localized: "Part réservée") }
+        if content.myShareQuantity == viewModel.selectedQuantity {
+            return viewModel.suspendedBasketCents > 0
+                ? String(localized: "Offrir un panier suspendu de \(Money.format(viewModel.suspendedBasketCents))")
+                : String(localized: "Part réservée")
+        }
         return String(localized: "Passer à \(quantity)")
     }
 

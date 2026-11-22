@@ -595,6 +595,20 @@ actor FakeGroupOrderRepository: GroupOrderRepository {
         return share
     }
 
+    @discardableResult
+    func addSuspendedBasket(amountCents: Cents, householdId: String, groupOrderId: String) async throws -> Share {
+        try await behavior.simulate()
+        guard let order = groupOrders[groupOrderId], let offer = offers[order.offerId] else { throw AppError.notFound }
+        guard offer.deadline > now() else { throw AppError.orderClosed }
+        var orderShares = shares[groupOrderId, default: []]
+        guard let index = orderShares.firstIndex(where: { $0.householdId == householdId }) else { throw AppError.notFound }
+        var share = try SolidarityLedger.addingSuspendedBasket(amountCents, to: orderShares[index], in: order)
+        share.updatedAt = now()
+        orderShares[index] = share
+        shares[groupOrderId] = orderShares
+        return share
+    }
+
     func confirmPickup(code: String, groupOrderId: String, at date: Date) async throws -> PickupDesk.ScanResult {
         try await behavior.simulate()
         guard let order = groupOrders[groupOrderId] else { throw AppError.notFound }

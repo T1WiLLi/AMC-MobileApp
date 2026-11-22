@@ -405,6 +405,29 @@ nonisolated final class FirestoreGroupOrderRepository: GroupOrderRepository, @un
         return share
     }
 
+    /// RQ-078 : une transaction relit commande, lot et part, puis n'écrit que `suspendedAmountCents` et `updatedAt`
+    /// (firestore.rules : le ménage change quantité et panier suspendu de SA part, commande ouverte, avant la date limite).
+    @discardableResult
+    func addSuspendedBasket(amountCents: Cents, householdId: String, groupOrderId: String) async throws -> Share {
+        let orderRef = orderRef(groupOrderId)
+        let shareRef = sharesRef(groupOrderId).document(householdId)
+        let now = now()
+        return try await runTransaction { transaction in
+            let (order, offer, mine) = try Self.readOrder(
+                orderRef, shares: [shareRef], offerRef: self.offerRef, in: transaction
+            )
+            guard let current = mine.first else { throw AppError.notFound }
+            guard now < offer.deadline else { throw AppError.orderClosed }
+            var share = try SolidarityLedger.addingSuspendedBasket(amountCents, to: current, in: order)
+            share.updatedAt = now
+            transaction.updateData(
+                ["suspendedAmountCents": share.suspendedAmountCents, "updatedAt": Timestamp(date: now)],
+                forDocument: shareRef
+            )
+            return share
+        }
+    }
+
     /// T-159 : une transaction relit la part avant de la marquer : deux scans en même temps n'en remettent qu'un.
     func confirmPickup(code: String, groupOrderId: String, at date: Date) async throws -> PickupDesk.ScanResult {
         let order = try await groupOrder(id: groupOrderId)

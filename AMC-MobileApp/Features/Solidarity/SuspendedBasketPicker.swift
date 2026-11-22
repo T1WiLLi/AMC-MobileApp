@@ -4,10 +4,18 @@ import SwiftUI
 /// Le montant va au fonds du groupe et paie, anonymement, une partie de la part d'une famille du groupe.
 ///
 ///     SuspendedBasketPicker(amountCents: $suspendedCents, shareTotalCents: 2_600)
+///     // Avant de réserver (fiche d'un lot) : 0, 5 ou 10 $, sans montant libre.
+///     SuspendedBasketPicker(amountCents: $cents, title: "Ajouter un panier suspendu",
+///                           presetsCents: [0, 500, 1_000], allowsCustomAmount: false)
 struct SuspendedBasketPicker: View {
     @Binding var amountCents: Cents
     /// Coût de la part (sans panier suspendu) ; s'il est fourni, le total à payer s'affiche.
     var shareTotalCents: Cents?
+    var title: LocalizedStringKey
+    /// Montants proposés en un geste (0 = aucun).
+    var presetsCents: [Cents]
+    /// Ajoute la puce « Autre » et son champ de montant libre.
+    var allowsCustomAmount: Bool
 
     @State private var isCustom: Bool
     @State private var customText: String
@@ -18,11 +26,20 @@ struct SuspendedBasketPicker: View {
     @ScaledMetric(relativeTo: .body) private var chipMinWidth: CGFloat = 64
     @ScaledMetric(relativeTo: .body) private var chipMinHeight: CGFloat = 44
 
-    init(amountCents: Binding<Cents>, shareTotalCents: Cents? = nil) {
+    init(
+        amountCents: Binding<Cents>,
+        shareTotalCents: Cents? = nil,
+        title: LocalizedStringKey = "Offrir un panier suspendu",
+        presetsCents: [Cents] = SolidarityMath.presetsCents,
+        allowsCustomAmount: Bool = true
+    ) {
         _amountCents = amountCents
         self.shareTotalCents = shareTotalCents
+        self.title = title
+        self.presetsCents = presetsCents
+        self.allowsCustomAmount = allowsCustomAmount
         let current = amountCents.wrappedValue
-        let isPreset = SolidarityMath.presetsCents.contains(current)
+        let isPreset = presetsCents.contains(current) || !allowsCustomAmount
         _isCustom = State(initialValue: !isPreset)
         _customText = State(initialValue: isPreset ? "" : Self.editableText(current))
     }
@@ -63,7 +80,7 @@ struct SuspendedBasketPicker: View {
                 .background(Color.solidarite.opacity(0.12), in: .rect(cornerRadius: 14))
                 .accessibilityHidden(true)
             VStack(alignment: .leading, spacing: 4) {
-                Text("Offrir un panier suspendu")
+                Text(title)
                     .font(.headline)
                     .foregroundStyle(Color.solidarite)
                 Text("Ce montant paie une partie de la part d'une famille du groupe. Elle ne sait pas que c'est toi, et personne ne sait qui elle est.")
@@ -79,7 +96,7 @@ struct SuspendedBasketPicker: View {
 
     private var chips: some View {
         LazyVGrid(columns: [GridItem(.adaptive(minimum: chipMinWidth), spacing: 8)], spacing: 8) {
-            ForEach(SolidarityMath.presetsCents, id: \.self) { cents in
+            ForEach(presetsCents, id: \.self) { cents in
                 chip(
                     title: cents == 0 ? String(localized: "Aucun") : Money.formatRounded(cents),
                     systemImage: cents == 0 ? "xmark" : nil,
@@ -87,10 +104,12 @@ struct SuspendedBasketPicker: View {
                     isSelected: !isCustom && amountCents == cents
                 ) { selectPreset(cents) }
             }
-            chip(title: String(localized: "Autre"), systemImage: "pencil", accessibility: String(localized: "Autre montant"), isSelected: isCustom) {
-                isCustom = true
-                validate(customText)
-                isFieldFocused = true
+            if allowsCustomAmount {
+                chip(title: String(localized: "Autre"), systemImage: "pencil", accessibility: String(localized: "Autre montant"), isSelected: isCustom) {
+                    isCustom = true
+                    validate(customText)
+                    isFieldFocused = true
+                }
             }
         }
         .accessibilityElement(children: .contain)

@@ -141,18 +141,28 @@ struct OrganizationKPIGrid: View {
             ? [GridItem(.flexible())]
             : [GridItem(.flexible(), spacing: 12), GridItem(.flexible(), spacing: 12)]
         LazyVGrid(columns: columns, spacing: 12) {
-            OrganizationKPITile(title: String(localized: "Paniers financés"), value: "\(impact.basketsFunded)",
-                                systemImage: "basket.fill", tint: .grenier, numericValue: impact.basketsFunded)
-            OrganizationKPITile(title: String(localized: "Familles aidées"), value: "\(impact.familiesHelped)",
-                                systemImage: "figure.2.and.child.holdinghands", tint: .solidarite,
-                                numericValue: impact.familiesHelped)
-            OrganizationKPITile(title: String(localized: "Groupes parrainés"), value: "\(impact.groupsSponsored)",
-                                systemImage: "hands.and.sparkles.fill", tint: .grenier,
-                                numericValue: impact.groupsSponsored)
-            OrganizationKPITile(title: String(localized: "Valeur d'épicerie pour les familles"),
-                                value: Money.formatRounded(impact.groceryValueCents / 100 * 100),
-                                systemImage: "cart.fill", tint: .economie, numericValue: impact.groceryValueCents)
+            kpiTile(title: String(localized: "Paniers financés"), value: "\(impact.basketsFunded)",
+                    systemImage: "basket.fill", tint: .grenier, numericValue: impact.basketsFunded)
+            kpiTile(title: String(localized: "Familles aidées"), value: "\(impact.familiesHelped)",
+                    systemImage: "figure.2.and.child.holdinghands", tint: .solidarite, numericValue: impact.familiesHelped)
+            kpiTile(title: String(localized: "Groupes parrainés"), value: "\(impact.groupsSponsored)",
+                    systemImage: "hands.and.sparkles.fill", tint: .grenier, numericValue: impact.groupsSponsored)
+            kpiTile(title: String(localized: "Valeur d'épicerie pour les familles"), value: Money.formatRounded(impact.groceryValueCents / 100 * 100),
+                    systemImage: "cart.fill", tint: .economie, numericValue: impact.groceryValueCents)
         }
+    }
+
+    private func kpiTile(title: String, value: String, systemImage: String, tint: Color, numericValue: Int) -> some View {
+        GrenierStatTile(
+            value,
+            systemImage: systemImage,
+            tint: tint,
+            style: .card,
+            icon: .badge,
+            caption: Text(title),
+            numericValue: Double(numericValue),
+            valueFont: .title2.bold()
+        )
     }
 }
 

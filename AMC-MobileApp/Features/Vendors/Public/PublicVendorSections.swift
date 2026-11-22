@@ -136,45 +136,16 @@ struct TrustSection: View {
             let layout = dynamicTypeSize.isAccessibilitySize
                 ? AnyLayout(VStackLayout(spacing: 12)) : AnyLayout(HStackLayout(alignment: .top, spacing: 12))
             layout {
-                TrustTile(value: "\(trust.deliveredLots)", caption: FrenchPlural.word(trust.deliveredLots, String(localized: "lot livré"), plural: String(localized: "lots livrés")),
-                          systemImage: "shippingbox.fill", tint: .grenier)
-                TrustTile(value: "\(trust.familiesServed)", caption: FrenchPlural.word(trust.familiesServed, String(localized: "famille servie"), plural: String(localized: "familles servies")),
-                          systemImage: "person.3.fill", tint: .economie)
-                TrustTile(value: Seniority.value(since: trust.since), caption: String(localized: "sur LeGrenier"),
-                          systemImage: "calendar.badge.checkmark", tint: .solidarite)
+                GrenierStatTile("\(trust.deliveredLots)", systemImage: "shippingbox.fill", tint: .grenier, style: .card,
+                                caption: Text(FrenchPlural.word(trust.deliveredLots, String(localized: "lot livré"), plural: String(localized: "lots livrés"))), numericValue: Double(trust.deliveredLots))
+                GrenierStatTile("\(trust.familiesServed)", systemImage: "person.3.fill", tint: .economie, style: .card,
+                                caption: Text(FrenchPlural.word(trust.familiesServed, String(localized: "famille servie"), plural: String(localized: "familles servies"))), numericValue: Double(trust.familiesServed))
+                GrenierStatTile(Seniority.value(since: trust.since), systemImage: "calendar.badge.checkmark", tint: .solidarite, style: .card,
+                                caption: Text(String(localized: "sur LeGrenier")))
             }
+            .fixedSize(horizontal: false, vertical: true)
             LastSaleCard(sale: trust.lastSale)
         }
-    }
-}
-
-private struct TrustTile: View {
-    let value: String
-    let caption: String
-    let systemImage: String
-    let tint: Color
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 6) {
-            Image(systemName: systemImage)
-                .font(.title3)
-                .symbolRenderingMode(.hierarchical)
-                .foregroundStyle(tint)
-            Text(value)
-                .font(.title.bold())
-                .monospacedDigit()
-                .contentTransition(.numericText())
-                .foregroundStyle(.texte)
-                .minimumScaleFactor(0.7)
-                .lineLimit(1)
-            Text(caption)
-                .font(.caption)
-                .foregroundStyle(.texteSecondaire)
-                .fixedSize(horizontal: false, vertical: true)
-        }
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .grenierCard(padding: 14)
-        .accessibilityElement(children: .combine)
     }
 }
 

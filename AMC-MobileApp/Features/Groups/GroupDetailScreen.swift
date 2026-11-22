@@ -397,7 +397,7 @@ private struct GroupDetailContent: View {
     /// Chiffres clés du groupe : familles, lots ouverts, rayon du quartier.
     private var keyFigures: some View {
         ViewThatFits(in: .horizontal) {
-            HStack(spacing: 8) { keyFigureTiles }
+            HStack(spacing: 8) { keyFigureTiles }.fixedSize(horizontal: false, vertical: true)
             VStack(spacing: 8) { keyFigureTiles }
         }
     }
@@ -405,12 +405,12 @@ private struct GroupDetailContent: View {
     @ViewBuilder
     private var keyFigureTiles: some View {
         let orders = content.openOrders.count
-        GroupsStatTile(value: "\(group.householdCount)", caption: FrenchPlural.word(group.householdCount, "famille", plural: "familles"),
-                       systemImage: "person.2.fill", tint: .solidarite)
-        GroupsStatTile(value: "\(orders)", caption: FrenchPlural.word(orders, "lot ouvert", plural: "lots ouverts"),
-                       systemImage: GrenierSymbol.offers, tint: theme.accent)
-        GroupsStatTile(value: GroupCard.distanceText(group.radiusMeters), caption: "de rayon",
-                       systemImage: "circle.dashed", tint: .economie)
+        GrenierStatTile("\(group.householdCount)", systemImage: "person.2.fill", tint: .solidarite,
+                       caption: Text(LocalizedStringKey(FrenchPlural.word(group.householdCount, "famille", plural: "familles"))), numericValue: Double(group.householdCount))
+        GrenierStatTile("\(orders)", systemImage: GrenierSymbol.offers, tint: theme.accent,
+                       caption: Text(LocalizedStringKey(FrenchPlural.word(orders, "lot ouvert", plural: "lots ouverts"))), numericValue: Double(orders))
+        GrenierStatTile(GroupCard.distanceText(group.radiusMeters), systemImage: "circle.dashed", tint: .economie,
+                       caption: Text(LocalizedStringKey("de rayon")))
     }
 
     /// « Lot ouvert » / « Lots ouverts » (« Open bundle(s) » en anglais), première lettre en capitale.

@@ -46,7 +46,11 @@ struct SessionGate: View {
         .animation(reduceMotion ? .easeInOut(duration: 0.2) : .smooth, value: step)
         .task { await session.observeSession() }
         .onChange(of: session.currentUser?.id) { _, id in
-            if id == nil { contextStore?.clear() }
+            if id == nil {
+                contextStore?.clear()
+                OnboardingKeys.resetPortalChoice()
+                hasChosenPortal = false
+            }
         }
     }
 

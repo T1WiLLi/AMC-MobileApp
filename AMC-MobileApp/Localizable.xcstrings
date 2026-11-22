@@ -1331,28 +1331,6 @@
         }
       }
     },
-    "%lld caractères" : {
-      "localizations" : {
-        "en" : {
-          "variations" : {
-            "plural" : {
-              "one" : {
-                "stringUnit" : {
-                  "state" : "translated",
-                  "value" : "%lld character"
-                }
-              },
-              "other" : {
-                "stringUnit" : {
-                  "state" : "translated",
-                  "value" : "%lld characters"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
     "%lld caractères au maximum." : {
       "localizations" : {
         "en" : {
@@ -3511,6 +3489,28 @@
         }
       }
     },
+    "Au moins %lld caractères" : {
+      "localizations" : {
+        "en" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "At least %lld character"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "At least %lld characters"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "Au plus %lld créneaux." : {
       "localizations" : {
         "en" : {
@@ -3583,12 +3583,12 @@
         }
       }
     },
-    "Aucun groupe de quartier n'est ouvert pour l'instant. Reviens bientôt." : {
+    "Aucun groupe de quartier n'est ouvert pour l'instant. Lance le tien : tes voisins pourront le rejoindre." : {
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "No neighbourhood groups are open yet. Check back soon."
+            "value" : "No neighbourhood group is open right now. Start yours: your neighbours can join it."
           }
         }
       }
@@ -5443,6 +5443,16 @@
         }
       }
     },
+    "Chargement de ton compte" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Loading your account"
+          }
+        }
+      }
+    },
     "Chargement de ton impact" : {
       "localizations" : {
         "en" : {
@@ -6431,6 +6441,16 @@
         }
       }
     },
+    "Connecte-toi" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sign in"
+          }
+        }
+      }
+    },
     "Connecte-toi pour continuer." : {
       "localizations" : {
         "en" : {
@@ -6697,6 +6717,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Create your account"
+          }
+        }
+      }
+    },
+    "Crée ton groupe : ton ménage en devient le premier membre, puis invite tes voisins." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Create your group: your household becomes its first member, then invite your neighbours."
           }
         }
       }
@@ -8231,6 +8261,16 @@
         }
       }
     },
+    "En général sous quelques jours ouvrables." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Usually within a few business days."
+          }
+        }
+      }
+    },
     "En images" : {
       "localizations" : {
         "en" : {
@@ -9043,12 +9083,32 @@
         }
       }
     },
+    "Faire une demande" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Make a request"
+          }
+        }
+      }
+    },
     "Fais scanner ce code par la famille que tu invites. Il ne sert qu'une fois." : {
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Have the family you're inviting scan this code. It only works once."
+          }
+        }
+      }
+    },
+    "Fais une demande" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Make a request"
           }
         }
       }
@@ -9339,6 +9399,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Filters"
+          }
+        }
+      }
+    },
+    "Finance des paniers suspendus et parraine des groupes." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Fund suspended baskets and sponsor groups."
           }
         }
       }
@@ -9885,6 +9955,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "There are enough shares left: reserve them directly."
+          }
+        }
+      }
+    },
+    "Il reste une étape : confirmer ton adresse pour ouvrir ton compte." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "One step left: confirm your email address to open your account."
           }
         }
       }
@@ -11153,16 +11233,6 @@
         }
       }
     },
-    "Le nom que voient tes voisins." : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "The name your neighbours see."
-          }
-        }
-      }
-    },
     "Le numéro de série doit être entre 0 et %lld." : {
       "localizations" : {
         "en" : {
@@ -11977,16 +12047,6 @@
         }
       }
     },
-    "Majuscule ou symbole" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Uppercase or symbol"
-          }
-        }
-      }
-    },
     "Marque du groupe" : {
       "localizations" : {
         "en" : {
@@ -12677,16 +12737,6 @@
         }
       }
     },
-    "Modifier ou supprimer mon compte" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Edit or delete my account"
-          }
-        }
-      }
-    },
     "Mois" : {
       "localizations" : {
         "en" : {
@@ -12703,16 +12753,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "My catalogue"
-          }
-        }
-      }
-    },
-    "Mon compte" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "My account"
           }
         }
       }
@@ -12995,6 +13035,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Display name"
+          }
+        }
+      }
+    },
+    "Nom de l'organisme, mission et quartiers soutenus." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Organization name, mission and neighbourhoods supported."
           }
         }
       }
@@ -13531,6 +13581,16 @@
         }
       }
     },
+    "On vérifie et on te contacte" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "We check and get back to you"
+          }
+        }
+      }
+    },
     "On y entre seulement avec une invitation de la personne qui l'a créé." : {
       "localizations" : {
         "en" : {
@@ -13597,16 +13657,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Where"
-          }
-        }
-      }
-    },
-    "ou avec ton courriel" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "or with your email"
           }
         }
       }
@@ -13969,6 +14019,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Opens a pre-filled email to request your producer profile."
+          }
+        }
+      }
+    },
+    "Ouvre un courriel prérempli pour nous contacter." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Opens a pre-filled email to contact us."
           }
         }
       }
@@ -14671,6 +14731,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "No connection. Check your internet, then try again."
+          }
+        }
+      }
+    },
+    "Pas de groupe qui te convient ?" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No group that suits you?"
           }
         }
       }
@@ -15379,6 +15449,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Active portal: %@"
+          }
+        }
+      }
+    },
+    "Portail réservé aux organismes" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Portal for organizations only"
           }
         }
       }
@@ -17929,6 +18009,16 @@
         }
       }
     },
+    "Soutiens les quartiers" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Support neighbourhoods"
+          }
+        }
+      }
+    },
     "Station à moins de 10 min à pied" : {
       "localizations" : {
         "en" : {
@@ -18631,6 +18721,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Your postal code tells us which groups are near you."
+          }
+        }
+      }
+    },
+    "Ton compte n'est pas encore rattaché à un organisme. Fais une demande : l'équipe LeGrenier vérifie chaque organisme avant d'ouvrir son portail." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Your account isn't linked to an organization yet. Make a request: the LeGrenier team checks each organization before opening its portal."
           }
         }
       }
@@ -19839,6 +19939,16 @@
         }
       }
     },
+    "Un autre quartier ?" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Another neighbourhood?"
+          }
+        }
+      }
+    },
     "un brouillon" : {
       "localizations" : {
         "en" : {
@@ -19849,12 +19959,12 @@
         }
       }
     },
-    "Un chiffre" : {
+    "Un chiffre (conseillé)" : {
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "A number"
+            "value" : "A number (recommended)"
           }
         }
       }
@@ -20143,6 +20253,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Once"
+          }
+        }
+      }
+    },
+    "Une majuscule ou un symbole (conseillé)" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "An uppercase letter or a symbol (recommended)"
           }
         }
       }
@@ -20457,7 +20577,7 @@
         }
       }
     },
-    "Vérifie ton courriel" : {
+    "Vérifie tes courriels" : {
       "localizations" : {
         "en" : {
           "stringUnit" : {

@@ -16,7 +16,7 @@ struct EmailVerificationScreen: View {
         ScrollView {
             VStack(spacing: 28) {
                 header
-                    .padding(.top, 48)
+                    .padding(.top, 32)
 
                 if let message = session.verificationMessage {
                     Label(message, systemImage: "info.circle.fill")
@@ -49,45 +49,34 @@ struct EmailVerificationScreen: View {
     }
 
     private var header: some View {
-        VStack(spacing: 16) {
-            Image(systemName: "envelope.badge.fill")
-                .font(.system(size: min(envelopeSize, 96)))
-                .symbolRenderingMode(.palette)
-                .foregroundStyle(Color.red, Color.grenier)
-                .symbolEffect(.wiggle, options: reduceMotion ? .nonRepeating : .repeat(.periodic(delay: 2.5)), isActive: !reduceMotion)
-                .symbolEffect(.bounce, value: session.verificationSentAt)
-                .padding(min(envelopeSize, 96) * 0.4)
-                .background(Color.grenier.opacity(0.12), in: .circle)
-                .overlay(alignment: .topTrailing) {
-                    Image(systemName: "link.circle.fill")
-                        .font(.system(size: min(envelopeSize, 96) * 0.38))
-                        .symbolRenderingMode(.palette)
-                        .foregroundStyle(Color.onAccent, Color.economie)
-                }
-                .overlay(alignment: .bottomLeading) {
-                    Image(systemName: "checkmark.seal.fill")
-                        .font(.system(size: min(envelopeSize, 96) * 0.38))
-                        .symbolRenderingMode(.palette)
-                        .foregroundStyle(Color.onAccent, Color.grenier)
-                }
-                .accessibilityHidden(true)
+        VStack(spacing: 20) {
+            envelopeIllustration
 
-            Text("Vérifie ton courriel")
-                .font(.largeTitle.bold())
-                .fontDesign(.rounded)
-                .multilineTextAlignment(.center)
+            VStack(spacing: 8) {
+                Text("Vérifie tes courriels")
+                    .font(.largeTitle.bold())
+                    .fontDesign(.rounded)
+                    .foregroundStyle(Color.texte)
+                    .accessibilityAddTraits(.isHeader)
+                Text("Il reste une étape : confirmer ton adresse pour ouvrir ton compte.")
+                    .font(.body)
+                    .foregroundStyle(Color.texteSecondaire)
+            }
+            .multilineTextAlignment(.center)
+            .fixedSize(horizontal: false, vertical: true)
 
             VStack(spacing: 6) {
                 Text("On t'a envoyé un lien à")
-                    .font(.body)
+                    .font(.subheadline)
                     .foregroundStyle(Color.texteSecondaire)
                 Label(email, systemImage: "at.circle.fill")
                     .font(.body.weight(.semibold))
                     .foregroundStyle(Color.texte)
                     .symbolRenderingMode(.hierarchical)
-                    .padding(.horizontal, 12)
-                    .padding(.vertical, 6)
+                    .padding(.horizontal, 14)
+                    .padding(.vertical, 8)
                     .background(Color.surface, in: .capsule)
+                    .overlay { Capsule().strokeBorder(Color.grenier.opacity(0.2), lineWidth: 1) }
             }
             .multilineTextAlignment(.center)
             .fixedSize(horizontal: false, vertical: true)
@@ -95,6 +84,34 @@ struct EmailVerificationScreen: View {
 
             steps
         }
+    }
+
+    /// Enveloppe dans un halo à deux cercles : elle flotte doucement et rebondit à chaque renvoi ;
+    /// un avion en papier rappelle que le courriel est parti. Immobile sous Réduire les animations.
+    private var envelopeIllustration: some View {
+        let side = min(envelopeSize, 96)
+        return ZStack {
+            Circle()
+                .fill(Color.grenier.opacity(0.07))
+                .frame(width: side * 2.3, height: side * 2.3)
+            Circle()
+                .fill(Color.grenier.opacity(0.12))
+                .frame(width: side * 1.7, height: side * 1.7)
+            Image(systemName: "envelope.fill")
+                .font(.system(size: side, weight: .medium))
+                .foregroundStyle(Color.grenier.gradient)
+                .symbolEffect(.breathe, options: .repeating, isActive: !reduceMotion)
+                .symbolEffect(.bounce, value: session.verificationSentAt)
+            Image(systemName: "paperplane.circle.fill")
+                .font(.system(size: side * 0.42))
+                .symbolRenderingMode(.palette)
+                .foregroundStyle(Color.onAccent, Color.economie)
+                .background(Color.fond, in: .circle)
+                .symbolEffect(.wiggle, options: reduceMotion ? .nonRepeating : .repeat(.periodic(delay: 3)), isActive: !reduceMotion)
+                .offset(x: side * 0.62, y: -side * 0.5)
+        }
+        .frame(height: side * 2.3)
+        .accessibilityHidden(true)
     }
 
     /// Les trois gestes à faire, numérotés avec une icône chacun.

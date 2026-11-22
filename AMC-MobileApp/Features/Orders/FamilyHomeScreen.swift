@@ -443,18 +443,12 @@ private struct GroupBanner: View {
         .onAppear { hasAppeared = true }
     }
 
-    /// Côte à côte quand les trois tiennent sur une ligne sans couper un mot, sinon empilées
-    /// (plus de « fa-milles » ni « com-mande » coupés en deux à la taille par défaut).
+    /// Trois tuiles de même largeur, alignées sur une ligne ; empilées aux tailles d'accessibilité.
     private var chips: some View {
-        ViewThatFits(in: .horizontal) {
-            HStack(spacing: 8) { chipViews(fixed: true) }
-            VStack(alignment: .leading, spacing: 8) { chipViews(fixed: false) }
-        }
-    }
-
-    @ViewBuilder
-    private func chipViews(fixed: Bool) -> some View {
-        Group {
+        let layout = dynamicTypeSize.isAccessibilitySize
+            ? AnyLayout(VStackLayout(alignment: .leading, spacing: 8))
+            : AnyLayout(HStackLayout(alignment: .top, spacing: 8))
+        return layout {
             StatChip(
                 value: group.householdCount,
                 label: FrenchPlural.word(group.householdCount, "famille"),
@@ -474,7 +468,7 @@ private struct GroupBanner: View {
                 tint: .economie
             )
         }
-        .fixedSize(horizontal: fixed, vertical: true)
+        .fixedSize(horizontal: false, vertical: true)
     }
 }
 
@@ -486,25 +480,32 @@ private struct StatChip: View {
     let tint: Color
 
     var body: some View {
-        HStack(spacing: 5) {
-            Image(systemName: systemImage)
-                .symbolRenderingMode(.hierarchical)
-                .foregroundStyle(tint)
-                .accessibilityHidden(true)
-            Text(value, format: .number)
-                .fontDesign(.rounded)
-                .monospacedDigit()
-                .bold()
-                .contentTransition(.numericText(value: Double(value)))
-                .foregroundStyle(Color.texte)
+        VStack(alignment: .leading, spacing: 2) {
+            HStack(spacing: 5) {
+                Image(systemName: systemImage)
+                    .symbolRenderingMode(.hierarchical)
+                    .foregroundStyle(tint)
+                    .accessibilityHidden(true)
+                Text(value, format: .number)
+                    .font(.headline)
+                    .fontDesign(.rounded)
+                    .monospacedDigit()
+                    .contentTransition(.numericText(value: Double(value)))
+                    .foregroundStyle(Color.texte)
+            }
             Text(label)
+                .font(.caption)
                 .foregroundStyle(Color.texteSecondaire)
+                .lineLimit(2)
                 .fixedSize(horizontal: false, vertical: true)
         }
-        .font(.footnote)
+        .frame(maxWidth: .infinity, alignment: .leading)
         .padding(.horizontal, 10)
-        .padding(.vertical, 6)
-        .background(tint.opacity(0.1), in: .capsule)
+        .padding(.vertical, 8)
+        // Même hauteur pour les trois tuiles, même si un libellé passe sur deux lignes.
+        .frame(maxHeight: .infinity, alignment: .topLeading)
+        .background(tint.opacity(0.1), in: .rect(cornerRadius: 14))
+        .accessibilityElement(children: .combine)
     }
 }
 

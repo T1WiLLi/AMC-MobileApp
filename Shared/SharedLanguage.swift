@@ -6,7 +6,10 @@ import Foundation
 
 nonisolated enum SharedLanguage {
     /// App Group commun à l'app et à l'extension (voir Config/*.entitlements).
-    static let appGroup = "group.ca.amc2026.mobileapp"
+    /// Lu dans l'Info.plist (`GrenierAppGroup` = `group.$(GRENIER_BUNDLE_ID)`) : une build sous un autre bundle ID
+    /// (équipe Apple du Cégep, voir scripts/release/build-ipa.sh) garde un App Group cohérent.
+    static let appGroup = Bundle.main.object(forInfoDictionaryKey: "GrenierAppGroup") as? String
+        ?? "group.ca.amc2026.mobileapp"
     /// Clé du choix dans les UserDefaults de l'App Group : « fr », « en », absente = langue de l'appareil.
     static let storageKey = "grenier.appLanguage"
     /// Langues traduites ; la première sert de repli.

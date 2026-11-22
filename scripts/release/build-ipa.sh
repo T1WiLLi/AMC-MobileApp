@@ -8,6 +8,12 @@
 #   --version   Version affichée (CFBundleShortVersionString). Défaut : MARKETING_VERSION du projet.
 #   --build     Numéro de build (CFBundleVersion). Défaut : nombre de commits sur HEAD (toujours croissant).
 #   --method    release-testing (ad hoc, défaut) ou debugging (développement).
+#   --bundle-id Bundle ID de l'app (défaut ca.amc2026.mobileapp). Le widget prend <bundle>.widgets, l'App Group group.<bundle>.
+#   --firebase-plist  GoogleService-Info.plist de l'app Firebase qui correspond à ce bundle ID (défaut : celui du dépôt).
+#
+# Équipe du Cégep (6A6TQRFTWB) : ca.amc2026.mobileapp appartient à une autre équipe, donc
+#   scripts/release/build-ipa.sh --team 6A6TQRFTWB --bundle-id ca.cegepsorel.legrenier \
+#     --firebase-plist ../AMC-MobileApp-drafts/firebase-cegep/GoogleService-Info.plist --release
 #   --release   Publie une release GitHub v<version>-<build> avec l'IPA (gh CLI connecté requis).
 #   --draft     Avec --release : release en brouillon (visible seulement par les collaborateurs).
 #   --notes     Fichier Markdown des notes de release (sinon générées depuis les commits).
@@ -23,6 +29,8 @@ TEAM="${GRENIER_TEAM_ID:-}"
 VERSION=""
 BUILD=""
 METHOD="release-testing"
+BUNDLE_ID="ca.amc2026.mobileapp"
+FIREBASE_PLIST=""
 RELEASE=0
 DRAFT=0
 NOTES=""
@@ -33,10 +41,12 @@ while [[ $# -gt 0 ]]; do
     --version) VERSION="$2"; shift 2 ;;
     --build) BUILD="$2"; shift 2 ;;
     --method) METHOD="$2"; shift 2 ;;
+    --bundle-id) BUNDLE_ID="$2"; shift 2 ;;
+    --firebase-plist) FIREBASE_PLIST="$2"; shift 2 ;;
     --release) RELEASE=1; shift ;;
     --draft) DRAFT=1; shift ;;
     --notes) NOTES="$2"; shift 2 ;;
-    -h|--help) sed -n '2,18p' "$0"; exit 0 ;;
+    -h|--help) sed -n '2,25p' "$0"; exit 0 ;;
     *) echo "Option inconnue : $1" >&2; exit 2 ;;
   esac
 done
@@ -47,6 +57,19 @@ step() { printf '\n▸ %s\n' "$*"; }
 [[ -n "$TEAM" ]] || fail "Équipe manquante : --team <TEAM_ID> ou GRENIER_TEAM_ID."
 [[ "$METHOD" == "release-testing" || "$METHOD" == "debugging" ]] || fail "--method : release-testing ou debugging."
 [[ -f AMC-MobileApp/GoogleService-Info.plist ]] || fail "AMC-MobileApp/GoogleService-Info.plist absent (voir docs/firebase.md)."
+# Plist Firebase de la build : remplacé le temps du build si --firebase-plist, puis remis en place.
+REPO_PLIST=AMC-MobileApp/GoogleService-Info.plist
+if [[ -n "$FIREBASE_PLIST" ]]; then
+  [[ -f "$FIREBASE_PLIST" ]] || fail "--firebase-plist introuvable : $FIREBASE_PLIST"
+  cp "$REPO_PLIST" "$REPO_PLIST.pipeline-backup"
+  restore_plist() { [[ -f "$REPO_PLIST.pipeline-backup" ]] && mv "$REPO_PLIST.pipeline-backup" "$REPO_PLIST"; }
+  trap restore_plist EXIT
+  cp "$FIREBASE_PLIST" "$REPO_PLIST"
+fi
+PLIST_BUNDLE=$(/usr/libexec/PlistBuddy -c "Print :BUNDLE_ID" "$REPO_PLIST")
+[[ "$PLIST_BUNDLE" == "$BUNDLE_ID" ]] || fail "Le plist Firebase est pour $PLIST_BUNDLE, pas $BUNDLE_ID (--firebase-plist)."
+GOOGLE_SCHEME=$(/usr/libexec/PlistBuddy -c "Print :REVERSED_CLIENT_ID" "$REPO_PLIST" 2>/dev/null || true)
+[[ -n "$GOOGLE_SCHEME" ]] || fail "REVERSED_CLIENT_ID absent du plist Firebase : Google Sign-In ne reviendrait pas dans l'app."
 git ls-files --error-unmatch AMC-MobileApp/GoogleService-Info.plist >/dev/null 2>&1 && fail "GoogleService-Info.plist est suivi par git : retire-le avant de builder."
 XCODE_VERSION=$(xcodebuild -version | sed -n 1p)
 [[ "$XCODE_VERSION" == "Xcode 26"* ]] || fail "Xcode 26 requis ($XCODE_VERSION)."
@@ -69,13 +92,14 @@ fi
 step "Packages Swift"
 xcodebuild -resolvePackageDependencies -project "$PROJECT" -scheme "$SCHEME" >"$OUT/resolve.log" 2>&1 || { tail -20 "$OUT/resolve.log"; fail "résolution des packages"; }
 
-step "Archive Release $VERSION ($BUILD), équipe $TEAM"
+step "Archive Release $VERSION ($BUILD), équipe $TEAM, bundle $BUNDLE_ID"
 xcodebuild archive \
   -project "$PROJECT" -scheme "$SCHEME" -configuration Release \
   -destination 'generic/platform=iOS' \
   -archivePath "$ARCHIVE" \
   -allowProvisioningUpdates \
   DEVELOPMENT_TEAM="$TEAM" \
+  GRENIER_BUNDLE_ID="$BUNDLE_ID" GRENIER_GOOGLE_URL_SCHEME="$GOOGLE_SCHEME" \
   MARKETING_VERSION="$VERSION" CURRENT_PROJECT_VERSION="$BUILD" \
   >"$OUT/archive.log" 2>&1 || { grep -E "error:|\*\* ARCHIVE" "$OUT/archive.log" | head -20; fail "archive (journal : $OUT/archive.log)"; }
 
@@ -106,11 +130,14 @@ mv "$IPA" "$FINAL"
 
 step "Vérifications de l'IPA"
 CHECK=$(mktemp -d)
-trap 'rm -rf "$CHECK"' EXIT
+trap 'rm -rf "$CHECK"; [[ -n "$FIREBASE_PLIST" ]] && restore_plist || true' EXIT
 unzip -q "$FINAL" -d "$CHECK"
 APP=$(ls -d "$CHECK"/Payload/*.app | head -1)
 plist() { /usr/libexec/PlistBuddy -c "Print :$1" "$APP/Info.plist"; }
-[[ "$(plist CFBundleIdentifier)" == "ca.amc2026.mobileapp" ]] || fail "bundle ID inattendu : $(plist CFBundleIdentifier)"
+[[ "$(plist CFBundleIdentifier)" == "$BUNDLE_ID" ]] || fail "bundle ID inattendu : $(plist CFBundleIdentifier)"
+[[ "$(plist GrenierAppGroup)" == "group.$BUNDLE_ID" ]] || fail "App Group inattendu : $(plist GrenierAppGroup)"
+[[ "$(/usr/libexec/PlistBuddy -c "Print :BUNDLE_ID" "$APP/GoogleService-Info.plist")" == "$BUNDLE_ID" ]] || fail "plist Firebase embarqué pour un autre bundle"
+plutil -p "$APP/Info.plist" | grep -q "$GOOGLE_SCHEME" || fail "schéma d'URL Google absent de l'Info.plist"
 [[ "$(plist CFBundleShortVersionString)" == "$VERSION" ]] || fail "version inattendue"
 [[ "$(plist CFBundleVersion)" == "$BUILD" ]] || fail "build inattendu"
 [[ -f "$APP/GoogleService-Info.plist" ]] || fail "GoogleService-Info.plist absent de l'app : Firebase ne marcherait pas"
@@ -122,7 +149,7 @@ EXPIRY=$(/usr/libexec/PlistBuddy -c "Print :ExpirationDate" "$OUT/profile.plist"
 SIZE=$(du -h "$FINAL" | cut -f1)
 SHA=$(shasum -a 256 "$FINAL" | cut -d' ' -f1)
 echo "✓ $FINAL ($SIZE)"
-echo "  bundle ca.amc2026.mobileapp · version $VERSION ($BUILD) · commit $COMMIT"
+echo "  bundle $BUNDLE_ID · version $VERSION ($BUILD) · commit $COMMIT"
 echo "  profil « $PROFILE_NAME » · $DEVICES appareil(s) · expire $EXPIRY"
 echo "  sha256 $SHA"
 echo "$SHA  $(basename "$FINAL")" >"$FINAL.sha256"

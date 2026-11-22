@@ -3,6 +3,8 @@
 <plist version="1.0">
 <dict>
 	<!-- Fusionné avec l'Info.plist généré de la cible GrenierWidgetsExtension (Live Activity + widget). -->
+	<key>GrenierAppGroup</key>
+	<string>group.$(GRENIER_BUNDLE_ID)</string>
 	<key>NSExtension</key>
 	<dict>
 		<key>NSExtensionPointIdentifier</key>

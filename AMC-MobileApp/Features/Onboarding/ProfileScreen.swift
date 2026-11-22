@@ -77,7 +77,14 @@ struct ProfileScreen: View {
                     // RQ-019 : le mode aîné à portée de main, sans fouiller dans Préférences.
                     SeniorModeToggleRow()
                 } header: {
-                    ProfileSectionHeader(String(localized: "Ma famille"), systemImage: "figure.2.and.child.holdinghands")
+                    switch portal {
+                    case .family:
+                        ProfileSectionHeader(String(localized: "Ma famille"), systemImage: "figure.2.and.child.holdinghands")
+                    case .vendor:
+                        ProfileSectionHeader(String(localized: "Ma boutique"), systemImage: "storefront.fill")
+                    case .organization:
+                        ProfileSectionHeader(String(localized: "Mon organisme"), systemImage: "building.2.fill")
+                    }
                 }
 
                 if portal == .family {

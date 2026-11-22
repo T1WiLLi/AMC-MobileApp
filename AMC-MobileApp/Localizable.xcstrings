@@ -12217,6 +12217,26 @@
         }
       }
     },
+    "Ma boutique" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "My shop"
+          }
+        }
+      }
+    },
+    "Mon organisme" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "My organization"
+          }
+        }
+      }
+    },
     "Ma famille" : {
       "localizations" : {
         "en" : {

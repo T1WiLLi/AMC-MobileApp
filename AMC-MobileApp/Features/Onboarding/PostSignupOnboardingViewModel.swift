@@ -86,6 +86,7 @@ final class PostSignupOnboardingViewModel {
             if let found = MontrealNeighborhood.lookup(postalCode: postalCode).neighborhood {
                 neighborhood = found
             }
+            addressCheck.context = address.normalizedPostalCode.isEmpty ? nil : postalCode
         }
     }
     var neighborhood: MontrealNeighborhood?
@@ -97,6 +98,16 @@ final class PostSignupOnboardingViewModel {
     // Adresse (T-159) : numéro et rue ici, code postal partagé avec l'étape quartier.
     var streetNumber = ""
     var street = ""
+    /// T-185 : « numéro et rue » tels que tapés dans le champ d'adresse ; répartis dans `streetNumber` et `street`.
+    var streetLine = "" {
+        didSet {
+            let parts = Self.split(streetLine: streetLine)
+            streetNumber = parts.number
+            street = parts.street
+        }
+    }
+    /// T-185 : l'adresse doit être trouvée par Apple Maps avant de continuer (code postal ajouté à la requête).
+    let addressCheck: AddressFieldModel
     /// Ménage trouvé à l'adresse saisie (son nom seulement), `nil` s'il n'y en a pas.
     private(set) var match: HouseholdAddressEntry?
     /// Demande envoyée, tant qu'elle attend le propriétaire.
@@ -108,7 +119,9 @@ final class PostSignupOnboardingViewModel {
     private(set) var isSaving = false
     private(set) var saveError: AppError?
 
-    init(repositories: AppRepositories, userId: String, householdId: String) {
+    init(repositories: AppRepositories, userId: String, householdId: String,
+         addressValidator: any AddressValidating = MapKitAddressValidator.shared) {
+        self.addressCheck = AddressFieldModel(validator: addressValidator, style: .streetLine)
         self.repositories = repositories
         self.userId = userId
         self.householdId = householdId
@@ -161,6 +174,32 @@ final class PostSignupOnboardingViewModel {
     /// Adresse laissée vide : facultative (pas de recherche de ménage, rien d'enregistré).
     var isAddressEmpty: Bool {
         streetNumber.trimmingCharacters(in: .whitespaces).isEmpty && street.trimmingCharacters(in: .whitespaces).isEmpty
+    }
+
+    /// Numéro et rue réunis, le texte qu'on fait vérifier par Apple.
+    var composedStreetLine: String {
+        [streetNumber, street].map { $0.trimmingCharacters(in: .whitespaces) }.filter { !$0.isEmpty }.joined(separator: " ")
+    }
+
+    /// « 1234, rue Jarry Est » → (« 1234 », « rue Jarry Est ») ; sans numéro en tête, tout va dans la rue.
+    nonisolated static func split(streetLine: String) -> (number: String, street: String) {
+        let trimmed = streetLine.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard let first = trimmed.first, first.isNumber else { return ("", trimmed) }
+        let numberEnd = trimmed.firstIndex(where: { $0 == " " || $0 == "," }) ?? trimmed.endIndex
+        let rest = trimmed[numberEnd...].trimmingCharacters(in: CharacterSet(charactersIn: ", ").union(.whitespaces))
+        return (String(trimmed[..<numberEnd]), rest)
+    }
+
+    /// Vérifie l'adresse (si elle est remplie) avant de continuer ; complète le code postal s'il manque.
+    /// Faux si Apple ne la trouve pas.
+    private func checkAddress() async -> Bool {
+        guard !isAddressEmpty else { return true }
+        guard let checked = await addressCheck.ensureValid(composedStreetLine) else { return false }
+        if checked != composedStreetLine { streetLine = checked }
+        if address.normalizedPostalCode.isEmpty, let postal = addressCheck.validatedAddress(for: checked)?.postalCode {
+            postalCode = postal
+        }
+        return true
     }
 
     /// Message sous les champs d'adresse commencée mais incomplète, ou `nil` (complète ou laissée vide).
@@ -230,7 +269,9 @@ final class PostSignupOnboardingViewModel {
         switch step {
         case .tastes: return true
         case .neighborhood: return neighborhood != nil
-        case .household: return nameError == nil && addressError == nil && Self.sizeRange.contains(householdSize)
+        case .household:
+            return nameError == nil && addressError == nil && Self.sizeRange.contains(householdSize)
+                && !addressCheck.blocksSaving(composedStreetLine)
         case .joinChoice: return match != nil
         case .waiting: return !isCheckingJoin
         case .done: return true
@@ -252,6 +293,7 @@ final class PostSignupOnboardingViewModel {
         case .tastes: step = .neighborhood
         case .neighborhood: step = .household
         case .household:
+            guard await checkAddress() else { return }
             // Un ménage existe déjà à cette adresse (et ce n'est pas le nôtre) : on propose de le rejoindre.
             if let found = await lookUpAddress() {
                 match = found
@@ -399,6 +441,10 @@ final class PostSignupOnboardingViewModel {
         household.name = trimmedName
         household.size = householdSize
         household.geohash = neighborhood.geohash
+        // T-185 : adresse vérifiée par Apple : sa position, à la même précision que le quartier (jamais la porte).
+        if let validated = addressCheck.validatedAddress(for: composedStreetLine) {
+            household.geohash = validated.geohash(precision: neighborhood.geohash.count)
+        }
         if !household.userIds.contains(userId) { household.userIds.append(userId) }
         // T-159 : propriétaire (le créateur), clé d'adresse, nom affiché du membre.
         if household.ownerId == nil { household.ownerId = HouseholdMembership.ownerId(of: household) ?? userId }

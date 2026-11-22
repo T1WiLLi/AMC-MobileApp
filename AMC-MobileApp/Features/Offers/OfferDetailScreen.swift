@@ -597,6 +597,9 @@ private struct OfferDetailContent: View {
             hintLabel(String(localized: "Ton groupe n'a pas encore lancé de commande sur ce lot."), systemImage: "person.badge.plus")
         } else if !content.isOpen {
             hintLabel(String(localized: "La commande est fermée : les parts ne bougent plus."), systemImage: OfferDetailSymbol.deadlineClosed)
+        } else if content.committedShares < content.offer.minimumSharesToLaunch {
+            // La barre de paliers dit déjà « Encore N pour lancer la commande » : pas de second message sur le palier suivant.
+            EmptyView()
         } else if let missing = pricing.sharesToNextTier {
             let discount = pricing.nextTierDiscountPercent ?? 0
             hintLabel(

@@ -60,6 +60,8 @@ struct FamilyViewModelTests {
         let content = try #require(viewModel.state.value)
         #expect(content.myOrders.first?.myShareQuantity == 2)
         #expect(content.savedCents == 2 * (1_599 - 990))
+        // La commande est encore ouverte : l'économie n'est qu'une estimation, rien n'est « lancé ».
+        #expect(content.launchedSavedCents == 0)
     }
 
     @Test func homeFailsOffline() async {

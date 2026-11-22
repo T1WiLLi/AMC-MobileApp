@@ -28,6 +28,9 @@ final class HostSetupViewModel {
 
     static let capacityRange = 1...PickupSlotBook.maxPointCapacity
 
+    /// T-185 : l'adresse doit être trouvée par Apple Maps avant d'enregistrer (sauf celle déjà enregistrée).
+    let addressCheck: AddressFieldModel
+
     private let repositories: AppRepositories
     private let photoStore: any HostPhotoStore
     private let userId: String
@@ -37,8 +40,10 @@ final class HostSetupViewModel {
         repositories: AppRepositories,
         userId: String,
         photoStore: any HostPhotoStore = LocalHostPhotoStore(),
+        addressValidator: any AddressValidating = MapKitAddressValidator.shared,
         makeId: @escaping @Sendable () -> String = { "pickup-\(UUID().uuidString.lowercased())" }
     ) {
+        self.addressCheck = AddressFieldModel(validator: addressValidator)
         self.repositories = repositories
         self.userId = userId
         self.photoStore = photoStore
@@ -49,6 +54,9 @@ final class HostSetupViewModel {
 
     /// Erreur de saisie à montrer sous le formulaire, nil si tout est bon.
     var validationError: AppError? {
+        if addressCheck.status(for: address) == .notFound {
+            return .invalidInput(String(localized: "Adresse introuvable. Vérifie le numéro et la rue."))
+        }
         do {
             _ = try PickupSlotBook.validatedPoint(draft(id: existingPoint?.id ?? "draft", photoURL: photoURL))
             return nil
@@ -59,7 +67,7 @@ final class HostSetupViewModel {
         }
     }
 
-    var canSave: Bool { validationError == nil && !isSaving }
+    var canSave: Bool { validationError == nil && !isSaving && !addressCheck.blocksSaving(address) }
 
     func load() async {
         if loadState.value == nil { loadState = .loading }
@@ -89,6 +97,14 @@ final class HostSetupViewModel {
         saveError = nil
         defer { isSaving = false }
         let id = existingPoint?.id ?? makeId()
+        // T-185 : adresse modifiée et pas encore vérifiée (ex. enregistrée sans choisir de suggestion) : on la vérifie.
+        if !address.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+            guard let checked = await addressCheck.ensureValid(address) else {
+                saveError = .invalidInput(String(localized: "Adresse introuvable. Vérifie le numéro et la rue."))
+                return nil
+            }
+            address = checked
+        }
         do {
             var url = photoURL
             if let photoData { url = try await photoStore.upload(photoData, pointId: id) }
@@ -107,7 +123,9 @@ final class HostSetupViewModel {
         PickupPoint(
             id: id, hostUserId: userId, name: name, address: address, photoURL: photoURL, capacity: capacity,
             accessibility: PickupPoint.Accessibility.allCases.filter(accessibility.contains),
-            slots: existingPoint?.slots ?? []
+            slots: existingPoint?.slots ?? [],
+            // Position de l'adresse vérifiée ; sinon (adresse inchangée) celle déjà connue.
+            geohash: addressCheck.validatedAddress(for: address)?.geohash() ?? existingPoint?.geohash
         )
     }
 
@@ -115,6 +133,7 @@ final class HostSetupViewModel {
         existingPoint = point
         name = point.name
         address = point.address
+        addressCheck.accept(saved: point.address)
         capacity = point.capacity
         accessibility = Set(point.accessibility)
         photoURL = point.photoURL

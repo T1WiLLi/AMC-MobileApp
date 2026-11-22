@@ -200,7 +200,8 @@ struct HouseholdMembershipTests {
         )
         var repositories = AppRepositories.empty()
         repositories.users = users
-        let model = PostSignupOnboardingViewModel(repositories: repositories, userId: "karim", householdId: "household-karim")
+        let model = PostSignupOnboardingViewModel(repositories: repositories, userId: "karim", householdId: "household-karim",
+                                                  addressValidator: FakeAddressValidator())
         await model.load()
         await model.next()                       // goûts → quartier
         model.postalCode = "H2R 1A1"

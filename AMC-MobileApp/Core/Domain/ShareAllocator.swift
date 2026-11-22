@@ -93,9 +93,12 @@ nonisolated enum ShareAllocator {
         return parts
     }
 
+    /// Préfixe de tout code QR de cueillette.
+    static let qrCodePrefix = "GRENIER:"
+
     /// Code QR de cueillette : lisible par l'hôte, stable pour un même ménage et une même commande.
     static func qrCode(orderId: String, householdId: String) -> String {
-        "GRENIER:\(orderId):\(householdId):\(checksum("\(orderId)|\(householdId)"))"
+        "\(qrCodePrefix)\(orderId):\(householdId):\(checksum("\(orderId)|\(householdId)"))"
     }
 
     /// Vérifie qu'un code scanné appartient bien à cette commande et n'a pas été modifié.

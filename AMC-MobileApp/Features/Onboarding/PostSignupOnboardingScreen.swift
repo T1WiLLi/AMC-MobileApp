@@ -12,7 +12,9 @@ struct PostSignupOnboardingScreen: View {
     @FocusState private var focus: Field?
     @Environment(\.scenePhase) private var scenePhase
 
-    private enum Field { case postalCode, name, streetNumber, street, addressPostalCode }
+    @FocusState private var addressFocused: Bool
+
+    private enum Field { case postalCode, name, addressPostalCode }
 
     init(model: PostSignupOnboardingViewModel, onFinish: @escaping (String) -> Void = { _ in }) {
         _model = State(initialValue: model)
@@ -350,16 +352,8 @@ struct PostSignupOnboardingScreen: View {
                     .font(.headline)
                     .foregroundStyle(Color.texte)
                     .symbolRenderingMode(.hierarchical)
-                ViewThatFits(in: .horizontal) {
-                    HStack(spacing: 8) {
-                        numberField.frame(maxWidth: 110)
-                        streetField
-                    }
-                    VStack(spacing: 8) {
-                        numberField
-                        streetField
-                    }
-                }
+                AddressField("Numéro et rue", text: $model.streetLine, model: model.addressCheck,
+                             prompt: "1234 rue Jarry Est", boxed: true, isFocused: $addressFocused)
                 TextField("Code postal", text: $model.postalCode, prompt: Text("H2R 1A1"))
                     .font(.title3)
                     .textContentType(.postalCode)
@@ -383,31 +377,6 @@ struct PostSignupOnboardingScreen: View {
                 }
             }
         }
-    }
-
-    private var numberField: some View {
-        TextField("Numéro", text: $model.streetNumber, prompt: Text("1234"))
-            .font(.title3)
-            .keyboardType(.numbersAndPunctuation)
-            .textContentType(.streetAddressLine1)
-            .submitLabel(.next)
-            .focused($focus, equals: .streetNumber)
-            .onSubmit { focus = .street }
-            .padding(12)
-            .background(AppTheme.fond, in: .rect(cornerRadius: 12))
-            .accessibilityLabel("Numéro civique")
-    }
-
-    private var streetField: some View {
-        TextField("Rue", text: $model.street, prompt: Text("rue Jarry Est"))
-            .font(.title3)
-            .textContentType(.streetAddressLine1)
-            .submitLabel(.next)
-            .focused($focus, equals: .street)
-            .onSubmit { focus = .addressPostalCode }
-            .padding(12)
-            .background(AppTheme.fond, in: .rect(cornerRadius: 12))
-            .accessibilityLabel("Rue")
     }
 
     // MARK: 3 bis. Rejoindre ou créer (T-159)
@@ -629,6 +598,7 @@ struct PostSignupOnboardingScreen: View {
 
     private func primaryAction() {
         focus = nil
+        addressFocused = false
         if model.step == .done {
             onFinish(model.savedHouseholdId ?? "")
             return

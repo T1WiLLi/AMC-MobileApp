@@ -17,5 +17,12 @@ Photos sous [licence Unsplash](https://unsplash.com/license) (usage gratuit, com
 | `AvatarVoisin1` | Avatar de voisin (previews) | Jake Nackos | https://unsplash.com/photos/IF9TK5Uy-KI |
 | `AvatarVoisin2` | Avatar de voisin (previews) | Lesly Juarez | https://unsplash.com/photos/1AhGNGKuhR0 |
 | `AvatarVoisin3` | Avatar de voisin (previews) | Kate Kozyrka | https://unsplash.com/photos/B41fY4dhX18 |
+| `ImpactSacs` | Impact, centre de l'anneau d'en-tête (environnement) | Illia Bondar | https://unsplash.com/photos/-9TeWHMASzs |
+| `ImpactPanier` | Impact, anneau : sécurité alimentaire | Jan Kraus | https://unsplash.com/photos/ZCbbgeN2pPI |
+| `IntroSolution` | Impact, anneau : économie locale (même photo que la présentation) | Anne Preble | https://unsplash.com/photos/SAPvKo12dQE |
+| `ImpactPartage` | Impact, anneau : inclusion | Elaine Casap | https://unsplash.com/photos/qgHGDbbSNm8 |
+| `ImpactBasilic` | Impact, anneau : vie de quartier | John Cameron | https://unsplash.com/photos/6Csjylh9-m4 |
+| `ImpactCarottes` | Impact, anneau : santé | K8 | https://unsplash.com/photos/GHRT9j21m2M |
+| `ImpactFilet` | Impact, anneau : mobilité | Mary Skrynnikova | https://unsplash.com/photos/zcaLASRz44k |
 
 Ajoute une ligne ici pour chaque nouvelle photo (1200 px de large max, JPEG ~70 %).

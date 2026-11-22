@@ -101,7 +101,8 @@ struct TierEditorScreen: View {
             Form {
                 if model.areTermsLocked { lockedTermsSection }
                 productSection
-                    .disabled(model.areTermsLocked)
+                shareFormatSection
+                priceSection
                 tiersSection
                 chartSection
                 deadlineSection
@@ -158,87 +159,97 @@ struct TierEditorScreen: View {
         .listRowBackground(Color.surface)
     }
 
-    // MARK: Produit, quantité, prix épicerie
+    // MARK: Produit, format d'une part, prix
 
+    /// Produit et nombre de parts du lot.
     private var productSection: some View {
         Section {
-            Picker(selection: productBinding) {
-                if model.productId == nil {
-                    Text("Choisir").tag(String?.none)
-                }
-                ForEach(model.products) { product in
-                    Text(product.name).tag(Optional(product.id))
-                }
-            } label: {
-                Label("Produit", systemImage: "shippingbox.fill")
-            }
-            .id(ErrorAnchor.product)
-
-            LabeledContent {
-                HStack(spacing: 6) {
-                    IntegerField(label: String(localized: "Nombre de parts"), value: $model.totalShares, maximum: OfferLifecycle.maxTotalShares)
-                        .frame(width: countFieldWidth)
-                        .focused($focus, equals: .totalShares)
-                        .fieldBox(isInvalid: isInvalid(.quantity), compact: true)
-                    Text(FrenchPlural.word(model.totalShares, "part", plural: "parts"))
-                        .foregroundStyle(.texteSecondaire)
-                        .lineLimit(1)
-                        .fixedSize()
-                }
-            } label: {
-                Label("Quantité", systemImage: "number.circle.fill")
-            }
-            .id(ErrorAnchor.quantity)
-
-            // B-050 : la part est structurée (contenant, nombre, poids, valeur) au lieu d'un texte libre.
-            Picker(selection: $model.share.container) {
-                ForEach(ShareSpec.Container.allCases) { container in
-                    Label(container.menuTitle, systemImage: container.systemImage).tag(container)
-                }
-            } label: {
-                Label("Contenant", systemImage: model.share.container.systemImage)
-            }
-            .pickerStyle(.menu)
-
-            if model.share.container != .bulk {
-                Stepper(value: $model.share.count, in: 1...100) {
-                    Label {
-                        Text("\(model.share.count) \(model.share.count > 1 ? model.share.container.displayPluralName : model.share.container.displayName) par part")
-                            .monospacedDigit()
-                            .contentTransition(.numericText())
-                    } icon: {
-                        Image(systemName: "square.stack.fill")
+            Group {
+                Picker(selection: productBinding) {
+                    if model.productId == nil {
+                        Text("Choisir").tag(String?.none)
                     }
+                    ForEach(model.products) { product in
+                        Text(product.name).tag(Optional(product.id))
+                    }
+                } label: {
+                    Label("Produit", systemImage: "shippingbox.fill")
                 }
-            }
+                .id(ErrorAnchor.product)
 
-            LabeledContent {
-                HStack(spacing: 6) {
-                    WeightField(label: String(localized: "Poids"), value: $model.share.weight.value)
-                        .frame(width: weightFieldWidth)
-                        .focused($focus, equals: .shareWeight)
-                        .fieldBox(isInvalid: isInvalid(.quantity) && !model.share.isValid, compact: true)
-                    Picker("Unité", selection: $model.share.weight.unit) {
-                        ForEach(ShareSpec.Unit.allCases) { unit in
-                            Text(unit == .piece ? String(localized: "unités") : unit.rawValue).tag(unit)
+                LabeledContent {
+                    HStack(spacing: 6) {
+                        IntegerField(label: String(localized: "Nombre de parts"), value: $model.totalShares, maximum: OfferLifecycle.maxTotalShares)
+                            .frame(width: countFieldWidth)
+                            .focused($focus, equals: .totalShares)
+                            .fieldBox(isInvalid: isInvalid(.quantity), compact: true)
+                        Text(FrenchPlural.word(model.totalShares, "part", plural: "parts"))
+                            .foregroundStyle(.texteSecondaire)
+                            .lineLimit(1)
+                            .fixedSize()
+                    }
+                } label: {
+                    Label("Quantité", systemImage: "number.circle.fill")
+                }
+                .id(ErrorAnchor.quantity)
+            }
+            // Sur les lignes, pas sur la section : le cadenas de l'en-tête doit rester touchable.
+            .disabled(model.areTermsLocked)
+        } header: {
+            sectionHeader("Produit", systemImage: "shippingbox.fill")
+        } footer: {
+            if let message = errorMessage(for: .product) ?? (model.share.isValid ? errorMessage(for: .quantity) : nil) {
+                InlineError(message: message)
+            }
+        }
+        .listRowBackground(Color.surface)
+    }
+
+    /// B-050 : la part est structurée (contenant, nombre, poids) au lieu d'un texte libre.
+    private var shareFormatSection: some View {
+        Section {
+            Group {
+                Picker(selection: $model.share.container) {
+                    ForEach(ShareSpec.Container.allCases) { container in
+                        Label(container.menuTitle, systemImage: container.systemImage).tag(container)
+                    }
+                } label: {
+                    Label("Contenant", systemImage: model.share.container.systemImage)
+                }
+                .pickerStyle(.menu)
+
+                if model.share.container != .bulk {
+                    Stepper(value: $model.share.count, in: 1...100) {
+                        Label {
+                            Text("\(model.share.count) \(model.share.count > 1 ? model.share.container.displayPluralName : model.share.container.displayName) par part")
+                                .monospacedDigit()
+                                .contentTransition(.numericText())
+                        } icon: {
+                            Image(systemName: "square.stack.fill")
                         }
                     }
-                    .pickerStyle(.menu)
-                    .labelsHidden()
-                    .fixedSize()
                 }
-            } label: {
-                Label(model.share.container == .bulk ? String(localized: "Poids") : String(localized: "Poids par \(model.share.container.displayName)"), systemImage: "scalemass.fill")
-            }
 
-            LabeledContent {
-                PriceField(label: String(localized: "Valeur d'une part"), value: shareValue)
-                    .frame(width: valueFieldWidth)
-                    .focused($focus, equals: .shareValue)
-                    .fieldBox(isInvalid: false, compact: true)
-            } label: {
-                Label("Valeur d'une part", systemImage: "dollarsign.circle.fill")
+                LabeledContent {
+                    HStack(spacing: 6) {
+                        WeightField(label: String(localized: "Poids"), value: $model.share.weight.value)
+                            .frame(width: weightFieldWidth)
+                            .focused($focus, equals: .shareWeight)
+                            .fieldBox(isInvalid: isInvalid(.quantity) && !model.share.isValid, compact: true)
+                        Picker("Unité", selection: $model.share.weight.unit) {
+                            ForEach(ShareSpec.Unit.allCases) { unit in
+                                Text(unit == .piece ? String(localized: "unités") : unit.rawValue).tag(unit)
+                            }
+                        }
+                        .pickerStyle(.menu)
+                        .labelsHidden()
+                        .fixedSize()
+                    }
+                } label: {
+                    Label(model.share.container == .bulk ? String(localized: "Poids") : String(localized: "Poids par \(model.share.container.displayName)"), systemImage: "scalemass.fill")
+                }
             }
+            .disabled(model.areTermsLocked)
 
             LabeledContent {
                 Text(model.share.displayLabel)
@@ -250,6 +261,28 @@ struct TierEditorScreen: View {
             }
             .accessibilityElement(children: .combine)
             .animation(.smooth, value: model.share)
+        } header: {
+            sectionHeader("Format d'une part", systemImage: "chart.pie.fill")
+        } footer: {
+            if !model.share.isValid, let message = errorMessage(for: .quantity) {
+                InlineError(message: message)
+            }
+        }
+        .listRowBackground(Color.surface)
+    }
+
+    /// Valeur d'une part et prix de référence en épicerie.
+    private var priceSection: some View {
+        Section {
+            LabeledContent {
+                PriceField(label: String(localized: "Valeur d'une part"), value: shareValue)
+                    .frame(width: valueFieldWidth)
+                    .focused($focus, equals: .shareValue)
+                    .fieldBox(isInvalid: false, compact: true)
+            } label: {
+                Label("Valeur d'une part", systemImage: "dollarsign.circle.fill")
+            }
+            .disabled(model.areTermsLocked)
 
             LabeledContent {
                 Text(referencePriceText)
@@ -259,12 +292,39 @@ struct TierEditorScreen: View {
                 Label("Prix en épicerie", systemImage: "cart.fill")
             }
             .accessibilityElement(children: .combine)
-        } footer: {
-            if let message = errorMessage(for: .product) ?? errorMessage(for: .quantity) {
-                InlineError(message: message)
-            }
+        } header: {
+            sectionHeader("Prix", systemImage: "tag.fill")
         }
         .listRowBackground(Color.surface)
+    }
+
+    /// En-tête de carte : symbole, titre, et cadenas (avec explication) quand les conditions sont figées.
+    private func sectionHeader(_ title: LocalizedStringKey, systemImage: String) -> some View {
+        HStack(spacing: 2) {
+            sectionTitle(title, systemImage: systemImage)
+            lockButton
+        }
+        .textCase(nil)
+    }
+
+    private func sectionTitle(_ title: LocalizedStringKey, systemImage: String) -> some View {
+        Label {
+            Text(title)
+                .foregroundStyle(.texte)
+        } icon: {
+            Image(systemName: systemImage)
+                .foregroundStyle(Color.grenier)
+        }
+        .font(.title3.bold())
+        .accessibilityAddTraits(.isHeader)
+    }
+
+    /// Cadenas touchable : explique pourquoi les champs de la carte sont grisés.
+    @ViewBuilder
+    private var lockButton: some View {
+        if model.areTermsLocked {
+            InfoButton(topic: .lockedTerms, systemImage: "lock.fill")
+        }
     }
 
     // MARK: Paliers
@@ -344,15 +404,10 @@ struct TierEditorScreen: View {
     }
 
     private var tiersTitle: some View {
-        Label {
-            Text("Paliers de prix")
-                .foregroundStyle(.texte)
-        } icon: {
-            Image(systemName: "stairs")
-                .foregroundStyle(Color.grenier)
+        HStack(spacing: 2) {
+            sectionTitle("Paliers de prix", systemImage: "stairs")
+            lockButton
         }
-        .font(.title2.bold())
-        .accessibilityAddTraits(.isHeader)
     }
 
     private var tiersSubtitle: some View {
@@ -556,7 +611,7 @@ struct TierEditorScreen: View {
 
 // MARK: - Ligne de palier
 
-/// Un palier : rang, seuil éditable, plage couverte, économie vs épicerie, prix éditable.
+/// Un palier en une ligne : « Dès [seuil] parts → [prix] », avec plage et économie en petit dessous.
 private struct TierRow: View {
     @Binding var tier: TierEditorViewModel.TierDraft
     let preview: TierEditorViewModel.TierPreview?
@@ -566,59 +621,51 @@ private struct TierRow: View {
     var focus: FocusState<TierEditorScreen.Field?>.Binding
 
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
-    @ScaledMetric(relativeTo: .headline) private var badgeSize: CGFloat = 32
     @ScaledMetric(relativeTo: .headline) private var priceWidth: CGFloat = 76
     @ScaledMetric(relativeTo: .body) private var thresholdWidth: CGFloat = 30
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
+        VStack(alignment: .leading, spacing: 6) {
+            // Une seule ligne qui se lit comme une phrase : « Dès [15] parts → [11,39 $] −12 % ».
             let layout = isStacked
-                ? AnyLayout(VStackLayout(alignment: .leading, spacing: 10))
-                : AnyLayout(HStackLayout(alignment: .center, spacing: 12))
+                ? AnyLayout(VStackLayout(alignment: .leading, spacing: 8))
+                : AnyLayout(HStackLayout(alignment: .center, spacing: 8))
             layout {
-                HStack(spacing: 12) {
-                    rankBadge
-                    VStack(alignment: .leading, spacing: 4) {
-                        // L'économie suit la plage : à côté du prix, la ligne débordait de la carte
-                        // (rang « 1 » et « $ » coupés aux bords sur iPhone 17).
-                        ViewThatFits(in: .horizontal) {
-                            HStack(spacing: 8) {
-                                rangeLabel
-                                savingsLabel
-                            }
-                            VStack(alignment: .leading, spacing: 2) {
-                                rangeLabel
-                                savingsLabel
-                            }
-                        }
-                        HStack(spacing: 6) {
-                            Text("dès")
-                                .font(.subheadline)
-                                .foregroundStyle(.texteSecondaire)
-                                .lineLimit(1)
-                                .fixedSize()
-                            // Largeur fixe calée sur « 999 » : les champs des paliers restent alignés
-                            // d'une rangée à l'autre, quel que soit le seuil (1 à 999).
-                            IntegerField(label: String(localized: "Seuil du palier \(rank)"), value: $tier.minShares)
-                                .frame(width: thresholdWidth)
-                                .focused(focus, equals: .threshold(tier.id))
-                                .fieldBox(isInvalid: isInvalid, compact: true)
-                            // « part / parts » ne se coupe jamais sur deux lignes.
-                            Text(FrenchPlural.word(tier.minShares, "part", plural: "parts"))
-                                .font(.subheadline)
-                                .foregroundStyle(.texteSecondaire)
-                                .lineLimit(1)
-                                .fixedSize()
-                        }
-                    }
+                HStack(spacing: 6) {
+                    Text("Dès")
+                        .foregroundStyle(.texte)
+                        .lineLimit(1)
+                        .fixedSize()
+                    // Largeur fixe calée sur « 999 » : les champs des paliers restent alignés
+                    // d'une rangée à l'autre, quel que soit le seuil (1 à 999).
+                    IntegerField(label: String(localized: "Seuil du palier \(rank)"), value: $tier.minShares)
+                        .frame(width: thresholdWidth)
+                        .focused(focus, equals: .threshold(tier.id))
+                        .fieldBox(isInvalid: isInvalid, compact: true)
+                    // « part / parts » ne se coupe jamais sur deux lignes.
+                    Text(FrenchPlural.word(tier.minShares, "part", plural: "parts"))
+                        .foregroundStyle(.texte)
+                        .lineLimit(1)
+                        .fixedSize()
                 }
-                if !isStacked { Spacer(minLength: 4) }
-                // Largeur fixe calée sur « 999,99 $ » : sans elle, le champ prenait toute la place libre
-                // et le prix flottait à droite d'une grande boîte vide.
-                PriceField(label: String(localized: "Prix du palier \(rank)"), value: $tier.price)
-                    .frame(width: priceWidth)
-                    .focused(focus, equals: .price(tier.id))
-                    .fieldBox(isInvalid: isInvalid, compact: true)
+                if !isStacked { Spacer(minLength: 2) }
+                HStack(spacing: 6) {
+                    Image(systemName: "arrow.right")
+                        .font(.subheadline.bold())
+                        .foregroundStyle(isInvalid ? Color.red : Color.grenier)
+                        .accessibilityHidden(true)
+                    // Largeur fixe calée sur « 999,99 $ » : sans elle, le champ prenait toute la place libre
+                    // et le prix flottait à droite d'une grande boîte vide.
+                    PriceField(label: String(localized: "Prix du palier \(rank)"), value: $tier.price)
+                        .frame(width: priceWidth)
+                        .focused(focus, equals: .price(tier.id))
+                        .fieldBox(isInvalid: isInvalid, compact: true)
+                }
+            }
+            // En petit dessous : la plage couverte et l'économie vs épicerie.
+            HStack(spacing: 8) {
+                rangeLabel
+                savingsLabel
             }
             if let error {
                 InlineError(message: error)
@@ -627,18 +674,19 @@ private struct TierRow: View {
         }
         .padding(.vertical, 4)
         .animation(.smooth, value: error)
+        .accessibilityElement(children: .contain)
+        .accessibilityLabel("Palier \(rank)")
     }
 
     private var rank: Int { preview?.rank ?? 1 }
 
-    /// Dès xxLarge, le prix passe sous le seuil : côte à côte, la rangée débordait de la carte
-    /// (rang et champ de prix collés aux bords sur iPhone 17).
+    /// Dès xxLarge, le prix passe sous le seuil : côte à côte, la rangée débordait de la carte.
     private var isStacked: Bool { dynamicTypeSize >= .xxLarge }
 
     private var rangeLabel: some View {
         Text(rangeText)
-            .font(.body)
-            .foregroundStyle(.texte)
+            .font(.footnote)
+            .foregroundStyle(.texteSecondaire)
             .contentTransition(.numericText())
     }
 
@@ -660,16 +708,6 @@ private struct TierRow: View {
                 .font(.caption)
                 .foregroundStyle(.texteSecondaire)
         }
-    }
-
-    private var rankBadge: some View {
-        Text("\(rank)")
-            .font(.headline)
-            .fontDesign(.rounded)
-            .foregroundStyle(isInvalid ? Color.red : Color.grenier)
-            .frame(width: badgeSize, height: badgeSize)
-            .background((isInvalid ? Color.red : Color.grenier).opacity(0.12), in: .circle)
-            .accessibilityLabel("Palier \(rank)")
     }
 
     private var rangeText: String {

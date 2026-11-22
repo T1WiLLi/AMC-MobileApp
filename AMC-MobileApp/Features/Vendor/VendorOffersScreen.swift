@@ -342,7 +342,7 @@ private struct VendorOfferCard: View {
                         .accessibilityHidden(true)
                 }
                 VStack(alignment: .leading, spacing: 4) {
-                    Text("\(summary.title) · \(summary.offer.shareUnit)")
+                    Text("\(summary.title) · \(summary.offer.displayShareUnit)")
                         .font(.headline)
                         .foregroundStyle(.texte)
                     deadlineLabel

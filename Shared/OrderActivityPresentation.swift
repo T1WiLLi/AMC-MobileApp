@@ -3,6 +3,7 @@
 // AMC-MobileAppTests/LiveActivity/. Les vues de GrenierWidgets ne calculent rien elles-mêmes.
 
 import Foundation
+import Synchronization
 
 /// Ce que la Live Activity et le widget montrent pour une commande à un instant donné.
 nonisolated struct OrderActivityPresentation: Hashable, Sendable {
@@ -58,7 +59,7 @@ nonisolated struct OrderActivityPresentation: Hashable, Sendable {
     var subtitle: String { "\(attributes.groupName) · \(stageLabel)" }
 
     /// « 1 famille », « 2 familles »
-    static func families(_ count: Int) -> String { count > 1 ? "\(count) familles" : "\(count) famille" }
+    static func families(_ count: Int) -> String { String(localized: "\(count) famille") }
 
     /// Phrase principale, en Grenier sous le titre.
     var headline: String {
@@ -161,7 +162,7 @@ nonisolated struct OrderActivityPresentation: Hashable, Sendable {
 
     /// Libellés sous la barre : « 1–10 · 3,20 $ » … ou « En route », « Arrivée », « Récupérée ».
     var segmentLabels: [String] {
-        guard showsTierBar else { return ["En route", String(localized: "Arrivée"), String(localized: "Récupérée")] }
+        guard showsTierBar else { return [String(localized: "En route"), String(localized: "Arrivée"), String(localized: "Récupérée")] }
         let tiers = sortedTiers
         return tiers.indices.map { index in
             let tier = tiers[index]
@@ -203,7 +204,19 @@ nonisolated struct OrderActivityPresentation: Hashable, Sendable {
 
 /// Formatage partagé app / extension (l'extension n'a pas accès à `Money`).
 nonisolated enum GrenierFormat {
-    private static let locale = Locale(identifier: "fr_CA")
+    /// Langue forcée par l'app (`AppLanguage`), nil dans l'extension : elle suit alors la langue de l'appareil.
+    private static let override = Mutex<Locale?>(nil)
+
+    static func setLocale(_ locale: Locale?) { override.withLock { $0 = locale } }
+
+    /// Locale de formatage : celle de l'app si elle est choisie, sinon fr_CA ou en_CA selon la langue du bundle.
+    static var locale: Locale {
+        if let forced = override.withLock({ $0 }) { return forced }
+        let code = Bundle.main.preferredLocalizations.first.map { String($0.prefix(2)) } ?? "fr"
+        return Locale(identifier: (code == "en" ? "en" : "fr") + "_CA")
+    }
+
+    static var isEnglish: Bool { locale.language.languageCode?.identifier == "en" }
 
     /// « 2,60 $ » (espace insécable avant $), comme `Money.format`.
     static func price(_ cents: Int) -> String {
@@ -215,6 +228,9 @@ nonisolated enum GrenierFormat {
         let parts = calendar.dateComponents([.hour, .minute], from: date)
         let hour = parts.hour ?? 0
         let minute = parts.minute ?? 0
-        return minute == 0 ? "\(hour) h" : "\(hour) h \(String(format: "%02d", minute))"
+        guard isEnglish else { return minute == 0 ? "\(hour) h" : "\(hour) h \(String(format: "%02d", minute))" }
+        let twelve = hour % 12 == 0 ? 12 : hour % 12
+        let suffix = hour % 24 < 12 ? "AM" : "PM"
+        return minute == 0 ? "\(twelve) \(suffix)" : "\(twelve):\(String(format: "%02d", minute)) \(suffix)"
     }
 }

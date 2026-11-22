@@ -1,7 +1,24 @@
 {
   "sourceLanguage" : "fr",
   "strings" : {
+    " à %@ : %@" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : " à %1$@ : %2$@"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : " at %@: %@"
+          }
+        }
+      }
+    },
     " pour %lld %@." : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -23,6 +40,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : " percent"
+          }
+        }
+      }
+    },
+    "- %@ (%@) : %@, %@" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "- %1$@ (%2$@) : %3$@, %4$@"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "- %@ (%@): %@, %@"
           }
         }
       }
@@ -175,6 +208,22 @@
         }
       }
     },
+    "%@ : %@, %@, %@, %@, %@ d'économies offertes" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$@ : %2$@, %3$@, %4$@, %5$@, %6$@ d'économies offertes"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@: %@, %@, %@, %@, %@ in savings offered"
+          }
+        }
+      }
+    },
     "%@ : la commande ferme demain à %@. Invite tes voisins pour faire baisser le prix." : {
       "localizations" : {
         "en" : {
@@ -265,6 +314,22 @@
         }
       }
     },
+    "%@ · %lld %@" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$@ · %2$lld %3$@"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ · %lld %@"
+          }
+        }
+      }
+    },
     "%@ · %lld × %@" : {
       "localizations" : {
         "en" : {
@@ -307,6 +372,16 @@
         }
       }
     },
+    "%@ · brouillon" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ · draft"
+          }
+        }
+      }
+    },
     "%@ · comptoir à %@" : {
       "localizations" : {
         "en" : {
@@ -319,6 +394,22 @@
           "stringUnit" : {
             "state" : "new",
             "value" : "%1$@ · comptoir à %2$@"
+          }
+        }
+      }
+    },
+    "%@ · ferme %@" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$@ · ferme %2$@"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ · closes %@"
           }
         }
       }
@@ -401,12 +492,44 @@
         }
       }
     },
+    "%@ (%lld)" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$@ (%2$lld)"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ (%lld)"
+          }
+        }
+      }
+    },
     "%@ (toi)" : {
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "%@ (you)"
+          }
+        }
+      }
+    },
+    "%@ %@" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$@ %2$@"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ %@"
           }
         }
       }
@@ -459,6 +582,22 @@
         }
       }
     },
+    "%@ + panier suspendu %@" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$@ + panier suspendu %2$@"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ + suspended basket %@"
+          }
+        }
+      }
+    },
     "%@ à %@" : {
       "localizations" : {
         "en" : {
@@ -471,6 +610,22 @@
           "stringUnit" : {
             "state" : "new",
             "value" : "%1$@ à %2$@"
+          }
+        }
+      }
+    },
+    "%@ à %@ pour %lld %@." : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$@ à %2$@ pour %3$lld %4$@."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ at %@ for %lld %@."
           }
         }
       }
@@ -491,12 +646,58 @@
         }
       }
     },
+    "%@ a financé %@ pour %@ dans %@ avec LeGrenier." : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$@ a financé %2$@ pour %3$@ dans %4$@ avec LeGrenier."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ funded %2$@ for %3$@ in %4$@ with LeGrenier."
+          }
+        }
+      }
+    },
     "%@ à pied" : {
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "%@ on foot"
+          }
+        }
+      }
+    },
+    "%@ à récupérer chez l'hôte" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ to pick up from the host"
+          }
+        }
+      }
+    },
+    "%@ acceptera les demandes et gérera les membres. Tu resteras membre du ménage et tu pourras ensuite le quitter." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ will accept requests and manage members. You'll stay a member of the household and can leave it afterwards."
+          }
+        }
+      }
+    },
+    "%@ cette fois-ci" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ this time"
           }
         }
       }
@@ -597,6 +798,22 @@
         }
       }
     },
+    "%@ de %@" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$@ de %2$@"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ of %2$@"
+          }
+        }
+      }
+    },
     "%@ de %@ · merci %@" : {
       "localizations" : {
         "en" : {
@@ -613,12 +830,32 @@
         }
       }
     },
+    "%@ de la ville" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ of the city"
+          }
+        }
+      }
+    },
     "%@ de moins à payer. Rien à faire de ton côté." : {
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "%@ less to pay. Nothing to do on your end."
+          }
+        }
+      }
+    },
+    "%@ des ménages participent" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ of households take part"
           }
         }
       }
@@ -649,6 +886,16 @@
         }
       }
     },
+    "%@ économisés par ménage" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ saved per household"
+          }
+        }
+      }
+    },
     "%@ en épicerie" : {
       "localizations" : {
         "en" : {
@@ -659,12 +906,100 @@
         }
       }
     },
+    "%@ en réserve · aucun ménage en attente" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ in reserve · no households waiting"
+          }
+        }
+      }
+    },
+    "%@ en réserve dans le fonds" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ in reserve in the fund"
+          }
+        }
+      }
+    },
+    "%@ en réserve pour %@" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$@ en réserve pour %2$@"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ set aside for %@"
+          }
+        }
+      }
+    },
+    "%@ est %llde au classement solidaire de Montréal sur LeGrenier !" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$@ est %2$llde au classement solidaire de Montréal sur LeGrenier !"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ is #%lld on Montréal's solidarity leaderboard on LeGrenier!"
+          }
+        }
+      }
+    },
+    "%@ est %llder au classement solidaire de Montréal sur LeGrenier !" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$@ est %2$llder au classement solidaire de Montréal sur LeGrenier !"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ is #%2$lld on the Montréal solidarity leaderboard on LeGrenier!"
+          }
+        }
+      }
+    },
+    "%@ est en route" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ is on the way"
+          }
+        }
+      }
+    },
     "%@ est enregistré" : {
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "%@ is saved"
+          }
+        }
+      }
+    },
+    "%@ familles aidées pour 100 ménages" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ families helped per 100 households"
           }
         }
       }
@@ -705,12 +1040,38 @@
         }
       }
     },
+    "%@ km" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ km"
+          }
+        }
+      }
+    },
     "%@ L'app ne vide jamais Firestore elle-même : relance-la ensuite pour repartir de l'accueil." : {
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "%@ The app never clears Firestore itself: relaunch it afterwards to start over from Home."
+          }
+        }
+      }
+    },
+    "%@ le %@" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$@ le %2$@"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ per %2$@"
           }
         }
       }
@@ -741,6 +1102,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "%@ don't have enough in their fund for the families they help."
+          }
+        }
+      }
+    },
+    "%@ paniers offerts pour 100 ménages" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ baskets given per 100 households"
           }
         }
       }
@@ -793,6 +1164,22 @@
           "stringUnit" : {
             "state" : "new",
             "value" : "%1$@ pour %2$@"
+          }
+        }
+      }
+    },
+    "%@ pour %lld %@." : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$@ pour %2$lld %3$@."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ for %lld %@."
           }
         }
       }
@@ -901,6 +1288,36 @@
         }
       }
     },
+    "%@ te remontre l'app, en commençant par l'Accueil" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ is showing you around the app, starting with Home"
+          }
+        }
+      }
+    },
+    "%@ unité" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ unit"
+          }
+        }
+      }
+    },
+    "%@ unités" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ units"
+          }
+        }
+      }
+    },
     "%@ utilisés · reste %@" : {
       "localizations" : {
         "en" : {
@@ -917,6 +1334,16 @@
         }
       }
     },
+    "%@ va chercher ta part" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ is picking up your share"
+          }
+        }
+      }
+    },
     "%@, %@" : {
       "localizations" : {
         "en" : {
@@ -929,6 +1356,22 @@
           "stringUnit" : {
             "state" : "new",
             "value" : "%1$@, %2$@"
+          }
+        }
+      }
+    },
+    "%@, %@ à %@" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$@, %2$@ à %3$@"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@, %@ at %@"
           }
         }
       }
@@ -1045,6 +1488,26 @@
         }
       }
     },
+    "%@, l'écureuil du quartier" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@, the neighbourhood squirrel"
+          }
+        }
+      }
+    },
+    "%@, part récupérée" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@, share picked up"
+          }
+        }
+      }
+    },
     "%@, rang %lld" : {
       "localizations" : {
         "en" : {
@@ -1157,6 +1620,22 @@
           "stringUnit" : {
             "state" : "new",
             "value" : "%1$lld %2$@"
+          }
+        }
+      }
+    },
+    "%lld %@ · %@" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$lld %2$@ · %3$@"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld %@ · %@"
           }
         }
       }
@@ -1329,6 +1808,22 @@
         }
       }
     },
+    "%lld à %lld %@" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$lld à %2$lld %3$@"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld to %lld %@"
+          }
+        }
+      }
+    },
     "%lld ans" : {
       "localizations" : {
         "en" : {
@@ -1344,6 +1839,46 @@
                 "stringUnit" : {
                   "state" : "translated",
                   "value" : "%lld years"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "%lld articles" : {
+      "localizations" : {
+        "en" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld item"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld items"
+                }
+              }
+            }
+          }
+        },
+        "fr" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld article"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld articles"
                 }
               }
             }
@@ -1407,6 +1942,87 @@
           "stringUnit" : {
             "state" : "new",
             "value" : "%1$lld caractères sur %2$lld"
+          }
+        }
+      }
+    },
+    "%lld commande" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "fr" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld commande"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld commandes"
+                }
+              }
+            }
+          }
+        },
+        "en" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld order"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld orders"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "%lld commandes" : {
+      "localizations" : {
+        "en" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld order"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld orders"
+                }
+              }
+            }
+          }
+        },
+        "fr" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld commande"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld commandes"
+                }
+              }
+            }
           }
         }
       }
@@ -1503,6 +2119,72 @@
         }
       }
     },
+    "%lld groupes" : {
+      "localizations" : {
+        "en" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld group"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld groups"
+                }
+              }
+            }
+          }
+        },
+        "fr" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld groupe"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld groupes"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "%lld h" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld h"
+          }
+        }
+      }
+    },
+    "%lld h %@" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$lld h %2$@"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld h %@"
+          }
+        }
+      }
+    },
     "%lld kg" : {
       "localizations" : {
         "en" : {
@@ -1519,6 +2201,46 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "%lld km"
+          }
+        }
+      }
+    },
+    "%lld lieux ici" : {
+      "localizations" : {
+        "en" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld place here"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld places here"
+                }
+              }
+            }
+          }
+        },
+        "fr" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld lieu ici"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld lieux ici"
+                }
+              }
+            }
           }
         }
       }
@@ -1573,8 +2295,37 @@
         }
       }
     },
-    "%lld ménage" : {
+    "%lld m" : {
       "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld m"
+          }
+        }
+      }
+    },
+    "%lld ménage" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "fr" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld ménage"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld ménages"
+                }
+              }
+            }
+          }
+        },
         "en" : {
           "variations" : {
             "plural" : {
@@ -1683,8 +2434,37 @@
         }
       }
     },
-    "%lld mois" : {
+    "%lld min" : {
       "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld min"
+          }
+        }
+      }
+    },
+    "%lld mois" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "fr" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld mois"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld mois"
+                }
+              }
+            }
+          }
+        },
         "en" : {
           "variations" : {
             "plural" : {
@@ -1815,6 +2595,47 @@
         }
       }
     },
+    "%lld part" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "fr" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld part"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld parts"
+                }
+              }
+            }
+          }
+        },
+        "en" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld share"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld shares"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "%lld parts" : {
       "localizations" : {
         "en" : {
@@ -1885,6 +2706,102 @@
         }
       }
     },
+    "%lld parts sur %lld semaines." : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$lld parts sur %2$lld semaines."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$lld shares over %2$lld weeks."
+          }
+        }
+      }
+    },
+    "%lld parts vendues" : {
+      "localizations" : {
+        "en" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld share sold"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld shares sold"
+                }
+              }
+            }
+          }
+        },
+        "fr" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld part vendue"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld parts vendues"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "%lld places" : {
+      "localizations" : {
+        "en" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld spot"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld spots"
+                }
+              }
+            }
+          }
+        },
+        "fr" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld place"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld places"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "%lld points" : {
       "localizations" : {
         "en" : {
@@ -1939,6 +2856,87 @@
         }
       }
     },
+    "%lld produit" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "fr" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld produit"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld produits"
+                }
+              }
+            }
+          }
+        },
+        "en" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld product"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld products"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "%lld produits" : {
+      "localizations" : {
+        "en" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld product"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld products"
+                }
+              }
+            }
+          }
+        },
+        "fr" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld produit"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld produits"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "%lld sem." : {
       "localizations" : {
         "en" : {
@@ -1961,6 +2959,22 @@
           "stringUnit" : {
             "state" : "new",
             "value" : "%1$lld sur %2$lld"
+          }
+        }
+      }
+    },
+    "%lld sur %lld affichées" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$lld sur %2$lld affichées"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld of %lld shown"
           }
         }
       }
@@ -2046,6 +3060,7 @@
       }
     },
     "%lld%@ : %@, %lld points%@" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -2057,6 +3072,86 @@
           "stringUnit" : {
             "state" : "new",
             "value" : "%1$lld%2$@ : %3$@, %4$lld points%5$@"
+          }
+        }
+      }
+    },
+    "%lld%@%lld km" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$lld%2$@%3$lld km"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld%@%lld km"
+          }
+        }
+      }
+    },
+    "%llde : %@, %lld points" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$llde : %2$@, %3$lld points"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "#%1$lld: %2$@, %3$lld points"
+          }
+        }
+      }
+    },
+    "%llde : %@, %lld points, ton arrondissement" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$llde : %2$@, %3$lld points, ton arrondissement"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "#%1$lld: %2$@, %3$lld points, your borough"
+          }
+        }
+      }
+    },
+    "%llder : %@, %lld points" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$llder : %2$@, %3$lld points"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "#%lld: %@, %lld points"
+          }
+        }
+      }
+    },
+    "%llder : %@, %lld points, ton arrondissement" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$llder : %2$@, %3$lld points, ton arrondissement"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "#%1$lld: %2$@, %3$lld points, your borough"
           }
         }
       }
@@ -2087,6 +3182,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "−%lld %% vs grocery store"
+          }
+        }
+      }
+    },
+    "≈ %@ d'épicerie au prix du magasin" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "≈ %@ of groceries at store prices"
           }
         }
       }
@@ -2171,6 +3276,26 @@
         }
       }
     },
+    "1 groupe" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "1 group"
+          }
+        }
+      }
+    },
+    "1 h" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "1 h"
+          }
+        }
+      }
+    },
     "1 km" : {
       "localizations" : {
         "en" : {
@@ -2221,7 +3346,18 @@
         }
       }
     },
+    "1 part vendue" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "1 share sold"
+          }
+        }
+      }
+    },
     "1 personne" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -2251,12 +3387,32 @@
         }
       }
     },
+    "1 produit" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "1 product"
+          }
+        }
+      }
+    },
     "1,25 million" : {
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "1.25 million"
+          }
+        }
+      }
+    },
+    "2 h" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "2 h"
           }
         }
       }
@@ -2281,6 +3437,16 @@
         }
       }
     },
+    "3 h" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "3 h"
+          }
+        }
+      }
+    },
     "3 lots ouverts · surtout les pommes" : {
       "localizations" : {
         "en" : {
@@ -2297,6 +3463,36 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "3.50"
+          }
+        }
+      }
+    },
+    "4 dernières semaines" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Last 4 weeks"
+          }
+        }
+      }
+    },
+    "4 h" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "4 h"
+          }
+        }
+      }
+    },
+    "4 sem." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "4 wk."
           }
         }
       }
@@ -2331,6 +3527,16 @@
         }
       }
     },
+    "12 dernières semaines" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Last 12 weeks"
+          }
+        }
+      }
+    },
     "12 familles · 24 parts sur 40 · 480 $" : {
       "localizations" : {
         "en" : {
@@ -2351,12 +3557,32 @@
         }
       }
     },
+    "12 sem." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "12 wks"
+          }
+        }
+      }
+    },
     "27 familles · Quartier · 900 m" : {
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "27 families · Neighbourhood · 900 m"
+          }
+        }
+      }
+    },
+    "30 min" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "30 min"
           }
         }
       }
@@ -2411,12 +3637,42 @@
         }
       }
     },
+    "À %@ km" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ km away"
+          }
+        }
+      }
+    },
     "à %lld km" : {
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "%lld km away"
+          }
+        }
+      }
+    },
+    "à %lld m" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld m away"
+          }
+        }
+      }
+    },
+    "À %lld m" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld m away"
           }
         }
       }
@@ -2447,12 +3703,32 @@
         }
       }
     },
+    "À la une" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Featured"
+          }
+        }
+      }
+    },
     "À lancer depuis la racine du repo" : {
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Run from the repo root"
+          }
+        }
+      }
+    },
+    "à livrer" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "to deliver"
           }
         }
       }
@@ -2899,12 +4175,32 @@
         }
       }
     },
+    "Affiche la liste pour choisir un lieu" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Show the list to pick a place"
+          }
+        }
+      }
+    },
     "Affiche les détails" : {
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Shows details"
+          }
+        }
+      }
+    },
+    "Affiche les détails sur la carte" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Shows the details on the map"
           }
         }
       }
@@ -3005,6 +4301,26 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Helps neighbours recognize the door. Avoid faces and the apartment number."
+          }
+        }
+      }
+    },
+    "Aîné" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Senior"
+          }
+        }
+      }
+    },
+    "Aîné ou mobilité réduite ? Un voisin t'apporte ta part. Ou deviens bénévole." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Senior or limited mobility? A neighbour brings you your share. Or become a volunteer."
           }
         }
       }
@@ -3229,6 +4545,16 @@
         }
       }
     },
+    "Ajouter un panier suspendu de %@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Add a %@ suspended basket"
+          }
+        }
+      }
+    },
     "Ajouter une disponibilité" : {
       "localizations" : {
         "en" : {
@@ -3305,6 +4631,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Former family in the group"
+          }
+        }
+      }
+    },
+    "Annoncé dès qu'une commande est lancée" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Announced as soon as an order starts"
           }
         }
       }
@@ -3445,6 +4781,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Preview of the %@ theme: a bundle with its tier and the Join button."
+          }
+        }
+      }
+    },
+    "Apparence" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Appearance"
           }
         }
       }
@@ -3763,6 +5109,16 @@
         }
       }
     },
+    "Aucun palier" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No tier"
+          }
+        }
+      }
+    },
     "aucun palier atteint" : {
       "localizations" : {
         "en" : {
@@ -3863,6 +5219,16 @@
         }
       }
     },
+    "Aucun voisin n'a besoin d'une livraison pour l'instant. Merci d'être là !" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No neighbour needs a delivery right now. Thanks for being here!"
+          }
+        }
+      }
+    },
     "aucune" : {
       "localizations" : {
         "en" : {
@@ -3894,6 +5260,7 @@
       }
     },
     "Aucune commande ni aucun lot dans ton quartier. Reviens un peu plus tard." : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -3986,6 +5353,7 @@
       }
     },
     "Aucune famille n'a encore commandé ni exprimé d'envie avec ces filtres. Essaie un autre produit ou toute la demande." : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -4011,6 +5379,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "no method"
+          }
+        }
+      }
+    },
+    "Aucune méthode de déverrouillage sur cet appareil." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No unlock method on this device."
           }
         }
       }
@@ -4081,6 +5459,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "No areas: your bundles don't show up anywhere."
+          }
+        }
+      }
+    },
+    "Aujourd'hui" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Today"
           }
         }
       }
@@ -4236,6 +5624,7 @@
       }
     },
     "avis" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -4325,6 +5714,16 @@
         }
       }
     },
+    "Belle force : %@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Top strength: %@"
+          }
+        }
+      }
+    },
     "Besoin" : {
       "localizations" : {
         "en" : {
@@ -4341,6 +5740,26 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Need: %@"
+          }
+        }
+      }
+    },
+    "Besoin modéré" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Moderate need"
+          }
+        }
+      }
+    },
+    "Besoin urgent" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Urgent need"
           }
         }
       }
@@ -4405,6 +5824,26 @@
         }
       }
     },
+    "boîte" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "box"
+          }
+        }
+      }
+    },
+    "boîtes" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "boxes"
+          }
+        }
+      }
+    },
     "Bonjour %@" : {
       "localizations" : {
         "en" : {
@@ -4415,12 +5854,52 @@
         }
       }
     },
+    "Bonjour,\n\nJe souhaite vendre aux groupes de quartier sur LeGrenier.\n\nRaison sociale :\nType (ferme, coopérative, grossiste, boulangerie…) :\nQuartiers desservis :\n\nMerci !" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hello,\n\nI'd like to sell to neighbourhood groups on LeGrenier.\n\nBusiness name:\nType (farm, co-op, wholesaler, bakery…):\nNeighbourhoods served:\n\nThank you!"
+          }
+        }
+      }
+    },
+    "Bonjour,\n\nNotre organisme souhaite soutenir les groupes de quartier sur LeGrenier.\n\nNom de l'organisme :\nType (banque alimentaire, centre communautaire, fondation…) :\nQuartiers soutenus :\nPersonne-ressource et téléphone :\n\nMerci !" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hello,\n\nOur organization would like to support neighbourhood groups on LeGrenier.\n\nOrganization name:\nType (food bank, community centre, foundation…):\nNeighbourhoods supported:\nContact person and phone number:\n\nThank you!"
+          }
+        }
+      }
+    },
     "Bordereau de livraison" : {
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Delivery slip"
+          }
+        }
+      }
+    },
+    "botte" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "bunch"
+          }
+        }
+      }
+    },
+    "bottes" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "bunches"
           }
         }
       }
@@ -4445,6 +5924,26 @@
         }
       }
     },
+    "bouteille" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "bottle"
+          }
+        }
+      }
+    },
+    "bouteilles" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "bottles"
+          }
+        }
+      }
+    },
     "Bravo !" : {
       "localizations" : {
         "en" : {
@@ -4461,6 +5960,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Well done, %@!"
+          }
+        }
+      }
+    },
+    "Brique" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Brick"
           }
         }
       }
@@ -4515,6 +6024,16 @@
         }
       }
     },
+    "C'est parti !" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Let's go!"
+          }
+        }
+      }
+    },
     "C’est reparti ! Regarde aussi dans tes courriels indésirables." : {
       "localizations" : {
         "en" : {
@@ -4531,6 +6050,36 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Coming very soon."
+          }
+        }
+      }
+    },
+    "caisse" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "crate"
+          }
+        }
+      }
+    },
+    "caisses" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "crates"
+          }
+        }
+      }
+    },
+    "Caméra indisponible" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Camera unavailable"
           }
         }
       }
@@ -4761,6 +6310,16 @@
         }
       }
     },
+    "Ce courriel est déjà lié à un compte avec mot de passe. Connecte-toi avec ton courriel et ton mot de passe." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "This email is already linked to an account with a password. Sign in with your email and password."
+          }
+        }
+      }
+    },
     "Ce courriel n'a pas l'air valide. Vérifie-le." : {
       "localizations" : {
         "en" : {
@@ -4771,12 +6330,32 @@
         }
       }
     },
+    "Ce créneau chevauche une autre de tes livraisons." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "This time slot overlaps another one of your deliveries."
+          }
+        }
+      }
+    },
     "Ce créneau est complet. Choisis-en un autre." : {
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "This time slot is full. Pick another one."
+          }
+        }
+      }
+    },
+    "Ce créneau est déjà passé : choisis-en un autre." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "This time slot has already passed. Pick another one."
           }
         }
       }
@@ -4801,12 +6380,32 @@
         }
       }
     },
+    "Ce fichier n'est pas une image lisible." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "This file isn't a readable image."
+          }
+        }
+      }
+    },
     "Ce fichier n'est pas une image lisible. Choisis-en une autre." : {
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "This file isn’t a readable image. Pick another one."
+          }
+        }
+      }
+    },
+    "Ce groupe n'a pas encore de prix de panier." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "This group doesn't have a basket price yet."
           }
         }
       }
@@ -4861,7 +6460,18 @@
         }
       }
     },
+    "Ce lot est fermé ou a été retiré par le producteur. D'autres lots t'attendent sur l'Accueil : chaque semaine, de nouveaux arrivent près de chez toi." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "This bundle is closed or was removed by the producer. More bundles are waiting on Home: new ones arrive near you every week."
+          }
+        }
+      }
+    },
     "Ce lot n'est plus disponible. D'autres lots t'attendent dans l'onglet Lots." : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -4943,12 +6553,42 @@
         }
       }
     },
+    "ce mois-ci : réserve une part dans un lot pour commencer à économiser" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "this month: reserve a share in a bundle to start saving"
+          }
+        }
+      }
+    },
+    "ce mois-ci, par rapport à l'épicerie" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "this month, compared to the grocery store"
+          }
+        }
+      }
+    },
     "Ce montant paie une partie de la part d'une famille du groupe. Elle ne sait pas que c'est toi, et personne ne sait qui elle est." : {
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "This amount pays for part of a share for a family in the group. They won’t know it’s you, and no one knows who they are."
+          }
+        }
+      }
+    },
+    "Ce producteur a quitté LeGrenier ou son lien n'est plus valide. D'autres producteurs du quartier t'attendent sur l'Accueil." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "This producer has left LeGrenier or their link is no longer valid. Other producers in your neighbourhood are waiting for you on Home."
           }
         }
       }
@@ -4984,6 +6624,7 @@
       }
     },
     "Ce producteur n'est plus sur LeGrenier." : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -5113,6 +6754,36 @@
         }
       }
     },
+    "Ces lieux sont à la même adresse : choisis-en un dans la liste." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "These places share the same address: pick one from the list."
+          }
+        }
+      }
+    },
+    "Cet écran montre où les familles commandent et ce qu'elles souhaitent acheter. Avec ces filtres, personne n'a encore de demande : essaie un autre produit ou toute la demande." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "This screen shows where families are ordering and what they want to buy. With these filters, nobody has a request yet: try another product or all demand."
+          }
+        }
+      }
+    },
+    "Cet écran suit l'argent de tes lots : ce que les familles ont réservé et ce qui te sera payé. Publie un lot depuis l'onglet Lots pour voir tes premiers revenus." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "This screen tracks the money from your bundles: what families have reserved and what you'll be paid. Publish a bundle from the Bundles tab to see your first earnings."
+          }
+        }
+      }
+    },
     "Cet élément n'existe plus. Il a peut-être été retiré." : {
       "localizations" : {
         "en" : {
@@ -5173,6 +6844,16 @@
         }
       }
     },
+    "Cette image est trop lourde, même compressée. Essaie une autre photo." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "This image is too large, even compressed. Try another photo."
+          }
+        }
+      }
+    },
     "Cette image est vide." : {
       "localizations" : {
         "en" : {
@@ -5219,6 +6900,36 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "This delivery is already marked as done."
+          }
+        }
+      }
+    },
+    "Cette livraison est terminée." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "This delivery is complete."
+          }
+        }
+      }
+    },
+    "Cette livraison n'est pas prête à partir." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "This delivery isn't ready to go yet."
+          }
+        }
+      }
+    },
+    "Cette page montre l'argent que tu économises et ce que ton groupe change dans le quartier. Réserve ta première part pour voir tes premiers chiffres." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "This page shows the money you save and the difference your group makes in the neighbourhood. Reserve your first share to see your first numbers."
           }
         }
       }
@@ -5429,6 +7140,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Every basket counts, in every borough. Thank you!"
+          }
+        }
+      }
+    },
+    "Chaque panier financé par ton organisme laisse une trace ici. Finance un premier panier pour commencer l'histoire." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Every basket funded by your organization leaves a mark here. Fund a first basket to start the story."
           }
         }
       }
@@ -5663,6 +7384,16 @@
         }
       }
     },
+    "Cherche un quartier pour trouver les groupes qui ont besoin d'aide et les financer. Essaie un autre nom de quartier." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Search for a neighbourhood to find the groups that need help and fund them. Try another neighbourhood name."
+          }
+        }
+      }
+    },
     "Chercher un produit" : {
       "localizations" : {
         "en" : {
@@ -5725,6 +7456,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "At Amina’s, rue Jarry"
+          }
+        }
+      }
+    },
+    "Chiffres clés" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Key figures"
           }
         }
       }
@@ -5795,6 +7536,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Choose…"
+          }
+        }
+      }
+    },
+    "Choisis au moins 1 panier." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pick at least 1 basket."
           }
         }
       }
@@ -5889,6 +7640,26 @@
         }
       }
     },
+    "Choisis l'unité de vente (kg, unité, douzaine…)." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Choose the selling unit (kg, unit, dozen…)."
+          }
+        }
+      }
+    },
+    "Choisis la commande à te faire livrer." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Choose the order you want delivered."
+          }
+        }
+      }
+    },
     "Choisis le groupe affiché sur l'Accueil" : {
       "localizations" : {
         "en" : {
@@ -5909,6 +7680,16 @@
         }
       }
     },
+    "Choisis les sortes de lieux à afficher" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Choose which kinds of places to show"
+          }
+        }
+      }
+    },
     "Choisis ton créneau" : {
       "localizations" : {
         "en" : {
@@ -5925,6 +7706,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Choose your theme"
+          }
+        }
+      }
+    },
+    "Choisis un créneau dans les 14 prochains jours." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pick a time slot within the next 14 days."
           }
         }
       }
@@ -6199,6 +7990,16 @@
         }
       }
     },
+    "Colle le code de la famille, ou touche « Récupéré » dans la liste." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Paste the family's code, or tap “Picked up” in the list."
+          }
+        }
+      }
+    },
     "Colle le lien reçu ou tape le code de %lld lettres ou chiffres. Une invitation à un groupe privé sert une seule fois." : {
       "localizations" : {
         "en" : {
@@ -6311,6 +8112,16 @@
         }
       }
     },
+    "Commande groupée" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Group order"
+          }
+        }
+      }
+    },
     "Commande groupée · plus on est, moins c'est cher" : {
       "localizations" : {
         "en" : {
@@ -6337,6 +8148,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Order picked up, enjoy!"
+          }
+        }
+      }
+    },
+    "Commandes en cours" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Current orders"
           }
         }
       }
@@ -6417,6 +8238,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Comment (optional)"
+          }
+        }
+      }
+    },
+    "complet" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "full"
           }
         }
       }
@@ -6751,6 +8582,16 @@
         }
       }
     },
+    "Couvert" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Covered"
+          }
+        }
+      }
+    },
     "Couvert à %lld %%" : {
       "localizations" : {
         "en" : {
@@ -6947,6 +8788,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Create my first bundle"
+          }
+        }
+      }
+    },
+    "Créer mon profil producteur LeGrenier" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Create my LeGrenier producer profile"
           }
         }
       }
@@ -7281,6 +9132,46 @@
         }
       }
     },
+    "dans %lld groupes" : {
+      "localizations" : {
+        "en" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "in %lld group"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "in %lld groups"
+                }
+              }
+            }
+          }
+        },
+        "fr" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "dans %lld groupe"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "dans %lld groupes"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "dans %lld quartier" : {
       "localizations" : {
         "en" : {
@@ -7321,6 +9212,16 @@
                 }
               }
             }
+          }
+        }
+      }
+    },
+    "dans 1 groupe" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "in 1 group"
           }
         }
       }
@@ -7535,6 +9436,16 @@
         }
       }
     },
+    "Demain" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tomorrow"
+          }
+        }
+      }
+    },
     "Demande" : {
       "localizations" : {
         "en" : {
@@ -7591,6 +9502,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Asks for confirmation before erasing the current demo."
+          }
+        }
+      }
+    },
+    "Demandée" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Requested"
           }
         }
       }
@@ -7661,6 +9582,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Demo reset"
+          }
+        }
+      }
+    },
+    "Depuis le début" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Since the start"
           }
         }
       }
@@ -7745,6 +9676,16 @@
         }
       }
     },
+    "Des lots près de chez toi" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bundles near you"
+          }
+        }
+      }
+    },
     "Des parts sont déjà engagées : tu ne peux pas augmenter un prix (%@ à partir de %lld parts)." : {
       "localizations" : {
         "en" : {
@@ -7813,12 +9754,32 @@
         }
       }
     },
+    "Des producteurs d'ici vendent en gros. Plus ton groupe réserve de parts, plus le palier fait baisser le prix pour tout le monde." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Local producers sell in bulk. The more shares your group reserves, the more the tier lowers the price for everyone."
+          }
+        }
+      }
+    },
     "Des produits d'ici, achetés en gros entre voisins." : {
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Local products, bought in bulk among neighbours."
+          }
+        }
+      }
+    },
+    "Dès que les arrondissements auront leurs premiers paniers, on verra qui se serre le plus les coudes." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Once the boroughs have their first baskets, we'll see who sticks together the most."
           }
         }
       }
@@ -8067,6 +10028,32 @@
         }
       }
     },
+    "Don au fonds" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Donation to the fund"
+          }
+        }
+      }
+    },
+    "Don de %@ au fonds de %@" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Don de %1$@ au fonds de %2$@"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ donation to the %@ fund"
+          }
+        }
+      }
+    },
     "Donne de 1 à 5 étoiles et un commentaire court" : {
       "localizations" : {
         "en" : {
@@ -8139,12 +10126,48 @@
         }
       }
     },
+    "Données de démo en mémoire" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Demo data in memory"
+          }
+        }
+      }
+    },
+    "douzaine" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "dozen"
+          }
+        }
+      }
+    },
     "Du" : {
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "From"
+          }
+        }
+      }
+    },
+    "du %@ au %@" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "du %1$@ au %2$@"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "from %@ to %@"
           }
         }
       }
@@ -8225,6 +10248,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Savings in dollars"
+          }
+        }
+      }
+    },
+    "Économies offertes" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Savings shared"
           }
         }
       }
@@ -8325,6 +10358,26 @@
         }
       }
     },
+    "emballage" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "package"
+          }
+        }
+      }
+    },
+    "emballages" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "packages"
+          }
+        }
+      }
+    },
     "Emballages évités" : {
       "localizations" : {
         "en" : {
@@ -8341,6 +10394,26 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "of packaging avoided thanks to bulk buying, and %@ less delivery"
+          }
+        }
+      }
+    },
+    "Émulateur Firebase local" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Local Firebase emulator"
+          }
+        }
+      }
+    },
+    "en %@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "in %@"
           }
         }
       }
@@ -8381,12 +10454,42 @@
         }
       }
     },
+    "En baisse de %lld %% par rapport à la semaine de ventes précédente" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Down %lld%% from the previous week of sales"
+          }
+        }
+      }
+    },
+    "En besoin" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "In need"
+          }
+        }
+      }
+    },
     "En ce moment dans le groupe" : {
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Right now in the group"
+          }
+        }
+      }
+    },
+    "en cours" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "in progress"
           }
         }
       }
@@ -8407,6 +10510,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Usually within a few business days."
+          }
+        }
+      }
+    },
+    "En hausse de %lld %% par rapport à la semaine de ventes précédente" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Up %lld %% from the previous sales week"
           }
         }
       }
@@ -8451,6 +10564,16 @@
         }
       }
     },
+    "En réserve pour les prochaines familles aidées" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "In reserve for the next families helped"
+          }
+        }
+      }
+    },
     "En route" : {
       "localizations" : {
         "en" : {
@@ -8471,12 +10594,42 @@
         }
       }
     },
+    "En savoir plus sur %@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Learn more about %@"
+          }
+        }
+      }
+    },
+    "En tête de Montréal : bravo !" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Leading Montréal: congrats!"
+          }
+        }
+      }
+    },
     "En vérification" : {
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Under review"
+          }
+        }
+      }
+    },
+    "En vrac" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bulk"
           }
         }
       }
@@ -8575,7 +10728,24 @@
         }
       }
     },
+    "encore %lld %@" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "encore %1$lld %2$@"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld more %@"
+          }
+        }
+      }
+    },
     "Encore %lld %@ pour débloquer −%lld %%" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -8592,6 +10762,7 @@
       }
     },
     "Encore %lld %@ pour le palier suivant" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -8603,6 +10774,38 @@
           "stringUnit" : {
             "state" : "new",
             "value" : "Encore %1$lld %2$@ pour le palier suivant"
+          }
+        }
+      }
+    },
+    "Encore %lld %@ pour le palier suivant (−%lld %%)." : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Encore %1$lld %2$@ pour le palier suivant (−%3$lld %%)."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$lld more %2$@ to reach the next tier (−%3$lld%%)."
+          }
+        }
+      }
+    },
+    "Encore %lld %@ pour le palier suivant." : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Encore %1$lld %2$@ pour le palier suivant."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld more %@ to reach the next tier."
           }
         }
       }
@@ -8891,6 +11094,16 @@
         }
       }
     },
+    "Entrer le code" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Enter the code"
+          }
+        }
+      }
+    },
     "Envies des familles" : {
       "localizations" : {
         "en" : {
@@ -9031,6 +11244,16 @@
         }
       }
     },
+    "Érable" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Maple"
+          }
+        }
+      }
+    },
     "Erreur : %@" : {
       "localizations" : {
         "en" : {
@@ -9062,6 +11285,7 @@
       }
     },
     "Essaie un autre quartier." : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -9154,6 +11378,7 @@
       }
     },
     "Ex. sac de 10 kg" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -9353,6 +11578,16 @@
         }
       }
     },
+    "Familles aidées" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Families helped"
+          }
+        }
+      }
+    },
     "familles engagées" : {
       "localizations" : {
         "en" : {
@@ -9503,16 +11738,6 @@
         }
       }
     },
-    "Fermer la fiche du lieu" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Close place details"
-          }
-        }
-      }
-    },
     "Fermes du Québec" : {
       "localizations" : {
         "en" : {
@@ -9529,6 +11754,26 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "closes %@"
+          }
+        }
+      }
+    },
+    "filet" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "net bag"
+          }
+        }
+      }
+    },
+    "filets" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "mesh bags"
           }
         }
       }
@@ -9594,6 +11839,7 @@
       }
     },
     "Finance un premier panier pour commencer." : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -9643,12 +11889,32 @@
         }
       }
     },
+    "Fleuve" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "River"
+          }
+        }
+      }
+    },
     "Fonds solidaire" : {
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Solidarity fund"
+          }
+        }
+      }
+    },
+    "Forêt" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Forest"
           }
         }
       }
@@ -9825,12 +12091,42 @@
         }
       }
     },
+    "GRENIER:…" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "GRENIER:…"
+          }
+        }
+      }
+    },
     "Grossiste" : {
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Wholesaler"
+          }
+        }
+      }
+    },
+    "groupe" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "group"
+          }
+        }
+      }
+    },
+    "Groupe" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Group"
           }
         }
       }
@@ -9851,6 +12147,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Neighbourhood group"
+          }
+        }
+      }
+    },
+    "Groupe de quartier · %@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Neighbourhood group · %@"
           }
         }
       }
@@ -9925,12 +12231,32 @@
         }
       }
     },
+    "groupes" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "groups"
+          }
+        }
+      }
+    },
     "Groupes" : {
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Groups"
+          }
+        }
+      }
+    },
+    "Groupes à parrainer" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Groups to sponsor"
           }
         }
       }
@@ -9951,6 +12277,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Interested groups"
+          }
+        }
+      }
+    },
+    "Groupes parrainés" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sponsored groups"
           }
         }
       }
@@ -10005,6 +12341,16 @@
         }
       }
     },
+    "Horaire à venir" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Schedule coming soon"
+          }
+        }
+      }
+    },
     "Hors budget" : {
       "localizations" : {
         "en" : {
@@ -10031,6 +12377,56 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Oils"
+          }
+        }
+      }
+    },
+    "Ici apparaissent les groupes qui ont besoin d'aide. Tous sont couverts pour l'instant : merci !" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Groups that need help show up here. All of them are covered for now: thank you!"
+          }
+        }
+      }
+    },
+    "Ici apparaissent les groupes qui veulent ce que tu produis. Ajoute tes disponibilités : quand des familles de tes zones en voudront, leurs groupes s'afficheront." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Groups that want what you produce will show up here. Add your availability: when families in your areas want it, their groups will appear."
+          }
+        }
+      }
+    },
+    "Ici, tu suis chaque produit : parts vendues, revenus et économies offertes aux familles. Publie un lot pour voir tes premiers chiffres." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Here you follow each product: shares sold, earnings and savings shared with families. Publish a bundle to see your first numbers."
+          }
+        }
+      }
+    },
+    "Ici, tu trouveras ton code QR, ton point et ton créneau pour récupérer tes parts. Réserve ta part d'un lot pour commencer." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Here you'll find your QR code, your pickup point and your time slot to collect your shares. Reserve your share of a bundle to get started."
+          }
+        }
+      }
+    },
+    "Ici, tu vois ce que tes achats en groupe ont changé : l'argent économisé, la nourriture sauvée et les paniers offerts. Les chiffres grandissent à chaque commande." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Here you can see what your group purchases have changed: money saved, food rescued and baskets given. The numbers grow with every order."
           }
         }
       }
@@ -10169,6 +12565,16 @@
         }
       }
     },
+    "Ils ont besoin de toi" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "They need you"
+          }
+        }
+      }
+    },
     "Image non modifiée" : {
       "localizations" : {
         "en" : {
@@ -10225,6 +12631,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Can't open this photo. Try again or choose another one."
+          }
+        }
+      }
+    },
+    "Impossible de compresser cette image." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Couldn't compress this image."
           }
         }
       }
@@ -10300,6 +12716,7 @@
       }
     },
     "Indique l'unité de vente (par exemple « sac de 10 kg » ou « douzaine »)." : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -10345,6 +12762,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Enter the grocery store price to calculate families' savings."
+          }
+        }
+      }
+    },
+    "Indique ton adresse : seul ton bénévole la verra." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Enter your address: only your volunteer will see it."
           }
         }
       }
@@ -10559,6 +12986,16 @@
         }
       }
     },
+    "Je livre plutôt un voisin" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "I'd rather deliver to a neighbour"
+          }
+        }
+      }
+    },
     "Je ne peux plus livrer" : {
       "localizations" : {
         "en" : {
@@ -10579,7 +13016,18 @@
         }
       }
     },
+    "Je suis l'écureuil du quartier. En %lld petites bulles, je te montre comment payer moins cher en achetant avec tes voisins." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "I'm the neighbourhood squirrel. In %lld little bubbles, I'll show you how to pay less by buying with your neighbours."
+          }
+        }
+      }
+    },
     "Je t'invite dans « %@ » sur Grenier, un groupe privé. Cette invitation sert une seule fois : %@ (code %@)" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -10591,6 +13039,22 @@
           "stringUnit" : {
             "state" : "new",
             "value" : "Je t'invite dans « %1$@ » sur Grenier, un groupe privé. Cette invitation sert une seule fois : %2$@ (code %3$@)"
+          }
+        }
+      }
+    },
+    "Je t'invite dans « %@ » sur LeGrenier, un groupe privé. Cette invitation sert une seule fois : %@ (code %@)" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Je t'invite dans « %1$@ » sur LeGrenier, un groupe privé. Cette invitation sert une seule fois : %2$@ (code %3$@)"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "I'm inviting you to \"%@\" on LeGrenier, a private group. This invitation works only once: %@ (code %@)"
           }
         }
       }
@@ -10679,6 +13143,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Kilos"
+          }
+        }
+      }
+    },
+    "L'Accueil réunit les commandes de ton groupe et les lots près de chez toi. Les producteurs en ajoutent chaque semaine : actualise pour voir les nouveautés." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Home brings together your group's orders and the bundles near you. Producers add more every week: refresh to see what's new."
           }
         }
       }
@@ -10775,6 +13249,16 @@
         }
       }
     },
+    "L'hôte sera choisi à la prochaine commande" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The host will be chosen at the next order"
+          }
+        }
+      }
+    },
     "l'unité" : {
       "localizations" : {
         "en" : {
@@ -10807,12 +13291,32 @@
         }
       }
     },
+    "La carte montre les groupes, producteurs et points de cueillette autour de toi. Le rayon, c'est la distance jusqu'où on cherche. Agrandis-le si tu ne vois rien." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The map shows groups, producers and pickup points around you. The radius is how far we search. Make it bigger if you don't see anything."
+          }
+        }
+      }
+    },
     "La commande est encore ouverte : attends qu'elle soit fermée et livrée chez toi." : {
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "The order is still open: wait until it's closed and delivered to you."
+          }
+        }
+      }
+    },
+    "La commande est fermée : les parts ne bougent plus." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The order is closed: shares can't change anymore."
           }
         }
       }
@@ -10847,12 +13351,32 @@
         }
       }
     },
+    "La connexion avec Google n'a pas fonctionné. Réessaie dans un instant." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Google sign-in didn't work. Try again in a moment."
+          }
+        }
+      }
+    },
     "La connexion par courriel n'est pas encore activée. Utilise Google pour l'instant." : {
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Email sign-in isn't enabled yet. Use Google for now."
+          }
+        }
+      }
+    },
+    "La cueillette" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The pickup"
           }
         }
       }
@@ -10903,6 +13427,26 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "The deadline has passed: shares can no longer be changed."
+          }
+        }
+      }
+    },
+    "La demande" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The request"
+          }
+        }
+      }
+    },
+    "La demande, c'est ce que les familles ont commandé ou souhaitent acheter près de chez elles. Sers-t'en pour savoir quoi proposer et où livrer." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Demand is what families have ordered or want to buy near them. Use it to know what to offer and where to deliver."
           }
         }
       }
@@ -10965,6 +13509,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "The period must end after it starts."
+          }
+        }
+      }
+    },
+    "La livraison est réservée au mode aîné et aux personnes à mobilité réduite." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Delivery is reserved for Senior mode and people with reduced mobility."
           }
         }
       }
@@ -11085,6 +13639,16 @@
         }
       }
     },
+    "Laisse au moins 30 minutes au bénévole." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Give the volunteer at least 30 minutes."
+          }
+        }
+      }
+    },
     "Lait 2 L" : {
       "localizations" : {
         "en" : {
@@ -11125,6 +13689,16 @@
         }
       }
     },
+    "Le classement arrive bientôt" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The leaderboard is coming soon"
+          }
+        }
+      }
+    },
     "le code de l'appareil" : {
       "localizations" : {
         "en" : {
@@ -11158,11 +13732,42 @@
       }
     },
     "Le coordonnateur du groupe n'a pas encore proposé d'horaires. Reviens bientôt." : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "The group coordinator hasn't suggested times yet. Check back soon."
+          }
+        }
+      }
+    },
+    "Le créneau de cette livraison est passé." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The time slot for this delivery has passed."
+          }
+        }
+      }
+    },
+    "Le créneau doit finir après son début." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The time slot must end after it starts."
+          }
+        }
+      }
+    },
+    "Le créneau dure au plus 4 heures." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The time slot lasts 4 hours at most."
           }
         }
       }
@@ -11359,6 +13964,46 @@
         }
       }
     },
+    "Le mot au bénévole fait au plus %lld caractères." : {
+      "localizations" : {
+        "en" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "The note to the volunteer can be at most %lld character."
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "The note to the volunteer can be at most %lld characters."
+                }
+              }
+            }
+          }
+        },
+        "fr" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Le mot au bénévole fait au plus %lld caractère."
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Le mot au bénévole fait au plus %lld caractères."
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "Le nom de ton groupe doit faire %lld caractères au maximum." : {
       "localizations" : {
         "en" : {
@@ -11463,6 +14108,56 @@
         }
       }
     },
+    "Le panier suspendu" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The suspended basket"
+          }
+        }
+      }
+    },
+    "Le plus économe" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Best savings"
+          }
+        }
+      }
+    },
+    "Le plus entraidant" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Most helpful"
+          }
+        }
+      }
+    },
+    "Le plus généreux" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Most generous"
+          }
+        }
+      }
+    },
+    "Le plus mobilisé" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Most engaged"
+          }
+        }
+      }
+    },
     "Le préfixe d'organisme doit compter 2 lettres." : {
       "localizations" : {
         "en" : {
@@ -11479,6 +14174,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "The price drops with every family"
+          }
+        }
+      }
+    },
+    "Le prix baisse quand assez de parts sont prises : c'est un palier. Tout le monde paie le prix du dernier palier atteint, même ceux qui ont réservé tôt." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The price drops when enough shares are taken: that's a tier. Everyone pays the price of the last tier reached, even those who reserved early."
           }
         }
       }
@@ -11596,11 +14301,23 @@
       }
     },
     "Le propriétaire ne peut pas quitter son ménage." : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "The owner can't leave their household."
+          }
+        }
+      }
+    },
+    "Le quartier" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The neighbourhood"
           }
         }
       }
@@ -11611,6 +14328,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "The discount must be between 0 and 99%."
+          }
+        }
+      }
+    },
+    "Le rayon de la carte" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Map radius"
           }
         }
       }
@@ -11683,6 +14410,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "LeGrenier"
+          }
+        }
+      }
+    },
+    "LeGrenier (par défaut)" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "LeGrenier (default)"
           }
         }
       }
@@ -11777,6 +14514,16 @@
         }
       }
     },
+    "Les créneaux" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Time slots"
+          }
+        }
+      }
+    },
     "Les créneaux s'ouvrent aux ménages qui ont une part dans ce lot." : {
       "localizations" : {
         "en" : {
@@ -11857,12 +14604,42 @@
         }
       }
     },
+    "Les groupes" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The groups"
+          }
+        }
+      }
+    },
     "Les groupes du quartier voient tes paliers." : {
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Neighbourhood groups see your tiers."
+          }
+        }
+      }
+    },
+    "Les groupes que ton organisme parraine apparaissent ici. Parraine un premier groupe dans l'onglet Parrainages." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The groups your organization sponsors show up here. Sponsor a first group in the Sponsorships tab."
+          }
+        }
+      }
+    },
+    "Les lots" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bundles"
           }
         }
       }
@@ -11883,6 +14660,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Notifications are off"
+          }
+        }
+      }
+    },
+    "Les paliers de prix" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Price tiers"
           }
         }
       }
@@ -12007,12 +14794,42 @@
         }
       }
     },
+    "Livraison annulée" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Delivery cancelled"
+          }
+        }
+      }
+    },
     "Livraison entre voisins" : {
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Neighbour delivery"
+          }
+        }
+      }
+    },
+    "Livraison par un voisin" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Delivery by a neighbour"
+          }
+        }
+      }
+    },
+    "Livré !" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Delivered!"
           }
         }
       }
@@ -12043,6 +14860,36 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Delivered!"
+          }
+        }
+      }
+    },
+    "Livrée par %@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Delivered by %@"
+          }
+        }
+      }
+    },
+    "livrées" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "delivered"
+          }
+        }
+      }
+    },
+    "Livrer un voisin" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Deliver to a neighbour"
           }
         }
       }
@@ -12257,12 +15104,12 @@
         }
       }
     },
-    "Mon organisme" : {
+    "Ma commande" : {
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "My organization"
+            "value" : "My order"
           }
         }
       }
@@ -12303,6 +15150,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Group branding"
+          }
+        }
+      }
+    },
+    "Marquer la part de %@ comme récupérée" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mark %@'s share as picked up"
           }
         }
       }
@@ -12377,6 +15234,16 @@
         }
       }
     },
+    "Me faire livrer" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Get it delivered"
+          }
+        }
+      }
+    },
     "Meilleur prix atteint" : {
       "localizations" : {
         "en" : {
@@ -12385,7 +15252,8 @@
             "value" : "Best price reached"
           }
         }
-      }
+      },
+      "extractionState" : "manual"
     },
     "Meilleur prix atteint pour %@" : {
       "localizations" : {
@@ -12393,6 +15261,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Best price reached for %@"
+          }
+        }
+      }
+    },
+    "Meilleur prix atteint pour tout le groupe !" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Best price reached for the whole group!"
           }
         }
       }
@@ -12517,6 +15395,16 @@
         }
       }
     },
+    "Ménages à servir" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Households to serve"
+          }
+        }
+      }
+    },
     "ménages aidés par un panier suspendu, sans savoir de qui" : {
       "localizations" : {
         "en" : {
@@ -12583,6 +15471,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Thanks!"
+          }
+        }
+      }
+    },
+    "Merci ! %@ a reçu %@ grâce à toi." : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Merci ! %1$@ a reçu %2$@ grâce à toi."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Thanks! %1$@ received %2$@ thanks to you."
           }
         }
       }
@@ -12797,6 +15701,16 @@
         }
       }
     },
+    "Mobilité réduite" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Reduced mobility"
+          }
+        }
+      }
+    },
     "Mode aîné" : {
       "localizations" : {
         "en" : {
@@ -12987,6 +15901,16 @@
         }
       }
     },
+    "Moi" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Me"
+          }
+        }
+      }
+    },
     "Mois" : {
       "localizations" : {
         "en" : {
@@ -13017,6 +15941,16 @@
         }
       }
     },
+    "Mon groupe" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "My group"
+          }
+        }
+      }
+    },
     "Mon ménage" : {
       "localizations" : {
         "en" : {
@@ -13033,6 +15967,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "My month"
+          }
+        }
+      }
+    },
+    "Mon organisme" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "My organization"
           }
         }
       }
@@ -13117,7 +16061,18 @@
         }
       }
     },
+    "Montre ce code à l'hôte" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Show this code to the host"
+          }
+        }
+      }
+    },
     "Montre ce code à ton hôte" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -13255,6 +16210,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Reason"
+          }
+        }
+      }
+    },
+    "Moy. 3 sem." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "3-wk avg."
           }
         }
       }
@@ -13399,6 +16364,36 @@
         }
       }
     },
+    "Nomme d'abord un autre membre propriétaire, puis quitte le ménage." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "First name another member as owner, then leave the household."
+          }
+        }
+      }
+    },
+    "Nommer %@ propriétaire ?" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Make %@ the owner?"
+          }
+        }
+      }
+    },
+    "Nommer propriétaire" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Make owner"
+          }
+        }
+      }
+    },
     "Non connecté" : {
       "localizations" : {
         "en" : {
@@ -13491,6 +16486,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Notifications"
+          }
+        }
+      }
+    },
+    "Notre histoire" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Our story"
           }
         }
       }
@@ -13671,6 +16676,16 @@
         }
       }
     },
+    "Nuit" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Night"
+          }
+        }
+      }
+    },
     "Numéro" : {
       "localizations" : {
         "en" : {
@@ -13687,6 +16702,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Street number"
+          }
+        }
+      }
+    },
+    "Objectif : %@ par mois · %@" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Objectif : %1$@ par mois · %2$@"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Goal: %@ per month · %@"
           }
         }
       }
@@ -13787,6 +16818,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "OK"
+          }
+        }
+      }
+    },
+    "On cherche un voisin pour toi…" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Looking for a neighbour for you…"
           }
         }
       }
@@ -13957,6 +16998,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Where neighbours come to pick up"
+          }
+        }
+      }
+    },
+    "Oups" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Oops"
           }
         }
       }
@@ -14303,6 +17354,16 @@
         }
       }
     },
+    "Ouvre une courte explication" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Opens a short explanation"
+          }
+        }
+      }
+    },
     "Ouvrir cet écran" : {
       "localizations" : {
         "en" : {
@@ -14425,6 +17486,26 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Next page"
+          }
+        }
+      }
+    },
+    "palette" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "pallet"
+          }
+        }
+      }
+    },
+    "palettes" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "pallets"
           }
         }
       }
@@ -14615,12 +17696,48 @@
         }
       }
     },
+    "Palier moyen %@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Average tier %@"
+          }
+        }
+      }
+    },
+    "Palier moyen %@ / %lld" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Palier moyen %1$@ / %2$lld"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Average tier %1$@ / %2$lld"
+          }
+        }
+      }
+    },
     "Paliers de prix" : {
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Price tiers"
+          }
+        }
+      }
+    },
+    "panier" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "basket"
           }
         }
       }
@@ -14635,12 +17752,52 @@
         }
       }
     },
+    "Panier suspendu : %@ offerts" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Suspended basket: %@ donated"
+          }
+        }
+      }
+    },
     "panier suspendu offert" : {
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "suspended basket given"
+          }
+        }
+      }
+    },
+    "paniers" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "baskets"
+          }
+        }
+      }
+    },
+    "Paniers financés" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Baskets funded"
+          }
+        }
+      }
+    },
+    "Paniers offerts" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Baskets given"
           }
         }
       }
@@ -14685,12 +17842,32 @@
         }
       }
     },
+    "Paniers suspendus" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Suspended baskets"
+          }
+        }
+      }
+    },
     "paniers suspendus offerts" : {
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "suspended baskets given"
+          }
+        }
+      }
+    },
+    "par %@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "per %@"
           }
         }
       }
@@ -14755,6 +17932,16 @@
         }
       }
     },
+    "Parrainage de %@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sponsorship of %@"
+          }
+        }
+      }
+    },
     "Parrainages" : {
       "localizations" : {
         "en" : {
@@ -14776,6 +17963,7 @@
       }
     },
     "Parraine un groupe dans l'onglet Parrainages." : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -14811,6 +17999,26 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Sponsor this group"
+          }
+        }
+      }
+    },
+    "Parrainer, c'est promettre au groupe un nombre de paniers suspendus chaque mois. Ton organisme apparaît comme parrain, les familles aidées restent anonymes." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sponsoring means promising the group a number of suspended baskets each month. Your organization appears as the sponsor, and the families helped stay anonymous."
+          }
+        }
+      }
+    },
+    "Parrainés" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sponsored"
           }
         }
       }
@@ -14935,6 +18143,16 @@
         }
       }
     },
+    "Participation" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Participation"
+          }
+        }
+      }
+    },
     "parts" : {
       "localizations" : {
         "en" : {
@@ -14971,6 +18189,26 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Shares committed"
+          }
+        }
+      }
+    },
+    "Parts vendues" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Shares sold"
+          }
+        }
+      }
+    },
+    "Parts vendues par semaine" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Shares sold per week"
           }
         }
       }
@@ -15031,6 +18269,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "No new bundles for now"
+          }
+        }
+      }
+    },
+    "Pas encore assez de semaines pour une tendance" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Not enough weeks yet for a trend"
           }
         }
       }
@@ -15281,6 +18529,26 @@
         }
       }
     },
+    "Personne n'a réservé ce créneau." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nobody has reserved this time slot."
+          }
+        }
+      }
+    },
+    "Personne n'attend" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nobody's waiting"
+          }
+        }
+      }
+    },
     "Personne n'est laissé de côté" : {
       "localizations" : {
         "en" : {
@@ -15447,6 +18715,16 @@
         }
       }
     },
+    "Photo non enregistrée : %@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Photo not saved: %@"
+          }
+        }
+      }
+    },
     "Photo, texte ou annonce choquante" : {
       "localizations" : {
         "en" : {
@@ -15507,6 +18785,26 @@
         }
       }
     },
+    "plateau" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "tray"
+          }
+        }
+      }
+    },
+    "plateaux" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "trays"
+          }
+        }
+      }
+    },
     "plus de parts, prix plus bas" : {
       "localizations" : {
         "en" : {
@@ -15543,6 +18841,26 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "The more families, the lower the price."
+          }
+        }
+      }
+    },
+    "Plus que %@ pts pour gagner une place" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Only %@ pts to move up a spot"
+          }
+        }
+      }
+    },
+    "Plus que %@ pts pour monter sur la marche au-dessus" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Only %@ pts to climb to the next step up"
           }
         }
       }
@@ -15627,12 +18945,32 @@
         }
       }
     },
+    "point de cueillette" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "pickup point"
+          }
+        }
+      }
+    },
     "Point de cueillette" : {
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Pickup point"
+          }
+        }
+      }
+    },
+    "Point de cueillette · %@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pickup point · %@"
           }
         }
       }
@@ -15667,12 +19005,32 @@
         }
       }
     },
+    "Point de cueillette à venir" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pickup point coming soon"
+          }
+        }
+      }
+    },
     "Point du groupe" : {
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Group point"
+          }
+        }
+      }
+    },
+    "points de cueillette" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "pickup points"
           }
         }
       }
@@ -16049,6 +19407,16 @@
         }
       }
     },
+    "Prise en charge" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Taken on"
+          }
+        }
+      }
+    },
     "Privé" : {
       "localizations" : {
         "en" : {
@@ -16235,12 +19603,32 @@
         }
       }
     },
+    "Prochaine cueillette" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Next pickup"
+          }
+        }
+      }
+    },
     "Prochaines livraisons" : {
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Upcoming deliveries"
+          }
+        }
+      }
+    },
+    "producteur" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "producer"
           }
         }
       }
@@ -16271,6 +19659,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Producer verified by LeGrenier"
+          }
+        }
+      }
+    },
+    "producteurs" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "producers"
           }
         }
       }
@@ -16355,6 +19753,16 @@
         }
       }
     },
+    "Projet Firebase de démo" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Demo Firebase project"
+          }
+        }
+      }
+    },
     "Propos blessants, harcèlement, absences répétées" : {
       "localizations" : {
         "en" : {
@@ -16391,6 +19799,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Origin"
+          }
+        }
+      }
+    },
+    "Prune" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Plum"
           }
         }
       }
@@ -16466,6 +19884,7 @@
       }
     },
     "Publie un lot : ses parts vendues, ses revenus et les économies offertes apparaîtront ici." : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -16476,6 +19895,7 @@
       }
     },
     "Publie un lot depuis l'onglet Lots : tes revenus s'afficheront ici dès que des familles s'engagent." : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -16526,11 +19946,32 @@
       }
     },
     "Quand des familles de tes zones voudront ce que tu as, leurs groupes apparaîtront ici." : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "When families in your zones want what you have, their groups will show up here."
+          }
+        }
+      }
+    },
+    "Quand le lot est livré, tu viens chercher tes parts au point de cueillette de ton groupe. Montre ton code QR : un voisin bénévole te remet ton panier." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "When the bundle is delivered, you come pick up your shares at your group's pickup point. Show your QR code: a volunteer neighbour hands you your basket."
+          }
+        }
+      }
+    },
+    "Quand une commande sera fermée chez toi, les ménages à servir apparaîtront ici." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "When an order closes at your place, the households to serve will show up here."
           }
         }
       }
@@ -16551,6 +19992,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Quantity available"
+          }
+        }
+      }
+    },
+    "quartier" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "neighbourhood"
           }
         }
       }
@@ -16601,6 +20052,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Neighbourhoods served"
+          }
+        }
+      }
+    },
+    "Quelqu'un qui s'inscrit à ton adresse peut demander à rejoindre le ménage. Glisse un membre pour le retirer ou le nommer propriétaire : c'est ce qu'il faut faire avant de quitter le ménage." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Someone who signs up at your address can ask to join the household. Swipe a member to remove them or make them the owner: you need to do this before leaving the household."
           }
         }
       }
@@ -16755,6 +20216,26 @@
         }
       }
     },
+    "Rapproche la carte pour séparer ces lieux" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zoom in on the map to separate these locations"
+          }
+        }
+      }
+    },
+    "Rattacher mon organisme à LeGrenier" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Link my organization to LeGrenier"
+          }
+        }
+      }
+    },
     "Rayon" : {
       "localizations" : {
         "en" : {
@@ -16905,6 +20386,16 @@
         }
       }
     },
+    "Récupère d'abord la part chez l'hôte." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pick up the share from the host first."
+          }
+        }
+      }
+    },
     "Récupéré par %@" : {
       "localizations" : {
         "en" : {
@@ -16921,6 +20412,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Picked up"
+          }
+        }
+      }
+    },
+    "Réécrit les fixtures du projet de démo à leurs ids stables, sans rien supprimer. Demande une session firebase login." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Rewrites the demo project's fixtures to their stable ids, without deleting anything. Requires a firebase login session."
           }
         }
       }
@@ -17075,6 +20576,22 @@
         }
       }
     },
+    "Rejoins « %@ » sur LeGrenier pour acheter en gros avec tes voisins de %@. Code : %@" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Rejoins « %1$@ » sur LeGrenier pour acheter en gros avec tes voisins de %2$@. Code : %3$@"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Join “%1$@” on LeGrenier to buy in bulk with your neighbours in %2$@. Code: %3$@"
+          }
+        }
+      }
+    },
     "Rejoins %@ sur LeGrenier" : {
       "localizations" : {
         "en" : {
@@ -17117,6 +20634,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Join the group to be notified as soon as an order starts."
+          }
+        }
+      }
+    },
+    "Rejoins ou crée un groupe avec tes voisins : ensemble, vous achetez en gros." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Join or create a group with your neighbours: together, you buy in bulk."
           }
         }
       }
@@ -17211,6 +20738,16 @@
         }
       }
     },
+    "Remettre les parts" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hand over shares"
+          }
+        }
+      }
+    },
     "Remis ce mois-ci, sans nom" : {
       "localizations" : {
         "en" : {
@@ -17291,6 +20828,16 @@
         }
       }
     },
+    "Réserve d'abord ta part dans ce lot." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Reserve your share in this bundle first."
+          }
+        }
+      }
+    },
     "Réserve d'abord une part" : {
       "localizations" : {
         "en" : {
@@ -17301,7 +20848,18 @@
         }
       }
     },
+    "Réserve ta part" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Reserve your share"
+          }
+        }
+      }
+    },
     "Réserve ta part d'un lot : ton code QR et ton créneau apparaîtront ici." : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -17311,7 +20869,18 @@
         }
       }
     },
+    "Réserve ta part d'un lot : tu pourras ensuite demander qu'un voisin te l'apporte." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Reserve your share of a bundle: you can then ask a neighbour to bring it to you."
+          }
+        }
+      }
+    },
     "Réserve ta première part : tes économies apparaîtront ici." : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -17517,6 +21086,16 @@
         }
       }
     },
+    "Retirer le panier suspendu de %@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Remove the %@ suspended basket"
+          }
+        }
+      }
+    },
     "Retirer le produit" : {
       "localizations" : {
         "en" : {
@@ -17683,6 +21262,16 @@
         }
       }
     },
+    "Revoir la visite guidée" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Replay the guided tour"
+          }
+        }
+      }
+    },
     "Révoquée" : {
       "localizations" : {
         "en" : {
@@ -17739,6 +21328,26 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Nothing to deliver in the next 3 days"
+          }
+        }
+      }
+    },
+    "Rien à remettre" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nothing to hand over"
+          }
+        }
+      }
+    },
+    "Rien à te faire livrer" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nothing to be delivered"
           }
         }
       }
@@ -17903,7 +21512,18 @@
         }
       }
     },
+    "sac" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "bag"
+          }
+        }
+      }
+    },
     "sac de 5 kg" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -17919,6 +21539,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Know when your price drops"
+          }
+        }
+      }
+    },
+    "sacs" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "bags"
           }
         }
       }
@@ -17939,6 +21569,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Hi %@!"
+          }
+        }
+      }
+    },
+    "Salut, moi c'est %@ !" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hi, I'm %@!"
           }
         }
       }
@@ -17993,6 +21633,26 @@
         }
       }
     },
+    "Scanner le code d'une famille" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Scan a family's code"
+          }
+        }
+      }
+    },
+    "Scanner un code" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Scan a code"
+          }
+        }
+      }
+    },
     "Se connecter" : {
       "localizations" : {
         "en" : {
@@ -18039,6 +21699,26 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Ending soon"
+          }
+        }
+      }
+    },
+    "Secteur de %@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ area"
+          }
+        }
+      }
+    },
+    "Secteur personnalisé" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Custom area"
           }
         }
       }
@@ -18099,6 +21779,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Week"
+          }
+        }
+      }
+    },
+    "Semaine du %@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Week of %@"
           }
         }
       }
@@ -18353,12 +22043,32 @@
         }
       }
     },
+    "Sortes de lieux" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kinds of places"
+          }
+        }
+      }
+    },
     "Soutiens les quartiers" : {
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Support neighbourhoods"
+          }
+        }
+      }
+    },
+    "Stable d'une semaine de ventes à l'autre" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Steady from one sales week to the next"
           }
         }
       }
@@ -18473,6 +22183,16 @@
         }
       }
     },
+    "sur %@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "of %@"
+          }
+        }
+      }
+    },
     "sur %@ offertes" : {
       "localizations" : {
         "en" : {
@@ -18525,6 +22245,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "your order"
+          }
+        }
+      }
+    },
+    "Ta commande" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Your order"
           }
         }
       }
@@ -18585,6 +22315,16 @@
         }
       }
     },
+    "Ta cueillette" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Your pickup"
+          }
+        }
+      }
+    },
     "Ta demande n'a pas été acceptée. Crée ton propre ménage pour continuer." : {
       "localizations" : {
         "en" : {
@@ -18635,6 +22375,16 @@
         }
       }
     },
+    "Ta part a déjà été récupérée." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Your share has already been picked up."
+          }
+        }
+      }
+    },
     "Ta part fait passer le groupe au palier %lld sur %lld. Le prix baisse pour tout le monde." : {
       "localizations" : {
         "en" : {
@@ -18667,6 +22417,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Your share unlocks the next tier for the whole group!"
+          }
+        }
+      }
+    },
+    "Ta part n'est pas encore arrivée." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Your share hasn't arrived yet."
           }
         }
       }
@@ -18761,6 +22521,16 @@
         }
       }
     },
+    "Tendance : %@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Trend: %@"
+          }
+        }
+      }
+    },
     "Tendances, meilleurs vendeurs et économies offertes" : {
       "localizations" : {
         "en" : {
@@ -18777,6 +22547,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Done"
+          }
+        }
+      }
+    },
+    "Terminer" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Finish"
           }
         }
       }
@@ -18897,6 +22677,26 @@
         }
       }
     },
+    "Tes groupes de quartier" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Your neighbourhood groups"
+          }
+        }
+      }
+    },
+    "Tes lots" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Your bundles"
+          }
+        }
+      }
+    },
     "Tes lots en vente" : {
       "localizations" : {
         "en" : {
@@ -18943,6 +22743,16 @@
         }
       }
     },
+    "Tes parrainages" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Your sponsorships"
+          }
+        }
+      }
+    },
     "Tes parts déjà réservées restent valides. Tu pourras revenir quand tu veux." : {
       "localizations" : {
         "en" : {
@@ -18959,6 +22769,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Extra-large text and simplified flow turned on."
+          }
+        }
+      }
+    },
+    "Texte très grand, boutons plus gros" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Very large text, bigger buttons"
           }
         }
       }
@@ -18999,6 +22819,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "You"
+          }
+        }
+      }
+    },
+    "Ton adresse n'est montrée qu'au voisin qui te livre." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Your address is only shown to the neighbour delivering to you."
           }
         }
       }
@@ -19049,6 +22879,16 @@
         }
       }
     },
+    "Ton bénévole est déjà en route : il arrive bientôt." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Your volunteer is already on the way: they'll be there soon."
+          }
+        }
+      }
+    },
     "Ton code de cueillette" : {
       "localizations" : {
         "en" : {
@@ -19065,6 +22905,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Your postal code tells us which groups are near you."
+          }
+        }
+      }
+    },
+    "Ton code QR et ton créneau t'attendent ici pour récupérer ta part au point de cueillette." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Your QR code and time slot are waiting for you here to pick up your share at the pickup point."
           }
         }
       }
@@ -19179,6 +23029,16 @@
         }
       }
     },
+    "Ton groupe n'a pas encore lancé de commande sur ce lot." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Your group hasn't started an order on this bundle yet."
+          }
+        }
+      }
+    },
     "Ton groupe te verra avec ce prénom." : {
       "localizations" : {
         "en" : {
@@ -19195,6 +23055,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Your host will know when to expect you."
+          }
+        }
+      }
+    },
+    "Ton impact" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Your impact"
           }
         }
       }
@@ -19333,6 +23203,16 @@
         }
       }
     },
+    "Ton premier panier suspendu financé apparaîtra ici." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Your first funded suspended basket will show up here."
+          }
+        }
+      }
+    },
     "Ton premier produit" : {
       "localizations" : {
         "en" : {
@@ -19419,6 +23299,16 @@
         }
       }
     },
+    "Ton voisin" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Your neighbour"
+          }
+        }
+      }
+    },
     "Total" : {
       "localizations" : {
         "en" : {
@@ -19457,6 +23347,22 @@
           "stringUnit" : {
             "state" : "new",
             "value" : "Total %1$@ pour %2$@"
+          }
+        }
+      }
+    },
+    "Total %@ pour %@, dont %@ de panier suspendu, payé à la cueillette" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Total %1$@ pour %2$@, dont %3$@ de panier suspendu, payé à la cueillette"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Total %1$@ for %2$@, including %3$@ for a suspended basket, paid at pickup"
           }
         }
       }
@@ -19619,6 +23525,16 @@
         }
       }
     },
+    "Touche un lot, choisis ta quantité et réserve ta part : chaque part rapproche le groupe du prochain palier." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tap a bundle, choose your quantity and reserve your share: every share brings the group closer to the next tier."
+          }
+        }
+      }
+    },
     "Touche un produit pour le modifier, changer sa photo ou le retirer." : {
       "localizations" : {
         "en" : {
@@ -19659,6 +23575,16 @@
         }
       }
     },
+    "Tous les créneaux" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "All time slots"
+          }
+        }
+      }
+    },
     "Tous les groupes ont de quoi couvrir leurs familles aidées. Bravo !" : {
       "localizations" : {
         "en" : {
@@ -19670,6 +23596,7 @@
       }
     },
     "Tous les groupes sont couverts pour l'instant." : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -19685,6 +23612,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "All products"
+          }
+        }
+      }
+    },
+    "Tout" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "All"
           }
         }
       }
@@ -19779,12 +23716,42 @@
         }
       }
     },
+    "Tout près" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Very close"
+          }
+        }
+      }
+    },
     "Toute la demande" : {
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "All demand"
+          }
+        }
+      }
+    },
+    "trajet" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "trip"
+          }
+        }
+      }
+    },
+    "trajets" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "trips"
           }
         }
       }
@@ -19859,6 +23826,106 @@
         }
       }
     },
+    "Tu as déjà %lld livraisons en cours : termine-en une avant d'en prendre une autre." : {
+      "localizations" : {
+        "en" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "You already have %lld delivery in progress: finish it before taking another."
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "You already have %lld deliveries in progress: finish one before taking another."
+                }
+              }
+            }
+          }
+        },
+        "fr" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Tu as déjà %lld livraison en cours : termine-la avant d'en prendre une autre."
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Tu as déjà %lld livraisons en cours : termine-en une avant d'en prendre une autre."
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "Tu as déjà %lld livraisons en cours : termine-en une d'abord." : {
+      "localizations" : {
+        "en" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "You already have %lld delivery in progress: finish it first."
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "You already have %lld deliveries in progress: finish one first."
+                }
+              }
+            }
+          }
+        },
+        "fr" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Tu as déjà %lld livraison en cours : termine-la d'abord."
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Tu as déjà %lld livraisons en cours : termine-en une d'abord."
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "Tu as déjà récupéré la part : livre-la ou contacte l'hôte." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "You've already picked up the share: deliver it or contact the host."
+          }
+        }
+      }
+    },
+    "Tu as déjà une demande de livraison pour cette commande." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "You already have a delivery request for this order."
+          }
+        }
+      }
+    },
     "Tu as économisé" : {
       "localizations" : {
         "en" : {
@@ -19875,6 +23942,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "You saved %@ this month. "
+          }
+        }
+      }
+    },
+    "Tu as réservé %@ et offert un panier suspendu de %@. Merci ! Tu paies à la cueillette." : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Tu as réservé %1$@ et offert un panier suspendu de %2$@. Merci ! Tu paies à la cueillette."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "You reserved %1$@ and gave a suspended basket of %2$@. Thank you! You pay at pickup."
           }
         }
       }
@@ -19951,6 +24034,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "You’re a member"
+          }
+        }
+      }
+    },
+    "Tu es déjà propriétaire du ménage." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "You're already the owner of the household."
           }
         }
       }
@@ -20041,6 +24134,16 @@
         }
       }
     },
+    "Tu ne peux pas livrer ta propre part." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "You can't deliver your own share."
+          }
+        }
+      }
+    },
     "Tu peux ajouter %lld photos au plus." : {
       "localizations" : {
         "en" : {
@@ -20069,6 +24172,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "You can add up to 10 photos."
+          }
+        }
+      }
+    },
+    "Tu peux ajouter quelques dollars pour une famille qui en a besoin. Ton groupe s'en sert pour offrir un panier, sans dire à qui. Personne ne voit qui a donné." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "You can add a few dollars for a family in need. Your group uses it to offer a basket, without saying to whom. Nobody sees who gave."
           }
         }
       }
@@ -20111,6 +24224,46 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "You can serve up to 20 neighbourhoods."
+          }
+        }
+      }
+    },
+    "Tu peux financer jusqu'à %lld paniers à la fois." : {
+      "localizations" : {
+        "en" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "You can fund up to %lld basket at a time."
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "You can fund up to %lld baskets at a time."
+                }
+              }
+            }
+          }
+        },
+        "fr" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Tu peux financer jusqu'à %lld panier à la fois."
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Tu peux financer jusqu'à %lld paniers à la fois."
+                }
+              }
+            }
           }
         }
       }
@@ -20183,6 +24336,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "You can change your mind anytime in your profile."
+          }
+        }
+      }
+    },
+    "Tu pourras revoir la visite dans le Profil." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "You can replay the tour in Profile."
           }
         }
       }
@@ -20293,6 +24456,16 @@
         }
       }
     },
+    "Un autre voisin a déjà pris cette livraison." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Another neighbour has already taken this delivery."
+          }
+        }
+      }
+    },
     "un brouillon" : {
       "localizations" : {
         "en" : {
@@ -20397,6 +24570,46 @@
         }
       }
     },
+    "Un créneau, c'est l'heure où tu passes chercher ton panier. Choisis celui qui t'arrange : ça évite la file au point de cueillette." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "A time slot is when you come pick up your basket. Choose the one that suits you: it avoids the line at the pickup point."
+          }
+        }
+      }
+    },
+    "Un créneau, c'est l'heure où tu passes chercher ton panier. Le coordonnateur du groupe n'en a pas encore proposé : actualise un peu plus tard." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "A time slot is when you come pick up your basket. The group coordinator hasn't proposed any yet: refresh a little later."
+          }
+        }
+      }
+    },
+    "Un financement simulé est limité à 5 000 $ à la fois." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "A simulated funding is limited to $5,000 at a time."
+          }
+        }
+      }
+    },
+    "Un groupe, ce sont des familles du même quartier qui commandent ensemble. Ensemble, vous atteignez les paliers plus vite et vous partagez le même point de cueillette." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "A group is families from the same neighbourhood ordering together. Together, you reach tiers faster and share the same pickup point."
+          }
+        }
+      }
+    },
     "Un local, une salle ou un sous-sol" : {
       "localizations" : {
         "en" : {
@@ -20413,6 +24626,26 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "A duplicated bundle is either a draft or published."
+          }
+        }
+      }
+    },
+    "Un lot, c'est un produit que tu vends en grande quantité à un groupe. Tu fixes des paliers : plus les familles prennent de parts, plus le prix baisse." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "A bundle is a product you sell in large quantity to a group. You set tiers: the more shares families take, the lower the price."
+          }
+        }
+      }
+    },
+    "Un lot, c'est une grosse quantité qu'un producteur vend à tout le quartier. Chaque famille en prend une part. Plus on est nombreux, moins ça coûte." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "A bundle is a large quantity that a producer sells to the whole neighbourhood. Each family takes a share. The more of us there are, the less it costs."
           }
         }
       }
@@ -20531,6 +24764,26 @@
         }
       }
     },
+    "un voisin" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "a neighbour"
+          }
+        }
+      }
+    },
+    "Un voisin" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "A neighbour"
+          }
+        }
+      }
+    },
     "Un voisin le scanne avec l'appareil photo pour rejoindre le groupe" : {
       "localizations" : {
         "en" : {
@@ -20611,6 +24864,16 @@
         }
       }
     },
+    "Une famille du groupe reçoit ce montant sur sa part, sans savoir de qui." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "A family in the group receives this amount toward their share, without knowing from whom."
+          }
+        }
+      }
+    },
     "Une fois" : {
       "localizations" : {
         "en" : {
@@ -20637,6 +24900,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "One share"
+          }
+        }
+      }
+    },
+    "Une part, c'est ta portion du lot, par exemple 2 kg de riz. Tu peux en réserver plusieurs. Tu paies seulement quand le lot ferme." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "A share is your portion of the bundle, for example 2 kg of rice. You can reserve several. You only pay when the bundle closes."
           }
         }
       }
@@ -20722,6 +24995,7 @@
       }
     },
     "Unités suggérées" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -20807,6 +25081,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Value %@"
+          }
+        }
+      }
+    },
+    "Valeur d'épicerie pour les familles" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Grocery value for families"
           }
         }
       }
@@ -21027,6 +25311,16 @@
         }
       }
     },
+    "Vide l'émulateur demo-grenier (Firestore et comptes Auth) puis recrée la démo." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Clears the demo-grenier emulator (Firestore and Auth accounts), then recreates the demo."
+          }
+        }
+      }
+    },
     "Vie de quartier" : {
       "localizations" : {
         "en" : {
@@ -21229,6 +25523,36 @@
         }
       }
     },
+    "Voir toute la demande" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "See the whole request"
+          }
+        }
+      }
+    },
+    "Vois combien tu as économisé et ce que ton quartier change ensemble. Bonne cueillette !" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "See how much you've saved and what your neighbourhood is changing together. Happy pickup!"
+          }
+        }
+      }
+    },
+    "Voisin" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Neighbour"
+          }
+        }
+      }
+    },
     "Voisins de la rue Jarry" : {
       "localizations" : {
         "en" : {
@@ -21249,12 +25573,42 @@
         }
       }
     },
+    "vrac" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "bulk"
+          }
+        }
+      }
+    },
+    "vs l'épicerie" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "vs the grocery store"
+          }
+        }
+      }
+    },
     "vs l'épicerie du coin" : {
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "vs. the corner store"
+          }
+        }
+      }
+    },
+    "zone" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "area"
           }
         }
       }
@@ -21309,62 +25663,1280 @@
         }
       }
     },
-    "La connexion avec Google n'a pas fonctionné. Réessaie dans un instant." : {
+    "Zoomer ici" : {
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Google sign-in didn't work. Try again in a moment."
+            "value" : "Zoom in here"
           }
         }
       }
     },
-    "Ce courriel est déjà lié à un compte avec mot de passe. Connecte-toi avec ton courriel et ton mot de passe." : {
+    "%lld famille" : {
+      "extractionState" : "manual",
       "localizations" : {
+        "fr" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld famille"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld familles"
+                }
+              }
+            }
+          }
+        },
         "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "This email is already linked to an account with a password. Sign in with your email and password."
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld family"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld families"
+                }
+              }
+            }
           }
         }
       }
     },
-    "à %lld m" : {
+    "%lld panier" : {
+      "extractionState" : "manual",
       "localizations" : {
+        "fr" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld panier"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld paniers"
+                }
+              }
+            }
+          }
+        },
         "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "%lld m away"
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld basket"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld baskets"
+                }
+              }
+            }
           }
         }
       }
     },
-    "Le quartier" : {
+    "%lld panier suspendu" : {
+      "extractionState" : "manual",
       "localizations" : {
+        "fr" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld panier suspendu"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld paniers suspendus"
+                }
+              }
+            }
+          }
+        },
         "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "The neighbourhood"
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld suspended basket"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld suspended baskets"
+                }
+              }
+            }
           }
         }
       }
     },
-    "Groupe de quartier · %@" : {
+    "%lld panier entier" : {
+      "extractionState" : "manual",
       "localizations" : {
+        "fr" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld panier entier"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld paniers entiers"
+                }
+              }
+            }
+          }
+        },
         "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Neighbourhood group · %@"
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld full basket"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld full baskets"
+                }
+              }
+            }
           }
         }
       }
     },
-    "sur %@" : {
+    "%lld famille intéressée" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "fr" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld famille intéressée"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld familles intéressées"
+                }
+              }
+            }
+          }
+        },
+        "en" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld interested family"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld interested families"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "%lld famille aidée" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "fr" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld famille aidée"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld familles aidées"
+                }
+              }
+            }
+          }
+        },
+        "en" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld family helped"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld families helped"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "%lld famille couverte" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "fr" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld famille couverte"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld familles couvertes"
+                }
+              }
+            }
+          }
+        },
+        "en" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld family covered"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld families covered"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "%lld membre" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "fr" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld membre"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld membres"
+                }
+              }
+            }
+          }
+        },
+        "en" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld member"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld members"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "%lld lot ouvert" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "fr" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld lot ouvert"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld lots ouverts"
+                }
+              }
+            }
+          }
+        },
+        "en" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld open bundle"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld open bundles"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "%lld autre lot" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "fr" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld autre lot"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld autres lots"
+                }
+              }
+            }
+          }
+        },
+        "en" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld other bundle"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld other bundles"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "%lld manquante" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "fr" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld manquante"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld manquantes"
+                }
+              }
+            }
+          }
+        },
+        "en" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld missing"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld missing"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "%lld engagée" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "fr" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld engagée"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld engagées"
+                }
+              }
+            }
+          }
+        },
+        "en" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld committed"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld committed"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "%lld ménage aidé" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "fr" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld ménage aidé"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld ménages aidés"
+                }
+              }
+            }
+          }
+        },
+        "en" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld subsidised household"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld subsidised households"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "%lld photo" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "fr" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld photo"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld photos"
+                }
+              }
+            }
+          }
+        },
+        "en" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld photo"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld photos"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "%lld personne" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "fr" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld personne"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld personnes"
+                }
+              }
+            }
+          }
+        },
+        "en" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld person"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld people"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "%lld heure" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "fr" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld heure"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld heures"
+                }
+              }
+            }
+          }
+        },
+        "en" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld hour"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld hours"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "%lld jour" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "fr" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld jour"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld jours"
+                }
+              }
+            }
+          }
+        },
+        "en" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld day"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld days"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "%lld groupe" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "fr" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld groupe"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld groupes"
+                }
+              }
+            }
+          }
+        },
+        "en" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld group"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld groups"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "%lld groupe de quartier" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "fr" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld groupe de quartier"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld groupes de quartier"
+                }
+              }
+            }
+          }
+        },
+        "en" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld neighbourhood group"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld neighbourhood groups"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "%lld portail" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "fr" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld portail"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld portails"
+                }
+              }
+            }
+          }
+        },
+        "en" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld portal"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld portals"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "%lld ferme" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "fr" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld ferme"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld ferment"
+                }
+              }
+            }
+          }
+        },
+        "en" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld closes"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld close"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "%lld lieu" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "fr" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld lieu"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld lieux"
+                }
+              }
+            }
+          }
+        },
+        "en" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld place"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld places"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "%lld avis" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "fr" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld avis"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld avis"
+                }
+              }
+            }
+          }
+        },
+        "en" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld review"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld reviews"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "%lld unité" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "fr" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld unité"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld unités"
+                }
+              }
+            }
+          }
+        },
+        "en" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld unit"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld units"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "%lld zone" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "fr" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld zone"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld zones"
+                }
+              }
+            }
+          }
+        },
+        "en" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld zone"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld zones"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "%lld douzaine" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "fr" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld douzaine"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld douzaines"
+                }
+              }
+            }
+          }
+        },
+        "en" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld dozen"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld dozens"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "%lld voulue" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "fr" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld voulue"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld voulues"
+                }
+              }
+            }
+          }
+        },
+        "en" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld wanted"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld wanted"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "%lld panier suspendu offert" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "fr" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld panier suspendu offert"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld paniers suspendus offerts"
+                }
+              }
+            }
+          }
+        },
+        "en" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld suspended basket offered"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld suspended baskets offered"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "Merci" : {
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "of %@"
+            "value" : "Thanks"
+          }
+        }
+      },
+      "extractionState" : "manual"
+    },
+    "récupérée" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "collected"
+          }
+        }
+      },
+      "extractionState" : "manual"
+    },
+    "cueillette" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "pickup"
+          }
+        }
+      },
+      "extractionState" : "manual"
+    },
+    "Prochain palier" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Next tier"
+          }
+        }
+      },
+      "extractionState" : "manual"
+    },
+    "Combien de familles il manque à ton groupe pour faire baisser le prix." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "How many more families your group needs to bring the price down."
+          }
+        }
+      },
+      "extractionState" : "manual"
+    },
+    "Encore" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Only"
+          }
+        }
+      },
+      "extractionState" : "manual"
+    },
+    "pour le prochain palier (−%lld %%)" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "for the next tier (−%lld%%)"
+          }
+        }
+      },
+      "extractionState" : "manual"
+    },
+    "pour le prochain palier" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "for the next tier"
+          }
+        }
+      },
+      "extractionState" : "manual"
+    },
+    "%@ : meilleur prix atteint, %@ le %@." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@: best price reached, %2$@ per %3$@."
+          }
+        }
+      },
+      "extractionState" : "manual"
+    },
+    "%@ : encore %@ pour le prochain palier. %@." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@: %2$@ more for the next tier. %3$@."
+          }
+        }
+      },
+      "extractionState" : "manual"
+    },
+    "Fermer la fiche du lieu" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Close place details"
           }
         }
       }

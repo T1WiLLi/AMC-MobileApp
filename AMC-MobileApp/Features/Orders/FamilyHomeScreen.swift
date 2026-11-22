@@ -586,7 +586,7 @@ private struct NewOfferRow: View {
                     .font(.subheadline)
                     .foregroundStyle(.texteSecondaire)
                     .symbolRenderingMode(.hierarchical)
-                Label(summary.offer.shareUnit, systemImage: "scalemass.fill")
+                Label(summary.offer.displayShareUnit, systemImage: "scalemass.fill")
                     .font(.subheadline)
                     .foregroundStyle(.texteSecondaire)
                     .symbolRenderingMode(.hierarchical)

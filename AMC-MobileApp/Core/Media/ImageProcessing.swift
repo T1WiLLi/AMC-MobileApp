@@ -23,7 +23,7 @@ nonisolated enum ImageProcessing {
     /// lève `.invalidInput` si ce n'est pas une image ou si elle reste trop lourde pour Firestore.
     static func prepare(_ imageData: Data, spec: ImageSpec) throws -> PreparedImage {
         guard let image = UIImage(data: imageData), image.size.width > 0, image.size.height > 0 else {
-            throw AppError.invalidInput("Ce fichier n'est pas une image lisible.")
+            throw AppError.invalidInput(String(localized: "Ce fichier n'est pas une image lisible."))
         }
         return try prepare(image, spec: spec)
     }
@@ -40,14 +40,14 @@ nonisolated enum ImageProcessing {
         }
         var quality = spec.quality
         guard var jpeg = rendered.jpegData(compressionQuality: quality) else {
-            throw AppError.invalidInput("Impossible de compresser cette image.")
+            throw AppError.invalidInput(String(localized: "Impossible de compresser cette image."))
         }
         while jpeg.count > min(spec.targetBytes, spec.maxBytes), quality - 0.1 >= minimumQuality - 0.001 {
             quality -= 0.1
             if let smaller = rendered.jpegData(compressionQuality: quality) { jpeg = smaller }
         }
         guard jpeg.count <= spec.maxBytes else {
-            throw AppError.invalidInput("Cette image est trop lourde, même compressée. Essaie une autre photo.")
+            throw AppError.invalidInput(String(localized: "Cette image est trop lourde, même compressée. Essaie une autre photo."))
         }
         return PreparedImage(jpeg: jpeg, width: spec.width, height: spec.height)
     }

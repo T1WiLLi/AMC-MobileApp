@@ -42,6 +42,8 @@ nonisolated struct GroupOrderNotificationContext: Sendable, Hashable {
     /// « Huile d'olive » → « l'huile d'olive ». Le genre n'est pas connu : « le » par défaut.
     static func withArticle(_ name: String) -> String {
         let lower = name.lowercased()
+        // L'anglais n'a pas d'article devant « rice » ou « potatoes ».
+        if AppLanguage.isEnglish { return lower }
         let firstWord = lower.split(separator: " ").first.map(String.init) ?? lower
         if firstWord.hasSuffix("s") || firstWord.hasSuffix("x") { return "les \(lower)" }
         if let first = lower.first, "aeiouyhàâéèêîôû".contains(first) { return "l'\(lower)" }

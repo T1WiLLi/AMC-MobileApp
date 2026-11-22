@@ -379,7 +379,7 @@ private struct OfferDetailContent: View {
                 VStack(alignment: .leading, spacing: 4) {
                     PriceTag(priceCents: pricing.currentPriceCents, referenceCents: pricing.groceryPriceCents)
                         .contentTransition(.numericText(value: Double(pricing.currentPriceCents)))
-                    Label("prix par \(content.offer.shareUnit)", systemImage: OfferDetailSymbol.shareUnit)
+                    Label("prix par \(content.offer.displayShareUnit)", systemImage: OfferDetailSymbol.shareUnit)
                         .font(.caption)
                         .symbolRenderingMode(.hierarchical)
                         .foregroundStyle(.texteSecondaire)
@@ -443,7 +443,7 @@ private struct OfferDetailContent: View {
                 // B-050 : contenant, poids et valeur d'une part, lus dans `Offer.share`.
                 infoRow(String(localized: "Une part"), systemImage: content.offer.share.container.systemImage) {
                     VStack(alignment: .leading, spacing: 2) {
-                        Text(content.offer.shareUnit)
+                        Text(content.offer.displayShareUnit)
                         if let valueCents = content.offer.share.valueCents {
                             Text("Valeur \(Money.format(valueCents))")
                                 .font(.subheadline)
@@ -711,7 +711,7 @@ private struct OfferDetailContent: View {
     private func sharePicker(_ content: OfferDetailViewModel.Content) -> some View {
         let picker = Picker("Ta part", selection: $viewModel.selectedQuantity) {
             ForEach(viewModel.quantityOptions, id: \.self) { quantity in
-                Text(Self.quantityLabel(quantity, shareUnit: content.offer.shareUnit)).tag(quantity)
+                Text(Self.quantityLabel(quantity, shareUnit: content.offer.displayShareUnit)).tag(quantity)
             }
         }
         if dynamicTypeSize.isAccessibilitySize {
@@ -731,7 +731,7 @@ private struct OfferDetailContent: View {
         let layout = dynamicTypeSize.isAccessibilitySize
             ? AnyLayout(VStackLayout(alignment: .leading, spacing: 12))
             : AnyLayout(HStackLayout(alignment: .center, spacing: 16))
-        let quantity = Self.quantityLabel(viewModel.selectedQuantity, shareUnit: content.offer.shareUnit)
+        let quantity = Self.quantityLabel(viewModel.selectedQuantity, shareUnit: content.offer.displayShareUnit)
         return layout {
             VStack(alignment: .leading, spacing: 2) {
                 Text(Money.format(viewModel.selectedTotalWithBasketCents))
@@ -794,7 +794,7 @@ private struct OfferDetailContent: View {
 
     /// Confirmation sous « Part réservée ! » : mentionne le panier suspendu enregistré avec la part.
     private func reservedMessage(_ content: OfferDetailViewModel.Content) -> String {
-        let share = Self.quantityLabel(content.myShareQuantity, shareUnit: content.offer.shareUnit)
+        let share = Self.quantityLabel(content.myShareQuantity, shareUnit: content.offer.displayShareUnit)
         if content.mySuspendedCents > 0 {
             return String(localized: "Tu as réservé \(share) et offert un panier suspendu de \(Money.formatRounded(content.mySuspendedCents)). Merci ! Tu paies à la cueillette.")
         }
@@ -816,7 +816,7 @@ private struct OfferDetailContent: View {
     }
 
     private func shareText(_ content: OfferDetailViewModel.Content) -> String {
-        String(localized: "\(content.product.name) (\(content.offer.shareUnit)) à \(Money.format(content.pricing.currentPriceCents)) avec \(content.vendor.legalName) sur LeGrenier. Plus on est de familles, plus le prix baisse !")
+        String(localized: "\(content.product.name) (\(content.offer.displayShareUnit)) à \(Money.format(content.pricing.currentPriceCents)) avec \(content.vendor.legalName) sur LeGrenier. Plus on est de familles, plus le prix baisse !")
     }
 
     // MARK: Formatage

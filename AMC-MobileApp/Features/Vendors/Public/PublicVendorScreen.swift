@@ -385,7 +385,7 @@ private struct OpenOfferCard: View {
             HStack(alignment: .top, spacing: 12) {
                 ProductIcon(category: item.product.category)
                 VStack(alignment: .leading, spacing: 4) {
-                    Text("\(item.product.name) · \(item.offer.shareUnit)")
+                    Text("\(item.product.name) · \(item.offer.displayShareUnit)")
                         .font(.headline)
                         .foregroundStyle(.texte)
                     Label(deadlineText, systemImage: "clock.fill")

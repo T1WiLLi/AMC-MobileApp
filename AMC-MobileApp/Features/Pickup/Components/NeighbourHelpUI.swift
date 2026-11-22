@@ -23,7 +23,7 @@ nonisolated enum NeighbourHelpFormat {
     static func hour(_ date: Date) -> String {
         let parts = Calendar.current.dateComponents([.hour, .minute], from: date)
         let hour = parts.hour ?? 0, minute = parts.minute ?? 0
-        return minute == 0 ? String(localized: "\(hour) h") : String(localized: "\(hour) h \(String(format: "%02d", minute))")
+        return AppLanguage.clockText(hour: hour, minute: minute)
     }
 
     /// « Aujourd'hui », « Demain », « Jeudi 27 novembre ».

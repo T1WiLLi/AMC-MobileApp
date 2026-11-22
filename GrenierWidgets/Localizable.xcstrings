@@ -1,0 +1,430 @@
+{
+  "sourceLanguage" : "fr",
+  "strings" : {
+    "Meilleur prix atteint pour %@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Best price reached for %@"
+          }
+        }
+      }
+    },
+    "Encore %@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ to go"
+          }
+        }
+      }
+    },
+    "%@ pour le prochain palier" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ to the next tier"
+          }
+        }
+      }
+    },
+    "Palier débloqué : %@/%@ pour tout le groupe" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tier unlocked: %@/%@ for the whole group"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Palier débloqué : %1$@/%2$@ pour tout le groupe"
+          }
+        }
+      }
+    },
+    "Ta commande arrive à %@ au %@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Your order arrives at %@ at %@"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Ta commande arrive à %1$@ au %2$@"
+          }
+        }
+      }
+    },
+    "Ta commande t'attend au %@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Your order is waiting for you at %@"
+          }
+        }
+      }
+    },
+    "Commande récupérée, bon appétit !" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Order picked up, enjoy!"
+          }
+        }
+      }
+    },
+    "Tu es la %llde famille · ta part %@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "You’re family #%lld · your share %@"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Tu es la %1$llde famille · ta part %2$@"
+          }
+        }
+      }
+    },
+    "Montre le code %@ à %@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Show code %@ to %@"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Montre le code %1$@ à %2$@"
+          }
+        }
+      }
+    },
+    "%@ de %@ · merci %@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ from %@ · thanks %@"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$@ de %2$@ · merci %3$@"
+          }
+        }
+      }
+    },
+    "Groupe ouvert" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Open group"
+          }
+        }
+      }
+    },
+    "Palier débloqué" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tier unlocked"
+          }
+        }
+      }
+    },
+    "En route" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "On the way"
+          }
+        }
+      }
+    },
+    "Arrivée" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Arrival"
+          }
+        }
+      }
+    },
+    "Récupérée" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Picked up"
+          }
+        }
+      }
+    },
+    "Prête" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ready"
+          }
+        }
+      }
+    },
+    "Palier débloqué !" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tier unlocked!"
+          }
+        }
+      }
+    },
+    "%@ à %@/%@ pour tout %@." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ at %@/%@ for all of %@."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$@ à %2$@/%3$@ pour tout %4$@."
+          }
+        }
+      }
+    },
+    "Ta commande est en route" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Your order is on its way"
+          }
+        }
+      }
+    },
+    "Ta commande est arrivée" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Your order has arrived"
+          }
+        }
+      }
+    },
+    "Montre le code %@ à %@." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Show code %@ to %@."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Montre le code %1$@ à %2$@."
+          }
+        }
+      }
+    },
+    "/%@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "/%@"
+          }
+        }
+      }
+    },
+    "Meilleur prix atteint" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Best price reached"
+          }
+        }
+      },
+      "extractionState" : "manual"
+    },
+    "%lld famille" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "fr" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld famille"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld familles"
+                }
+              }
+            }
+          }
+        },
+        "en" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld family"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld families"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "Merci" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Thanks"
+          }
+        }
+      },
+      "extractionState" : "manual"
+    },
+    "récupérée" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "collected"
+          }
+        }
+      },
+      "extractionState" : "manual"
+    },
+    "cueillette" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "pickup"
+          }
+        }
+      },
+      "extractionState" : "manual"
+    },
+    "Prochain palier" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Next tier"
+          }
+        }
+      },
+      "extractionState" : "manual"
+    },
+    "Combien de familles il manque à ton groupe pour faire baisser le prix." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "How many more families your group needs to bring the price down."
+          }
+        }
+      },
+      "extractionState" : "manual"
+    },
+    "Encore" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Only"
+          }
+        }
+      },
+      "extractionState" : "manual"
+    },
+    "pour le prochain palier (−%lld %%)" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "for the next tier (−%lld%%)"
+          }
+        }
+      },
+      "extractionState" : "manual"
+    },
+    "pour le prochain palier" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "for the next tier"
+          }
+        }
+      },
+      "extractionState" : "manual"
+    },
+    "%@ : meilleur prix atteint, %@ le %@." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@: best price reached, %2$@ per %3$@."
+          }
+        }
+      },
+      "extractionState" : "manual"
+    },
+    "%@ : encore %@ pour le prochain palier. %@." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@: %2$@ more for the next tier. %3$@."
+          }
+        }
+      },
+      "extractionState" : "manual"
+    }
+  },
+  "version" : "1.0"
+}

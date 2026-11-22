@@ -89,8 +89,8 @@ struct VendorSearchScreen: View {
                             ResultRow(
                                 title: item.title,
                                 subtitle: item.offer.status == .draft
-                                    ? String(localized: "\(item.offer.shareUnit) · brouillon")
-                                    : String(localized: "\(item.offer.shareUnit) · ferme \(item.offer.deadline.formatted(.relative(presentation: .named).locale(AppLanguage.formattingLocale)))"),
+                                    ? String(localized: "\(item.offer.displayShareUnit) · brouillon")
+                                    : String(localized: "\(item.offer.displayShareUnit) · ferme \(item.offer.deadline.formatted(.relative(presentation: .named).locale(AppLanguage.formattingLocale)))"),
                                 subtitleSymbol: item.offer.status == .draft ? "pencil.circle.fill" : "clock.fill"
                             ) {
                                 if let category = item.product?.category {

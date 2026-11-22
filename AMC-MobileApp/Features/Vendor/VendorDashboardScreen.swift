@@ -681,7 +681,7 @@ private struct HighlightBanner: View {
     private var priceText: String? {
         let tiers = highlight.offer.offer.sortedTiers
         guard tiers.indices.contains(highlight.tierIndex) else { return nil }
-        return String(localized: "\(Money.format(tiers[highlight.tierIndex].priceCents)) le \(highlight.offer.offer.shareUnit)")
+        return String(localized: "\(Money.format(tiers[highlight.tierIndex].priceCents)) le \(highlight.offer.offer.displayShareUnit)")
     }
 
     private var households: Int { highlight.order.order.committedHouseholds }

@@ -370,7 +370,7 @@ private struct SuggestionRow: View {
     private var detail: String {
         let shares = suggestion.fitsBudget ? suggestion.shares : suggestion.sharesToCoverNeed
         let part = FrenchPlural.word(shares, "part", plural: "parts")
-        let base = String(localized: "\(shares) \(part) · \(suggestion.offer.shareUnit)")
+        let base = String(localized: "\(shares) \(part) · \(suggestion.offer.displayShareUnit)")
         return needTitle.isEmpty ? base : String(localized: "\(base) · pour \(needTitle)")
     }
 

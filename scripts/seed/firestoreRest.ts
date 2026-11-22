@@ -94,6 +94,23 @@ export function connect(target: string, projectId: string) {
       const document = await call(`${base}/v1/${database}/documents/${path}`, { method: 'GET' }) as { fields?: RestFields } | null
       return document === null ? null : (document.fields ?? {})
     },
+    /** Documents d'une collection (id + champs REST), page par page ; `mask` limite les champs lus. */
+    async listDocuments(collection: string, mask: string[] = []): Promise<{ id: string, fields: RestFields }[]> {
+      const out: { id: string, fields: RestFields }[] = []
+      let pageToken = ''
+      do {
+        const params = new URLSearchParams({ pageSize: '300' })
+        for (const field of mask) params.append('mask.fieldPaths', field)
+        if (pageToken) params.set('pageToken', pageToken)
+        const page = await call(`${base}/v1/${database}/documents/${collection}?${params}`, { method: 'GET' }) as
+          { documents?: { name: string, fields?: RestFields }[], nextPageToken?: string } | null
+        for (const document of page?.documents ?? []) {
+          out.push({ id: document.name.split('/').pop() ?? '', fields: document.fields ?? {} })
+        }
+        pageToken = page?.nextPageToken ?? ''
+      } while (pageToken)
+      return out
+    },
     async commit(writes: RestWrite[]) {
       for (let start = 0; start < writes.length; start += 400) {
         await call(`${base}/v1/${database}/documents:commit`, { method: 'POST', body: { writes: writes.slice(start, start + 400) } })

@@ -7,6 +7,8 @@
 //   groups/{groupId}/media/photo    photo du groupe (écrite par un coordinateur)
 //   groups/{groupId}/media/banner   bannière du groupe (écrite par un coordinateur)
 //   pickupPoints/{id}/media/photo   photo d'un point de cueillette (écrite par son hôte)
+//   households/{id}/media/photo     photo d'une famille (T-205 ; écrite par le seed seulement)
+//   organizations/{id}/media/logo   logo d'un organisme (T-205 ; écrit par le seed seulement)
 //
 // Le document parent garde la date d'envoi (`photoUpdatedAt` / `bannerUpdatedAt`, serverTimestamp) ; l'app en déduit
 // une URL versionnée qui pointe vers ce média, sans aucune URL Storage :
@@ -29,6 +31,11 @@ nonisolated enum MediaPath: Hashable, Sendable {
     case productPhoto(vendorId: String, productId: String)
     /// Photo d'un point de cueillette (`pickupPoints/{id}/media/photo`), écrite par son hôte.
     case pickupPhoto(pointId: String)
+    /// T-205 : photo d'une famille (`households/{id}/media/photo`). Lue par tout connecté (le document du ménage
+    /// reste privé) ; l'URL ne dépend que de l'id, sans version : absente → initiales.
+    case householdPhoto(householdId: String)
+    /// T-205 : logo d'un organisme (`organizations/{id}/media/logo`) ; absent → symbole du type d'organisme.
+    case organizationLogo(organizationId: String)
 
     /// Préfixe du document d'une photo de produit.
     static let productPhotoPrefix = "photo-product-"
@@ -50,13 +57,15 @@ nonisolated enum MediaPath: Hashable, Sendable {
         case .productPhoto(let vendorId, let productId):
             "vendors/\(vendorId)/media/\(Self.productPhotoId(productId: productId))"
         case .pickupPhoto(let pointId): "pickupPoints/\(pointId)/media/photo"
+        case .householdPhoto(let householdId): "households/\(householdId)/media/photo"
+        case .organizationLogo(let organizationId): "organizations/\(organizationId)/media/logo"
         }
     }
 
     /// Format attendu pour cette image.
     var spec: ImageSpec {
         switch self {
-        case .userAvatar, .groupPhoto: .square
+        case .userAvatar, .groupPhoto, .householdPhoto, .organizationLogo: .square
         case .groupBanner: .banner
         case .vendorPhoto, .pickupPhoto: .showcase
         case .productPhoto: .product
@@ -72,6 +81,8 @@ nonisolated enum MediaPath: Hashable, Sendable {
         case ("groups", "photo"): self = .groupPhoto(groupId: parts[1])
         case ("groups", "banner"): self = .groupBanner(groupId: parts[1])
         case ("pickupPoints", "photo"): self = .pickupPhoto(pointId: parts[1])
+        case ("households", "photo"): self = .householdPhoto(householdId: parts[1])
+        case ("organizations", "logo"): self = .organizationLogo(organizationId: parts[1])
         case ("vendors", let photoId) where photoId.hasPrefix(Self.productPhotoPrefix)
             && photoId.count > Self.productPhotoPrefix.count:
             self = .productPhoto(vendorId: parts[1], productId: String(photoId.dropFirst(Self.productPhotoPrefix.count)))
@@ -79,6 +90,15 @@ nonisolated enum MediaPath: Hashable, Sendable {
             self = .vendorPhoto(vendorId: parts[1], photoId: photoId)
         default: return nil
         }
+    }
+
+    /// URL sans version, pour un média dont le parent ne garde pas de date d'envoi (famille, organisme).
+    var url: URL {
+        var components = URLComponents()
+        components.scheme = MediaURL.mediaScheme
+        components.host = ""
+        components.path = "/" + documentPath
+        return components.url!
     }
 
     /// URL versionnée à poser sur le document parent.

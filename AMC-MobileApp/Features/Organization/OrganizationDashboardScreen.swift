@@ -100,14 +100,19 @@ struct OrganizationHeroCard: View {
             : AnyLayout(HStackLayout(alignment: .center, spacing: 12))
         return VStack(alignment: .leading, spacing: 12) {
             layout {
-                Image(systemName: organization.kind.systemImage)
-                    .font(.title)
-                    .symbolRenderingMode(.hierarchical)
-                    .foregroundStyle(Color.onAccent)
-                    .frame(width: badgeSize, height: badgeSize)
-                    .background(Color.grenier.gradient, in: .rect(cornerRadius: 16))
-                    .symbolEffect(.bounce, value: reduceMotion ? false : appeared)
-                    .accessibilityHidden(true)
+                // T-205 : logo de l'organisme (`organizations/{id}/media/logo`) ; à défaut, le symbole de son type.
+                MediaImage(url: MediaPath.organizationLogo(organizationId: organization.id).url) {
+                    Image(systemName: organization.kind.systemImage)
+                        .font(.title)
+                        .symbolRenderingMode(.hierarchical)
+                        .foregroundStyle(Color.onAccent)
+                        .frame(maxWidth: .infinity, maxHeight: .infinity)
+                        .background(Color.grenier.gradient)
+                        .symbolEffect(.bounce, value: reduceMotion ? false : appeared)
+                }
+                .frame(width: badgeSize, height: badgeSize)
+                .clipShape(.rect(cornerRadius: 16))
+                .accessibilityHidden(true)
                 VStack(alignment: .leading, spacing: 2) {
                     Text(organization.name)
                         .font(.title3.bold())

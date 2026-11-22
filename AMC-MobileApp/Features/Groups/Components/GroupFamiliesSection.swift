@@ -179,8 +179,16 @@ private struct FamilyRow: View {
         .accessibilityLabel(accessibilityLabel)
     }
 
-    /// Initiales du ménage (« Famille Benali » → « B ») ; une maison quand le nom est illisible.
+    /// T-205 : photo de la famille (`households/{id}/media/photo`) ; à défaut, initiales du ménage
+    /// (« Famille Benali » → « B ») ou une maison quand le nom est illisible.
     private var avatar: some View {
+        MediaImage(url: MediaPath.householdPhoto(householdId: family.householdId).url) { initialsAvatar }
+            .frame(width: avatarSize, height: avatarSize)
+            .clipShape(.circle)
+            .accessibilityHidden(true)
+    }
+
+    private var initialsAvatar: some View {
         ZStack {
             Circle().fill(accent.opacity(0.15))
             if let initials = family.name.flatMap(GroupDetailViewModel.initials(ofHouseholdName:)) {

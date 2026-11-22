@@ -932,6 +932,17 @@ describe('images en bytes (T-132, Q-033)', () => {
     await assertSucceeds(getDoc(doc(intruder(), 'users/amina/media/avatar')))
     await assertFails(getDoc(doc(anonymous(), 'users/amina/media/avatar')))
   })
+  for (const path of ['households/household-amina/media/photo', 'organizations/org-cdn/media/logo']) {
+    test(`T-205 : un connecté lit ${path}, un anonyme non, personne ne l’écrit`, async () => {
+      await env.withSecurityRulesDisabled(async (context) => {
+        await setDoc(doc(context.firestore(), path), { ...media(), updatedAt: Timestamp.now() })
+      })
+      await assertSucceeds(getDoc(doc(intruder(), path)))
+      await assertFails(getDoc(doc(anonymous(), path)))
+      await assertFails(setDoc(doc(amina(), path), media()))
+      await assertFails(deleteDoc(doc(amina(), path)))
+    })
+  }
   test('supprime son avatar, pas celui d’un autre', async () => {
     await env.withSecurityRulesDisabled(async (context) => {
       await setDoc(doc(context.firestore(), 'users/amina/media/avatar'), { ...media(), updatedAt: Timestamp.now() })

@@ -1562,6 +1562,8 @@ service cloud.firestore {
     // groups/{groupId}/media/{photo | banner}   photo et bannière ; écrites et supprimées par un coordonnateur
     // vendors/{vendorId}/media/photo-{id}       photos de vitrine ; écrites et supprimées par le vendeur (T-157)
     // pickupPoints/{pointId}/media/photo        photo du point de cueillette ; écrite et supprimée par son hôte
+    // households/{id}/media/photo               photo de famille (T-205) ; écrite par le seed seulement
+    // organizations/{id}/media/logo             logo d'organisme (T-205) ; écrit par le seed seulement
     // Champs : data (bytes JPEG compressé par l'app, 300 Kio au plus ; un document Firestore est limité
     //   à 1 Mio), contentType == 'image/jpeg', width et height (entiers 1..4096), updatedAt == request.time.
     // Lecture : tout utilisateur connecté (une image de profil ou de groupe n'est pas de la PII sensible ;
@@ -1617,6 +1619,18 @@ service cloud.firestore {
         && mediaId == 'photo'
         && isValidMedia(request.resource.data);
       allow delete: if isPickupPointHost(pointId);
+    }
+
+    // T-205 : photo d'une famille et logo d'un organisme, posés par le seed (Admin, hors règles). Lecture par tout
+    // utilisateur connecté (une photo n'est pas de la PII ; households/{id} reste privé) ; aucune écriture par l'app.
+    match /households/{householdId}/media/{mediaId} {
+      allow read: if isAuthenticated();
+      allow write: if false;
+    }
+
+    match /organizations/{orgId}/media/{mediaId} {
+      allow read: if isAuthenticated();
+      allow write: if false;
     }
 
     // ---------------------------------------------------------------

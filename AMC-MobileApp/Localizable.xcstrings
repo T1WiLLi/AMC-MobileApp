@@ -28895,6 +28895,136 @@
           }
         }
       }
+    },
+    "Tape le code de %lld caractères qu'on t'a envoyé, ou colle le lien d'invitation." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Type the %lld-character code you were sent, or paste the invitation link."
+          }
+        }
+      }
+    },
+    "%lld lettres ou chiffres, ou un lien d'invitation." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld letters or digits, or an invitation link."
+          }
+        }
+      }
+    },
+    "Vide" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Empty"
+          }
+        }
+      }
+    },
+    "Ce lien n'est pas une invitation LeGrenier. Tape plutôt le code de %lld caractères." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "This link isn't a LeGrenier invitation. Type the %lld-character code instead."
+          }
+        }
+      }
+    },
+    "Lien d'invitation reconnu" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Invitation link recognized"
+          }
+        }
+      }
+    },
+    "Code complet, tu peux rejoindre le groupe." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Code complete, you can join the group."
+          }
+        }
+      }
+    },
+    "Lettres et chiffres seulement, sans espaces." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Letters and digits only, no spaces."
+          }
+        }
+      }
+    },
+    "Effacer" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Clear"
+          }
+        }
+      }
+    },
+    "Où trouver le code ?" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Where to find the code?"
+          }
+        }
+      }
+    },
+    "Dans le message, le courriel ou le code QR envoyé par la personne qui t'invite." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "In the message, email or QR code sent by the person inviting you."
+          }
+        }
+      }
+    },
+    "Usage unique" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Single use"
+          }
+        }
+      }
+    },
+    "Une invitation à un groupe privé sert une seule fois. Si elle a déjà servi, demandes-en une nouvelle." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "An invitation to a private group works only once. If it has already been used, ask for a new one."
+          }
+        }
+      }
+    },
+    "Connexion au groupe…" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Joining the group…"
+          }
+        }
+      }
     }
   },
   "version" : "1.0"

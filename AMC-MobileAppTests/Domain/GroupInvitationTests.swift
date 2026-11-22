@@ -282,6 +282,28 @@ struct GroupInvitationTests {
         #expect(model.joinedGroup?.id == ID.villerayKitchen)
     }
 
+    @Test @MainActor func joinSheetFormatsTypedAndPastedInput() {
+        #expect(JoinWithCodeViewModel.formattedInput("vil-4k7") == "vil-4k7")
+        #expect(JoinWithCodeViewModel.formattedInput("vil4k7xyz") == "VIL4K7")
+        #expect(JoinWithCodeViewModel.formattedInput("https://grenier.app/join/vil4k7") == "VIL4K7")
+        #expect(JoinWithCodeViewModel.formattedInput("https://exemple.com/join/VIL4K7") == "https://exemple.com/join/VIL4K7")
+
+        let model = JoinWithCodeViewModel(repositories: .fake(behavior: .instant), householdId: "household-voisin-9")
+        model.updateInput("vil-4k")
+        #expect(model.displayedCode == "VIL4K")
+        model.updateInput("grenier://join/VIL4K7")
+        #expect(model.input == "VIL4K7")
+        #expect(model.recognizedLink)
+        #expect(model.canJoin)
+        model.updateInput("https://exemple.com/x")
+        #expect(model.isUnrecognizedLink)
+        #expect(!model.recognizedLink)
+        #expect(!model.canJoin)
+        #expect(model.displayedCode.isEmpty)
+        model.updateInput("")
+        #expect(!model.isUnrecognizedLink)
+    }
+
     @Test func publicGroupsAreSortedByDistance() throws {
         let origin = try #require(Geohash.center(of: "f25dv"))
         func group(_ id: String, _ geohash: String, isPublic: Bool = true) -> NeighborhoodGroup {

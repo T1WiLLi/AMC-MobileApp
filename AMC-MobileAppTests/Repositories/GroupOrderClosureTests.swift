@@ -10,7 +10,8 @@ struct GroupOrderClosureTests {
     static let after = deadline.addingTimeInterval(3_600)
 
     static let coordinator = ClosurePolicyTests.user(household: "h1")
-    static let coordinatorMembership = ClosurePolicyTests.member("h1", role: .coordinator)
+    /// `coordinatorIds` du groupe : l'utilisateur de test (`u1`) en fait partie.
+    static let coordinatorIds = [coordinator.id]
 
     /// Commande « go1 » : h1 6 parts, h2 8 parts, h3 8 parts (22 parts → palier à 9,90 $), ou `shares` donnés.
     static func repository(
@@ -27,7 +28,7 @@ struct GroupOrderClosureTests {
         )
     }
 
-    static let manual = GroupOrderClosureTrigger.manual(user: coordinator, membership: coordinatorMembership)
+    static let manual = GroupOrderClosureTrigger.manual(user: coordinator, groupCoordinatorIds: coordinatorIds)
 
     @Test func confirmedClosurePaysEveryShareAtTheFrozenTierPrice() async throws {
         let repository = Self.repository()
@@ -73,7 +74,7 @@ struct GroupOrderClosureTests {
         let repository = Self.repository()
         let member = GroupOrderClosureTrigger.manual(
             user: ClosurePolicyTests.user(household: "h2"),
-            membership: ClosurePolicyTests.member("h2", role: .member)
+            groupCoordinatorIds: ["autre-coordonnateur"]
         )
         await #expect(throws: AppError.invalidInput(ClosurePolicy.notAllowedMessage)) {
             try await repository.closeGroupOrder(id: "go1", trigger: member)
@@ -85,7 +86,7 @@ struct GroupOrderClosureTests {
     @Test func vendorOfTheLotCanClose() async throws {
         let repository = Self.repository()
         let vendor = GroupOrderClosureTrigger.manual(
-            user: ClosurePolicyTests.user(household: nil, vendor: Self.offer.vendorId), membership: nil
+            user: ClosurePolicyTests.user(household: nil, vendor: Self.offer.vendorId), groupCoordinatorIds: []
         )
         let closure = try await repository.closeGroupOrder(id: "go1", trigger: vendor)
         #expect(closure.order.status == .closed)

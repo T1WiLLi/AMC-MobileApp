@@ -179,27 +179,36 @@ private struct FamilyHomeContent: View {
     }
 
     var body: some View {
-        ScrollView {
-            VStack(alignment: .leading, spacing: 24) {
-                if let largeGreeting {
-                    Text(largeGreeting)
-                        .font(.largeTitle.bold())
-                        .foregroundStyle(Color.texte)
-                        .fixedSize(horizontal: false, vertical: true)
-                        .accessibilityAddTraits(.isHeader)
-                }
+        ScrollViewReader { scroller in
+            ScrollView {
+                VStack(alignment: .leading, spacing: 24) {
+                    if let largeGreeting {
+                        Text(largeGreeting)
+                            .font(.largeTitle.bold())
+                            .foregroundStyle(Color.texte)
+                            .fixedSize(horizontal: false, vertical: true)
+                            .accessibilityAddTraits(.isHeader)
+                    }
 
-                ForEach(Array(sections.enumerated()), id: \.element) { index, section in
-                    view(for: section)
-                        .cascadeAppear(index)
-                        .sectionArrangeTilt(isArrangingSections)
-                        .transition(.opacity.combined(with: .scale(scale: 0.96)))
+                    ForEach(Array(sections.enumerated()), id: \.element) { index, section in
+                        view(for: section)
+                            .id(section)
+                            .cascadeAppear(index)
+                            .sectionArrangeTilt(isArrangingSections)
+                            .transition(.opacity.combined(with: .scale(scale: 0.96)))
+                    }
+                }
+                .animation(reduceMotion ? nil : .smooth, value: sections)
+                .padding(.horizontal, 16)
+                .padding(.bottom, 24)
+            }
+            // FB-19 : les deux étapes de l'Accueil montrent les nouveaux lots ; on les amène à l'écran.
+            .onChange(of: GuidedTour.shared.currentStep, initial: true) { _, step in
+                guard step?.screen == .home, sections.contains(.offers) else { return }
+                withAnimation(reduceMotion ? nil : .smooth) {
+                    scroller.scrollTo(HomeSection.offers, anchor: UnitPoint(x: 0.5, y: 0.25))
                 }
             }
-            .animation(reduceMotion ? nil : .smooth, value: sections)
-            .padding(.horizontal, 16)
-            .padding(.bottom, 24)
-            .guidedTourTip(.home)
         }
         // Pendant le réarrangement, l'Accueil n'est qu'un aperçu : pas de toucher par erreur sur une carte inclinée.
         .allowsHitTesting(!isArrangingSections)
@@ -284,6 +293,7 @@ private struct FamilyHomeContent: View {
         let visibleCount = HomeOfferFilter.visibleCount(total: filtered.count, isExpanded: showsAllOffers)
         return VStack(alignment: .leading, spacing: 12) {
             GrenierSectionHeader(String(localized: "Nouveaux lots près de toi"), systemImage: "sparkles", info: .offers)
+                .guidedTourAnchor(.nearbyOffers)
             if content.newOffers.isEmpty {
                 NoNewOfferCard()
             } else {
@@ -309,6 +319,7 @@ private struct FamilyHomeContent: View {
                             NewOfferRow(summary: summary)
                                 .grenierZoomSource(OfferRoute(offerId: summary.offer.id))
                         }
+                        .modifier(TourAnchorIfFirst(isFirst: index == 0))
                         .buttonStyle(.plain)
                         .transition(.opacity)
                     }
@@ -832,4 +843,17 @@ private extension View {
 #Preview("Chargement") {
     FamilyHomeSkeleton()
         .grenierBackground()
+}
+
+/// FB-19 : le premier lot de la liste porte l'étape « Réserve ta part » de la visite guidée.
+private struct TourAnchorIfFirst: ViewModifier {
+    let isFirst: Bool
+
+    func body(content: Content) -> some View {
+        if isFirst {
+            content.guidedTourAnchor(.reserveShare)
+        } else {
+            content
+        }
+    }
 }

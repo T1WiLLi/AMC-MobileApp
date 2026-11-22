@@ -183,7 +183,7 @@ struct ProfileScreen: View {
                 }
 
                 Section {
-                    // FB-19 : rejoue la visite de Noisette sans redémarrer (voir `GuidedTour`).
+                    // FB-19 : rejoue le tutoriel de Noisette sans redémarrer (voir `GuidedTour`).
                     if portal == .family && GuidedTour.shared.isEnabled {
                         Button {
                             dismiss()
@@ -194,13 +194,13 @@ struct ProfileScreen: View {
                             }
                         } label: {
                             Label {
-                                Text("Revoir la visite guidée")
+                                Text("Revoir le tutoriel avec \(MascotView.name)")
                                     .foregroundStyle(Color.texte)
                             } icon: {
                                 RowIcon(systemImage: "figure.wave", tint: .grenier)
                             }
                         }
-                        .accessibilityHint("\(MascotView.name) te remontre l'app, en commençant par l'Accueil")
+                        .accessibilityHint("\(MascotView.name) te remontre l'app, étape par étape, en commençant par l'Accueil")
                     }
                     // Geste caché (RQ-114) : 5 taps ou appui long ouvrent les outils de démo.
                     AppVersionLabel()

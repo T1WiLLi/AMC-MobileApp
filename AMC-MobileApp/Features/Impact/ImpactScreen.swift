@@ -46,7 +46,6 @@ struct ImpactScreen: View {
                 }
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
-            .guidedTourTip(.impact)
             .grenierBackground()
             .navigationTitle("Impact")
             .profileToolbar()
@@ -99,6 +98,7 @@ private struct ImpactContentView: View {
 
                 ImpactSectionTitle("Ce mois-ci", systemImage: "calendar", tint: .economie)
                 ImpactSummaryCard(snapshot: snapshot)
+                    .guidedTourAnchor(.impact)
 
                 if !content.byProduct.isEmpty {
                     ImpactSectionTitle("Économies par produit", systemImage: "chart.bar.xaxis", tint: .economie)

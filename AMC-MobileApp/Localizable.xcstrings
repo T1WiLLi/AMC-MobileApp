@@ -860,6 +860,16 @@
         }
       }
     },
+    "%@ + %lld" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ + %2$lld"
+          }
+        }
+      }
+    },
     "%@ : %@" : {
       "localizations" : {
         "en" : {
@@ -28092,6 +28102,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Areas served"
+          }
+        }
+      }
+    },
+    "Zoome pour séparer les bulles" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zooms in to separate the bubbles"
           }
         }
       }

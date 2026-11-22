@@ -22,6 +22,10 @@ struct VendorDemandMapScreen: View {
     @State private var searchText = ""
     @State private var camera: MapCameraPosition = .region(.montreal)
     @State private var visibleRegion: MKCoordinateRegion = .montreal
+    /// Taille de la carte (points), pour regrouper les bulles trop proches à l'écran.
+    @State private var mapSize: CGSize = .zero
+    /// Points au même endroit : zoomer ne les sépare pas, on propose de choisir.
+    @State private var stackedCluster: MapCluster<DemandPoint>?
     @FocusState private var isSearchFocused: Bool
 
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
@@ -147,9 +151,11 @@ struct VendorDemandMapScreen: View {
     // MARK: Carte
 
     private func mapView(_ points: [DemandPoint]) -> some View {
+        // Comme la carte des familles (`MapClustering`) : les bulles trop proches à ce zoom se regroupent
+        // en une bulle qui additionne la demande ; la toucher zoome pour les séparer.
         Map(position: $camera, interactionModes: [.pan, .zoom], selection: $viewModel.selectedPointID) {
-            ForEach(points) { point in
-                if let coordinate = point.coordinate {
+            ForEach(viewModel.annotations) { cluster in
+                if cluster.isSingle, let point = cluster.members.first, let coordinate = point.coordinate {
                     Annotation(point.displayName, coordinate: coordinate, anchor: .center) {
                         DemandBubble(
                             point: point,
@@ -161,6 +167,18 @@ struct VendorDemandMapScreen: View {
                     }
                     .annotationTitles(.hidden)
                     .tag(point.id)
+                } else {
+                    Annotation(DemandFormatting.clusterTitle(cluster.members), coordinate: cluster.coordinate.location,
+                               anchor: .center) {
+                        DemandBubble(
+                            cluster: cluster.members,
+                            isSelected: cluster.contains(id: viewModel.selectedPointID),
+                            reduceMotion: reduceMotion
+                        ) {
+                            open(cluster)
+                        }
+                    }
+                    .annotationTitles(.hidden)
                 }
             }
         }
@@ -168,6 +186,21 @@ struct VendorDemandMapScreen: View {
         .mapControls {}
         .onMapCameraChange(frequency: .onEnd) { context in
             visibleRegion = context.region
+            updateClusterViewport()
+        }
+        .onGeometryChange(for: CGSize.self, of: \.size) { size in
+            mapSize = size
+            updateClusterViewport()
+        }
+        .confirmationDialog(
+            stackedCluster.map { DemandFormatting.clusterTitle($0.members) } ?? "",
+            isPresented: Binding(get: { stackedCluster != nil }, set: { if !$0 { stackedCluster = nil } }),
+            titleVisibility: .visible,
+            presenting: stackedCluster
+        ) { cluster in
+            ForEach(cluster.members) { point in
+                Button(point.displayName) { select(point) }
+            }
         }
         .ignoresSafeArea(edges: [.top, .bottom])
         .accessibilityElement(children: .contain)
@@ -394,6 +427,24 @@ struct VendorDemandMapScreen: View {
         }
     }
 
+    private func updateClusterViewport() {
+        viewModel.mapViewportChanged(MapClustering.Viewport(
+            latitudeDelta: visibleRegion.span.latitudeDelta, longitudeDelta: visibleRegion.span.longitudeDelta,
+            width: Double(mapSize.width), height: Double(mapSize.height)))
+    }
+
+    /// Bulle regroupée : zoome pour séparer les points ; s'ils sont au même endroit, propose de choisir.
+    private func open(_ cluster: MapCluster<DemandPoint>) {
+        guard let region = MapClustering.zoomRegion(for: cluster.members.compactMap { $0.coordinate.map(Geohash.Coordinate.init) }) else {
+            stackedCluster = cluster
+            return
+        }
+        let target = MKCoordinateRegion(
+            center: region.center.location,
+            span: MKCoordinateSpan(latitudeDelta: region.latitudeDelta, longitudeDelta: region.longitudeDelta))
+        withAnimation(reduceMotion ? nil : .smooth(duration: 0.6)) { camera = .region(target) }
+    }
+
     private func focusCamera(on point: DemandPoint) {
         guard displayMode == .map, let coordinate = point.coordinate else { return }
         // Garde la bulle dans le tiers haut, au-dessus de la feuille du bas.
@@ -429,16 +480,51 @@ struct VendorDemandMapScreen: View {
             camera = .region(region)
         }
         visibleRegion = region
+        updateClusterViewport()
     }
 }
 
 // MARK: - Bulle de la carte
 
 private struct DemandBubble: View {
-    let point: DemandPoint
+    /// Familles intéressées (somme pour une bulle regroupée).
+    let value: Int
+    let name: String
+    let intensity: Double
+    let isHighDemand: Bool
+    /// Nombre de points dans la bulle (1 = un seul quartier).
+    let count: Int
+    let accessibilityText: String
     let isSelected: Bool
     let reduceMotion: Bool
     let action: () -> Void
+
+    init(point: DemandPoint, isSelected: Bool, reduceMotion: Bool, action: @escaping () -> Void) {
+        value = point.interestedHouseholds
+        name = point.displayName
+        intensity = point.intensity
+        isHighDemand = point.isHighDemand
+        count = 1
+        accessibilityText = point.accessibilityDescription
+        self.isSelected = isSelected
+        self.reduceMotion = reduceMotion
+        self.action = action
+    }
+
+    /// Bulle regroupée : la demande additionnée, la taille du point le plus demandeur.
+    init(cluster points: [DemandPoint], isSelected: Bool, reduceMotion: Bool, action: @escaping () -> Void) {
+        value = points.reduce(0) { $0 + $1.interestedHouseholds }
+        name = DemandFormatting.clusterTitle(points)
+        intensity = points.map(\.intensity).max() ?? 0
+        isHighDemand = points.contains(where: \.isHighDemand)
+        count = points.count
+        accessibilityText = "\(name), \(DemandFormatting.families(value))"
+        self.isSelected = isSelected
+        self.reduceMotion = reduceMotion
+        self.action = action
+    }
+
+    private var isCluster: Bool { count > 1 }
 
     @ScaledMetric(relativeTo: .body) private var minimumDiameter: CGFloat = 48
     @ScaledMetric(relativeTo: .body) private var maximumDiameter: CGFloat = 96
@@ -447,32 +533,53 @@ private struct DemandBubble: View {
     private var diameter: CGFloat {
         let low = min(minimumDiameter, 72)
         let high = max(min(maximumDiameter, 128), low)
-        return low + (high - low) * CGFloat(point.intensity.squareRoot())
+        return low + (high - low) * CGFloat(intensity.squareRoot())
     }
 
     var body: some View {
+        if isCluster {
+            Button(action: action) { bubble }
+                .buttonStyle(.plain)
+        } else {
+            bubble
+        }
+    }
+
+    private var bubble: some View {
         VStack(spacing: 0) {
-            if point.isHighDemand {
+            if isHighDemand {
                 Image(systemName: "flame.fill")
                     .font(.caption.bold())
                     .symbolEffect(.bounce, options: .nonRepeating, value: reduceMotion ? false : isSelected)
             }
-            Text(point.interestedHouseholds, format: .number)
-                .font(point.isHighDemand ? .title2.bold() : .headline)
+            Text(value, format: .number)
+                .font(isHighDemand ? .title2.bold() : .headline)
                 .fontDesign(.rounded)
                 .monospacedDigit()
                 .minimumScaleFactor(0.6)
                 .lineLimit(1)
         }
-            .foregroundStyle(point.isHighDemand ? Color.onAccent : Color.grenier)
+            .foregroundStyle(isHighDemand ? Color.onAccent : Color.grenier)
             .padding(6)
             .frame(width: diameter, height: diameter)
             .background {
-                Circle().fill(point.isHighDemand ? Color.grenier.opacity(0.9) : Color.grenier.opacity(0.16))
+                Circle().fill(isHighDemand ? Color.grenier.opacity(0.9) : Color.grenier.opacity(0.16))
+            }
+            .background {
+                // Bulle regroupée : deux disques empilés derrière, comme l'épingle pile des familles.
+                if isCluster {
+                    ForEach(1...2, id: \.self) { index in
+                        Circle()
+                            .fill(Color.surface)
+                            .overlay { Circle().fill(Color.grenier.opacity(0.22)) }
+                            .overlay { Circle().strokeBorder(Color.grenier.opacity(0.55), lineWidth: 1.5) }
+                            .offset(x: CGFloat(index) * diameter * 0.1, y: -CGFloat(index) * diameter * 0.08)
+                    }
+                }
             }
             .overlay {
                 Circle().strokeBorder(
-                    isSelected ? Color.texte : Color.grenier.opacity(point.isHighDemand ? 1 : 0.55),
+                    isSelected ? Color.texte : Color.grenier.opacity(isHighDemand ? 1 : 0.55),
                     lineWidth: isSelected ? 3 : 1.5
                 )
             }
@@ -480,7 +587,7 @@ private struct DemandBubble: View {
             .scaleEffect(isSelected && !reduceMotion ? 1.08 : 1)
             .contentShape(.circle)
             .overlay(alignment: .bottom) {
-                Text(point.displayName)
+                Text(name)
                     .font(.caption.weight(.semibold))
                     .foregroundStyle(Color.texte)
                     .lineLimit(1)
@@ -495,8 +602,8 @@ private struct DemandBubble: View {
             }
             .animation(reduceMotion ? nil : .spring(duration: 0.35, bounce: 0.3), value: isSelected)
             .accessibilityElement(children: .ignore)
-            .accessibilityLabel(point.accessibilityDescription)
-            .accessibilityHint("Affiche les produits voulus")
+            .accessibilityLabel(accessibilityText)
+            .accessibilityHint(isCluster ? String(localized: "Zoome pour séparer les bulles") : String(localized: "Affiche les produits voulus"))
             .accessibilityAddTraits(isSelected ? [.isButton, .isSelected] : .isButton)
             .accessibilityAction { action() }
     }
@@ -963,6 +1070,12 @@ extension DemandMapViewModel.Scope {
 /// Formulations de V3 (testées dans `DemandMapFormattingTests`).
 nonisolated enum DemandFormatting {
     /// « 1 famille », « 24 familles ».
+    /// Bulle regroupée : « Saint-Michel + 2 » (le point le plus demandeur, puis le nombre d'autres).
+    @MainActor static func clusterTitle(_ points: [DemandMapViewModel.DemandPoint]) -> String {
+        guard let top = points.max(by: { $0.demandScore < $1.demandScore }) else { return "" }
+        return String(localized: "\(top.displayName) + \(points.count - 1)")
+    }
+
     static func families(_ count: Int) -> String {
         "\(count.formatted(.number.locale(AppLanguage.formattingLocale))) \(FrenchPlural.word(count, "famille", plural: "familles"))"
     }

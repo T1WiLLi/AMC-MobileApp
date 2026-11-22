@@ -43,6 +43,15 @@ nonisolated struct CachedGroupOrderRepository: GroupOrderRepository {
         }
     }
 
+    /// T-195 : données financières lues telles quelles, sans cache.
+    func payments(ofGroupOrder groupOrderId: String) async throws -> [PaymentRecord] {
+        try await base.payments(ofGroupOrder: groupOrderId)
+    }
+
+    func vendorPayout(ofGroupOrder groupOrderId: String) async throws -> VendorPayoutRecord? {
+        try await base.vendorPayout(ofGroupOrder: groupOrderId)
+    }
+
     /// T-174 : lecture directe (un ancien membre ne peut lire que sa propre part, pas toute la liste en cache).
     func share(ofHousehold householdId: String, inGroupOrder groupOrderId: String) async throws -> Share? {
         try await base.share(ofHousehold: householdId, inGroupOrder: groupOrderId)

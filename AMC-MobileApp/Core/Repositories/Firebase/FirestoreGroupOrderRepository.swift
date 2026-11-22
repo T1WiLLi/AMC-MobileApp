@@ -57,6 +57,15 @@ nonisolated final class FirestoreGroupOrderRepository: GroupOrderRepository, @un
     private func offerRef(_ id: String) -> DocumentReference {
         db.collection(FirestoreCollection.offers).document(id)
     }
+    private func paymentsRef(_ orderId: String) -> CollectionReference {
+        db.collection(FirestoreCollection.payments(ofGroupOrder: orderId))
+    }
+    private func payoutRef(_ orderId: String) -> DocumentReference {
+        db.collection(FirestoreCollection.payouts(ofGroupOrder: orderId)).document(FirestoreCollection.vendorPayoutDocumentId)
+    }
+    private func fundRef(_ groupId: String) -> DocumentReference {
+        db.collection(FirestoreCollection.solidarity(ofGroup: groupId)).document(FirestoreCollection.solidarityFundDocumentId)
+    }
 
     // MARK: - Lectures
 
@@ -88,6 +97,26 @@ nonisolated final class FirestoreGroupOrderRepository: GroupOrderRepository, @un
         do {
             let snapshot = try await sharesRef(groupOrderId).document(householdId).getDocument()
             return snapshot.exists ? try Self.decodeShare(snapshot) : nil
+        } catch {
+            throw Self.appError(from: error)
+        }
+    }
+
+    /// T-195 : paiements enregistrés à la clôture (firestore.rules : le vendeur du lot et la coordination les lisent tous).
+    func payments(ofGroupOrder groupOrderId: String) async throws -> [PaymentRecord] {
+        do {
+            let snapshot = try await paymentsRef(groupOrderId).getDocuments()
+            return try snapshot.documents.map { try $0.data(as: PaymentRecord.self) }.sorted { $0.householdId < $1.householdId }
+        } catch {
+            throw Self.appError(from: error)
+        }
+    }
+
+    /// T-195 : récapitulatif du versement au vendeur, nil si la commande n'est pas fermée avec des paiements.
+    func vendorPayout(ofGroupOrder groupOrderId: String) async throws -> VendorPayoutRecord? {
+        do {
+            let snapshot = try await payoutRef(groupOrderId).getDocument()
+            return snapshot.exists ? try snapshot.data(as: VendorPayoutRecord.self) : nil
         } catch {
             throw Self.appError(from: error)
         }
@@ -166,6 +195,8 @@ nonisolated final class FirestoreGroupOrderRepository: GroupOrderRepository, @un
         let shareRef = sharesRef(groupOrderId).document(householdId)
         // Copié dans la part pour l'hôte, qui ne peut pas lire `households/{id}` ; jamais bloquant.
         let householdName = quantity > 0 ? await householdName(of: householdId) : nil
+        // T-195 : statut subventionné de mon ménage, copié dans ma part pour la clôture (profil privé illisible d'ailleurs).
+        let eligible = quantity > 0 ? await isSubsidized(householdId) : false
 
         return try await withFreshShareList(groupOrderId) { knownIds in
             let shareRefs = knownIds.filter { $0 != householdId }.map { self.sharesRef(groupOrderId).document($0) }
@@ -195,6 +226,7 @@ nonisolated final class FirestoreGroupOrderRepository: GroupOrderRepository, @un
                     share.quantity = quantity
                     share.updatedAt = now
                     if let householdName { share.householdName = householdName }
+                    if eligible || mine?.solidarityEligible != nil { share.solidarityEligible = eligible }
                     newShares.append(share)
                     if mine == nil {
                         transaction.setData(try Firestore.Encoder().encode(share), forDocument: shareRef)
@@ -206,6 +238,7 @@ nonisolated final class FirestoreGroupOrderRepository: GroupOrderRepository, @un
                         if let householdName, mine?.householdName != householdName {
                             fields["householdName"] = householdName
                         }
+                        if eligible != (mine?.solidarityEligible ?? false) { fields["solidarityEligible"] = eligible }
                         transaction.updateData(fields, forDocument: shareRef)
                     }
                 } else if mine != nil {
@@ -223,6 +256,14 @@ nonisolated final class FirestoreGroupOrderRepository: GroupOrderRepository, @un
     private func householdName(of householdId: String) async -> String? {
         let snapshot = try? await db.collection(FirestoreCollection.households).document(householdId).getDocument()
         return ShareHouseholdName.normalized(snapshot?.data()?["name"] as? String)
+    }
+
+    /// Statut subventionné de mon ménage (`households/{id}/private/profile`, code d'organisme valide), faux s'il est illisible.
+    private func isSubsidized(_ householdId: String) async -> Bool {
+        let path = FirestoreCollection.householdPrivate(householdId)
+        guard let snapshot = try? await db.collection(path).document(FirestoreCollection.householdPrivateDocumentId).getDocument(),
+              snapshot.exists, let profile = try? snapshot.data(as: HouseholdPrivate.self) else { return false }
+        return ReferralCode.eligibleHouseholdIds([householdId: profile]).contains(householdId)
     }
 
     /// T-181 : panier suspendu de ma part, fixé à `amountCents`. Seuls `suspendedAmountCents` et `updatedAt` changent
@@ -251,10 +292,14 @@ nonisolated final class FirestoreGroupOrderRepository: GroupOrderRepository, @un
         return updated
     }
 
-    /// RQ-053, RQ-054, E21-2 : clôture la commande (coordonnateur du groupe ou vendeur du lot, ou automatiquement
+    /// RQ-053, RQ-054, E21-2, T-195 : clôture la commande (coordonnateur du groupe ou vendeur du lot, ou automatiquement
     /// après la date limite), voir `GroupOrderClosing.close`. Dans la même transaction : palier figé, prix final,
-    /// subvention de chaque part (`ShareAllocator`), puis paiement simulé de chaque part au pot
-    /// (`isPaid` à true si le paiement réussit). Lève `.orderClosed` si elle est déjà fermée.
+    /// subvention de chaque part (`ShareAllocator`), paiement simulé de chaque part au pot (`isPaid` à true
+    /// si le paiement réussit), un `PaymentRecord` par part payée (`groupOrders/{id}/payments/{householdId}`), le
+    /// récapitulatif du versement au vendeur (`payouts/vendor`) et le débit du fonds de solidarité
+    /// (`groups/{g}/solidarity/fund`, jamais sous zéro). `eligibleHouseholdIds` s'ajoute aux ménages qui se sont déclarés
+    /// admissibles dans leur part ; le solde du fonds est lu dans la transaction (`solidarityFundCents` ne sert que
+    /// s'il n'y a pas de document de fonds). Lève `.orderClosed` si elle est déjà fermée.
     @discardableResult
     func closeGroupOrder(
         id groupOrderId: String,
@@ -272,10 +317,19 @@ nonisolated final class FirestoreGroupOrderRepository: GroupOrderRepository, @un
                     orderRef, shares: shareRefs, offerRef: self.offerRef, in: transaction
                 )
                 try Self.checkInvariant(order, shares: shares)
+                // Toutes les lectures avant la première écriture (règle des transactions Firestore).
+                let fundRef = self.fundRef(order.groupId)
+                let fundSnapshot = try transaction.getDocument(fundRef)
+                let fundDocument = fundSnapshot.exists ? try? fundSnapshot.data(as: SolidarityFundDocument.self) : nil
+                let vendorSnapshot = try transaction.getDocument(
+                    self.db.collection(FirestoreCollection.vendors).document(offer.vendorId)
+                )
+                let vendorIsVerified = vendorSnapshot.data()?["isVerified"] as? Bool ?? false
+
                 let closure = try GroupOrderClosing.close(
                     order: order, offer: offer, shares: shares, trigger: trigger, now: now,
                     eligibleHouseholdIds: eligibleHouseholdIds, solidarityFundCents: solidarityFundCents,
-                    payments: payments
+                    fund: fundDocument?.fund, vendorIsVerified: vendorIsVerified, payments: payments
                 )
                 let wasPaid = Set(shares.filter(\.isPaid).map(\.householdId))
                 for share in closure.shares {
@@ -287,6 +341,23 @@ nonisolated final class FirestoreGroupOrderRepository: GroupOrderRepository, @un
                     // Paiement simulé réussi : seul passage de `isPaid` à true (firestore.rules, clôture).
                     if share.isPaid, !wasPaid.contains(share.householdId) { fields["isPaid"] = true }
                     transaction.updateData(fields, forDocument: self.sharesRef(groupOrderId).document(share.householdId))
+                }
+                // T-195 : un paiement enregistré par part payée, jamais modifié ensuite (firestore.rules).
+                for record in closure.payments where record.status == .succeeded {
+                    transaction.setData(
+                        try Firestore.Encoder().encode(record),
+                        forDocument: self.paymentsRef(groupOrderId).document(record.householdId)
+                    )
+                }
+                if let payout = closure.vendorPayout, closure.isConfirmed {
+                    transaction.setData(try Firestore.Encoder().encode(payout), forDocument: self.payoutRef(groupOrderId))
+                }
+                if let entry = closure.fundEntry, let document = fundDocument {
+                    // arrayUnion : les écritures déjà là ne sont pas réécrites (firestore.rules, isClosureDebit).
+                    transaction.updateData([
+                        "entries": FieldValue.arrayUnion([try Firestore.Encoder().encode(entry)]),
+                        "balanceCents": document.fund.balanceCents - entry.amountCents,
+                    ], forDocument: fundRef)
                 }
                 transaction.updateData(Self.counterFields(closure.order), forDocument: orderRef)
                 return closure

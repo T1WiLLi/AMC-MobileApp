@@ -94,6 +94,6 @@ final class GroupInvitationsViewModel {
     /// Message prêt à envoyer avec le lien d'invitation.
     nonisolated static func shareMessage(groupName: String, invitation: GroupInvitation) -> String {
         let link = invitation.shareURL?.absoluteString ?? invitation.code
-        return String(localized: "Je t'invite dans « \(groupName) » sur Grenier, un groupe privé. Cette invitation sert une seule fois : \(link) (code \(invitation.code))")
+        return String(localized: "Je t'invite dans « \(groupName) » sur LeGrenier, un groupe privé. Cette invitation sert une seule fois : \(link) (code \(invitation.code))")
     }
 }

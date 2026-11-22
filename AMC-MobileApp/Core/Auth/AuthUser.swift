@@ -16,8 +16,10 @@ struct AuthUser: Identifiable, Hashable, Sendable {
 }
 
 extension AuthUser {
+    /// Connexion Google fake (`FakeAuthService`) : la même personne que le ménage de démo (`FakeData`, Amina Benali),
+    /// pour que le choix du portail, l'Accueil et le Profil disent tous le même prénom.
     static let sample = AuthUser(
-        id: "fake-uid-001",
+        id: FakeData.ID.amina,
         displayName: "Amina Benali",
         email: "amina.benali@example.com",
         photoURL: nil

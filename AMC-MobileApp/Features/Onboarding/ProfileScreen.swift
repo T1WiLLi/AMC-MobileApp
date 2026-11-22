@@ -74,6 +74,8 @@ struct ProfileScreen: View {
                             RowIcon(systemImage: "slider.horizontal.3", tint: .economie)
                         }
                     }
+                    // RQ-019 : le mode aîné à portée de main, sans fouiller dans Préférences.
+                    SeniorModeToggleRow()
                 } header: {
                     ProfileSectionHeader(String(localized: "Ma famille"), systemImage: "figure.2.and.child.holdinghands")
                 }

@@ -106,6 +106,25 @@ nonisolated final class FirestoreGroupRepository: GroupRepository, @unchecked Se
         return stream
     }
 
+    /// FB-22 : même requête de groupe de collections que `groups(ofHousehold:)`, en écoute. Un membre du
+    /// ménage qui rejoint ou quitte un groupe sur son téléphone apparaît chez les autres sans recharger.
+    func observeGroupIds(ofHousehold householdId: String) async -> AsyncThrowingStream<Set<String>, any Error> {
+        let (stream, continuation) = AsyncThrowingStream<Set<String>, any Error>.makeStream()
+        let registration = db.collectionGroup("members")
+            .whereField("householdId", isEqualTo: householdId)
+            .addSnapshotListener { snapshot, error in
+                if let error {
+                    continuation.finish(throwing: FirestoreGroupOrderRepository.appError(from: error))
+                    return
+                }
+                let ids = (snapshot?.documents ?? []).compactMap { $0.reference.parent.parent?.documentID }
+                continuation.yield(Set(ids))
+            }
+        let box = GroupListenerBox(registration: registration)
+        continuation.onTermination = { _ in box.registration.remove() }
+        return stream
+    }
+
     // MARK: - Écritures
 
     /// Ajoute le ménage au groupe et incrémente `householdCount` ; sans effet s'il en fait déjà partie.

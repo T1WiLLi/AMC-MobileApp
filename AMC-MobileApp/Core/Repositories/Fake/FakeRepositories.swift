@@ -12,6 +12,10 @@ actor FakeUserRepository: UserRepository {
     private var addresses: [String: HouseholdAddressEntry]
     private var joinRequests: [String: [String: HouseholdJoinRequest]]
 
+    /// FB-22 : écoutes en temps réel du ménage (tous les membres) et des demandes (propriétaire, dont on garde l'uid).
+    private var householdBroadcaster = FakeBroadcaster<Household>()
+    private var requestObservers: [String: [UUID: (userId: String, continuation: AsyncThrowingStream<[HouseholdJoinRequest], any Error>.Continuation)]] = [:]
+
     init(behavior: FakeBehavior = .instant, users: [AppUser] = [], households: [Household] = [],
          addresses: [HouseholdAddressEntry] = [], joinRequests: [HouseholdJoinRequest] = []) {
         self.behavior = behavior
@@ -46,7 +50,34 @@ actor FakeUserRepository: UserRepository {
 
     func saveHousehold(_ household: Household) async throws {
         try await behavior.simulate()
+        store(household)
+    }
+
+    /// Enregistre le ménage et prévient ceux qui l'écoutent (et les demandes, si le propriétaire a changé).
+    private func store(_ household: Household) {
         households[household.id] = household
+        householdBroadcaster.send(household, for: household.id)
+        sendJoinRequests(of: household.id)
+    }
+
+    private func pendingRequests(of householdId: String) -> [HouseholdJoinRequest] {
+        (joinRequests[householdId] ?? [:]).values
+            .filter { $0.status == .pending }
+            .sorted { $0.createdAt < $1.createdAt }
+    }
+
+    /// Envoie les demandes en attente au propriétaire ; un ancien propriétaire perd l'accès (comme avec les règles).
+    private func sendJoinRequests(of householdId: String) {
+        guard let observers = requestObservers[householdId], let household = households[householdId] else { return }
+        let pending = pendingRequests(of: householdId)
+        for (token, observer) in observers {
+            if HouseholdMembership.isOwner(observer.userId, of: household) {
+                observer.continuation.yield(pending)
+            } else {
+                observer.continuation.finish(throwing: AppError.permissionDenied)
+                requestObservers[householdId]?[token] = nil
+            }
+        }
     }
 
     // MARK: T-159 — ménage partagé (mêmes règles que firestore.rules)
@@ -72,6 +103,7 @@ actor FakeUserRepository: UserRepository {
         var pending = request
         pending.status = .pending
         joinRequests[request.householdId, default: [:]][request.userId] = pending
+        sendJoinRequests(of: request.householdId)
     }
 
     func joinRequest(householdId: String, userId: String) async throws -> HouseholdJoinRequest? {
@@ -83,14 +115,13 @@ actor FakeUserRepository: UserRepository {
         try await behavior.simulate()
         guard let household = households[householdId] else { throw AppError.notFound }
         guard HouseholdMembership.isOwner(userId, of: household) else { throw AppError.permissionDenied }
-        return (joinRequests[householdId] ?? [:]).values
-            .filter { $0.status == .pending }
-            .sorted { $0.createdAt < $1.createdAt }
+        return pendingRequests(of: householdId)
     }
 
     func deleteJoinRequest(householdId: String, userId: String) async throws {
         try await behavior.simulate()
         joinRequests[householdId]?[userId] = nil
+        sendJoinRequests(of: householdId)
     }
 
     func acceptJoinRequest(householdId: String, userId: String, byUserId ownerId: String) async throws -> Household {
@@ -99,9 +130,9 @@ actor FakeUserRepository: UserRepository {
             throw AppError.notFound
         }
         let updated = try HouseholdMembership.accepting(request, in: household, byUserId: ownerId)
-        households[householdId] = updated
         request.status = .accepted
         joinRequests[householdId]?[userId] = request
+        store(updated)
         return updated
     }
 
@@ -109,8 +140,59 @@ actor FakeUserRepository: UserRepository {
         try await behavior.simulate()
         guard let household = households[householdId] else { throw AppError.notFound }
         let updated = try HouseholdMembership.removing(userId, from: household, byUserId: callerId)
-        households[householdId] = updated
+        store(updated)
         return updated
+    }
+
+    // MARK: FB-22 — propriétaire qui part, temps réel
+
+    func transferOwnership(ofHousehold householdId: String, to newOwnerId: String, byUserId callerId: String) async throws -> Household {
+        try await behavior.simulate()
+        guard let household = households[householdId] else { throw AppError.notFound }
+        let updated = try HouseholdMembership.transferringOwnership(to: newOwnerId, in: household, byUserId: callerId)
+        store(updated)
+        return updated
+    }
+
+    func observeHousehold(id: String) async -> AsyncThrowingStream<Household, any Error> {
+        let (stream, continuation) = AsyncThrowingStream<Household, any Error>.makeStream()
+        guard let household = households[id] else {
+            continuation.finish(throwing: AppError.notFound)
+            return stream
+        }
+        let token = householdBroadcaster.add(continuation, for: id)
+        continuation.onTermination = { [weak self] _ in
+            Task { await self?.stopObservingHousehold(token: token, id: id) }
+        }
+        continuation.yield(household)
+        return stream
+    }
+
+    func observeJoinRequests(ofHousehold householdId: String, byUserId userId: String) async -> AsyncThrowingStream<[HouseholdJoinRequest], any Error> {
+        let (stream, continuation) = AsyncThrowingStream<[HouseholdJoinRequest], any Error>.makeStream()
+        guard let household = households[householdId] else {
+            continuation.finish(throwing: AppError.notFound)
+            return stream
+        }
+        guard HouseholdMembership.isOwner(userId, of: household) else {
+            continuation.finish(throwing: AppError.permissionDenied)
+            return stream
+        }
+        let token = UUID()
+        requestObservers[householdId, default: [:]][token] = (userId, continuation)
+        continuation.onTermination = { [weak self] _ in
+            Task { await self?.stopObservingRequests(token: token, householdId: householdId) }
+        }
+        continuation.yield(pendingRequests(of: householdId))
+        return stream
+    }
+
+    private func stopObservingHousehold(token: UUID, id: String) {
+        householdBroadcaster.remove(token: token, for: id)
+    }
+
+    private func stopObservingRequests(token: UUID, householdId: String) {
+        requestObservers[householdId]?[token] = nil
     }
 
     /// Suppression du compte (`FakeAuthService.deleteAccount()`) : retire l'uid du ménage, puis efface l'utilisateur.
@@ -118,7 +200,7 @@ actor FakeUserRepository: UserRepository {
     func removeUserAndLeaveHousehold(id: String) {
         if let householdId = users[id]?.householdId, var household = households[householdId] {
             household.userIds.removeAll { $0 == id }
-            households[householdId] = household
+            store(household)
         }
         users[id] = nil
     }
@@ -133,6 +215,8 @@ actor FakeGroupRepository: GroupRepository {
     private var broadcaster = FakeBroadcaster<NeighborhoodGroup>()
     /// T-174 : avis des familles, par groupe puis par ménage.
     private var ratings: [String: [String: GroupRating]] = [:]
+    /// FB-22 : groupes d'un ménage, en direct (clé = householdId).
+    private var membershipBroadcaster = FakeBroadcaster<Set<String>>()
 
     /// `ratings` : avis de départ ; les agrégats `ratingSum` / `ratingCount` des groupes concernés en sont recalculés.
     init(behavior: FakeBehavior = .instant, groups: [NeighborhoodGroup] = [], members: [String: [GroupMember]] = [:],
@@ -282,6 +366,7 @@ actor FakeGroupRepository: GroupRepository {
         )
         members[creation.group.id] = [creation.creatorMember]
         update(creation.group)
+        sendGroupIds(of: householdId)
         return creation.group
     }
 
@@ -295,7 +380,30 @@ actor FakeGroupRepository: GroupRepository {
         members[group.id, default: []].append(GroupMember(householdId: householdId, role: .member, joinedAt: .now))
         group.householdCount += 1
         update(group)
+        sendGroupIds(of: householdId)
         return group
+    }
+
+    private func groupIds(of householdId: String) -> Set<String> {
+        Set(members.filter { groupId, list in groups[groupId] != nil && list.contains { $0.householdId == householdId } }.map(\.key))
+    }
+
+    private func sendGroupIds(of householdId: String) {
+        membershipBroadcaster.send(groupIds(of: householdId), for: householdId)
+    }
+
+    func observeGroupIds(ofHousehold householdId: String) async -> AsyncThrowingStream<Set<String>, any Error> {
+        let (stream, continuation) = AsyncThrowingStream<Set<String>, any Error>.makeStream()
+        let token = membershipBroadcaster.add(continuation, for: householdId)
+        continuation.onTermination = { [weak self] _ in
+            Task { await self?.stopObservingGroupIds(token: token, householdId: householdId) }
+        }
+        continuation.yield(groupIds(of: householdId))
+        return stream
+    }
+
+    private func stopObservingGroupIds(token: UUID, householdId: String) {
+        membershipBroadcaster.remove(token: token, for: householdId)
     }
 
     func leave(groupId: String, householdId: String) async throws {
@@ -306,6 +414,7 @@ actor FakeGroupRepository: GroupRepository {
         guard members[groupId, default: []].count < before else { return }
         group.householdCount = max(0, group.householdCount - 1)
         update(group)
+        sendGroupIds(of: householdId)
     }
 
     func observeGroup(id: String) async -> AsyncThrowingStream<NeighborhoodGroup, any Error> {
@@ -563,6 +672,19 @@ actor FakeGroupOrderRepository: GroupOrderRepository {
         groupOrders[groupOrderId] = updated
         broadcaster.send(updated, for: groupOrderId)
         return updated
+    }
+
+    @discardableResult
+    func setSuspendedBasket(_ amountCents: Cents, householdId: String, groupOrderId: String) async throws -> Share {
+        try await behavior.simulate()
+        guard let order = groupOrders[groupOrderId] else { throw AppError.notFound }
+        var orderShares = shares[groupOrderId, default: []]
+        guard let index = orderShares.firstIndex(where: { $0.householdId == householdId }) else { throw AppError.notFound }
+        var share = try SolidarityLedger.settingSuspendedBasket(amountCents, on: orderShares[index], in: order)
+        share.updatedAt = now()
+        orderShares[index] = share
+        shares[groupOrderId] = orderShares
+        return share
     }
 
     @discardableResult

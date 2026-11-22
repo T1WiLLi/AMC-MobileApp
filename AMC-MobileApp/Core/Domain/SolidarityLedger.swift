@@ -102,6 +102,21 @@ nonisolated enum SolidarityLedger {
         return share
     }
 
+    /// T-181 : fixe le panier suspendu de ma part à `amountCents` (0 = aucun) au moment de réserver, sans l'additionner.
+    /// Même plafond que `addingSuspendedBasket`. Lève `.orderClosed` si la commande est fermée.
+    static func settingSuspendedBasket(_ amountCents: Cents, on share: Share, in order: GroupOrder) throws -> Share {
+        guard TierEngine.isOpen(order) else { throw AppError.orderClosed }
+        guard amountCents >= 0 else {
+            throw AppError.invalidInput(String(localized: "Le montant ne peut pas être négatif."))
+        }
+        guard amountCents <= maxSuspendedAmountCents else {
+            throw AppError.invalidInput(String(localized: "Tu peux offrir jusqu'à 200 $ de paniers suspendus par commande."))
+        }
+        var share = share
+        share.suspendedAmountCents = amountCents
+        return share
+    }
+
     /// Retire le panier suspendu de ma part tant que la commande est ouverte.
     static func removingSuspendedBasket(from share: Share, in order: GroupOrder) throws -> Share {
         guard TierEngine.isOpen(order) else { throw AppError.orderClosed }

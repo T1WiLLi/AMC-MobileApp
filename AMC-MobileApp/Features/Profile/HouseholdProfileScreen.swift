@@ -16,7 +16,6 @@ struct HouseholdProfileScreen: View {
         }
         .navigationTitle("Mon ménage")
         .navigationBarTitleDisplayMode(.inline)
-        .seniorModeTextSize()
         .task { if viewModel.state.value == nil { await viewModel.load() } }
     }
 }
@@ -39,6 +38,7 @@ private struct HouseholdForm: View {
     @Environment(\.dismiss) private var dismiss
     @FocusState private var focus: Field?
     @State private var memberToRemove: HouseholdProfileViewModel.Member?
+    @State private var memberToPromote: HouseholdProfileViewModel.Member?
     @State private var confirmsLeave = false
 
     private enum Field { case name, postalCode, code }
@@ -93,8 +93,21 @@ private struct HouseholdForm: View {
         .grenierAnimation(.smooth, value: viewModel.joinRequests)
         .grenierAnimation(.smooth, value: viewModel.members)
         .grenierHaptic(.success, trigger: viewModel.acceptCount)
+        .grenierHaptic(.success, trigger: viewModel.ownershipChangeCount)
         .grenierHaptic(.error, trigger: viewModel.membershipError)
         .refreshable { await viewModel.load() }
+        // FB-22 : membres, propriétaire et demandes en direct, tant que l'écran est ouvert.
+        .task { await viewModel.observe() }
+        .confirmationDialog(
+            "Nommer \(memberToPromote?.name ?? "") propriétaire ?",
+            isPresented: Binding(get: { memberToPromote != nil }, set: { if !$0 { memberToPromote = nil } }),
+            titleVisibility: .visible,
+            presenting: memberToPromote
+        ) { member in
+            Button("Nommer propriétaire") { Task { await viewModel.transferOwnership(to: member) } }
+        } message: { member in
+            Text("\(member.name) acceptera les demandes et gérera les membres. Tu resteras membre du ménage et tu pourras ensuite le quitter.")
+        }
         .confirmationDialog(
             "Retirer \(memberToRemove?.name ?? "") du ménage ?",
             isPresented: Binding(get: { memberToRemove != nil }, set: { if !$0 { memberToRemove = nil } }),
@@ -112,6 +125,14 @@ private struct HouseholdForm: View {
         }
         .onChange(of: viewModel.didLeave) { _, left in
             guard left else { return }
+            Task {
+                await contextStore?.reload()
+                dismiss()
+            }
+        }
+        .onChange(of: viewModel.wasRemoved) { _, removed in
+            // Retiré par le propriétaire pendant que l'écran était ouvert : retour à son propre ménage.
+            guard removed else { return }
             Task {
                 await contextStore?.reload()
                 dismiss()
@@ -215,10 +236,13 @@ private struct HouseholdForm: View {
                 .swipeActions {
                     if viewModel.isOwner, !member.isMe {
                         Button("Retirer", systemImage: "person.badge.minus", role: .destructive) { memberToRemove = member }
+                        Button("Propriétaire", systemImage: "crown") { memberToPromote = member }
+                            .tint(Color.solidarite)
                     }
                 }
                 .contextMenu {
                     if viewModel.isOwner, !member.isMe {
+                        Button("Nommer propriétaire", systemImage: "crown") { memberToPromote = member }
                         Button("Retirer du ménage", systemImage: "person.badge.minus", role: .destructive) { memberToRemove = member }
                     }
                 }
@@ -233,7 +257,9 @@ private struct HouseholdForm: View {
         } header: {
             Label("Membres", systemImage: "person.2.circle.fill")
         } footer: {
-            if viewModel.isOwner {
+            if viewModel.mustTransferBeforeLeaving {
+                Text("Quelqu'un qui s'inscrit à ton adresse peut demander à rejoindre le ménage. Glisse un membre pour le retirer ou le nommer propriétaire : c'est ce qu'il faut faire avant de quitter le ménage.")
+            } else if viewModel.isOwner {
                 Text("Quelqu'un qui s'inscrit à ton adresse peut demander à rejoindre le ménage. Glisse un membre pour le retirer.")
             } else if let owner = viewModel.ownerName {
                 Text("\(owner) gère les membres du ménage. Vous partagez les groupes, les commandes et les cueillettes.")

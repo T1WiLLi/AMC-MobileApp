@@ -40,15 +40,6 @@ struct DemoPathDataTests {
         #expect(offer.tiers[2].priceCents < offer.tiers[1].priceCents)
     }
 
-    @Test func fakeSignUpIsVerifiedInDemoMode() async throws {
-        let demo = FakeAuthService(latency: .zero, autoVerifiesEmail: true)
-        let user = try await demo.signUp(email: "a@b.co", password: "motdepasse1", displayName: "Amina")
-        #expect(!user.needsEmailVerification)
-        let strict = FakeAuthService(latency: .zero)
-        let pending = try await strict.signUp(email: "a@b.co", password: "motdepasse1", displayName: "Amina")
-        #expect(pending.needsEmailVerification)
-    }
-
     @Test func demoUserIsAminaEverywhere() {
         #expect(AuthUser.sample.displayName.hasPrefix("Amina"))
         #expect(FakeData.montreal.users.first?.displayName.hasPrefix("Amina") == true)

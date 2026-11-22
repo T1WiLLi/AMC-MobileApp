@@ -32,6 +32,16 @@ nonisolated protocol UserRepository: Sendable {
     func acceptJoinRequest(householdId: String, userId: String, byUserId ownerId: String) async throws -> Household
     /// Retire `userId` du ménage : le propriétaire retire un membre, ou un membre se retire lui-même.
     func removeMember(_ userId: String, fromHousehold householdId: String, byUserId callerId: String) async throws -> Household
+
+    // FB-22 : propriétaire qui part, changements vus en direct par tous les membres.
+
+    /// Le propriétaire cède son rôle à `newOwnerId`, un autre membre. Il peut ensuite quitter le ménage.
+    func transferOwnership(ofHousehold householdId: String, to newOwnerId: String, byUserId callerId: String) async throws -> Household
+    /// Écoute en temps réel du ménage (membres, propriétaire, nom) : émet l'état courant, puis chaque changement.
+    /// Se termine en erreur (`.permissionDenied`) quand la personne n'en fait plus partie.
+    func observeHousehold(id: String) async -> AsyncThrowingStream<Household, any Error>
+    /// Écoute en temps réel des demandes en attente, les plus anciennes d'abord (le propriétaire seulement).
+    func observeJoinRequests(ofHousehold householdId: String, byUserId userId: String) async -> AsyncThrowingStream<[HouseholdJoinRequest], any Error>
 }
 
 /// Doublures de test d'avant T-159 : pas de ménage partagé.
@@ -48,6 +58,31 @@ extension UserRepository {
     func removeMember(_ userId: String, fromHousehold householdId: String, byUserId callerId: String) async throws -> Household {
         throw AppError.permissionDenied
     }
+    func transferOwnership(ofHousehold householdId: String, to newOwnerId: String, byUserId callerId: String) async throws -> Household {
+        throw AppError.permissionDenied
+    }
+    /// Doublure : une seule lecture, sans suivi.
+    func observeHousehold(id: String) async -> AsyncThrowingStream<Household, any Error> {
+        let (stream, continuation) = AsyncThrowingStream<Household, any Error>.makeStream()
+        do {
+            continuation.yield(try await household(id: id))
+            continuation.finish()
+        } catch {
+            continuation.finish(throwing: error)
+        }
+        return stream
+    }
+    /// Doublure : une seule lecture, sans suivi.
+    func observeJoinRequests(ofHousehold householdId: String, byUserId userId: String) async -> AsyncThrowingStream<[HouseholdJoinRequest], any Error> {
+        let (stream, continuation) = AsyncThrowingStream<[HouseholdJoinRequest], any Error>.makeStream()
+        do {
+            continuation.yield(try await joinRequests(ofHousehold: householdId, byUserId: userId))
+            continuation.finish()
+        } catch {
+            continuation.finish(throwing: error)
+        }
+        return stream
+    }
 }
 
 /// Groupes de quartier (`groups`) et leurs membres.
@@ -63,6 +98,9 @@ nonisolated protocol GroupRepository: Sendable {
     func leave(groupId: String, householdId: String) async throws
     /// Écoute en temps réel : émet l'état courant, puis chaque changement.
     func observeGroup(id: String) async -> AsyncThrowingStream<NeighborhoodGroup, any Error>
+    /// FB-22 : ids des groupes dont le ménage est membre, en direct. Émet l'état courant, puis chaque fois
+    /// qu'un membre du ménage (sur n'importe quel téléphone) rejoint ou quitte un groupe.
+    func observeGroupIds(ofHousehold householdId: String) async -> AsyncThrowingStream<Set<String>, any Error>
     /// T-122 : pose (ou retire, `url` nil) la photo ou la bannière du groupe. Seul un coordinateur
     /// (`coordinatorIds`) le peut : `.permissionDenied` sinon, `.notFound` si le groupe n'existe pas.
     /// L'image elle-même est dans `AppRepositories.images` ; `url` est son URL versionnée.
@@ -110,6 +148,18 @@ extension GroupRepository {
     /// Par défaut (dépôt qui ne l'implémente pas encore) : refus explicite plutôt qu'un succès silencieux.
     func saveRating(_ rating: GroupRating) async throws -> NeighborhoodGroup {
         throw AppError.unknown("saveRating n'est pas encore branché sur ce dépôt.")
+    }
+
+    /// Doublure : une seule lecture, sans suivi.
+    func observeGroupIds(ofHousehold householdId: String) async -> AsyncThrowingStream<Set<String>, any Error> {
+        let (stream, continuation) = AsyncThrowingStream<Set<String>, any Error>.makeStream()
+        do {
+            continuation.yield(Set(try await groups(ofHousehold: householdId).map(\.id)))
+            continuation.finish()
+        } catch {
+            continuation.finish(throwing: error)
+        }
+        return stream
     }
 
     /// Par défaut (dépôt qui ne l'implémente pas encore) : refus explicite plutôt qu'un succès silencieux.
@@ -196,6 +246,10 @@ nonisolated protocol GroupOrderRepository: Sendable {
     /// Une part par ménage, remise une seule fois : un deuxième scan renvoie `.alreadyPickedUp` sans rien écrire.
     @discardableResult
     func confirmPickup(code: String, groupOrderId: String, at date: Date) async throws -> PickupDesk.ScanResult
+    /// T-181 : fixe le panier suspendu (0 = aucun) de la part du ménage, commande ouverte (`SolidarityLedger`).
+    /// Lève `.notFound` sans part, `.orderClosed` si la commande est fermée, `.invalidInput` au-dessus du plafond.
+    @discardableResult
+    func setSuspendedBasket(_ amountCents: Cents, householdId: String, groupOrderId: String) async throws -> Share
     /// T-174 : part du ménage dans la commande, nil s'il n'en a pas. Lisible par le ménage lui-même, même
     /// après avoir quitté le groupe (preuve d'ancienne adhésion pour noter le groupe).
     func share(ofHousehold householdId: String, inGroupOrder groupOrderId: String) async throws -> Share?
@@ -209,6 +263,10 @@ extension GroupOrderRepository {
     }
 
     func confirmPickup(code: String, groupOrderId: String, at date: Date) async throws -> PickupDesk.ScanResult {
+        throw AppError.permissionDenied
+    }
+
+    func setSuspendedBasket(_ amountCents: Cents, householdId: String, groupOrderId: String) async throws -> Share {
         throw AppError.permissionDenied
     }
 }

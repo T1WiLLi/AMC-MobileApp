@@ -28159,6 +28159,176 @@
           }
         }
       }
+    },
+    "Tu paieras au plus %@ · prix final à la clôture" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "You'll pay at most %@ · final price at closing"
+          }
+        }
+      }
+    },
+    "%@ · prix final à la clôture" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ · final price at closing"
+          }
+        }
+      }
+    },
+    "Au plus %@ pour %@, dont %@ de panier suspendu, prix final à la clôture" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "At most %1$@ for %2$@, including %3$@ for a suspended basket, final price at closing"
+          }
+        }
+      }
+    },
+    "Au plus %@ pour %@, prix final à la clôture" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "At most %1$@ for %2$@, final price at closing"
+          }
+        }
+      }
+    },
+    "Tu as réservé %@ et offert un panier suspendu de %@. Merci ! Rien n'est débité avant le prix final." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "You reserved %1$@ and gave a suspended basket of %2$@. Thank you! Nothing is charged before the final price."
+          }
+        }
+      }
+    },
+    "Tu as réservé %@. Rien n'est débité avant le prix final." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "You reserved %@. Nothing is charged before the final price."
+          }
+        }
+      }
+    },
+    "Tu paieras au plus" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "You'll pay at most"
+          }
+        }
+      }
+    },
+    "Carte enregistrée. Rien n'est débité avant le prix final." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Card saved. Nothing is charged before the final price."
+          }
+        }
+      }
+    },
+    "Plus le groupe grandit, plus le prix baisse : tu paies le prix du dernier palier atteint." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The bigger the group, the lower the price: you pay the price of the last tier reached."
+          }
+        }
+      }
+    },
+    "Paiement simulé pour la démo : aucun argent réel." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Simulated payment for the demo: no real money."
+          }
+        }
+      }
+    },
+    "Carte %@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ card"
+          }
+        }
+      }
+    },
+    "Pour %@, dont %@ de panier suspendu. Prix final à la clôture de la commande." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "For %1$@, including %2$@ for a suspended basket. Final price when the order closes."
+          }
+        }
+      }
+    },
+    "Pour %@. Prix final à la clôture de la commande." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "For %@. Final price when the order closes."
+          }
+        }
+      }
+    },
+    "Confirmer et réserver" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Confirm and reserve"
+          }
+        }
+      }
+    },
+    "Prix final à la clôture" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Final price at closing"
+          }
+        }
+      }
+    },
+    "Prix final à la clôture." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Final price at closing."
+          }
+        }
+      }
+    },
+    "Au plus" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "At most"
+          }
+        }
+      }
     }
   },
   "version" : "1.0"

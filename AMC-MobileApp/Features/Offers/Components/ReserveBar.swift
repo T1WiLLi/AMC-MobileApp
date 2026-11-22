@@ -64,7 +64,7 @@ struct ReserveBar: View {
                 .monospacedDigit()
                 .foregroundStyle(.economie)
             } else {
-                Label("Payé à la cueillette", systemImage: "creditcard.fill")
+                Label("Prix final à la clôture", systemImage: "creditcard.fill")
                     .labelStyle(TightLabelStyle())
                     .symbolRenderingMode(.hierarchical)
                     .font(.subheadline)
@@ -107,7 +107,7 @@ struct ReserveBar: View {
         .tint(.grenier)
         .disabled(isDisabled || isLoading || quantity < 1)
         .accessibilityLabel(isLoading ? String(localized: "Réservation en cours") : String(localized: "Réserver \(quantityText) pour \(Money.format(quote.totalCents))"))
-        .accessibilityHint("Payé à la cueillette.")
+        .accessibilityHint("Prix final à la clôture.")
     }
 
     // MARK: Données dérivées

@@ -172,35 +172,67 @@ private struct SupplyEditor: View {
     var body: some View {
         NavigationStack {
             Form {
-                Picker("Catégorie", selection: $draft.category) {
-                    ForEach(Product.Category.allCases, id: \.self) { category in
-                        Label(category.title, systemImage: ProductIcon.symbol(for: category)).tag(category)
+                Section {
+                    Picker(selection: $draft.category) {
+                        ForEach(Product.Category.allCases, id: \.self) { category in
+                            Label(category.title, systemImage: ProductIcon.symbol(for: category)).tag(category)
+                        }
+                    } label: {
+                        Label("Catégorie", systemImage: ProductIcon.symbol(for: draft.category))
+                            .contentTransition(.symbolEffect(.replace))
                     }
+                } header: {
+                    sectionHeader("Produit", systemImage: "shippingbox.fill")
                 }
-                Section("Quantité disponible") {
+                .listRowBackground(Color.surface)
+
+                Section {
                     Stepper(value: $draft.quantity, in: 1...1_000_000, step: draft.quantity >= 100 ? 10 : 1) {
                         Text(GroupWishesViewModel.quantityText(draft.quantity, unit: draft.unit))
                             .priceStyle(.headline)
+                            .foregroundStyle(.texte)
+                            .contentTransition(.numericText(value: draft.quantity))
                     }
                     Picker("Unité", selection: $draft.unit) {
                         ForEach(MeasureUnit.allCases, id: \.self) { Text($0.title).tag($0) }
                     }
                     .pickerStyle(.segmented)
+                } header: {
+                    sectionHeader("Quantité disponible", systemImage: "scalemass.fill")
                 }
-                Section("Période") {
-                    DatePicker("Du", selection: $draft.availableFrom, displayedComponents: .date)
-                    DatePicker("Au", selection: $draft.availableTo, in: draft.availableFrom..., displayedComponents: .date)
+                .listRowBackground(Color.surface)
+
+                Section {
+                    DatePicker(selection: $draft.availableFrom, displayedComponents: .date) {
+                        Label("Du", systemImage: "calendar")
+                    }
+                    DatePicker(selection: $draft.availableTo, in: draft.availableFrom..., displayedComponents: .date) {
+                        Label("Au", systemImage: "calendar.badge.clock")
+                    }
+                } header: {
+                    sectionHeader("Période", systemImage: "calendar")
                 }
+                .listRowBackground(Color.surface)
+
                 Section {
                     TextField("f25d, f25e", text: zonesText)
                         .textInputAutocapitalization(.never)
                         .autocorrectionDisabled()
+                        .foregroundStyle(.texte)
                 } header: {
-                    Text("Zones desservies")
+                    sectionHeader("Zones desservies", systemImage: "mappin.and.ellipse")
                 } footer: {
-                    Text("Préfixes geohash séparés par des virgules ; préremplis avec les zones de ton profil.")
+                    Label("Préfixes geohash séparés par des virgules ; préremplis avec les zones de ton profil.",
+                          systemImage: "info.circle.fill")
+                        .font(.footnote)
+                        .foregroundStyle(.texteSecondaire)
                 }
+                .listRowBackground(Color.surface)
             }
+            .scrollContentBackground(.hidden)
+            .symbolRenderingMode(.hierarchical)
+            .scrollDismissesKeyboard(.interactively)
+            .grenierBackground()
             .navigationTitle(draft.isNew ? "Nouvelle disponibilité" : "Modifier")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
@@ -212,11 +244,27 @@ private struct SupplyEditor: View {
                         Task { if await onSave(draft) { dismiss() } }
                     }
                     .buttonStyle(.glassProminent)
+                    .tint(.grenier)
                     .disabled(isSaving)
                 }
             }
         }
+        // Une feuille ne reçoit pas le thème de la fenêtre : on le repose (teinte Grenier, plus de bleu système).
+        .appThemed()
         .presentationDetents([.large])
+        .presentationBackground(Color.fond)
+    }
+
+    private func sectionHeader(_ title: LocalizedStringKey, systemImage: String) -> some View {
+        Label {
+            Text(title)
+                .foregroundStyle(.texte)
+        } icon: {
+            Image(systemName: systemImage)
+                .foregroundStyle(Color.grenier)
+        }
+        .font(.subheadline.weight(.semibold))
+        .textCase(nil)
     }
 }
 
@@ -231,4 +279,18 @@ private struct SupplyEditor: View {
         VendorSuppliesScreen(repositories: .fake(behavior: .instant), vendorId: FakeData.ID.fermeRive) { _ in }
     }
     .preferredColorScheme(.dark)
+}
+
+#Preview("Nouvelle disponibilité — clair") {
+    Color.clear.sheet(isPresented: .constant(true)) {
+        SupplyEditor(draft: .init(zones: ["f25d", "f25e"]), isSaving: false) { _ in true }
+    }
+}
+
+#Preview("Nouvelle disponibilité — sombre, grand texte") {
+    Color.clear.sheet(isPresented: .constant(true)) {
+        SupplyEditor(draft: .init(zones: ["f25d", "f25e"]), isSaving: false) { _ in true }
+    }
+    .preferredColorScheme(.dark)
+    .dynamicTypeSize(.accessibility2)
 }

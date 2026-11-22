@@ -12,14 +12,17 @@ struct VendorReviewSheet: View {
     let vendorName: String
     /// Le lot reçu qui permet de noter (« Carottes nantaises · il y a 9 jours »), nil si inconnu.
     var saleText: String?
+    /// Photo du producteur pour l'en-tête (initiales si nil).
+    var photoURL: URL?
     var existing: VendorReview?
     /// Enregistre ; renvoie l'erreur à afficher, nil si c'est enregistré.
     let onSave: (Int, String) async -> AppError?
 
-    init(vendorName: String, saleText: String? = nil, existing: VendorReview? = nil,
+    init(vendorName: String, saleText: String? = nil, photoURL: URL? = nil, existing: VendorReview? = nil,
          onSave: @escaping (Int, String) async -> AppError?) {
         self.vendorName = vendorName
         self.saleText = saleText
+        self.photoURL = photoURL
         self.existing = existing
         self.onSave = onSave
     }
@@ -29,6 +32,8 @@ struct VendorReviewSheet: View {
             title: vendorName,
             prompt: String(localized: "Comment était ton lot ?"),
             context: saleText.map { .init(text: $0, systemImage: "shippingbox.fill") },
+            subject: .init(photoURL: photoURL, systemImage: "storefront.fill"),
+            suggestions: RatingCommentTags.vendor,
             placeholder: String(localized: "Fraîcheur, ponctualité, quantité…"),
             maxLength: VendorReview.maxCommentLength,
             existingRating: existing?.rating,

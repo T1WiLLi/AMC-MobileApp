@@ -114,6 +114,24 @@ struct OrganizationQAEdgeCaseTests {
         #expect(model.snapshot?.sponsorships == before)
     }
 
+    // MARK: Recherche
+
+    @Test func suggestionsFollowTheTypedQuery() async {
+        let model = makeModel()
+        await model.load()
+        let all = model.neighborhoodSuggestions
+        #expect(all.count == Set(FakeData.demoSolidarityProfiles.map(\.neighborhood)).count)
+        model.searchText = "zzzz"
+        #expect(model.neighborhoodSuggestions.isEmpty)
+        #expect(model.searchResults.isEmpty)
+        model.searchText = "viller"
+        #expect(model.neighborhoodSuggestions == ["Villeray"])
+        model.searchText = "villeray"
+        // Le quartier est déjà choisi : plus de suggestion par-dessus les résultats.
+        #expect(model.neighborhoodSuggestions.isEmpty)
+        #expect(model.searchResults.allSatisfy { $0.neighborhood == "Villeray" })
+    }
+
     // MARK: Compte et organisme
 
     @Test func missingOrganizationShowsAnError() async {

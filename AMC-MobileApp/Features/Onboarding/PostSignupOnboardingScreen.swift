@@ -1,6 +1,7 @@
 import SwiftUI
 
-/// Onboarding juste après l'inscription (T-156) : goûts → quartier → ménage → « Tout est prêt », puis l'app.
+/// Onboarding juste après l'inscription (T-156) : goûts → adresse → ménage → « Tout est prêt », puis l'app.
+/// L'adresse de l'étape 2 retrouve le ménage s'il est déjà inscrit (T-159) : on propose alors de le rejoindre.
 /// Montré par `SessionContextGate` quand `AppContext.needsOnboarding` est vrai.
 struct PostSignupOnboardingScreen: View {
     @State private var model: PostSignupOnboardingViewModel
@@ -14,7 +15,7 @@ struct PostSignupOnboardingScreen: View {
 
     @FocusState private var addressFocused: Bool
 
-    private enum Field { case postalCode, name, addressPostalCode }
+    private enum Field { case postalCode, name }
 
     init(model: PostSignupOnboardingViewModel, onFinish: @escaping (String) -> Void = { _ in }) {
         _model = State(initialValue: model)
@@ -197,16 +198,31 @@ struct PostSignupOnboardingScreen: View {
         }
     }
 
-    // MARK: 2. Quartier
+    // MARK: 2. Adresse et quartier
 
     private var neighborhoodStep: some View {
         VStack(alignment: .leading, spacing: 16) {
             card {
-                VStack(alignment: .leading, spacing: 8) {
-                    Label("Code postal", systemImage: "envelope.fill")
-                        .font(.headline)
-                        .foregroundStyle(Color.texte)
-                    TextField("Code postal", text: $model.postalCode, prompt: Text("H2A 1B3"))
+                VStack(alignment: .leading, spacing: 10) {
+                    Label {
+                        Text("Adresse")
+                            .foregroundStyle(Color.texte)
+                    } icon: {
+                        Image(systemName: "mappin.circle.fill")
+                            .symbolRenderingMode(.hierarchical)
+                            .foregroundStyle(Color.grenier)
+                    }
+                    .font(.headline)
+                    AddressField("Numéro et rue", text: $model.streetLine, model: model.addressCheck,
+                                 prompt: "1234 rue Jarry Est", boxed: true, isFocused: $addressFocused)
+                    if let error = model.addressError {
+                        Label(error, systemImage: "exclamationmark.circle.fill")
+                            .font(.footnote)
+                            .foregroundStyle(.red)
+                            .fixedSize(horizontal: false, vertical: true)
+                            .grenierTransition(.banner)
+                    }
+                    TextField("Code postal", text: $model.postalCode, prompt: Text("H2R 1A1"))
                         .font(.title3.monospaced())
                         .textContentType(.postalCode)
                         .textInputAutocapitalization(.characters)
@@ -216,6 +232,7 @@ struct PostSignupOnboardingScreen: View {
                         .onSubmit { model.postalCode = MontrealNeighborhood.formatted(postalCode: model.postalCode) }
                         .padding(12)
                         .background(AppTheme.fond, in: .rect(cornerRadius: 12))
+                        .accessibilityLabel("Code postal")
                     if let message = model.postalMessage {
                         Label(message, systemImage: postalIcon)
                             .font(.footnote)
@@ -223,27 +240,36 @@ struct PostSignupOnboardingScreen: View {
                             .fixedSize(horizontal: false, vertical: true)
                             .grenierTransition(.banner)
                     }
+                    Label("Pour retrouver ta famille si elle est déjà inscrite. Seuls les membres de ton ménage voient ton adresse.", systemImage: "lock.fill")
+                        .font(.footnote)
+                        .foregroundStyle(Color.texteSecondaire)
+                        .fixedSize(horizontal: false, vertical: true)
                 }
                 .grenierAnimation(.smooth, value: model.postalLookup)
+                .grenierAnimation(.smooth, value: model.addressError)
             }
 
-            card {
-                VStack(alignment: .leading, spacing: 8) {
-                    Label("Ou choisis ton quartier", systemImage: "map.fill")
-                        .font(.headline)
-                        .foregroundStyle(Color.texte)
-                    Picker(selection: $model.neighborhood) {
-                    Text("Choisir…").tag(MontrealNeighborhood?.none)
-                    ForEach(MontrealNeighborhood.all) { neighborhood in
-                        Text(neighborhood.name).tag(Optional(neighborhood))
+            // Code postal hors des quartiers desservis : on choisit le plus proche, pour ne pas rester bloqué.
+            if model.showsNeighborhoodPicker {
+                card {
+                    VStack(alignment: .leading, spacing: 8) {
+                        Label("Quartier", systemImage: "map.fill")
+                            .font(.headline)
+                            .foregroundStyle(Color.texte)
+                        Picker(selection: $model.neighborhood) {
+                            Text("Choisir…").tag(MontrealNeighborhood?.none)
+                            ForEach(MontrealNeighborhood.all) { neighborhood in
+                                Text(neighborhood.name).tag(Optional(neighborhood))
+                            }
+                        } label: {
+                            Text("Quartier")
+                        }
+                        .pickerStyle(.menu)
+                        .tint(.grenier)
+                        .labelsHidden()
                     }
-                    } label: {
-                        Text("Quartier")
-                    }
-                    .pickerStyle(.menu)
-                    .tint(.grenier)
-                    .labelsHidden()
                 }
+                .grenierTransition(.banner)
             }
 
             if let neighborhood = model.neighborhood {
@@ -260,21 +286,25 @@ struct PostSignupOnboardingScreen: View {
             }
         }
         .animation(animation, value: model.neighborhood)
+        .animation(animation, value: model.showsNeighborhoodPicker)
+        // Apple a trouvé l'adresse (suggestion touchée, ou champ quitté) : son code postal remplit le champ vide.
+        .onChange(of: model.addressCheck.validatedText) { _, _ in model.adoptValidatedPostalCode() }
     }
 
     private var postalIcon: String {
         switch model.postalLookup {
         case .found: "checkmark.circle.fill"
         case .notServed: "location.slash"
-        default: "exclamationmark.circle.fill"
+        case .empty, .incomplete: "info.circle.fill"
+        case .invalid: "exclamationmark.circle.fill"
         }
     }
 
     private var postalColor: Color {
         switch model.postalLookup {
         case .found: .economie
-        case .notServed: .secondary
-        default: .red
+        case .notServed, .empty, .incomplete: .secondary
+        case .invalid: .red
         }
     }
 
@@ -307,8 +337,6 @@ struct PostSignupOnboardingScreen: View {
                 }
             }
 
-            addressCard
-
             card {
                 Stepper(value: $model.householdSize, in: PostSignupOnboardingViewModel.sizeRange) {
                     Label {
@@ -340,41 +368,6 @@ struct PostSignupOnboardingScreen: View {
                     .foregroundStyle(.red)
                     .fixedSize(horizontal: false, vertical: true)
                     .grenierTransition(.banner)
-            }
-        }
-    }
-
-    /// T-159 : adresse du ménage (numéro, rue, code postal), privée.
-    private var addressCard: some View {
-        card {
-            VStack(alignment: .leading, spacing: 10) {
-                Label("Adresse (facultatif)", systemImage: "mappin.circle.fill")
-                    .font(.headline)
-                    .foregroundStyle(Color.texte)
-                    .symbolRenderingMode(.hierarchical)
-                AddressField("Numéro et rue", text: $model.streetLine, model: model.addressCheck,
-                             prompt: "1234 rue Jarry Est", boxed: true, isFocused: $addressFocused)
-                TextField("Code postal", text: $model.postalCode, prompt: Text("H2R 1A1"))
-                    .font(.title3)
-                    .textContentType(.postalCode)
-                    .textInputAutocapitalization(.characters)
-                    .autocorrectionDisabled()
-                    .submitLabel(.done)
-                    .focused($focus, equals: .addressPostalCode)
-                    .padding(12)
-                    .background(AppTheme.fond, in: .rect(cornerRadius: 12))
-                    .accessibilityLabel("Code postal")
-                if let error = model.addressError {
-                    Label(error, systemImage: "exclamationmark.circle.fill")
-                        .font(.footnote)
-                        .foregroundStyle(.red)
-                        .fixedSize(horizontal: false, vertical: true)
-                } else {
-                    Label("Pour retrouver ta famille si elle est déjà inscrite. Seuls les membres de ton ménage voient ton adresse.", systemImage: "lock.fill")
-                        .font(.footnote)
-                        .foregroundStyle(Color.texteSecondaire)
-                        .fixedSize(horizontal: false, vertical: true)
-                }
             }
         }
     }
@@ -552,7 +545,7 @@ struct PostSignupOnboardingScreen: View {
     private var bottomBar: some View {
         Button(action: primaryAction) {
             HStack(spacing: 8) {
-                if model.isSaving {
+                if model.isSaving || model.isLookingUp {
                     ProgressView()
                         .tint(Color.onAccent)
                 }
@@ -573,7 +566,8 @@ struct PostSignupOnboardingScreen: View {
 
     private var primaryTitle: String {
         switch model.step {
-        case .tastes, .neighborhood: String(localized: "Continuer")
+        case .tastes: String(localized: "Continuer")
+        case .neighborhood: model.isLookingUp ? String(localized: "Vérification…") : String(localized: "Continuer")
         case .household: model.isSaving ? String(localized: "Enregistrement…") : String(localized: "Continuer")
         case .joinChoice: String(localized: "Rejoindre \(model.matchName)")
         case .waiting:
@@ -587,7 +581,7 @@ struct PostSignupOnboardingScreen: View {
         switch model.step {
         case .tastes: String(localized: "Passe au quartier")
         case .neighborhood:
-            model.canContinue ? String(localized: "Passe au ménage") : String(localized: "Entre ton code postal ou choisis un quartier")
+            model.canContinue ? String(localized: "Passe au ménage") : String(localized: "Entre ton adresse et ton code postal")
         case .household: String(localized: "Enregistre tes préférences et ton ménage")
         case .joinChoice: String(localized: "Envoie une demande au propriétaire du ménage")
         case .waiting:
@@ -767,6 +761,29 @@ private enum OnboardingPreview {
 
 #Preview("AX5") {
     PostSignupOnboardingScreen(model: OnboardingPreview.model())
+        .dynamicTypeSize(.accessibility5)
+}
+
+#Preview("Où habites-tu ?") {
+    let model = OnboardingPreview.model()
+    PostSignupOnboardingScreen(model: model)
+        .task {
+            await model.load()
+            await model.next()
+            model.streetLine = "1234 rue Jarry Est"
+            model.postalCode = "H2R 1A1"
+        }
+}
+
+#Preview("Où habites-tu ?, sombre, AX5") {
+    let model = OnboardingPreview.model()
+    PostSignupOnboardingScreen(model: model)
+        .task {
+            await model.load()
+            await model.next()
+            model.postalCode = "H9X 1A1"
+        }
+        .preferredColorScheme(.dark)
         .dynamicTypeSize(.accessibility5)
 }
 

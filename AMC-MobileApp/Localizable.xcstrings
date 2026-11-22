@@ -28599,6 +28599,46 @@
           }
         }
       }
+    },
+    "Ton adresse retrouve ta famille si elle utilise déjà LeGrenier, et ton code postal, les groupes près de chez toi. Personne d'autre ne la voit." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Your address finds your family if it already uses LeGrenier, and your postal code, the groups near you. Nobody else sees it."
+          }
+        }
+      }
+    },
+    "Donne un nom à ton ménage et dis-nous combien vous êtes." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Name your household and tell us how many of you there are."
+          }
+        }
+      }
+    },
+    "Quartier trouvé : %@. Ajoute la fin de ton code postal." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Neighbourhood found: %@. Add the rest of your postal code."
+          }
+        }
+      }
+    },
+    "Entre ton adresse et ton code postal" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Enter your address and postal code"
+          }
+        }
+      }
     }
   },
   "version" : "1.0"

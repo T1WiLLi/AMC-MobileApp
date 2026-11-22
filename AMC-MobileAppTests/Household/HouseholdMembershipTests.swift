@@ -203,18 +203,16 @@ struct HouseholdMembershipTests {
         let model = PostSignupOnboardingViewModel(repositories: repositories, userId: "karim", householdId: "household-karim",
                                                   addressValidator: FakeAddressValidator())
         await model.load()
-        await model.next()                       // goûts → quartier
+        await model.next()                       // goûts → « Où habites-tu ? »
+        model.streetLine = "1234 rue Jarry est"  // l'adresse se saisit à l'étape 2
         model.postalCode = "H2R 1A1"
-        model.neighborhood = MontrealNeighborhood.all.first
-        await model.next()                       // quartier → ménage
-        model.streetNumber = "1234"
-        model.street = "rue Jarry est"
         return (model, users)
     }
 
     @Test func sameAddressOffersToJoinThenWaitsForOwner() async throws {
         let (model, users) = try await Self.onboardingFixture()
-        await model.next()
+        #expect(model.step == .neighborhood)
+        await model.next()                       // l'adresse trouve le ménage dès l'étape 2
         #expect(model.step == .joinChoice)
         #expect(model.matchName == "Famille Benali")
 
@@ -244,7 +242,9 @@ struct HouseholdMembershipTests {
         try await users.deleteJoinRequest(householdId: "household-amina", userId: "karim")   // Amina refuse
         await model.checkJoin()
         #expect(model.joinDeclined)
-        await model.next()                       // « Créer mon ménage »
+        await model.next()                       // « Créer mon ménage » : nom et taille d'abord
+        #expect(model.step == .household)
+        await model.next()
         #expect(model.step == .done)
         let karim = try await users.user(id: "karim")
         #expect(karim.householdId == "household-karim")
@@ -260,6 +260,9 @@ struct HouseholdMembershipTests {
         #expect(model.step == .joinChoice)
         #expect(try await users.joinRequest(householdId: "household-amina", userId: "karim") == nil)
         #expect(await model.createOwnHousehold())
+        #expect(model.step == .household)
+        await model.next()
+        #expect(model.step == .done)
         let lookupId = try #require(model.address.lookupId)
         #expect(try await users.householdAddress(lookupId: lookupId)?.householdId == "household-amina")
         #expect(try await users.household(id: "household-karim").ownerId == "karim")
@@ -267,12 +270,43 @@ struct HouseholdMembershipTests {
 
     @Test func newAddressCreatesHouseholdAndRegistersIt() async throws {
         let (model, users) = try await Self.onboardingFixture()
-        model.streetNumber = "88"
+        model.streetLine = "88 rue Jarry est"
+        await model.next()                       // aucun ménage à cette adresse : « Ton ménage »
+        #expect(model.step == .household)
         await model.next()
         #expect(model.step == .done)
         let lookupId = try #require(model.address.lookupId)
         let entry = try #require(try await users.householdAddress(lookupId: lookupId))
         #expect(entry.householdId == "household-karim")
         #expect(entry.ownerId == "karim")
+        #expect(try await users.household(id: "household-karim").addressKey == "88jarryest-h2r1a1")
+    }
+
+    @Test func backFromJoinChoiceReturnsToAddressAndANewAddressSkipsTheMatch() async throws {
+        let (model, _) = try await Self.onboardingFixture()
+        await model.next()
+        #expect(model.step == .joinChoice)
+        model.back()
+        #expect(model.step == .neighborhood)
+        model.streetLine = "90 rue Jarry est"
+        await model.next()
+        #expect(model.step == .household)
+        #expect(model.matchName != "Famille Benali")
+    }
+
+    @Test func notChoosingTheFoundHouseholdAsksForNameAndSize() async throws {
+        let (model, users) = try await Self.onboardingFixture()
+        await model.next()
+        #expect(await model.createOwnHousehold())   // « Créer un nouveau ménage »
+        #expect(model.step == .household)
+        model.householdName = "Famille Karim"
+        model.householdSize = 3
+        await model.next()
+        #expect(model.step == .done)
+        let own = try await users.household(id: "household-karim")
+        #expect(own.name == "Famille Karim")
+        #expect(own.size == 3)
+        #expect(own.addressKey == "1234jarryest-h2r1a1")
+        #expect(try await users.joinRequest(householdId: "household-amina", userId: "karim") == nil)
     }
 }

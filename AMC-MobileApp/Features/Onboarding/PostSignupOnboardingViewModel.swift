@@ -1,5 +1,7 @@
 // PostSignupOnboardingViewModel.swift
-// T-156 : onboarding juste après l'inscription. Goûts → quartier → ménage → fini, puis le tableau de bord Familles.
+// T-156 : onboarding juste après l'inscription. Goûts → adresse → ménage → fini, puis le tableau de bord Familles.
+// L'adresse (numéro, rue, code postal) se saisit à l'étape « Où habites-tu ? » : le code postal donne le quartier,
+// et l'adresse retrouve le ménage s'il est déjà inscrit (T-159), avant même de demander le nom du ménage.
 // Tout est enregistré d'un coup à la fin : `households/{id}` d'abord (la règle du profil vérifie l'appartenance),
 // puis `users/{uid}` avec `onboardingCompleted = true` pour ne plus le remontrer.
 
@@ -39,8 +41,8 @@ final class PostSignupOnboardingViewModel {
         var subtitle: String {
             switch self {
             case .tastes: String(localized: "On mettra ces lots en premier. Tu pourras changer d'avis dans ton profil.")
-            case .neighborhood: String(localized: "Ton code postal nous dit quels groupes sont près de chez toi.")
-            case .household: String(localized: "Ton adresse sert seulement à retrouver ta famille si elle utilise déjà LeGrenier. Personne d'autre ne la voit.")
+            case .neighborhood: String(localized: "Ton adresse retrouve ta famille si elle utilise déjà LeGrenier, et ton code postal, les groupes près de chez toi. Personne d'autre ne la voit.")
+            case .household: String(localized: "Donne un nom à ton ménage et dis-nous combien vous êtes.")
             case .joinChoice: String(localized: "Un ménage existe déjà à cette adresse. Rejoins-le pour partager vos groupes, vos commandes et vos cueillettes.")
             case .waiting: String(localized: "Le propriétaire du ménage doit accepter ta demande. Tu peux fermer l'app : tu entreras dans le ménage dès qu'il aura accepté.")
             case .done: String(localized: "Voici ce qu'on a retenu. Ton tableau de bord t'attend.")
@@ -80,22 +82,29 @@ final class PostSignupOnboardingViewModel {
     private(set) var favoriteCategories: Set<Product.Category> = []
     private(set) var dietaryPreferences: Set<DietaryTag> = []
 
-    // Quartier.
+    // Adresse et quartier (étape « Où habites-tu ? »).
     var postalCode = "" {
         didSet {
+            // Le quartier suit le code postal ; un quartier choisi à la main (code hors secteur) n'est pas effacé.
             if let found = MontrealNeighborhood.lookup(postalCode: postalCode).neighborhood {
                 neighborhood = found
+                neighborhoodFromPostalCode = true
+            } else if neighborhoodFromPostalCode {
+                neighborhood = nil
+                neighborhoodFromPostalCode = false
             }
             addressCheck.context = address.normalizedPostalCode.isEmpty ? nil : postalCode
         }
     }
     var neighborhood: MontrealNeighborhood?
+    /// Le quartier vient du code postal (et non d'un choix à la main ou du profil enregistré).
+    private var neighborhoodFromPostalCode = false
 
     // Ménage.
     var householdName = ""
     var householdSize = 1
 
-    // Adresse (T-159) : numéro et rue ici, code postal partagé avec l'étape quartier.
+    // Adresse (T-159) : numéro et rue, avec le code postal ci-dessus.
     var streetNumber = ""
     var street = ""
     /// T-185 : « numéro et rue » tels que tapés dans le champ d'adresse ; répartis dans `streetNumber` et `street`.
@@ -104,6 +113,8 @@ final class PostSignupOnboardingViewModel {
             let parts = Self.split(streetLine: streetLine)
             streetNumber = parts.number
             street = parts.street
+            // Adresse normalisée par Apple (suggestion choisie, champ quitté) : son code postal remplit le champ vide.
+            adoptValidatedPostalCode()
         }
     }
     /// T-185 : l'adresse doit être trouvée par Apple Maps avant de continuer (code postal ajouté à la requête).
@@ -115,6 +126,8 @@ final class PostSignupOnboardingViewModel {
     /// La demande a disparu sans être acceptée : le propriétaire l'a refusée.
     private(set) var joinDeclined = false
     private(set) var isCheckingJoin = false
+    /// Vérification de l'adresse et recherche du ménage, au « Continuer » de l'étape 2.
+    private(set) var isLookingUp = false
 
     private(set) var isSaving = false
     private(set) var saveError: AppError?
@@ -171,7 +184,7 @@ final class PostSignupOnboardingViewModel {
         HouseholdAddress(streetNumber: streetNumber, street: street, postalCode: postalCode)
     }
 
-    /// Adresse laissée vide : facultative (pas de recherche de ménage, rien d'enregistré).
+    /// Numéro et rue pas encore saisis.
     var isAddressEmpty: Bool {
         streetNumber.trimmingCharacters(in: .whitespaces).isEmpty && street.trimmingCharacters(in: .whitespaces).isEmpty
     }
@@ -190,25 +203,42 @@ final class PostSignupOnboardingViewModel {
         return (String(trimmed[..<numberEnd]), rest)
     }
 
-    /// Vérifie l'adresse (si elle est remplie) avant de continuer ; complète le code postal s'il manque.
-    /// Faux si Apple ne la trouve pas.
+    /// Vérifie l'adresse avant de continuer ; complète le code postal s'il manque. Faux si Apple ne la trouve pas.
     private func checkAddress() async -> Bool {
-        guard !isAddressEmpty else { return true }
+        guard !isAddressEmpty else { return false }
         guard let checked = await addressCheck.ensureValid(composedStreetLine) else { return false }
         if checked != composedStreetLine { streetLine = checked }
-        if address.normalizedPostalCode.isEmpty, let postal = addressCheck.validatedAddress(for: checked)?.postalCode {
-            postalCode = postal
-        }
+        adoptValidatedPostalCode()
         return true
     }
 
-    /// Message sous les champs d'adresse commencée mais incomplète, ou `nil` (complète ou laissée vide).
+    /// Apple a trouvé l'adresse : son code postal remplit le champ s'il est encore vide (et donne le quartier).
+    func adoptValidatedPostalCode() {
+        guard address.normalizedPostalCode.isEmpty,
+              let postal = addressCheck.validatedAddress(for: composedStreetLine)?.postalCode,
+              !postal.isEmpty else { return }
+        postalCode = MontrealNeighborhood.formatted(postalCode: postal)
+    }
+
+    /// Message sous le champ « Numéro et rue » commencé mais incomplet, ou `nil`.
     var addressError: String? {
         if isAddressEmpty { return nil }
         if address.normalizedNumber.isEmpty { return String(localized: "Entre ton numéro civique (ex. 1234).") }
         if address.normalizedStreet.isEmpty { return String(localized: "Entre le nom de ta rue (ex. rue Jarry Est).") }
-        if address.normalizedPostalCode.isEmpty { return String(localized: "Entre ton code postal (ex. H2R 1A1).") }
         return nil
+    }
+
+    /// L'adresse peut-elle servir ? Validée, enregistrée, non vérifiable (réseau) ou modifiée (vérifiée au
+    /// « Continuer ») ; pas pendant une vérification ni si Apple ne la trouve pas.
+    var isAddressUsable: Bool {
+        guard !isAddressEmpty, addressError == nil else { return false }
+        let line = composedStreetLine
+        return addressCheck.isAccepted(line) || addressCheck.status(for: line) == .edited
+    }
+
+    /// Code postal complet et bien formé (le quartier peut être hors secteur : on le choisit alors à la main).
+    var isPostalCodeComplete: Bool {
+        !address.normalizedPostalCode.isEmpty && postalLookup != .invalid
     }
 
     /// Nom du ménage trouvé ou demandé (« Famille Benali »).
@@ -244,12 +274,19 @@ final class PostSignupOnboardingViewModel {
     /// Message sous le champ code postal, ou `nil`.
     var postalMessage: String? {
         switch postalLookup {
-        case .empty, .incomplete: nil
+        case .empty: isAddressEmpty ? nil : String(localized: "Entre ton code postal (ex. H2R 1A1).")
+        case .incomplete: nil
         case .invalid: String(localized: "Un code postal a la forme H2A 1B3.")
         case .notServed: String(localized: "LeGrenier n'est pas encore offert dans ce secteur. Choisis le quartier le plus proche.")
-        case .found(let found): String(localized: "Quartier trouvé : \(found.name).")
+        case .found(let found):
+            address.normalizedPostalCode.isEmpty
+                ? String(localized: "Quartier trouvé : \(found.name). Ajoute la fin de ton code postal.")
+                : String(localized: "Quartier trouvé : \(found.name).")
         }
     }
+
+    /// Choix du quartier à la main : seulement si le code postal ne correspond à aucun quartier desservi.
+    var showsNeighborhoodPicker: Bool { postalLookup == .notServed }
 
     // MARK: Ménage
 
@@ -263,22 +300,21 @@ final class PostSignupOnboardingViewModel {
 
     // MARK: Navigation
 
-    /// Peut-on passer à l'étape suivante ? Les goûts sont facultatifs ; quartier et nom du ménage, non.
+    /// Peut-on passer à l'étape suivante ? Les goûts sont facultatifs ; adresse, quartier et nom du ménage, non.
     var canContinue: Bool {
-        guard loadState.value != nil, !isSaving else { return false }
+        guard loadState.value != nil, !isSaving, !isLookingUp else { return false }
         switch step {
         case .tastes: return true
-        case .neighborhood: return neighborhood != nil
+        case .neighborhood: return isAddressUsable && isPostalCodeComplete && neighborhood != nil
         case .household:
-            return nameError == nil && addressError == nil && Self.sizeRange.contains(householdSize)
-                && !addressCheck.blocksSaving(composedStreetLine)
+            return nameError == nil && Self.sizeRange.contains(householdSize)
         case .joinChoice: return match != nil
         case .waiting: return !isCheckingJoin
         case .done: return true
         }
     }
 
-    var canGoBack: Bool { step != .tastes && step != .done && step != .waiting && !isSaving }
+    var canGoBack: Bool { step != .tastes && step != .done && step != .waiting && !isSaving && !isLookingUp }
 
     /// Rang de l'étape à remplir (1 à 3), pour « Étape 2 sur 3 ».
     var stepNumber: Int { (Step.formSteps.firstIndex(of: step) ?? Step.formSteps.count - 1) + 1 }
@@ -286,26 +322,26 @@ final class PostSignupOnboardingViewModel {
     /// Avancement de 0 à 1 pour la barre du haut (1/3 à la première étape, plein à la fin).
     var progress: Double { step == .done ? 1 : Double(stepNumber) / Double(stepCount) }
 
-    /// Étape suivante. Après le ménage, enregistre tout ; on n'arrive à « Tout est prêt » que si ça a marché.
+    /// Étape suivante. Après l'adresse, cherche le ménage ; après le ménage, enregistre tout.
+    /// On n'arrive à « Tout est prêt » que si l'enregistrement a marché.
     func next() async {
         guard canContinue else { return }
         switch step {
         case .tastes: step = .neighborhood
-        case .neighborhood: step = .household
-        case .household:
-            guard await checkAddress() else { return }
+        case .neighborhood:
+            isLookingUp = true
+            defer { isLookingUp = false }
+            guard await checkAddress(), neighborhood != nil else { return }
             // Un ménage existe déjà à cette adresse (et ce n'est pas le nôtre) : on propose de le rejoindre.
-            if let found = await lookUpAddress() {
-                match = found
-                step = .joinChoice
-            } else if await save() {
-                step = .done
-            }
+            match = await lookUpAddress()
+            step = match == nil ? .household : .joinChoice
+        case .household:
+            if await save() { step = .done }
         case .joinChoice:
             if await requestJoin() { step = .waiting }
         case .waiting:
             if joinDeclined {
-                if await save() { step = .done }
+                await createOwnHousehold()
             } else {
                 await checkJoin()
             }
@@ -315,7 +351,7 @@ final class PostSignupOnboardingViewModel {
 
     func back() {
         guard canGoBack else { return }
-        let previous: Step? = step == .joinChoice ? .household : Step(rawValue: step.rawValue - 1)
+        let previous: Step? = step == .joinChoice ? .neighborhood : Step(rawValue: step.rawValue - 1)
         guard let previous else { return }
         step = previous
         saveError = nil
@@ -385,7 +421,7 @@ final class PostSignupOnboardingViewModel {
         }
     }
 
-    /// Annule la demande et revient au choix (ou au ménage, si on ne connaît plus l'adresse trouvée).
+    /// Annule la demande et revient au choix (ou à l'adresse, si on ne connaît plus le ménage trouvé).
     func cancelJoin() async {
         guard var user = loadState.value else { return }
         isSaving = true
@@ -400,21 +436,23 @@ final class PostSignupOnboardingViewModel {
             loadState = .loaded(user)
             joinRequest = nil
             joinDeclined = false
-            step = match == nil ? .household : .joinChoice
+            step = match == nil ? .neighborhood : .joinChoice
         } catch {
             saveError = AppError(error)
         }
     }
 
-    /// « Créer un nouveau ménage » (au choix, ou à la place d'une demande en attente ou refusée).
+    /// « Créer un nouveau ménage » (au choix, ou à la place d'une demande en attente ou refusée) : annule la
+    /// demande s'il y en a une, puis passe à l'étape « Ton ménage » (nom et taille), qui enregistre tout.
     @discardableResult
     func createOwnHousehold() async -> Bool {
         if loadState.value?.pendingHouseholdId != nil {
             await cancelJoin()
             guard saveError == nil else { return false }
         }
-        guard await save() else { return false }
-        step = .done
+        saveError = nil
+        joinDeclined = false
+        step = .household
         return true
     }
 

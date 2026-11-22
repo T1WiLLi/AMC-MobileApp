@@ -65,7 +65,7 @@ struct ProfileScreen: View {
                                 Text("Photos et zones desservies")
                                     .foregroundStyle(Color.texte)
                             } icon: {
-                                RowIcon(systemImage: "storefront.fill", tint: .grenier)
+                                RowIcon(systemImage: "photo.on.rectangle.angled", tint: .grenier)
                             }
                         }
                         .accessibilityHint("Ouvre ta vitrine : photos, description et zones desservies.")

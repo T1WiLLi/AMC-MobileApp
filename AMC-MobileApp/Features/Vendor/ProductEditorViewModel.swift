@@ -221,7 +221,9 @@ final class ProductEditorViewModel {
         guard !unit.isEmpty else {
             throw .invalidInput(String(localized: "Choisis l'unité de vente (kg, unité, douzaine…)."))
         }
+        guard unit.count <= 60 else { throw .invalidInput(String(localized: "L'unité de vente doit faire 60 caractères ou moins.")) }
         guard !origin.isEmpty else { throw .invalidInput(String(localized: "Indique la provenance du produit (par exemple « Mirabel, QC »).")) }
+        guard origin.count <= 120 else { throw .invalidInput(String(localized: "La provenance doit faire 120 caractères ou moins.")) }
         guard !Self.trimmed(referencePriceText).isEmpty else {
             throw .invalidInput(String(localized: "Indique le prix en épicerie, pour calculer l'économie des familles."))
         }
@@ -229,6 +231,7 @@ final class ProductEditorViewModel {
             throw .invalidInput(String(localized: "Le prix en épicerie doit être un montant comme « 3,49 »."))
         }
         guard cents > 0 else { throw .invalidInput(String(localized: "Le prix en épicerie doit être supérieur à 0 $.")) }
+        guard cents <= 10_000_000 else { throw .invalidInput(String(localized: "Le prix en épicerie ne peut pas dépasser 100 000 $.")) }
         if let pendingPhotoData, pendingPhotoData.count > ProductPhoto.maxBytes {
             throw .invalidInput(String(localized: "La photo doit faire 5 Mo ou moins. Choisis-en une autre."))
         }

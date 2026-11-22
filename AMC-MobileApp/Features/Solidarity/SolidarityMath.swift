@@ -54,6 +54,13 @@ nonisolated enum SolidarityMath {
         return .success(total)
     }
 
+    /// Montant à retenir pour une saisie libre : le montant lu, ou 0 si la saisie est invalide
+    /// (jamais l'ancien montant, sinon un texte invalide partirait avec un montant périmé).
+    static func amountOrZero(_ raw: String) -> Cents {
+        if case .success(let cents) = parseAmount(raw) { return cents }
+        return 0
+    }
+
     // MARK: Fonds du groupe
 
     /// Solde apporté au fonds par un ensemble de parts : somme des paniers suspendus (les montants négatifs comptent pour 0).

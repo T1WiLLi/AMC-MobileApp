@@ -6,6 +6,7 @@
 //   users/{uid}/media/avatar        photo de profil (écrite par son propriétaire)
 //   groups/{groupId}/media/photo    photo du groupe (écrite par un coordinateur)
 //   groups/{groupId}/media/banner   bannière du groupe (écrite par un coordinateur)
+//   pickupPoints/{id}/media/photo   photo d'un point de cueillette (écrite par son hôte)
 //
 // Le document parent garde la date d'envoi (`photoUpdatedAt` / `bannerUpdatedAt`, serverTimestamp) ; l'app en déduit
 // une URL versionnée qui pointe vers ce média, sans aucune URL Storage :
@@ -26,6 +27,8 @@ nonisolated enum MediaPath: Hashable, Sendable {
     /// Photo d'un produit du catalogue (`vendors/{id}/media/photo-product-{productId}`), une par produit.
     /// Même collection et mêmes règles que les photos de vitrine : Spark n'a pas Cloud Storage.
     case productPhoto(vendorId: String, productId: String)
+    /// Photo d'un point de cueillette (`pickupPoints/{id}/media/photo`), écrite par son hôte.
+    case pickupPhoto(pointId: String)
 
     /// Préfixe du document d'une photo de produit.
     static let productPhotoPrefix = "photo-product-"
@@ -46,6 +49,7 @@ nonisolated enum MediaPath: Hashable, Sendable {
         case .vendorPhoto(let vendorId, let photoId): "vendors/\(vendorId)/media/\(photoId)"
         case .productPhoto(let vendorId, let productId):
             "vendors/\(vendorId)/media/\(Self.productPhotoId(productId: productId))"
+        case .pickupPhoto(let pointId): "pickupPoints/\(pointId)/media/photo"
         }
     }
 
@@ -54,7 +58,7 @@ nonisolated enum MediaPath: Hashable, Sendable {
         switch self {
         case .userAvatar, .groupPhoto: .square
         case .groupBanner: .banner
-        case .vendorPhoto: .showcase
+        case .vendorPhoto, .pickupPhoto: .showcase
         case .productPhoto: .product
         }
     }
@@ -67,6 +71,7 @@ nonisolated enum MediaPath: Hashable, Sendable {
         case ("users", "avatar"): self = .userAvatar(userId: parts[1])
         case ("groups", "photo"): self = .groupPhoto(groupId: parts[1])
         case ("groups", "banner"): self = .groupBanner(groupId: parts[1])
+        case ("pickupPoints", "photo"): self = .pickupPhoto(pointId: parts[1])
         case ("vendors", let photoId) where photoId.hasPrefix(Self.productPhotoPrefix)
             && photoId.count > Self.productPhotoPrefix.count:
             self = .productPhoto(vendorId: parts[1], productId: String(photoId.dropFirst(Self.productPhotoPrefix.count)))

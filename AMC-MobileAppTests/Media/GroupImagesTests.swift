@@ -24,7 +24,8 @@ struct GroupImagesTests {
     // MARK: Références
 
     @Test func mediaPathRoundTripsThroughItsURL() throws {
-        for path in [MediaPath.userAvatar(userId: "u1"), .groupPhoto(groupId: "g1"), .groupBanner(groupId: "g1")] {
+        for path in [MediaPath.userAvatar(userId: "u1"), .groupPhoto(groupId: "g1"), .groupBanner(groupId: "g1"),
+                     .pickupPhoto(pointId: "pickup-1")] {
             let url = path.url(version: 42)
             #expect(url.scheme == "grenier-media")
             #expect(MediaURL.source(of: url) == .media(path))
@@ -32,6 +33,7 @@ struct GroupImagesTests {
         }
         #expect(MediaPath.groupBanner(groupId: "g1").documentPath == "groups/g1/media/banner")
         #expect(MediaPath.userAvatar(userId: "u1").documentPath == "users/u1/media/avatar")
+        #expect(MediaPath.pickupPhoto(pointId: "pickup-1").documentPath == "pickupPoints/pickup-1/media/photo")
         #expect(MediaPath(documentPath: "groups/g1/media/logo") == nil)
         #expect(MediaURL.source(of: MediaURL.asset("BannerSaintMichel")) == .asset("BannerSaintMichel"))
         #expect(MediaURL.source(of: URL(string: "https://example.com/a.jpg")!) == .remote(URL(string: "https://example.com/a.jpg")!))

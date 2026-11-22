@@ -217,9 +217,7 @@ private struct HostPhotoRow: View {
         if let data = viewModel.photoData, let image = UIImage(data: data) {
             Image(uiImage: image).resizable().scaledToFill()
         } else if let url = viewModel.photoURL {
-            AsyncImage(url: url) { image in
-                image.resizable().scaledToFill()
-            } placeholder: {
+            MediaImage(url: url) {
                 photoPlaceholder.redacted(reason: .placeholder)
             }
         } else {

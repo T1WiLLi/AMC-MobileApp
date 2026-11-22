@@ -114,6 +114,7 @@ private struct PreferencesForm: View {
                 set: { language in
                     Task { await viewModel.setLanguage(AppUser.Language(rawValue: language.resolvedCode) ?? .french) }
                     AppLanguage.apply(language)
+                    ExtensionLanguageSync.languageDidChange()
                 }
             )) {
                 ForEach(AppLanguage.allCases, id: \.self) { language in

@@ -204,14 +204,15 @@ nonisolated struct OrderActivityPresentation: Hashable, Sendable {
 
 /// Formatage partagé app / extension (l'extension n'a pas accès à `Money`).
 nonisolated enum GrenierFormat {
-    /// Langue forcée par l'app (`AppLanguage`), nil dans l'extension : elle suit alors la langue de l'appareil.
+    /// Langue forcée par l'app (`AppLanguage`), nil dans l'extension : elle lit alors l'App Group (`SharedLanguage`).
     private static let override = Mutex<Locale?>(nil)
 
     static func setLocale(_ locale: Locale?) { override.withLock { $0 = locale } }
 
-    /// Locale de formatage : celle de l'app si elle est choisie, sinon fr_CA ou en_CA selon la langue du bundle.
+    /// Locale de formatage : celle choisie dans l'app (en mémoire dans l'app, par l'App Group dans l'extension),
+    /// sinon fr_CA ou en_CA selon la langue du bundle.
     static var locale: Locale {
-        if let forced = override.withLock({ $0 }) { return forced }
+        if let forced = override.withLock({ $0 }) ?? SharedLanguage.forcedLocale() { return forced }
         let code = Bundle.main.preferredLocalizations.first.map { String($0.prefix(2)) } ?? "fr"
         return Locale(identifier: (code == "en" ? "en" : "fr") + "_CA")
     }

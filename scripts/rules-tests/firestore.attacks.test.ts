@@ -216,6 +216,17 @@ describe('parcours légitimes de l’app (ne doivent pas casser)', () => {
       closedShare('household-bob', 6, 739, 2000)
     ], { ...dueOrder, status: 'closed', currentTierIndex: 0 }))
   })
+  test('E21-2 : clôture avec paiement simulé des parts au pot (isPaid à true, prix final posé)', async () => {
+    await assertSucceeds(closeBatch(as('jean'), 'order-due', [
+      { ...closedShare('household-amina', 4, 739), isPaid: true },
+      { ...closedShare('household-bob', 6, 739, 2000), isPaid: true }
+    ], { ...dueOrder, status: 'closed', currentTierIndex: 0 }))
+  })
+  test('E21-2 : paiement refusé pour une part, l’autre payée', async () => {
+    await assertSucceeds(closeBatch(as('lafleur'), 'order-due', [
+      closedShare('household-amina', 4, 739), { ...closedShare('household-bob', 6, 739), isPaid: true }
+    ], { ...dueOrder, status: 'closed', currentTierIndex: 0 }))
+  })
   test('le vendeur du lot clôture aussi', async () => {
     await assertSucceeds(closeBatch(as('lafleur'), 'order-due', [
       closedShare('household-amina', 4, 739), closedShare('household-bob', 6, 739)
@@ -508,10 +519,21 @@ describe('attaques : coordonnateur et vendeur à la clôture', () => {
       { ...closedShare('household-amina', 4, 739), qrCode: 'GRENIER:order-x:household-amina:00000000' }
     ], { ...dueOrder, status: 'closed', currentTierIndex: 0 }))
   })
-  test('marquer payé ou changer la quantité pendant la clôture', async () => {
+  test('E21-2 : marquer payé sans fermer la commande, ou dé-payer une part à la clôture', async () => {
+    await assertFails(updateDoc(doc(as('jean'), 'groupOrders/order-due/shares/household-amina'), {
+      finalPriceCents: 4 * 739, qrCode: qr('order-due', 'household-amina'), isPaid: true
+    }))
     await assertFails(closeBatch(as('jean'), 'order-due', [
-      { ...closedShare('household-amina', 4, 739), isPaid: true }
+      { ...closedShare('household-amina', 4, 739), isPaid: 'oui' }
     ], { ...dueOrder, status: 'closed', currentTierIndex: 0 }))
+    await env.withSecurityRulesDisabled(async (c) => {
+      await updateDoc(doc(c.firestore(), 'groupOrders/order-due/shares/household-amina'), { isPaid: true })
+    })
+    await assertFails(closeBatch(as('jean'), 'order-due', [
+      { ...closedShare('household-amina', 4, 739), isPaid: false }
+    ], { ...dueOrder, status: 'closed', currentTierIndex: 0 }))
+  })
+  test('changer la quantité pendant la clôture', async () => {
     await assertFails(closeBatch(as('jean'), 'order-due', [
       { ...closedShare('household-amina', 1, 739) }
     ], { ...dueOrder, status: 'closed', currentTierIndex: 0 }))

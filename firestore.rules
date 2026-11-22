@@ -1151,7 +1151,10 @@ service cloud.firestore {
           && data.get('qrCode', null) is string
           && data.qrCode.matches('GRENIER:[^:]+:[^:]+:[0-9a-f]{8}')
           && data.qrCode.split(':')[1] == orderId
-          && data.qrCode.split(':')[2] == householdId;
+          && data.qrCode.split(':')[2] == householdId
+          // E21-2 : paiement simulé à la clôture. isPaid ne change que pour passer à true, prix final posé.
+          && (data.isPaid == resource.data.isPaid
+              || (data.isPaid == true && data.get('finalPriceCents', null) is int));
       }
 
       match /shares/{householdId} {
@@ -1166,14 +1169,14 @@ service cloud.firestore {
 
         // Le ménage : quantité et panier suspendu. Le reste ne bouge pas (une subvention déjà posée par
         // le seed reste telle quelle, un null du seed peut devenir absent).
-        // Clôture en premier, et sans isValidShare : seuls prix, subvention, QR (et updatedAt) bougent, vérifiés
+        // Clôture en premier, et sans isValidShare : seuls prix, subvention, QR, isPaid (et updatedAt) bougent, vérifiés
         // un par un. Les règles ont un budget de 1000 expressions pour TOUTE la transaction de clôture :
         // revalider chaque part en entier le dépassait vers 20 ménages (test « grosse commande »).
         allow update: if isPickupConfirmation(householdId)
           || (orderAfter().status == 'closed'
             && isOpenStatus(orderDoc().status)
             && request.resource.data.diff(resource.data).affectedKeys()
-                 .hasOnly(['finalPriceCents', 'subsidyCents', 'qrCode', 'updatedAt'])
+                 .hasOnly(['finalPriceCents', 'subsidyCents', 'qrCode', 'updatedAt', 'isPaid'])
             && (isGroupCoordinator(orderDoc().groupId) || isOfferVendor(offerOf(orderDoc())))
             && isClosingAllocation(request.resource.data, householdId))
           || (isValidShare(request.resource.data, householdId)

@@ -253,6 +253,18 @@ nonisolated protocol GroupOrderRepository: Sendable {
     /// T-174 : part du ménage dans la commande, nil s'il n'en a pas. Lisible par le ménage lui-même, même
     /// après avoir quitté le groupe (preuve d'ancienne adhésion pour noter le groupe).
     func share(ofHousehold householdId: String, inGroupOrder groupOrderId: String) async throws -> Share?
+    /// E21-2 (RQ-053, RQ-058) : ferme la commande et, si elle est confirmée, paie chaque part au prix figé du
+    /// palier final (paiement simulé, `PaymentSimulator` du dépôt), en une seule écriture (transaction Firestore).
+    /// Sous le minimum : commande annulée, personne ne paie. Voir `GroupOrderClosing.close`.
+    /// Lève `.orderClosed` si la commande est déjà fermée (idempotent), `.invalidInput` si la clôture automatique
+    /// arrive avant la date limite ou si l'utilisateur n'est ni coordonnateur du groupe ni vendeur du lot.
+    @discardableResult
+    func closeGroupOrder(
+        id groupOrderId: String,
+        trigger: GroupOrderClosureTrigger,
+        eligibleHouseholdIds: Set<String>,
+        solidarityFundCents: Cents
+    ) async throws -> GroupOrderClosure
 }
 
 /// Doublures de test d'avant T-159 : pas de remise de part.
@@ -268,6 +280,22 @@ extension GroupOrderRepository {
 
     func setSuspendedBasket(_ amountCents: Cents, householdId: String, groupOrderId: String) async throws -> Share {
         throw AppError.permissionDenied
+    }
+
+    func closeGroupOrder(
+        id groupOrderId: String,
+        trigger: GroupOrderClosureTrigger,
+        eligibleHouseholdIds: Set<String>,
+        solidarityFundCents: Cents
+    ) async throws -> GroupOrderClosure {
+        throw AppError.permissionDenied
+    }
+
+    /// Sans subvention : les ménages subventionnés et le fonds de solidarité ne sont pas lisibles par la
+    /// coordination ni le vendeur (profils privés), la répartition se fait donc au plein prix du palier.
+    @discardableResult
+    func closeGroupOrder(id groupOrderId: String, trigger: GroupOrderClosureTrigger) async throws -> GroupOrderClosure {
+        try await closeGroupOrder(id: groupOrderId, trigger: trigger, eligibleHouseholdIds: [], solidarityFundCents: 0)
     }
 }
 
@@ -397,7 +425,8 @@ nonisolated struct AppRepositories: Sendable {
             vendors: FakeVendorRepository(behavior: behavior, vendors: data.vendors, products: data.products),
             offers: FakeOfferRepository(behavior: behavior, offers: data.offers),
             groupOrders: FakeGroupOrderRepository(
-                behavior: behavior, groupOrders: data.groupOrders, shares: data.shares, offers: data.offers
+                behavior: behavior, groupOrders: data.groupOrders, shares: data.shares, offers: data.offers,
+                payments: .fromLaunchArguments()
             ),
             pickupPoints: FakePickupPointRepository(behavior: behavior, pickupPoints: data.pickupPoints),
             wishes: FakeGroupWishRepository(behavior: behavior, wishes: FakeData.demoWishes),

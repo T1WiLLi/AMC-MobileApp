@@ -29,6 +29,10 @@ final class OfferDetailViewModel {
         var mySuspendedCents: Cents = 0
         /// Sans commande du groupe : la première réservation l'ouvrira (lot actif, date limite future, ménage dans un groupe).
         var canStartOrder: Bool = false
+        /// E21-2 : part du ménage telle qu'enregistrée (prix final et paiement après la clôture), nil sans part.
+        var myShare: Share?
+        /// E21-2 : le bouton « Fermer la commande » est visible (`ClosurePolicy.canClose`).
+        var canClose: Bool = false
 
         var committedShares: Int { groupOrder?.committedShares ?? 0 }
         /// Prix, palier et économie actuels du groupe.
@@ -78,11 +82,20 @@ final class OfferDetailViewModel {
     private(set) var lastUnlockedTierNumber: Int?
     /// Célébration à montrer pour le palier franchi en direct ; remise à nil par `dismissLiveUnlock()`.
     private(set) var liveUnlock: TierCelebration?
+    /// E21-2 : fermeture de la commande en cours (désactive le bouton « Fermer la commande »).
+    private(set) var isClosing = false
+    /// E21-2 : dernière clôture faite depuis cet écran (bouton ou automatique), pour l'haptique et le message.
+    private(set) var lastClosure: GroupOrderClosure?
 
     private let repositories: AppRepositories
     private let offerId: String
     private let householdId: String
     private let groupId: String?
+    /// E21-2 : compte connecté, pour savoir s'il peut fermer la commande (coordonnateur ou vendeur du lot).
+    private let userId: String
+    /// Profil et adhésion lus au chargement : ce que `ClosurePolicy` vérifie au moment de fermer.
+    private var closer: (user: AppUser, membership: GroupMember?)?
+    private let now: @Sendable () -> Date
     /// T-187 : consultation du lot d'un groupe dont le ménage n'est pas membre (fiche publique du groupe).
     /// On montre la commande de CE groupe (produit, paliers, avancement) sans lire de part (réservées aux membres
     /// par les règles) et sans jamais réserver ni ouvrir de commande.
@@ -91,12 +104,14 @@ final class OfferDetailViewModel {
     /// `groupId` : groupe du ménage, pour trouver sa commande sur ce lot (`nil` = consultation seule).
     /// `isReadOnly` : `groupId` est le groupe visité (pas celui du ménage) ; aucune réservation possible.
     init(repositories: AppRepositories, offerId: String, householdId: String, groupId: String?,
-         isReadOnly: Bool = false) {
+         isReadOnly: Bool = false, userId: String = "", now: @escaping @Sendable () -> Date = { .now }) {
         self.repositories = repositories
         self.offerId = offerId
         self.householdId = householdId
         self.groupId = groupId
         self.isReadOnly = isReadOnly
+        self.userId = userId
+        self.now = now
     }
 
     // MARK: Valeurs dérivées pour la vue
@@ -149,6 +164,12 @@ final class OfferDetailViewModel {
 
     func load() async {
         if state.value == nil { state = .loading }
+        await fetch()
+        // RQ-053 (a) : premier appareil qui ouvre la commande après la date limite, il la ferme.
+        if await closeAutomaticallyIfDue() { await fetch() }
+    }
+
+    private func fetch() async {
         let repositories = repositories, offerId = offerId, householdId = householdId, groupId = groupId
         let isReadOnly = isReadOnly
         state = await .run {
@@ -158,6 +179,7 @@ final class OfferDetailViewModel {
             var order: GroupOrder?
             var myQuantity = 0
             var mySuspended: Cents = 0
+            var myShare: Share?
             if let groupId {
                 order = try await repositories.groupOrders.groupOrders(ofGroup: groupId)
                     .first { $0.offerId == offerId }
@@ -166,8 +188,8 @@ final class OfferDetailViewModel {
                         householdId: householdId, groupOrderId: order.id, repositories: repositories
                     )
                     if myQuantity > 0 {
-                        mySuspended = try await repositories.groupOrders
-                            .share(ofHousehold: householdId, inGroupOrder: order.id)?.suspendedAmountCents ?? 0
+                        myShare = try await repositories.groupOrders.share(ofHousehold: householdId, inGroupOrder: order.id)
+                        mySuspended = myShare?.suspendedAmountCents ?? 0
                     }
                 }
             }
@@ -175,13 +197,67 @@ final class OfferDetailViewModel {
                 && offer.deadline > .now
             return Content(
                 offer: offer, product: product, vendor: vendor, groupOrder: order, myShareQuantity: myQuantity,
-                mySuspendedCents: mySuspended, canStartOrder: canStartOrder
+                mySuspendedCents: mySuspended, canStartOrder: canStartOrder, myShare: myShare
             )
         }
+        await loadCloser()
         if let content = state.value, content.myShareQuantity > 0 {
             selectedQuantity = content.myShareQuantity
             suspendedCents = content.mySuspendedCents
         }
+    }
+
+    /// E21-2 : profil et adhésion du compte, puis `canClose`. Une lecture ratée cache le bouton, sans erreur.
+    private func loadCloser() async {
+        guard var content = state.value, let order = content.groupOrder, !isReadOnly, !userId.isEmpty else { return }
+        if closer == nil {
+            guard let user = try? await repositories.users.user(id: userId) else { return }
+            let membership = try? await repositories.groups.members(ofGroup: order.groupId)
+                .first { $0.householdId == user.householdId }
+            closer = (user, membership)
+        }
+        guard let closer else { return }
+        content.canClose = ClosurePolicy.canClose(
+            user: closer.user, membership: closer.membership, offer: content.offer, order: order
+        )
+        state = .loaded(content)
+    }
+
+    /// RQ-053 (a) : ferme la commande si sa date limite est passée et qu'elle est encore ouverte.
+    /// Une course perdue (`.orderClosed` : un autre appareil l'a fermée) ou un refus des règles est ignoré.
+    /// - Returns: true si la commande a été fermée (ou l'était déjà) : l'écran se relit.
+    private func closeAutomaticallyIfDue() async -> Bool {
+        guard let content = state.value, let order = content.groupOrder,
+              ClosurePolicy.shouldAttemptAutomaticClosure(order: order, offer: content.offer, now: now()) else { return false }
+        do {
+            lastClosure = try await repositories.groupOrders.closeGroupOrder(id: order.id, trigger: .automatic)
+            ShareActivity.shared.shareDidChange()
+            return true
+        } catch AppError.orderClosed {
+            return true
+        } catch {
+            return false
+        }
+    }
+
+    /// E21-2 (RQ-053 b) : « Fermer la commande ». Les familles paient leur part au prix final ; sous le minimum,
+    /// la commande est annulée et personne n'est débité. L'écran se relit ensuite (statut, prix final).
+    func closeOrder() async {
+        guard let content = state.value, let order = content.groupOrder, content.canClose,
+              let closer, !isClosing else { return }
+        isClosing = true
+        defer { isClosing = false }
+        do {
+            lastClosure = try await repositories.groupOrders.closeGroupOrder(
+                id: order.id, trigger: .manual(user: closer.user, membership: closer.membership)
+            )
+            ShareActivity.shared.shareDidChange()
+        } catch AppError.orderClosed {
+            // Déjà fermée (autre appareil, date limite) : on relit simplement la commande.
+        } catch {
+            actionError = AppError(error)
+        }
+        await fetch()
     }
 
     /// Réserve `selectedQuantity` parts (ou change la part). Si un palier tombe, remplit `celebration`.
@@ -230,6 +306,7 @@ final class OfferDetailViewModel {
         guard var content = state.value, content.groupOrder?.id == order.id else { return }
         let before = content.pricing
         content.groupOrder = order
+        if !TierEngine.isOpen(order) { content.canClose = false }
         state = .loaded(content)
         let after = content.pricing
         // Pendant sa propre réservation, c'est `setShare` qui célèbre (`celebration`).

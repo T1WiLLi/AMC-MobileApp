@@ -29,23 +29,22 @@ private nonisolated final class TransactionOutcome<Value>: @unchecked Sendable {
 private struct StaleShareList: Error {}
 
 nonisolated final class FirestoreGroupOrderRepository: GroupOrderRepository, @unchecked Sendable {
-    /// Clôture d'une commande : la commande figée et le résultat (prix, ou annulation).
-    struct Closure: Sendable {
-        var order: GroupOrder
-        var outcome: TierEngine.ClosureOutcome
-        /// Répartition entre les ménages ; nil si la commande est annulée (minimum non atteint).
-        var allocation: ShareAllocator.Allocation?
-    }
-
     private let db: Firestore
     private let now: @Sendable () -> Date
+    /// E21-2 : faux terminal de paiement utilisé à la clôture (refus avec `-demoPaymentDeclined`).
+    private let payments: PaymentSimulator
     /// Essais quand la liste des parts change pendant la transaction.
     private let maxAttempts = 5
 
     /// À créer APRÈS `FirebaseApp.configure()` (voir docs/firebase.md, § 3).
-    init(db: Firestore = Firestore.firestore(), now: @escaping @Sendable () -> Date = { .now }) {
+    init(
+        db: Firestore = Firestore.firestore(),
+        now: @escaping @Sendable () -> Date = { .now },
+        payments: PaymentSimulator = .fromLaunchArguments()
+    ) {
         self.db = db
         self.now = now
+        self.payments = payments
     }
 
     // MARK: - Références
@@ -240,16 +239,19 @@ nonisolated final class FirestoreGroupOrderRepository: GroupOrderRepository, @un
         return updated
     }
 
-    /// RQ-053, RQ-054 : clôture la commande après la date limite (coordonnateur du groupe ou vendeur du lot).
-    /// Palier figé par `TierEngine.closed`, puis prix final, subvention et code QR de chaque part
-    /// par `ShareAllocator`. Lève `.orderClosed` si elle est déjà fermée, `.invalidInput` avant la date limite.
+    /// RQ-053, RQ-054, E21-2 : clôture la commande (coordonnateur du groupe ou vendeur du lot, ou automatiquement
+    /// après la date limite), voir `GroupOrderClosing.close`. Dans la même transaction : palier figé, prix final,
+    /// subvention et code QR de chaque part (`ShareAllocator`), puis paiement simulé de chaque part au pot
+    /// (`isPaid` à true si le paiement réussit). Lève `.orderClosed` si elle est déjà fermée.
     @discardableResult
     func closeGroupOrder(
         id groupOrderId: String,
-        eligibleHouseholdIds: Set<String> = [],
-        solidarityFundCents: Cents = 0
-    ) async throws -> Closure {
+        trigger: GroupOrderClosureTrigger,
+        eligibleHouseholdIds: Set<String>,
+        solidarityFundCents: Cents
+    ) async throws -> GroupOrderClosure {
         let orderRef = orderRef(groupOrderId)
+        let payments = payments
         return try await withFreshShareList(groupOrderId) { knownIds in
             let shareRefs = knownIds.map { self.sharesRef(groupOrderId).document($0) }
             let now = self.now()
@@ -258,29 +260,24 @@ nonisolated final class FirestoreGroupOrderRepository: GroupOrderRepository, @un
                     orderRef, shares: shareRefs, offerRef: self.offerRef, in: transaction
                 )
                 try Self.checkInvariant(order, shares: shares)
-                guard TierEngine.isOpen(order) else { throw AppError.orderClosed }
-                guard TierEngine.shouldClose(order, offer: offer, now: now) else {
-                    throw AppError.invalidInput(String(localized: "La commande se clôture à la date limite du lot."))
+                let closure = try GroupOrderClosing.close(
+                    order: order, offer: offer, shares: shares, trigger: trigger, now: now,
+                    eligibleHouseholdIds: eligibleHouseholdIds, solidarityFundCents: solidarityFundCents,
+                    payments: payments
+                )
+                let wasPaid = Set(shares.filter(\.isPaid).map(\.householdId))
+                for share in closure.shares {
+                    var fields: [String: Any] = [
+                        "finalPriceCents": share.finalPriceCents.map { $0 as Any } ?? NSNull(),
+                        "subsidyCents": share.subsidyCents,
+                        "qrCode": share.qrCode.map { $0 as Any } ?? NSNull(),
+                    ]
+                    // Paiement simulé réussi : seul passage de `isPaid` à true (firestore.rules, clôture).
+                    if share.isPaid, !wasPaid.contains(share.householdId) { fields["isPaid"] = true }
+                    transaction.updateData(fields, forDocument: self.sharesRef(groupOrderId).document(share.householdId))
                 }
-
-                let (closed, outcome) = try TierEngine.closed(order, offer: offer)
-                var allocation: ShareAllocator.Allocation?
-                if case .confirmed(_, let unitPriceCents) = outcome {
-                    let result = try ShareAllocator.allocate(
-                        orderId: groupOrderId, offer: offer, shares: shares, unitPriceCents: unitPriceCents,
-                        eligibleHouseholdIds: eligibleHouseholdIds, solidarityFundCents: solidarityFundCents
-                    )
-                    for share in result.shares {
-                        transaction.updateData([
-                            "finalPriceCents": share.finalPriceCents.map { $0 as Any } ?? NSNull(),
-                            "subsidyCents": share.subsidyCents,
-                            "qrCode": share.qrCode.map { $0 as Any } ?? NSNull(),
-                        ], forDocument: self.sharesRef(groupOrderId).document(share.householdId))
-                    }
-                    allocation = result
-                }
-                transaction.updateData(Self.counterFields(closed), forDocument: orderRef)
-                return Closure(order: closed, outcome: outcome, allocation: allocation)
+                transaction.updateData(Self.counterFields(closure.order), forDocument: orderRef)
+                return closure
             }
         }
     }

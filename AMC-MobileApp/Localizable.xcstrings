@@ -21258,6 +21258,16 @@
           }
         }
       }
+    },
+    "à %lld m" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld m away"
+          }
+        }
+      }
     }
   },
   "version" : "1.0"

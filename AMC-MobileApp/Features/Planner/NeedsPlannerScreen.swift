@@ -369,7 +369,7 @@ private struct SuggestionRow: View {
     /// « 2 parts · sac de 10 kg · pour Céréales »
     private var detail: String {
         let shares = suggestion.fitsBudget ? suggestion.shares : suggestion.sharesToCoverNeed
-        let part = shares > 1 ? "parts" : "part"
+        let part = FrenchPlural.word(shares, "part", plural: "parts")
         let base = "\(shares) \(part) · \(suggestion.offer.shareUnit)"
         return needTitle.isEmpty ? base : String(localized: "\(base) · pour \(needTitle)")
     }
@@ -504,7 +504,7 @@ enum NeedFormat {
     /// « 10 kg », « 2,5 L », « 12 unités ».
     static func quantity(_ value: Double, _ unit: NeedUnit) -> String {
         let number = value.formatted(.number.precision(.fractionLength(0...1)).locale(AppLanguage.formattingLocale))
-        if unit == .units { return "\(number) \(value > 1 ? "unités" : "unité")" }
+        if unit == .units { return "\(number) \(FrenchPlural.word(Int(value.rounded(.up)), "unité", plural: "unités"))" }
         return "\(number) \(unit.symbol)"
     }
 

@@ -978,12 +978,12 @@ extension DemandMapViewModel.Scope {
 nonisolated enum DemandFormatting {
     /// « 1 famille », « 24 familles ».
     static func families(_ count: Int) -> String {
-        "\(count.formatted()) \(count > 1 ? "familles" : "famille")"
+        "\(count.formatted()) \(FrenchPlural.word(count, "famille", plural: "familles"))"
     }
 
     /// « 1 part », « 26 parts ».
     static func shares(_ count: Int) -> String {
-        "\(count.formatted()) \(count > 1 ? "parts" : "part")"
+        "\(count.formatted()) \(FrenchPlural.word(count, "part", plural: "parts"))"
     }
 
     /// « 260 kg voulus » si l'unité de part contient un poids (« sac de 10 kg »), sinon « 26 parts voulues ».
@@ -992,15 +992,15 @@ nonisolated enum DemandFormatting {
             let total = kilograms * Double(product.committedShares)
             return String(localized: "\(total.formatted(.number.precision(.fractionLength(0...1)))) kg voulus")
         }
-        return "\(shares(product.committedShares)) \(product.committedShares > 1 ? "voulues" : "voulue")"
+        return "\(shares(product.committedShares)) \(FrenchPlural.word(product.committedShares, "voulue", plural: "voulues"))"
     }
 
     /// « 30 kg », « 4 douzaines », « 2,5 L » : total voulu d'une envie agrégée.
     static func wishQuantity(of demand: GroupDemand) -> String {
         let number = demand.totalQuantity.formatted(.number.precision(.fractionLength(0...1)))
         let unit = switch demand.unit {
-        case .dozen: demand.totalQuantity > 1 ? "douzaines" : "douzaine"
-        case .unit: demand.totalQuantity > 1 ? "unités" : "unité"
+        case .dozen: FrenchPlural.word(Int(demand.totalQuantity.rounded(.up)), "douzaine", plural: "douzaines")
+        case .unit: FrenchPlural.word(Int(demand.totalQuantity.rounded(.up)), "unité", plural: "unités")
         case .kilogram, .liter: demand.unit.title
         }
         return "\(number) \(unit)"

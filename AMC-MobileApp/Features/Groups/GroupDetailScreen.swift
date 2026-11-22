@@ -400,9 +400,9 @@ private struct GroupDetailContent: View {
     @ViewBuilder
     private var keyFigureTiles: some View {
         let orders = content.openOrders.count
-        GroupsStatTile(value: "\(group.householdCount)", caption: group.householdCount > 1 ? "familles" : "famille",
+        GroupsStatTile(value: "\(group.householdCount)", caption: FrenchPlural.word(group.householdCount, "famille", plural: "familles"),
                        systemImage: "person.2.fill", tint: .solidarite)
-        GroupsStatTile(value: "\(orders)", caption: orders > 1 ? "lots ouverts" : "lot ouvert",
+        GroupsStatTile(value: "\(orders)", caption: FrenchPlural.word(orders, "lot ouvert", plural: "lots ouverts"),
                        systemImage: GrenierSymbol.offers, tint: theme.accent)
         GroupsStatTile(value: GroupCard.distanceText(group.radiusMeters), caption: "de rayon",
                        systemImage: "circle.dashed", tint: .economie)
@@ -413,7 +413,7 @@ private struct GroupDetailContent: View {
         let orders = content.openOrders
         VStack(alignment: .leading, spacing: 12) {
             GroupsSectionHeader(
-                title: orders.count > 1 ? "Lots ouverts" : "Lot ouvert",
+                title: FrenchPlural.word(orders.count, "Lot ouvert", plural: "Lots ouverts"),
                 systemImage: GrenierSymbol.offers,
                 tint: theme.accent,
                 count: orders.count

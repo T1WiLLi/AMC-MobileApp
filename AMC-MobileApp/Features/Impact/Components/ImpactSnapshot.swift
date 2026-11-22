@@ -117,6 +117,6 @@ enum ImpactFormat {
 
     /// Accord simple : « 1 famille », « 24 familles ».
     static func plural(_ count: Int, _ singular: String, _ pluralForm: String? = nil) -> String {
-        "\(integer(count))\(nbsp)\(count > 1 ? (pluralForm ?? singular + "s") : singular)"
+        "\(integer(count))\(nbsp)\(FrenchPlural.word(count, singular, plural: pluralForm))"
     }
 }

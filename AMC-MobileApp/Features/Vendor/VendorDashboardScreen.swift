@@ -354,7 +354,7 @@ private struct DashboardHeader: View {
     private var subtitle: String {
         let kind = vendor.map { VendorKindText.title(for: $0.kind) } ?? String(localized: "Vendeur")
         guard let openOffers else { return kind }
-        return "\(kind) · \(openOffers) \(openOffers > 1 ? "lots ouverts" : "lot ouvert")"
+        return "\(kind) · \(openOffers) \(FrenchPlural.word(openOffers, "lot ouvert", plural: "lots ouverts"))"
     }
 }
 
@@ -689,7 +689,7 @@ private struct HighlightBanner: View {
     private var detail: String {
         var text = "\(highlight.offer.title)"
         if let priceText { text += " à \(priceText)" }
-        text += String(localized: " pour \(households) \(households > 1 ? "familles" : "famille").")
+        text += String(localized: " pour \(households) \(FrenchPlural.word(households, "famille", plural: "familles")).")
         return text
     }
 
@@ -754,7 +754,7 @@ private struct ClosingSoonRow: View {
     private var remainingText: String {
         let remaining = max(summary.totalShares - summary.committedShares, 0)
         if remaining == 0 { return "complet" }
-        return "encore \(remaining) \(remaining > 1 ? "parts" : "part")"
+        return "encore \(remaining) \(FrenchPlural.word(remaining, "part", plural: "parts"))"
     }
 }
 
@@ -925,7 +925,7 @@ private struct VendorOfferCard: View {
     private var progressText: String {
         let households = summary.committedHouseholds
         if households == 0 { return String(localized: "Aucune famille encore · \(summary.totalShares) parts") }
-        return String(localized: "\(households) \(households > 1 ? "familles" : "famille") · \(summary.committedShares) parts sur \(summary.totalShares)")
+        return String(localized: "\(households) \(FrenchPlural.word(households, "famille", plural: "familles")) · \(summary.committedShares) parts sur \(summary.totalShares)")
     }
 
     /// Pire risque parmi les commandes du lot (niveau, puis parts manquantes) ; nil sans commande.

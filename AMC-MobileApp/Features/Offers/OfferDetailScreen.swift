@@ -594,7 +594,7 @@ private struct OfferDetailContent: View {
         } else if let missing = pricing.sharesToNextTier {
             let discount = pricing.nextTierDiscountPercent ?? 0
             hintLabel(
-                String(localized: "Encore \(missing) \(missing > 1 ? "parts" : "part") pour le palier suivant")
+                String(localized: "Encore \(missing) \(FrenchPlural.word(missing, "part", plural: "parts")) pour le palier suivant")
                     + (discount > 0 ? " (−\(discount) %)" : "") + ".",
                 systemImage: OfferDetailSymbol.nextTier,
                 tint: .economie,

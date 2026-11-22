@@ -52,10 +52,16 @@ struct FamilyMapScreen: View {
             }
         }
         .safeAreaInset(edge: .top, spacing: 0) {
-            if let viewModel { FamilyMapControlBar(viewModel: viewModel, reduceMotion: reduceMotion) }
+            if let viewModel { FamilyMapControlBar(viewModel: viewModel, reduceMotion: reduceMotion)
+                    // Les pastilles flottent sur la carte : au-delà de ce plafond elles mangeaient l'écran.
+                    .dynamicTypeSize(...DynamicTypeSize.accessibility1)
+            }
         }
         .safeAreaInset(edge: .bottom, spacing: 0) {
-            if let viewModel { bottomLayer(viewModel) }
+            if let viewModel {
+                bottomLayer(viewModel)
+                    .dynamicTypeSize(...DynamicTypeSize.accessibility1)
+            }
         }
         .mapScope(mapScope)
         .navigationDestination(item: $destination) { destination in

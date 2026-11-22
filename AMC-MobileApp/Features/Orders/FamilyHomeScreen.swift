@@ -563,7 +563,7 @@ private struct OrderLink: View {
         guard let missing = pricing.sharesToNextTier, let percent = pricing.nextTierDiscountPercent, percent > 0 else {
             return nil
         }
-        return String(localized: "Encore \(missing) \(missing > 1 ? "parts" : "part") pour débloquer −\(percent) %")
+        return String(localized: "Encore \(missing) \(FrenchPlural.word(missing, "part", plural: "parts")) pour débloquer −\(percent) %")
     }
 }
 
@@ -663,7 +663,7 @@ private struct SavingsCard: View {
 
     private var detail: String {
         if orderCount == 0 { return String(localized: "vs l'épicerie du coin") }
-        return String(localized: "sur \(orderCount) \(orderCount > 1 ? "commandes" : "commande"), vs l'épicerie du coin")
+        return String(localized: "sur \(orderCount) \(FrenchPlural.word(orderCount, "commande", plural: "commandes")), vs l'épicerie du coin")
     }
 }
 

@@ -96,7 +96,7 @@ struct InviteCard: View {
     /// « il manque 1 famille pour débloquer −19 % » ; nil sans palier en vue.
     static func urgencyLine(missingFamilies: Int?, discountPercent: Int?) -> String? {
         guard let missingFamilies, missingFamilies > 0 else { return nil }
-        let unit = missingFamilies > 1 ? "familles" : "famille"
+        let unit = FrenchPlural.word(missingFamilies, "famille", plural: "familles")
         guard let discountPercent, discountPercent > 0 else {
             return String(localized: "il manque \(missingFamilies) \(unit) pour le prochain palier")
         }

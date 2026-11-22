@@ -291,7 +291,7 @@ private struct GroupsHeroCard: View {
                        systemImage: "checkmark.seal.fill", tint: .economie)
         GroupsStatTile(value: "\(nearbyCount)", caption: String(localized: "à rejoindre"),
                        systemImage: "location.fill", tint: .grenier)
-        GroupsStatTile(value: "\(familyCount)", caption: familyCount > 1 ? "familles" : "famille",
+        GroupsStatTile(value: "\(familyCount)", caption: FrenchPlural.word(familyCount, "famille", plural: "familles"),
                        systemImage: "person.2.fill", tint: .solidarite)
     }
 }

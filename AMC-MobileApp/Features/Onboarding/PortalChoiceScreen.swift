@@ -63,7 +63,8 @@ struct PortalChoiceScreen: View {
 
     private var header: some View {
         VStack(alignment: .leading, spacing: 8) {
-            if let name = session?.currentUser?.displayName.split(separator: " ").first {
+            if let displayName = session?.currentUser?.displayName,
+               case let name = FamilyHomeViewModel.firstName(from: displayName), !name.isEmpty {
                 Text("Bienvenue, \(name)")
                     .font(.headline)
                     .foregroundStyle(Color.grenier)

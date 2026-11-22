@@ -42,6 +42,9 @@ struct SessionContextGate: View {
         .grenierAnimation(.smooth, value: store.phase)
         .grenierAnimation(.smooth, value: store.context.needsOnboarding)
         .environment(store)
+        // RQ-019 : le mode aîné s'applique à toute l'app, une seule fois, ici (feuilles comprises).
+        .seniorMode()
+        .syncSeniorMode(from: store.context)
         .task(id: user.id) { await store.load(for: user, base: base) }
     }
 }

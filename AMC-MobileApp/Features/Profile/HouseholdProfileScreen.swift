@@ -16,7 +16,6 @@ struct HouseholdProfileScreen: View {
         }
         .navigationTitle("Mon ménage")
         .navigationBarTitleDisplayMode(.inline)
-        .seniorModeTextSize()
         .task { if viewModel.state.value == nil { await viewModel.load() } }
     }
 }

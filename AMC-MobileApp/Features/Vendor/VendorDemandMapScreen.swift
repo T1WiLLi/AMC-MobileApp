@@ -579,8 +579,8 @@ private struct DemandBubble: View {
             }
             .overlay {
                 Circle().strokeBorder(
-                    isSelected ? Color.texte : Color.grenier.opacity(isHighDemand ? 1 : 0.55),
-                    lineWidth: isSelected ? 3 : 1.5
+                    isSelected ? Color.grenier : Color.grenier.opacity(isHighDemand ? 1 : 0.55),
+                    lineWidth: isSelected ? 4.5 : 1.5
                 )
             }
             .shadow(color: .black.opacity(isSelected ? 0.18 : 0.06), radius: isSelected ? 10 : 4, y: 2)

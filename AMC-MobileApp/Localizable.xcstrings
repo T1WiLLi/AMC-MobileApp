@@ -30505,6 +30505,16 @@
         }
       }
     },
+    "Aucune commande fermée" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No closed orders"
+          }
+        }
+      }
+    },
     "Aucune commande fermée pour l'instant" : {
       "localizations" : {
         "en" : {

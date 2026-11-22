@@ -7,11 +7,14 @@ private struct PickupToolsModifier: ViewModifier {
     let groupOrderId: String?
     @Environment(\.appContext) private var context
     @State private var route: Route?
+    /// T-181 : l'utilisateur est hôte d'un point de cueillette ; le bouton « Remettre les parts » apparaît.
+    @State private var isHost = false
 
     enum Route: Hashable, Identifiable {
         case slots(String)
         case pointPicker(String)
         case hostSetup
+        case hostPickup
 
         var id: Self { self }
     }
@@ -19,6 +22,13 @@ private struct PickupToolsModifier: ViewModifier {
     func body(content: Content) -> some View {
         content
             .toolbar {
+                if isHost {
+                    ToolbarItem(placement: .topBarTrailing) {
+                        Button { route = .hostPickup } label: {
+                            Label("Remettre les parts", systemImage: "qrcode.viewfinder")
+                        }
+                    }
+                }
                 ToolbarItem(placement: .topBarTrailing) {
                     Menu {
                         if let groupOrderId {
@@ -27,11 +37,20 @@ private struct PickupToolsModifier: ViewModifier {
                                 route = .pointPicker(groupOrderId)
                             }
                         }
-                        Button("Devenir hôte", systemImage: "house.and.flag.fill") { route = .hostSetup }
+                        if isHost {
+                            Button("Remettre les parts", systemImage: "qrcode.viewfinder") { route = .hostPickup }
+                        }
+                        Button(isHost ? "Mon point de cueillette" : "Devenir hôte", systemImage: "house.and.flag.fill") {
+                            route = .hostSetup
+                        }
                     } label: {
                         Label("Organiser la cueillette", systemImage: "calendar.badge.clock")
                     }
                 }
+            }
+            .task(id: context.userId) {
+                let points = (try? await context.repositories.pickupPoints.pickupPoints()) ?? []
+                isHost = points.contains { $0.hostUserId == context.userId }
             }
             .navigationDestination(item: $route) { route in
                 switch route {
@@ -42,6 +61,11 @@ private struct PickupToolsModifier: ViewModifier {
                 case .pointPicker(let orderId):
                     PickupPointPickerScreen(viewModel: PickupPointPickerViewModel(
                         repositories: context.repositories, userId: context.userId, groupOrderId: orderId
+                    ))
+                case .hostPickup:
+                    HostPickupScreen(viewModel: HostPickupViewModel(
+                        repositories: context.repositories, userId: context.userId,
+                        householdId: context.householdId, groupId: context.groupId
                     ))
                 case .hostSetup:
                     HostSetupScreen(viewModel: HostSetupViewModel(

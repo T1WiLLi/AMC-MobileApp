@@ -30585,12 +30585,12 @@
         }
       }
     },
-    "Quand la commande ferme, ton code de cueillette s'affiche ici. On te prévient ensuite dès que la livraison arrive." : {
+    "Quand la commande est confirmée par le vendeur, ton code de cueillette s'affiche ici. On te prévient ensuite dès que la livraison arrive." : {
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "When the order closes, your pickup code shows up here. We’ll then let you know as soon as the delivery arrives."
+            "value" : "When the vendor confirms the order, your pickup code shows up here. We’ll then let you know as soon as the delivery arrives."
           }
         }
       }
@@ -30685,12 +30685,12 @@
         }
       }
     },
-    "Ton code apparaîtra à la clôture" : {
+    "Ton code apparaîtra quand le vendeur confirmera la commande" : {
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Your code will appear when the order closes"
+            "value" : "Your code will appear when the vendor confirms the order"
           }
         }
       }

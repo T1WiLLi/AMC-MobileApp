@@ -52,17 +52,20 @@ struct PickupScreen: View {
             // Retour sur l'onglet (ou depuis une fiche) : une part réservée entre-temps apparaît sans tirer pour actualiser.
             .onAppear { reloadIfAlreadyLoaded() }
         }
-        .task(id: context.groupId) {
-            // Nouveau groupe actif (rejoint, changé) : nouveau modèle, sinon on garderait les parts de l'ancien.
-            guard context.hasGroup, let groupId = context.groupId else { viewModel = nil; loadedGroupId = nil; return }
-            guard viewModel == nil || loadedGroupId != groupId else { return }
-            loadedGroupId = groupId
+        .task(id: modelKey) {
+            // Nouveau groupe actif ou nouveau ménage (rejoint) : nouveau modèle, sinon on garderait les parts de l'ancien.
+            guard context.hasGroup, context.groupId != nil else { viewModel = nil; loadedGroupId = nil; return }
+            guard let groupId = context.groupId, viewModel == nil || loadedGroupId != modelKey else { return }
+            loadedGroupId = modelKey
             let model = PickupViewModel(repositories: context.repositories, householdId: context.householdId, groupId: groupId,
                                         userId: context.userId)
             viewModel = model
             await model.load()
         }
     }
+
+    /// Ménage et groupe actif du modèle courant.
+    private var modelKey: String { "\(context.householdId)|\(context.groupId ?? "")" }
 
     /// Recharge seulement après un premier chargement : la `.task` s'occupe du tout premier.
     private func reloadIfAlreadyLoaded() {

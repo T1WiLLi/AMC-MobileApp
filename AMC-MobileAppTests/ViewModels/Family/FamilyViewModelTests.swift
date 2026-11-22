@@ -259,6 +259,17 @@ struct FamilyViewModelTests {
         #expect(content.items.map(\.quantity) == [2])
     }
 
+    /// Part réservée dans un autre groupe du ménage que le groupe actif : elle apparaît aussi à la Cueillette.
+    @Test func pickupShowsSharesFromAllHouseholdGroups() async throws {
+        let repos = repositories()
+        try await repos.groupOrders.setShare(quantity: 1, householdId: ID.aminaHousehold, groupOrderId: ID.potatoOrder)
+        // Groupe actif : la cuisine collective de Villeray ; la commande de pommes de terre est à Saint-Michel.
+        let viewModel = PickupViewModel(repositories: repos, householdId: ID.aminaHousehold, groupId: ID.villerayKitchen)
+        await viewModel.load()
+        let content = try #require(viewModel.state.value)
+        #expect(content.items.map(\.groupOrderId) == [ID.potatoOrder])
+    }
+
     @Test func pickupShowsAminaShare() async throws {
         let repos = repositories()
         try await repos.groupOrders.setShare(quantity: 1, householdId: ID.aminaHousehold, groupOrderId: ID.potatoOrder)

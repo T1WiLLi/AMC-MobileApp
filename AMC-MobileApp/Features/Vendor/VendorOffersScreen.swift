@@ -219,28 +219,32 @@ private struct VendorOffersHero: View {
                 ? AnyLayout(VStackLayout(alignment: .leading, spacing: 10))
                 : AnyLayout(HStackLayout(alignment: .top, spacing: 10))
             tiles {
-                VendorOffersStatTile(
-                    symbol: GrenierSymbol.offers,
+                GrenierStatTile(
+                    "\(dashboard.offers.count)",
+                    systemImage: GrenierSymbol.offers,
                     tint: .grenier,
-                    value: Double(dashboard.offers.count),
-                    valueText: "\(dashboard.offers.count)",
-                    caption: FrenchPlural.word(dashboard.offers.count, String(localized: "lot ouvert"), plural: String(localized: "lots ouverts"))
+                    caption: Text(FrenchPlural.word(dashboard.offers.count, String(localized: "lot ouvert"), plural: String(localized: "lots ouverts"))),
+                    numericValue: Double(dashboard.offers.count),
+                    valueFont: .headline
                 )
-                VendorOffersStatTile(
-                    symbol: "person.2.fill",
+                GrenierStatTile(
+                    "\(dashboard.totalCommittedShares)/\(dashboard.totalShares)",
+                    systemImage: "person.2.fill",
                     tint: .solidarite,
-                    value: Double(dashboard.totalCommittedShares),
-                    valueText: "\(dashboard.totalCommittedShares)/\(dashboard.totalShares)",
-                    caption: FrenchPlural.word(dashboard.totalCommittedShares, String(localized: "part engagée"), plural: String(localized: "parts engagées"))
+                    caption: Text(FrenchPlural.word(dashboard.totalCommittedShares, String(localized: "part engagée"), plural: String(localized: "parts engagées"))),
+                    numericValue: Double(dashboard.totalCommittedShares),
+                    valueFont: .headline
                 )
-                VendorOffersStatTile(
-                    symbol: "dollarsign.circle.fill",
+                GrenierStatTile(
+                    Money.formatRounded(dashboard.projectedRevenueCents),
+                    systemImage: "dollarsign.circle.fill",
                     tint: .economie,
-                    value: Double(dashboard.projectedRevenueCents),
-                    valueText: Money.formatRounded(dashboard.projectedRevenueCents),
-                    caption: String(localized: "revenu prévu")
+                    caption: Text(String(localized: "revenu prévu")),
+                    numericValue: Double(dashboard.projectedRevenueCents),
+                    valueFont: .headline
                 )
             }
+            .fixedSize(horizontal: false, vertical: true)
         }
         .grenierCard()
     }
@@ -280,38 +284,6 @@ private struct VendorOffersHeroArt: View {
             .frame(width: side * 0.3, height: side * 0.3)
             .background(Color.surface, in: .circle)
             .offset(x: cos(radians) * radius, y: sin(radians) * radius)
-    }
-}
-
-/// Tuile d'un chiffre clé : symbole teinté, valeur animée, légende.
-private struct VendorOffersStatTile: View {
-    let symbol: String
-    let tint: Color
-    let value: Double
-    let valueText: String
-    let caption: String
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 6) {
-            Image(systemName: symbol)
-                .font(.title3)
-                .symbolRenderingMode(.hierarchical)
-                .foregroundStyle(tint)
-            Text(valueText)
-                .priceStyle(.headline)
-                .foregroundStyle(.texte)
-                .contentTransition(.numericText(value: value))
-                .grenierAnimation(.smooth, value: value)
-                .lineLimit(1)
-                .minimumScaleFactor(0.7)
-            Text(caption)
-                .font(.caption)
-                .foregroundStyle(.texteSecondaire)
-        }
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(12)
-        .background(tint.opacity(0.1), in: .rect(cornerRadius: 16))
-        .accessibilityElement(children: .combine)
     }
 }
 

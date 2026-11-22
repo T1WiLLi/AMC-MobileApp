@@ -1,6 +1,6 @@
 // GroupsSymbolArt.swift
 // Illustrations en SF Symbols de l'onglet Groupes (T-079) : scène de symboles, en-tête de section,
-// tuile de chiffre, étiquette d'info, états vide / erreur / chargement illustrés.
+// étiquette d'info, états vide / erreur / chargement illustrés.
 // Tout est décoratif et coupe ses animations sous Reduce Motion.
 
 import SwiftUI
@@ -117,42 +117,6 @@ struct GroupsSectionHeader: View {
         .grenierAnimation(.smooth, value: count)
         .accessibilityElement(children: .combine)
         .accessibilityAddTraits(.isHeader)
-    }
-}
-
-// MARK: - Tuile de chiffre clé
-
-/// Chiffre clé (« 27 familles ») : symbole, valeur animée et légende, sur un fond teinté.
-struct GroupsStatTile: View {
-    let value: String
-    let caption: String
-    let systemImage: String
-    var tint: Color = .grenier
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 4) {
-            Image(systemName: systemImage)
-                .font(.title3)
-                .symbolRenderingMode(.hierarchical)
-                .foregroundStyle(tint)
-                .groupsBounce(value: value)
-            Text(value)
-                .font(.title2.bold())
-                .fontDesign(.rounded)
-                .monospacedDigit()
-                .contentTransition(.numericText())
-                .foregroundStyle(.texte)
-                .lineLimit(1)
-                .minimumScaleFactor(0.7)
-            Text(LocalizedStringKey(caption))
-                .font(.caption)
-                .foregroundStyle(.texteSecondaire)
-        }
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(12)
-        .background(tint.opacity(0.11), in: .rect(cornerRadius: 16))
-        .grenierAnimation(.smooth, value: value)
-        .accessibilityElement(children: .combine)
     }
 }
 
@@ -290,11 +254,6 @@ struct GroupsLoadingScene: View {
     ScrollView {
         VStack(spacing: 24) {
             GroupsSectionHeader(title: "Tes groupes", systemImage: "checkmark.seal.fill", tint: .economie, count: 2)
-            HStack(spacing: 8) {
-                GroupsStatTile(value: "27", caption: "familles", systemImage: "person.2.fill", tint: .solidarite)
-                GroupsStatTile(value: "3", caption: "lots ouverts", systemImage: GrenierSymbol.offers)
-                GroupsStatTile(value: "900 m", caption: "de rayon", systemImage: "circle.dashed", tint: .economie)
-            }
             GroupsMetaLabel(text: "Hochelaga", systemImage: "mappin")
             GroupsLoadingScene(title: "Chargement des groupes…")
                 .frame(height: 260)

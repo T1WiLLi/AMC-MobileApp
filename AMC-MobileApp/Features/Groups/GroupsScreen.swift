@@ -259,7 +259,7 @@ private struct GroupsHeroCard: View {
                 VStack(alignment: .leading, spacing: 8) { scene; pitch }
             }
             ViewThatFits(in: .horizontal) {
-                HStack(spacing: 8) { tiles }
+                HStack(spacing: 8) { tiles }.fixedSize(horizontal: false, vertical: true)
                 VStack(spacing: 8) { tiles }
             }
         }
@@ -299,12 +299,12 @@ private struct GroupsHeroCard: View {
 
     @ViewBuilder
     private var tiles: some View {
-        GroupsStatTile(value: "\(myGroupCount)", caption: myGroupCount > 1 ? String(localized: "tes groupes") : String(localized: "ton groupe"),
-                       systemImage: "checkmark.seal.fill", tint: .economie)
-        GroupsStatTile(value: "\(nearbyCount)", caption: String(localized: "à rejoindre"),
-                       systemImage: "location.fill", tint: .grenier)
-        GroupsStatTile(value: "\(familyCount)", caption: FrenchPlural.word(familyCount, "famille", plural: "familles"),
-                       systemImage: "person.2.fill", tint: .solidarite)
+        GrenierStatTile("\(myGroupCount)", systemImage: "checkmark.seal.fill", tint: .economie,
+                       caption: Text(LocalizedStringKey(myGroupCount > 1 ? String(localized: "tes groupes") : String(localized: "ton groupe"))), numericValue: Double(myGroupCount))
+        GrenierStatTile("\(nearbyCount)", systemImage: "location.fill", tint: .grenier,
+                       caption: Text(LocalizedStringKey(String(localized: "à rejoindre"))), numericValue: Double(nearbyCount))
+        GrenierStatTile("\(familyCount)", systemImage: "person.2.fill", tint: .solidarite,
+                       caption: Text(LocalizedStringKey(FrenchPlural.word(familyCount, "famille", plural: "familles"))), numericValue: Double(familyCount))
     }
 }
 

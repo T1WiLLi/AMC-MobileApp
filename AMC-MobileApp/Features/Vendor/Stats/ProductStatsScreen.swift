@@ -231,27 +231,43 @@ private struct SummaryGrid: View {
             ? [GridItem(.flexible())]
             : [GridItem(.flexible(), spacing: 12), GridItem(.flexible(), spacing: 12)]
         LazyVGrid(columns: columns, spacing: 12) {
-            StatTile(
+            statTile(
                 title: String(localized: "Revenus"), value: Money.format(report.totalRevenueCents),
                 numeric: Double(report.totalRevenueCents), detail: report.period.spokenTitle,
                 systemImage: "banknote.fill", tint: .grenier
             )
-            StatTile(
+            statTile(
                 title: String(localized: "Parts vendues"), value: report.totalUnits.formatted(.number.locale(AppLanguage.formattingLocale)),
                 numeric: Double(report.totalUnits), detail: productsDetail,
                 systemImage: GrenierSymbol.offers, tint: .grenier
             )
-            StatTile(
+            statTile(
                 title: String(localized: "Économies offertes"), value: Money.format(report.totalSavingsCents),
                 numeric: Double(report.totalSavingsCents), detail: String(localized: "vs l'épicerie"),
                 systemImage: GrenierSymbol.savings, tint: .economie
             )
-            StatTile(
+            statTile(
                 title: String(localized: "Familles"), value: report.householdCount.formatted(.number.locale(AppLanguage.formattingLocale)),
                 numeric: Double(report.householdCount), detail: groupsDetail,
                 systemImage: GrenierSymbol.groups, tint: .solidarite
             )
         }
+    }
+
+    private func statTile(title: String, value: String, numeric: Double, detail: String,
+                          systemImage: String, tint: Color) -> some View {
+        GrenierStatTile(
+            value,
+            systemImage: systemImage,
+            tint: tint,
+            style: .card,
+            icon: .title,
+            title: Text(title),
+            detail: Text(detail),
+            numericValue: numeric,
+            valueFont: .priceCompact,
+            accessibilityLabel: Text("\(title) : \(value), \(detail)")
+        )
     }
 
     private var productsDetail: String {
@@ -261,45 +277,6 @@ private struct SummaryGrid: View {
 
     private var groupsDetail: String {
         report.groupCount == 1 ? String(localized: "dans 1 groupe") : String(localized: "dans \(report.groupCount) groupes")
-    }
-}
-
-private struct StatTile: View {
-    let title: String
-    let value: String
-    let numeric: Double
-    let detail: String
-    let systemImage: String
-    let tint: Color
-
-    @Environment(\.accessibilityReduceMotion) private var reduceMotion
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 6) {
-            Label {
-                Text(title)
-            } icon: {
-                Image(systemName: systemImage)
-                    .foregroundStyle(tint)
-                    .symbolEffect(.bounce, value: reduceMotion ? 0 : numeric)
-            }
-            .font(.subheadline)
-            .foregroundStyle(.texteSecondaire)
-            .symbolRenderingMode(.hierarchical)
-            Text(value)
-                .priceStyle(.priceCompact)
-                .foregroundStyle(.texte)
-                .contentTransition(.numericText(value: numeric))
-                .lineLimit(1)
-                .minimumScaleFactor(0.6)
-            Text(detail)
-                .font(.caption)
-                .foregroundStyle(.texteSecondaire)
-        }
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .grenierCard()
-        .accessibilityElement(children: .ignore)
-        .accessibilityLabel("\(title) : \(value), \(detail)")
     }
 }
 

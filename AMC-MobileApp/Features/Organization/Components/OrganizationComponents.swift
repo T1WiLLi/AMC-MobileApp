@@ -72,49 +72,6 @@ struct CoverageBar: View {
     }
 }
 
-// MARK: - Chiffres
-
-/// Tuile de chiffre clé : icône, valeur animée, libellé.
-struct OrganizationKPITile: View {
-    let title: String
-    let value: String
-    let systemImage: String
-    let tint: Color
-    /// Valeur numérique qui déclenche l'animation du chiffre.
-    let numericValue: Int
-
-    @Environment(\.accessibilityReduceMotion) private var reduceMotion
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            Image(systemName: systemImage)
-                .font(.title2)
-                .symbolRenderingMode(.hierarchical)
-                .foregroundStyle(tint)
-                .frame(width: 44, height: 44)
-                .background(tint.opacity(0.12), in: .rect(cornerRadius: 12))
-                .symbolEffect(.bounce, value: reduceMotion ? 0 : numericValue)
-                .accessibilityHidden(true)
-            Text(value)
-                .priceStyle(.title2.bold())
-                .foregroundStyle(Color.texte)
-                .contentTransition(.numericText(value: Double(numericValue)))
-                .lineLimit(1)
-                .minimumScaleFactor(0.6)
-            Text(title)
-                .font(.subheadline)
-                .foregroundStyle(Color.texteSecondaire)
-                .fixedSize(horizontal: false, vertical: true)
-        }
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .grenierCard()
-        .grenierAnimation(.smooth, value: numericValue)
-        .accessibilityElement(children: .ignore)
-        .accessibilityLabel(title)
-        .accessibilityValue(value)
-    }
-}
-
 // MARK: - Simulation
 
 /// Rappel bien visible : aucun argent réel ne circule.

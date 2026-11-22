@@ -220,3 +220,35 @@ struct PortalChoiceResetTests {
         #expect(step == .portalChoice)
     }
 }
+
+/// Un compte qui a déjà fini son onboarding ne revoit pas le choix du portail à chaque connexion.
+@MainActor
+struct PortalChoiceRestoreTests {
+    private func context(household: String, vendor: String, needsOnboarding: Bool) -> AppContext {
+        AppContext(
+            repositories: .empty(),
+            userId: "u1",
+            householdId: household,
+            groupId: nil,
+            vendorId: vendor,
+            needsOnboarding: needsOnboarding
+        )
+    }
+
+    @Test func returningFamilyGetsFamily() {
+        #expect(PortalChoice.restored(from: context(household: "h1", vendor: "", needsOnboarding: false)) == .family)
+    }
+
+    @Test func returningFamilyAndVendorGetsBoth() {
+        #expect(PortalChoice.restored(from: context(household: "h1", vendor: "v1", needsOnboarding: false)) == .both)
+    }
+
+    @Test func vendorOnlyGetsVendor() {
+        #expect(PortalChoice.restored(from: context(household: "", vendor: "v1", needsOnboarding: false)) == .vendor)
+    }
+
+    @Test func newAccountStillChooses() {
+        #expect(PortalChoice.restored(from: context(household: "h1", vendor: "", needsOnboarding: true)) == nil)
+        #expect(PortalChoice.restored(from: .unresolved) == nil)
+    }
+}

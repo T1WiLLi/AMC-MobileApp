@@ -90,26 +90,6 @@
         }
       }
     },
-    "Modifier le compte" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Edit account"
-          }
-        }
-      }
-    },
-    "Modifier ta photo et ton nom" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Edit your photo and name"
-          }
-        }
-      }
-    },
     "·" : {
       "localizations" : {
         "en" : {
@@ -9818,6 +9798,7 @@
       }
     },
     "Courriel : %@" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -17211,6 +17192,16 @@
         }
       }
     },
+    "Modifier le compte" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Edit account"
+          }
+        }
+      }
+    },
     "Modifier le lot" : {
       "localizations" : {
         "en" : {
@@ -17277,6 +17268,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Edit my review"
+          }
+        }
+      }
+    },
+    "Modifier ta photo et ton nom" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Edit your photo and name"
           }
         }
       }
@@ -26159,6 +26160,7 @@
       }
     },
     "Un même compte peut acheter en famille et vendre comme producteur." : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {

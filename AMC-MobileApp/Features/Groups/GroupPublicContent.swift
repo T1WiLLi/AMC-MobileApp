@@ -31,7 +31,6 @@ struct GroupPublicContent: View {
                 VStack(alignment: .leading, spacing: 24) {
                     header
                     keyFigures
-                    coordinationCard
                     openOrdersList
                     if let ratings {
                         GroupRatingsSection(model: ratings, groupName: theme.displayName ?? group.name,
@@ -122,31 +121,6 @@ struct GroupPublicContent: View {
                        caption: Text(LocalizedStringKey(FrenchPlural.word(orders, "lot ouvert", plural: "lots ouverts"))), numericValue: Double(orders))
         GrenierStatTile(GroupCard.distanceText(group.radiusMeters), systemImage: "circle.dashed", tint: .economie,
                        caption: Text(LocalizedStringKey(String(localized: "de rayon"))))
-    }
-
-    // MARK: Coordination
-
-    private var coordinationCard: some View {
-        HStack(spacing: 14) {
-            Image(systemName: "person.crop.circle.badge.checkmark")
-                .font(.largeTitle)
-                .symbolRenderingMode(.hierarchical)
-                .foregroundStyle(theme.accent)
-                .accessibilityHidden(true)
-            VStack(alignment: .leading, spacing: 2) {
-                Text(content.coordinatorName.map { String(localized: "Coordonné par \($0)") }
-                     ?? String(localized: "Coordonné par des voisins bénévoles"))
-                    .font(.headline)
-                    .foregroundStyle(.texte)
-                Text("Ils lancent les commandes et choisissent le point de cueillette du quartier.")
-                    .font(.subheadline)
-                    .foregroundStyle(.texteSecondaire)
-                    .fixedSize(horizontal: false, vertical: true)
-            }
-            Spacer(minLength: 0)
-        }
-        .grenierCard()
-        .accessibilityElement(children: .combine)
     }
 
     // MARK: Lots ouverts

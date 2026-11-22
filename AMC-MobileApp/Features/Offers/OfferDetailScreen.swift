@@ -913,6 +913,11 @@ private struct OfferDetailContent: View {
                     .font(.footnote)
                     .symbolRenderingMode(.hierarchical)
                     .foregroundStyle(.texteSecondaire)
+                    // Aux très grandes tailles, la barre ne doit pas manger le tiers de l'écran : la ligne
+                    // secondaire est déjà dite par VoiceOver et visible dans « Ta part ».
+                    .opacity(dynamicTypeSize.isAccessibilitySize ? 0 : 1)
+                    .frame(maxHeight: dynamicTypeSize.isAccessibilitySize ? 0 : nil)
+                    .accessibilityHidden(dynamicTypeSize.isAccessibilitySize)
             }
             .accessibilityElement(children: .combine)
             .accessibilityLabel(viewModel.suspendedCents > 0
@@ -958,6 +963,8 @@ private struct OfferDetailContent: View {
         .padding(.horizontal, 16)
         .padding(.top, 12)
         .padding(.bottom, 8)
+        // Barre persistante : plafonnée à AX3 pour laisser de la place au contenu (le reste de la fiche va jusqu'à AX5).
+        .dynamicTypeSize(...DynamicTypeSize.accessibility3)
         .grenierAnimation(.smooth, value: viewModel.selectedQuantity)
     }
 

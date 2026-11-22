@@ -83,13 +83,20 @@ final class OfferDetailViewModel {
     private let offerId: String
     private let householdId: String
     private let groupId: String?
+    /// T-187 : consultation du lot d'un groupe dont le ménage n'est pas membre (fiche publique du groupe).
+    /// On montre la commande de CE groupe (produit, paliers, avancement) sans lire de part (réservées aux membres
+    /// par les règles) et sans jamais réserver ni ouvrir de commande.
+    let isReadOnly: Bool
 
     /// `groupId` : groupe du ménage, pour trouver sa commande sur ce lot (`nil` = consultation seule).
-    init(repositories: AppRepositories, offerId: String, householdId: String, groupId: String?) {
+    /// `isReadOnly` : `groupId` est le groupe visité (pas celui du ménage) ; aucune réservation possible.
+    init(repositories: AppRepositories, offerId: String, householdId: String, groupId: String?,
+         isReadOnly: Bool = false) {
         self.repositories = repositories
         self.offerId = offerId
         self.householdId = householdId
         self.groupId = groupId
+        self.isReadOnly = isReadOnly
     }
 
     // MARK: Valeurs dérivées pour la vue
@@ -132,7 +139,7 @@ final class OfferDetailViewModel {
 
     /// Le bouton « Réserver » est actif.
     var canReserve: Bool {
-        guard let content = state.value, content.isOpen, !isSaving else { return false }
+        guard !isReadOnly, let content = state.value, content.isOpen, !isSaving else { return false }
         guard selectedQuantity > 0, quantityOptions.contains(selectedQuantity) else { return false }
         return selectedQuantity != content.myShareQuantity
             || (content.myShareQuantity > 0 && suspendedCents != content.mySuspendedCents)
@@ -143,6 +150,7 @@ final class OfferDetailViewModel {
     func load() async {
         if state.value == nil { state = .loading }
         let repositories = repositories, offerId = offerId, householdId = householdId, groupId = groupId
+        let isReadOnly = isReadOnly
         state = await .run {
             let offer = try await repositories.offers.offer(id: offerId)
             let product = try await repositories.vendors.product(id: offer.productId)
@@ -153,7 +161,7 @@ final class OfferDetailViewModel {
             if let groupId {
                 order = try await repositories.groupOrders.groupOrders(ofGroup: groupId)
                     .first { $0.offerId == offerId }
-                if let order {
+                if let order, !isReadOnly {
                     myQuantity = try await OfferSummaryLoader.shareQuantity(
                         householdId: householdId, groupOrderId: order.id, repositories: repositories
                     )
@@ -163,7 +171,8 @@ final class OfferDetailViewModel {
                     }
                 }
             }
-            let canStartOrder = order == nil && groupId != nil && offer.status == .active && offer.deadline > .now
+            let canStartOrder = !isReadOnly && order == nil && groupId != nil && offer.status == .active
+                && offer.deadline > .now
             return Content(
                 offer: offer, product: product, vendor: vendor, groupOrder: order, myShareQuantity: myQuantity,
                 mySuspendedCents: mySuspended, canStartOrder: canStartOrder
@@ -241,6 +250,11 @@ final class OfferDetailViewModel {
 
     private func setShare(quantity: Int) async {
         guard let content = state.value, !isSaving else { return }
+        // T-187 : un visiteur ne réserve jamais dans un groupe dont il n'est pas membre (les règles refuseraient aussi).
+        guard !isReadOnly else {
+            actionError = .invalidInput(String(localized: "Rejoins ce groupe pour réserver ta part."))
+            return
+        }
         guard content.groupOrder != nil || (content.canStartOrder && quantity > 0), let groupId else {
             actionError = .invalidInput(String(localized: "Rejoins un groupe de quartier pour réserver ce lot."))
             return

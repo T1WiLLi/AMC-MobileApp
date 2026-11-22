@@ -62,7 +62,7 @@ struct ProductEditorViewModelTests {
         expectInvalid(model, "Le nom du produit doit faire 80 caractères ou moins.")
         model.name = "Carottes"
         model.unit = " "
-        expectInvalid(model, "Indique l'unité de vente (par exemple « sac de 10 kg » ou « douzaine »).")
+        expectInvalid(model, "Choisis l'unité de vente (kg, unité, douzaine…).")
         model.unit = "kg"
         model.origin = ""
         expectInvalid(model, "Indique la provenance du produit (par exemple « Mirabel, QC »).")

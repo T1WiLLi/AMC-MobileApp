@@ -30,7 +30,7 @@ struct ProductCatalogTests {
         let model = validEditor()
         model.unit = " "
         #expect(model.validationError == .invalidInput(
-            "Indique l'unité de vente (par exemple « sac de 10 kg » ou « douzaine »)."
+            "Choisis l'unité de vente (kg, unité, douzaine…)."
         ))
         model.unit = "kg"
         model.referencePriceText = "0"

@@ -21338,6 +21338,16 @@
           }
         }
       }
+    },
+    "Photos et zones desservies" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Photos and service areas"
+          }
+        }
+      }
     }
   },
   "version" : "1.0"

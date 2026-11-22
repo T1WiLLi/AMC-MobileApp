@@ -46,6 +46,7 @@ struct ImpactScreen: View {
                 }
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .guidedTourTip(.impact)
             .grenierBackground()
             .navigationTitle("Impact")
             .profileToolbar()

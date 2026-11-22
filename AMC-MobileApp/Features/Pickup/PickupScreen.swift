@@ -45,6 +45,7 @@ struct PickupScreen: View {
                 }
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .guidedTourTip(.pickup)
             .grenierBackground()
             .navigationTitle("Cueillette")
             .profileToolbar()

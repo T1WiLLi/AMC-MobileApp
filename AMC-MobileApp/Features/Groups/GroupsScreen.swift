@@ -67,6 +67,7 @@ struct GroupsScreen: View {
                     GroupsLoadingSkeleton()
                 }
             }
+            .guidedTourTip(.groups)
             .grenierBackground()
             .navigationTitle("Groupes")
             .profileToolbar()

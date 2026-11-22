@@ -147,6 +147,37 @@ nonisolated enum PickupDesk {
         return (String(code[..<index]), memberId.isEmpty ? nil : memberId)
     }
 
+    // MARK: Code d'un groupe (T-198)
+
+    /// Séparateur des codes de commande dans le QR d'un groupe : `GRENIER:o1:h:t1|GRENIER:o2:h:t2#uid`.
+    static let bundleSeparator: Character = "|"
+
+    /// Un seul QR pour toutes les parts d'un ménage dans un groupe : les codes à jeton de ses commandes, mis bout à
+    /// bout, suivis du membre qui le montre. Chaque code garde son jeton privé : l'hôte ne remet que les commandes
+    /// qu'il sert, et un code modifié reste refusé. nil sans code.
+    static func bundleCode(_ codes: [String]) -> String? {
+        let split = codes.map(splitMemberCode).filter { !$0.qrCode.isEmpty }
+        guard !split.isEmpty else { return nil }
+        let joined = split.map(\.qrCode).joined(separator: String(bundleSeparator))
+        guard let memberId = split.lazy.compactMap(\.memberId).first else { return joined }
+        return memberCode(joined, memberId: memberId)
+    }
+
+    /// Les codes de commande d'un QR (un seul pour un code de commande), chacun avec le membre du QR.
+    static func bundledCodes(_ code: String) -> [String] {
+        let (qrCode, memberId) = splitMemberCode(code)
+        return qrCode.split(separator: bundleSeparator).map { part in
+            let part = String(part).trimmingCharacters(in: .whitespacesAndNewlines)
+            return memberId.map { memberCode(part, memberId: $0) } ?? part
+        }.filter { !$0.isEmpty }
+    }
+
+    /// Le code de `orderId` dans un QR de groupe ; sinon son premier code (le scan répond « mauvaise commande »).
+    static func code(for orderId: String, in code: String) -> String {
+        let codes = bundledCodes(code)
+        return codes.first { parse($0)?.orderId == orderId } ?? codes.first ?? code
+    }
+
     /// RQ-066 : valide le code scanné contre le jeton privé du ménage et renvoie la part à marquer comme cueillie.
     /// T-159 : une part par ménage, remise une seule fois, à n'importe quel membre ; un deuxième membre qui se
     /// présente reçoit `.alreadyPickedUp`. Le membre du code est noté dans `pickedUpBy`.
@@ -156,7 +187,7 @@ nonisolated enum PickupDesk {
         _ code: String, order: GroupOrder, shares: [Share], pickupTokens: [String: String], at date: Date = .now
     ) -> ScanResult {
         guard canPickUp(order.status) else { return .orderNotReady(order.status) }
-        guard let parsed = parse(code) else { return .unknownCode }
+        guard let parsed = parse(Self.code(for: order.id, in: code)) else { return .unknownCode }
         guard parsed.orderId == order.id else { return .wrongOrder }
         if parsed.isLegacy { return .outdatedCode }
         guard let token = pickupTokens[parsed.householdId], isPickupToken(token),

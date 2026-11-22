@@ -669,6 +669,12 @@ private struct HostOutcomeBanner: View {
                 Text(outcome.householdName.map { "\(outcome.result.title) · \($0)" } ?? outcome.result.title)
                     .font(.headline)
                 Text(outcome.result.message).font(.subheadline).foregroundStyle(.texteSecondaire)
+                if let others = outcome.othersMessage {
+                    Label(others, systemImage: "square.stack.3d.up.fill")
+                        .font(.subheadline.weight(.semibold))
+                        .foregroundStyle(Color.economie)
+                        .symbolRenderingMode(.hierarchical)
+                }
             }
             Spacer(minLength: 0)
             Button(action: dismiss) { Image(systemName: "xmark.circle.fill") }

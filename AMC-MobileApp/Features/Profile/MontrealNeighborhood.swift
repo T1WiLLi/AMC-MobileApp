@@ -59,6 +59,36 @@ nonisolated struct MontrealNeighborhood: Identifiable, Sendable, Hashable {
         all.first { $0.name.compare(name, options: [.caseInsensitive, .diacriticInsensitive]) == .orderedSame }
     }
 
+    /// Slug d'un nom : minuscules, sans accents, mots reliés par des tirets (« Côte-des-Neiges » → « cote-des-neiges »).
+    static func slug(of name: String) -> String {
+        let folded = name.folding(options: [.caseInsensitive, .diacriticInsensitive], locale: Locale(identifier: "fr_CA"))
+        return folded.lowercased()
+            .split(whereSeparator: { !$0.isLetter && !$0.isNumber })
+            .joined(separator: "-")
+    }
+
+    /// Nom lisible d'un quartier enregistré tel quel ou en slug (FB-12) : « cote-des-neiges » → « Côte-des-Neiges »,
+    /// « hochelaga » → « Hochelaga ». Un slug inconnu prend une majuscule à chaque mot sauf aux petits mots
+    /// (« saint-leonard » → « Saint-Leonard ») ; un nom déjà lisible est gardé tel quel.
+    static func displayName(for raw: String) -> String {
+        let trimmed = raw.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return "" }
+        if let match = named(trimmed) { return match.name }
+        let key = slug(of: trimmed)
+        if let match = all.first(where: { slug(of: $0.name) == key }) { return match.name }
+        // Déjà en forme lisible (majuscule ou espace) : on n'y touche pas.
+        guard trimmed == trimmed.lowercased(), !trimmed.contains(" ") else { return trimmed }
+        let smallWords: Set<String> = ["de", "des", "du", "la", "le", "les", "sur", "en", "et"]
+        return trimmed
+            .split(whereSeparator: { $0 == "-" || $0 == "_" })
+            .enumerated()
+            .map { index, word in
+                let word = String(word)
+                return index > 0 && smallWords.contains(word) ? word : word.prefix(1).uppercased() + word.dropFirst()
+            }
+            .joined(separator: "-")
+    }
+
     /// Quartiers desservis pour la démo, triés par nom. Centres approximatifs.
     static let all: [MontrealNeighborhood] = [
         .init(name: "Ahuntsic", postalPrefixes: ["H2C", "H2M", "H3L"], latitude: 45.555, longitude: -73.660),

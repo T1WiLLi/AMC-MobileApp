@@ -215,7 +215,7 @@ struct DonationSheet: View {
                     .foregroundStyle(Color.texte)
                     .symbolRenderingMode(.hierarchical)
                 previewRow("basket.fill", tint: .grenier,
-                           text: String(localized: "\(FrenchPlural.count(plan.basketCount, "panier entier", plural: "paniers entiers")) dans le fonds"),
+                           text: plan.basketSummary,
                            value: plan.basketCount)
                 previewRow("figure.2.and.child.holdinghands", tint: .solidarite,
                            text: plan.householdsReached > 0

@@ -25329,6 +25329,16 @@
         }
       }
     },
+    "Ton don couvre une partie d'un panier" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Your gift covers part of a basket"
+          }
+        }
+      }
+    },
     "Ton don pour un panier suspendu : +%@" : {
       "localizations" : {
         "en" : {
@@ -30255,12 +30265,12 @@
         }
       }
     },
-    "Paliers figés : des familles ont réservé à ces prix." : {
+    "Paliers figés : le lot est publié, les familles voient ces prix." : {
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Tiers locked: families reserved at these prices."
+            "value" : "Tiers locked: the lot is published, families see these prices."
           }
         }
       }

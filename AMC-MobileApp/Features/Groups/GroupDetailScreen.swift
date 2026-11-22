@@ -433,7 +433,7 @@ private struct GroupDetailContent: View {
 
     private var header: some View {
         VStack(alignment: .leading, spacing: 8) {
-            Label(String(localized: "Groupe de quartier · \(group.neighborhood)").uppercased(), systemImage: "mappin.circle.fill")
+            Label(String(localized: "Groupe de quartier · \(MontrealNeighborhood.displayName(for: group.neighborhood))").uppercased(), systemImage: "mappin.circle.fill")
                 .font(.caption.weight(.semibold))
                 .symbolRenderingMode(.hierarchical)
                 .foregroundStyle(theme.accent)

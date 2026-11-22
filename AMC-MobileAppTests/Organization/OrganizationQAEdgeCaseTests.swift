@@ -158,4 +158,28 @@ struct OrganizationQAEdgeCaseTests {
         await model.load()
         #expect(model.snapshot == loaded)
     }
+
+    // MARK: T-203 : don plus petit qu'un panier
+
+    private func profile(price: Cents) -> GroupSolidarityProfile {
+        GroupSolidarityProfile(
+            groupId: "g", groupName: "G", neighborhood: "cote-des-neiges", centerGeohash: "f25dv", householdCount: 10,
+            subsidizedHouseholds: 2, basketPriceCents: price, fund: SolidarityFund(entries: []), sponsorOrganizationIds: []
+        )
+    }
+
+    @Test func smallFundDonationSaysItCoversPartOfABasket() throws {
+        let plan = try OrganizationLedger.plan(.fund(amountCents: 500), for: profile(price: 2_600))
+        #expect(plan.basketCount == 0)
+        #expect(plan.basketSummary == "Ton don couvre une partie d'un panier")
+        #expect(!plan.basketSummary.contains("0 panier"))
+    }
+
+    @Test func fundDonationOfWholeBasketsCountsThem() throws {
+        let plan = try OrganizationLedger.plan(.fund(amountCents: 7_800), for: profile(price: 2_600))
+        #expect(plan.basketCount == 3)
+        #expect(plan.basketSummary == "3 paniers entiers dans le fonds")
+        let one = try OrganizationLedger.plan(.fund(amountCents: 2_600), for: profile(price: 2_600))
+        #expect(one.basketSummary == "1 panier entier dans le fonds")
+    }
 }

@@ -1,6 +1,6 @@
 // BoroughStats.swift
 // Collection `boroughStats/{boroughId}` (RQ-093, T-114) : agrégats d'un arrondissement de Montréal,
-// en lecture seule pour l'app. Remplie par le seed (ou un script d'administration), jamais par un client :
+// en lecture seule pour l'app. Remplie par `scripts/seed/aggregateBoroughStats.ts` (T-197, Admin), jamais par un client :
 // aucune donnée personnelle, seulement des totaux. Le classement est calculé côté client
 // par `SolidarityLeaderboard`.
 

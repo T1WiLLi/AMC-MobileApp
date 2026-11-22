@@ -83,8 +83,24 @@ private struct LeaderboardSummaryCard: View {
             .buttonStyle(.glass)
             .controlSize(.large)
             .accessibilityHint("Ouvre le classement des \(entries.count) arrondissements.")
+
+            LeaderboardUpdatedLabel(date: viewModel.lastUpdated)
         }
         .grenierCard()
+    }
+}
+
+/// « Mis à jour le 22 novembre 2026 » ; rien tant que les agrégats ne portent pas de date (T-197).
+struct LeaderboardUpdatedLabel: View {
+    let date: Date?
+
+    var body: some View {
+        if let date {
+            Text("Mis à jour le \(date.formatted(.dateTime.day().month(.wide).year().locale(AppLanguage.formattingLocale)))")
+                .font(.caption)
+                .foregroundStyle(.texteSecondaire)
+                .frame(maxWidth: .infinity, alignment: .center)
+        }
     }
 }
 

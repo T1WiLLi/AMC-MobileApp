@@ -139,5 +139,24 @@ struct SolidarityLeaderboardTests {
         let model = SolidarityLeaderboardViewModel(repositories: repositories, groupId: nil)
         await model.load()
         #expect(model.state == .empty)
+        #expect(model.lastUpdated == nil)
+    }
+
+    /// T-197 : un seul arrondissement publié par le script d'agrégation suffit à sortir de l'état vide,
+    /// et « Mis à jour le » suit le calcul le plus récent.
+    @MainActor
+    @Test func viewModelShowsRealDataAndLastUpdate() async {
+        let older = Date(timeIntervalSince1970: 1_700_000_000), newer = Date(timeIntervalSince1970: 1_800_000_000)
+        var first = borough("verdun", households: 5, active: 3, neighborhoods: ["Verdun"])
+        first.updatedAt = older
+        var second = borough("lachine", households: 3, active: 1, neighborhoods: ["Lachine"])
+        second.updatedAt = newer
+        var repositories = AppRepositories.fake(behavior: .instant)
+        repositories.boroughStats = FakeBoroughStatsRepository(stats: [first, second])
+        let model = SolidarityLeaderboardViewModel(repositories: repositories, groupId: nil)
+        await model.load()
+        #expect(model.state != .empty)
+        #expect(model.entries.count == 2)
+        #expect(model.lastUpdated == newer)
     }
 }

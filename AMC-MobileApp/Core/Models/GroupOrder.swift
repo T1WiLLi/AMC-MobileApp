@@ -52,6 +52,9 @@ nonisolated struct Share: Identifiable, Codable, Sendable, Hashable {
     /// Nom du ménage (« Famille Benali »), copié dans la part quand il réserve : l'hôte ne peut pas lire
     /// `households/{id}` (réservé aux membres). nil dans les anciennes parts.
     var householdName: String? = nil
+    /// T-195 : le ménage a un statut subventionné (code d'organisme) au moment de réserver. Posé par le ménage, et
+    /// vérifié par firestore.rules contre son profil privé ; la clôture s'en sert pour répartir le fonds de solidarité.
+    var solidarityEligible: Bool? = nil
 
     var id: String { householdId }
 

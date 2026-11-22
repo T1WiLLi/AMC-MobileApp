@@ -210,7 +210,7 @@ final class VendorDashboardViewModel {
     func canClose(_ summary: OfferSummary) -> Bool {
         guard let vendorUser else { return false }
         return summary.liveOrders.contains {
-            ClosurePolicy.canClose(user: vendorUser, membership: nil, offer: summary.offer, order: $0.order)
+            ClosurePolicy.canClose(user: vendorUser, groupCoordinatorIds: [], offer: summary.offer, order: $0.order)
         }
     }
 
@@ -228,7 +228,7 @@ final class VendorDashboardViewModel {
         for linked in summary.liveOrders {
             do {
                 try await repositories.groupOrders.closeGroupOrder(
-                    id: linked.order.id, trigger: .manual(user: vendorUser, membership: nil)
+                    id: linked.order.id, trigger: .manual(user: vendorUser, groupCoordinatorIds: [])
                 )
             } catch AppError.orderClosed {
                 continue

@@ -176,4 +176,30 @@ struct ProductEditorViewModelTests {
         #expect(creating.saveState.error == .offline)
         #expect(!creating.isEditing)
     }
+
+    // MARK: Plafonds de firestore.rules
+
+    @Test func priceIsCappedAtTenMillionCents() {
+        let model = validEditor()
+        model.referencePriceText = "100000"
+        #expect(model.validationError == nil)
+        model.referencePriceText = "100000,01"
+        expectInvalid(model, "Le prix en épicerie ne peut pas dépasser 100 000 $.")
+    }
+
+    @Test func originIsCappedAt120Characters() {
+        let model = validEditor()
+        model.origin = String(repeating: "a", count: 120)
+        #expect(model.validationError == nil)
+        model.origin = String(repeating: "a", count: 121)
+        expectInvalid(model, "La provenance doit faire 120 caractères ou moins.")
+    }
+
+    @Test func unitIsCappedAt60Characters() {
+        let model = validEditor()
+        model.unit = String(repeating: "a", count: 60)
+        #expect(model.validationError == nil)
+        model.unit = String(repeating: "a", count: 61)
+        expectInvalid(model, "L'unité de vente doit faire 60 caractères ou moins.")
+    }
 }

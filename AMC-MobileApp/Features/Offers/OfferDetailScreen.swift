@@ -73,7 +73,6 @@ enum OfferDetailSymbol {
     static let groupSection = "person.3.fill"
     static let shareSection = "basket.fill"
     static let tier = "stairs"
-    static let nextTier = "arrow.down.forward.circle.fill"
     static let bestTier = "crown.fill"
     static let unlocks = "sparkles"
     static let payment = "banknote.fill"
@@ -702,18 +701,15 @@ private struct OfferDetailContent: View {
     /// Prochaine étape du groupe : lancer la commande, parts manquantes avant le palier suivant, ou meilleur prix atteint.
     @ViewBuilder
     private func tierHint(_ content: OfferDetailViewModel.Content) -> some View {
-        let pricing = content.pricing
         if content.groupOrder == nil {
             hintLabel(String(localized: "Ton groupe n'a pas encore lancé de commande sur ce lot."), systemImage: "person.badge.plus")
         } else if content.groupOrder?.status == .cancelled {
             hintLabel(String(localized: "Commande annulée : le minimum de parts n'a pas été atteint."), systemImage: "xmark.circle.fill")
         } else if !content.isOpen {
             hintLabel(String(localized: "La commande est fermée : prix final figé, les parts ne bougent plus."), systemImage: OfferDetailSymbol.deadlineClosed)
-        } else if content.committedShares < content.offer.minimumSharesToLaunch {
-            // La barre de paliers dit déjà « Encore N pour lancer la commande » : pas de second message sur le palier suivant.
-            EmptyView()
-        } else if pricing.sharesToNextTier != nil {
-            // Même chose pour le palier suivant : « Encore N parts pour débloquer −X % » est déjà sous la barre.
+        } else if content.committedShares < content.offer.minimumSharesToLaunch || content.pricing.sharesToNextTier != nil {
+            // R-d : la barre de paliers dit déjà « Encore N pour lancer la commande » ou « Encore N pour débloquer −X % » :
+            // pas de second message identique en dessous.
             EmptyView()
         } else {
             hintLabel(String(localized: "Meilleur prix atteint pour tout le groupe !"), systemImage: OfferDetailSymbol.bestTier)

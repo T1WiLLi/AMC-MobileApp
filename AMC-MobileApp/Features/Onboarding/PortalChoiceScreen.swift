@@ -40,7 +40,7 @@ struct PortalChoiceScreen: View {
             }
             .padding(.horizontal, 16)
             .padding(.top, 24)
-            .padding(.bottom, 24)
+            .padding(.bottom, 32)
         }
         .scrollBounceBehavior(.basedOnSize)
         // Barre (et non simple inset) : le contenu s'estompe sous le bouton au lieu de passer dessous, texte lisible.
@@ -57,6 +57,16 @@ struct PortalChoiceScreen: View {
             .accessibilityHint(model.canContinue ? String(localized: "Ouvre LeGrenier") : String(localized: "Choisis d'abord un portail"))
             .padding(.horizontal, 24)
             .padding(.vertical, 12)
+            // R-e : le texte des cartes ne se lit plus sous le bouton : fond du thème avec un fondu en haut.
+            .background(alignment: .bottom) {
+                LinearGradient(
+                    stops: [.init(color: AppTheme.fond.opacity(0), location: 0),
+                            .init(color: AppTheme.fond, location: 0.35)],
+                    startPoint: .top, endPoint: .bottom
+                )
+                .padding(.top, -16)
+                .ignoresSafeArea()
+            }
         }
         .scrollEdgeEffectStyle(.soft, for: .bottom)
         .grenierBackground()

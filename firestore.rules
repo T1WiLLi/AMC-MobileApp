@@ -1154,7 +1154,8 @@ service cloud.firestore {
       function isValidShare(data, householdId) {
         return data.keys().hasOnly(['householdId', 'quantity', 'finalPriceCents', 'isPaid',
                                     'suspendedAmountCents', 'subsidyCents', 'qrCode', 'isPickedUp', 'updatedAt',
-                                    'pickupSlotStart', 'pickedUpBy', 'pickedUpAt', 'householdName'])
+                                    'pickupSlotStart', 'pickedUpBy', 'pickedUpAt', 'householdName',
+                                    'solidarityEligible'])
           && data.keys().hasAll(['householdId', 'quantity', 'isPaid', 'suspendedAmountCents',
                                  'subsidyCents', 'isPickedUp'])
           && data.householdId == householdId
@@ -1169,7 +1170,10 @@ service cloud.firestore {
           && data.isPickedUp is bool
           && (!('updatedAt' in data) || data.updatedAt == null || data.updatedAt is timestamp)
           && (!('pickupSlotStart' in data) || data.pickupSlotStart == null || data.pickupSlotStart is timestamp)
-          && (!('householdName' in data) || isShortString(data.householdName, 1, 80));
+          && (!('householdName' in data) || isShortString(data.householdName, 1, 80))
+          // T-195 : un ménage ne se déclare admissible à la solidarité que s'il l'est vraiment (profil privé).
+          && (!('solidarityEligible' in data) || data.solidarityEligible == null || data.solidarityEligible == false
+              || (data.solidarityEligible == true && isSubsidizedHousehold(householdId)));
       }
 
       // RQ-064 (T-077) : un ménage choisit ou annule SON créneau, commande ni annulée ni livrée
@@ -1304,7 +1308,7 @@ service cloud.firestore {
               // le seed reste telle quelle, un null du seed peut devenir absent).
               (request.resource.data.diff(resource.data).affectedKeys()
                    .hasOnly(['quantity', 'suspendedAmountCents', 'updatedAt', 'finalPriceCents', 'qrCode',
-                             'householdName'])
+                             'householdName', 'solidarityEligible'])
                 && isSameOptional(request.resource.data, resource.data, 'finalPriceCents')
                 && isSameOptional(request.resource.data, resource.data, 'qrCode')
                 && canChangeMyShare(householdId))
@@ -1333,6 +1337,82 @@ service cloud.firestore {
             && (!('createdAt' in request.resource.data) || request.resource.data.createdAt is timestamp);
           allow update, delete: if false;
         }
+      }
+
+      // -------------------------------------------------------------
+      // groupOrders/{orderId}/payments/{householdId} — paiement enregistré à la clôture (T-195)
+      // -------------------------------------------------------------
+      // Un document par part payée (PaymentRecord). Créé seulement dans l'écriture de clôture (commande ouverte ->
+      // fermée, par la coordination du groupe ou le vendeur du lot), jamais modifiable ni supprimable.
+      // Lecture : la famille lit le sien ; le vendeur du lot et la coordination lisent ceux de la commande.
+      // Limite : le montant n'est pas recoupé avec la part (budget d'accès aux documents d'une clôture).
+      function isClosureWrite() {
+        return orderAfter().status == 'closed'
+          && isOpenStatus(orderDoc().status)
+          && (isGroupCoordinator(orderDoc().groupId) || isOfferVendor(offerOf(orderDoc())));
+      }
+
+      function isClosurePayment(data, householdId) {
+        return data.keys().hasOnly(['id', 'householdId', 'groupOrderId', 'finalPriceCents', 'subsidyCents',
+                                    'donationCents', 'amountDueCents', 'status', 'date', 'methodLabel'])
+          && data.keys().hasAll(['id', 'householdId', 'groupOrderId', 'finalPriceCents', 'subsidyCents',
+                                 'donationCents', 'amountDueCents', 'status', 'date', 'methodLabel'])
+          && data.householdId == householdId
+          && data.groupOrderId == orderId
+          && data.status == 'succeeded'
+          && data.finalPriceCents is int && data.subsidyCents is int
+          && data.donationCents is int && data.amountDueCents is int
+          && data.subsidyCents >= 0 && data.subsidyCents <= data.finalPriceCents
+          && data.donationCents >= 0 && data.donationCents <= 20000
+          && data.amountDueCents == data.finalPriceCents - data.subsidyCents + data.donationCents
+          && data.date is timestamp
+          && isShortString(data.id, 1, 200) && isShortString(data.methodLabel, 1, 80);
+      }
+
+      match /payments/{householdId} {
+        allow get: if isMemberOfHousehold(householdId)
+          || isGroupCoordinator(orderDoc().groupId) || isOfferVendor(offerOf(orderDoc()));
+        allow list: if isGroupCoordinator(orderDoc().groupId) || isOfferVendor(offerOf(orderDoc()));
+        allow create: if isClosureWrite() && isClosurePayment(request.resource.data, householdId);
+        allow update, delete: if false;
+      }
+
+      // -------------------------------------------------------------
+      // groupOrders/{orderId}/payouts/vendor — versement au vendeur, écrit à la clôture (T-195)
+      // -------------------------------------------------------------
+      // Brut, commission (6 %), net, acompte versé, retenu (VendorPayout). Même écriture de clôture, jamais modifiable.
+      // Lecture : le vendeur du lot et la coordination du groupe.
+      function isClosurePayout(data) {
+        return data.keys().hasOnly(['id', 'groupOrderId', 'vendorId', 'mode', 'grossCents', 'commissionCents',
+                                    'netCents', 'releasedCents', 'heldCents', 'subsidyTotalCents',
+                                    'solidarityContributedCents', 'paidShareCount', 'date'])
+          && data.keys().hasAll(['id', 'groupOrderId', 'vendorId', 'mode', 'grossCents', 'commissionCents',
+                                 'netCents', 'releasedCents', 'heldCents', 'subsidyTotalCents',
+                                 'solidarityContributedCents', 'paidShareCount', 'date'])
+          && data.id == 'vendor'
+          && data.groupOrderId == orderId
+          && data.vendorId == offerOf(orderDoc()).vendorId
+          && data.mode in ['deposit', 'atPickup']
+          && data.grossCents is int && data.commissionCents is int && data.netCents is int
+          && data.releasedCents is int && data.heldCents is int && data.subsidyTotalCents is int
+          && data.solidarityContributedCents is int && data.paidShareCount is int
+          && data.grossCents >= 0 && data.commissionCents >= 0 && data.commissionCents <= data.grossCents
+          && data.netCents == data.grossCents - data.commissionCents
+          && data.releasedCents >= 0 && data.releasedCents <= data.netCents
+          && data.heldCents == data.netCents - data.releasedCents
+          && data.subsidyTotalCents >= 0 && data.subsidyTotalCents <= data.grossCents
+          && data.solidarityContributedCents >= 0
+          && data.paidShareCount >= 0
+          // 6 % arrondi au cent part par part : l'écart au 6 % exact reste sous un demi-cent par part payée.
+          && data.commissionCents * 10000 >= data.grossCents * 600 - data.paidShareCount * 5000
+          && data.commissionCents * 10000 <= data.grossCents * 600 + data.paidShareCount * 5000
+          && data.date is timestamp;
+      }
+
+      match /payouts/{docId} {
+        allow read: if isGroupCoordinator(orderDoc().groupId) || isOfferVendor(offerOf(orderDoc()));
+        allow create: if docId == 'vendor' && isClosureWrite() && isClosurePayout(request.resource.data);
+        allow update, delete: if false;
       }
     }
 
@@ -1654,8 +1734,8 @@ service cloud.firestore {
 
     // Fonds de solidarité d'un groupe : un seul document, `fund`. Le solde se déduit de `entries`
     // (contributions moins applications). Aucune ligne n'a d'identifiant de ménage.
-    // Un membre d'organisme le crédite (don) ou y inscrit son parrainage. Aucun DÉBIT ici : l'application du fonds
-    // à la clôture d'une commande (T-195) ajoutera sa propre fonction `isFundDebit` à la liste du `allow` d'écriture.
+    // Un membre d'organisme le crédite (don) ou y inscrit son parrainage. Le DÉBIT (application du fonds à la
+    // clôture d'une commande, T-195) a sa propre fonction `isFundDebit`.
     function fundBefore() {
       return resource == null ? {} : resource.data;
     }
@@ -1694,6 +1774,42 @@ service cloud.firestore {
         && getAfter(donation).data.groupId == groupId;
     }
 
+    // Débit (T-195) : seulement dans l'écriture de clôture d'une commande du groupe. La coordination ou le vendeur du
+    // lot ferme la commande (open|reached -> closed) et ajoute UNE ligne « application » à la fin de l'historique, du
+    // montant des subventions déclaré dans payouts/vendor (subsidyTotalCents moins les paniers suspendus déjà versés
+    // dans le fonds). Les lignes précédentes ne bougent pas, aucun autre champ du fonds non plus.
+    // Limites : les règles ne peuvent pas sommer `entries` (pas de boucle), donc le solde non négatif est tenu par
+    // la transaction de l'app (SolidarityLedger.apply plafonne la subvention au solde ; Firestore rejoue la transaction
+    // si le fonds change), et la somme des subventions des parts n'est pas recoupée ici (chaque subvention de part est
+    // bornée par son prix et réservée aux ménages subventionnés, voir isClosingAllocation).
+    function isFundDebit(groupId) {
+      let before = fundBefore();
+      let after = request.resource.data;
+      let oldEntries = before.get('entries', []);
+      let entries = after.get('entries', []);
+      let entry = entries.size() > 0 ? entries[entries.size() - 1] : {};
+      let orderPath = /databases/$(database)/documents/groupOrders/$(entry.get('orderId', ''));
+      let payoutPath = /databases/$(database)/documents/groupOrders/$(entry.get('orderId', ''))/payouts/vendor;
+      return resource != null
+        && entries is list && entries.size() == oldEntries.size() + 1
+        && (oldEntries.size() == 0 || entries[0:oldEntries.size()] == oldEntries)
+        && fundExtrasUnchanged()
+        && after.get('sponsorOrganizationIds', null) == before.get('sponsorOrganizationIds', null)
+        && entry.keys().hasOnly(['kind', 'orderId', 'amountCents', 'basketCount', 'date'])
+        && entry.keys().hasAll(['kind', 'orderId', 'amountCents', 'basketCount', 'date'])
+        && entry.kind == 'application'
+        && entry.orderId is string && entry.orderId.size() > 0
+        && entry.amountCents is int && entry.amountCents > 0
+        && entry.basketCount is int && entry.basketCount >= 0
+        && entry.date is timestamp
+        && get(orderPath).data.groupId == groupId
+        && isOpenStatus(get(orderPath).data.status)
+        && getAfter(orderPath).data.status == 'closed'
+        && (isGroupCoordinator(groupId) || isOfferVendor(offerOf(get(orderPath).data)))
+        && entry.amountCents == getAfter(payoutPath).data.subsidyTotalCents
+                                - getAfter(payoutPath).data.solidarityContributedCents;
+    }
+
     // Parrainage : l'organisme s'ajoute ou se retire de `sponsorOrganizationIds`, avec son document de parrainage.
     function isFundSponsorChange(groupId) {
       let before = fundBefore();
@@ -1715,7 +1831,7 @@ service cloud.firestore {
       allow read: if fundId == 'fund' && (isGroupMember(groupId) || isOrganizationAccount());
       allow create, update: if fundId == 'fund'
         && exists(/databases/$(database)/documents/groups/$(groupId))
-        && (isFundCredit(groupId) || isFundSponsorChange(groupId));
+        && (isFundCredit(groupId) || isFundSponsorChange(groupId) || isFundDebit(groupId));
       allow delete: if false;
     }
 

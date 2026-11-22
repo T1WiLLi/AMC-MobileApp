@@ -94,9 +94,10 @@ struct FakeRepositoryTests {
     @Test func offerFeedIsFilteredByZone() async throws {
         let repos = repositories()
         let saintMichel = try await repos.offers.activeOffers(inZone: "f25d").map(\.id)
-        #expect(Set(saintMichel) == [ID.potatoOffer, ID.riceOffer])
+        // T-180 : le lot de démo Ferme Lafleur (zone f25dt, Parc-Extension) est aussi dans la zone large f25d.
+        #expect(Set(saintMichel) == [ID.potatoOffer, ID.riceOffer, ID.lafleurRiceOffer])
         let all = try await repos.offers.activeOffers(inZone: nil)
-        #expect(all.count == 3)
+        #expect(all.count == 4)
     }
 
     /// T-087 : les zones des lots sont des préfixes geohash ; un lot est visible dans une zone
@@ -108,7 +109,7 @@ struct FakeRepositoryTests {
         #expect(Set(saintMichel) == [ID.potatoOffer, ID.riceOffer])
         // Zone plus large que celles des lots : tous les lots dedans.
         let wide = try await repos.offers.activeOffers(inZone: "f25").map(\.id)
-        #expect(Set(wide) == [ID.potatoOffer, ID.riceOffer, ID.appleOffer])
+        #expect(Set(wide) == [ID.potatoOffer, ID.riceOffer, ID.appleOffer, ID.lafleurRiceOffer])
         // Zones sans préfixe commun avec le lot.
         #expect(try await repos.offers.activeOffers(inZone: "f25x").isEmpty)
         #expect(try await repos.offers.activeOffers(inZone: "f25ev").map(\.id).contains(ID.riceOffer) == false)

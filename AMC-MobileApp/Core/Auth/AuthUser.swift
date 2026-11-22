@@ -18,8 +18,8 @@ struct AuthUser: Identifiable, Hashable, Sendable {
 extension AuthUser {
     static let sample = AuthUser(
         id: "fake-uid-001",
-        displayName: "Camille Tremblay",
-        email: "camille.tremblay@example.com",
+        displayName: "Amina Benali",
+        email: "amina.benali@example.com",
         photoURL: nil
     )
 

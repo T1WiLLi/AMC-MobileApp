@@ -94,10 +94,15 @@ final class FakeAuthService: AuthService {
     var latency: Duration
     private(set) var sentVerificationCount = 0
     private(set) var passwordResetEmails: [String] = []
+    /// Mode démo (`-useFakeData`) : un compte créé est déjà vérifié, pour que l'inscription mène à l'onboarding
+    /// sans passer par Mail. Faux dans les tests et les previews ; Firebase n'est jamais touché.
+    var autoVerifiesEmail: Bool
     private var accounts: [String: (password: String, user: AuthUser)] = [:]
     private var continuation: AsyncStream<AuthUser?>.Continuation?
 
-    init(signedInUser: AuthUser? = nil, nextError: AuthError? = nil, latency: Duration = .milliseconds(400)) {
+    init(signedInUser: AuthUser? = nil, nextError: AuthError? = nil, latency: Duration = .milliseconds(400),
+         autoVerifiesEmail: Bool = false) {
+        self.autoVerifiesEmail = autoVerifiesEmail
         self.currentUser = signedInUser
         self.nextError = nextError
         self.latency = latency
@@ -156,7 +161,7 @@ final class FakeAuthService: AuthService {
             displayName: name.isEmpty ? String(localized: "Utilisateur") : name,
             email: key,
             photoURL: nil,
-            isEmailVerified: false,
+            isEmailVerified: autoVerifiesEmail,
             usesPassword: true
         )
         accounts[key] = (password, user)

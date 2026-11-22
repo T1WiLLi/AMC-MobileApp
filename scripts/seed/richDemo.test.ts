@@ -181,3 +181,16 @@ test('wishes and supplies produce Matcher pairs, some of them partial', async ()
     [...available].reduce((total, id) => total + supplyById.get(id)!.quantity, 0) < wanted)
   assert.ok(partial, 'au moins une ligne partielle')
 })
+
+test('T-180 : le lot de démo Riz basmati de Ferme Lafleur est à une part du palier pour Amina', async () => {
+  const seed = await richSeed()
+  const offer = seed.offers.find(({ id }) => id === 'offer-riz-basmati-lafleur')!
+  assert.equal(offer.vendorId, 'vendor-ferme-lafleur')
+  assert.equal(offer.status, 'active')
+  const order = seed.groupOrders.find(({ id }) => id === 'order-parc-extension-demo-riz')!
+  assert.equal(order.groupId, 'group-parc-extension')
+  assert.equal(order.committedShares, 19)
+  const next = offer.tiers.find(({ minShares }: Doc) => minShares > order.committedShares)!
+  assert.equal(next.minShares, 20)
+  assert.ok(next.priceCents < offer.tiers[1].priceCents)
+})

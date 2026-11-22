@@ -111,7 +111,8 @@ enum FirebaseSetup {
         #if canImport(FirebaseAuth) && canImport(GoogleSignIn)
         if mode.usesFirebase { return FirebaseAuthService() }
         #endif
-        return FakeAuthService()
+        // Démo : le compte créé est déjà vérifié (pas de Mail dans le simulateur).
+        return FakeAuthService(autoVerifiesEmail: true)
     }
 }
 

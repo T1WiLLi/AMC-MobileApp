@@ -120,21 +120,6 @@ nonisolated struct SolidarityFundDocument: Codable, Sendable, Equatable {
 
     var fund: SolidarityFund { SolidarityFund(entries: entries) }
 
-    /// T-195 : le solde est écrit avec le document (`entries` : contributions moins applications) pour que
-    /// firestore.rules puisse refuser un débit qui le rendrait négatif. Il se relit depuis `entries`, jamais du champ.
-    private enum CodingKeys: String, CodingKey {
-        case entries, subsidizedHouseholds, basketPriceCents, sponsorOrganizationIds, balanceCents
-    }
-
-    func encode(to encoder: any Encoder) throws {
-        var container = encoder.container(keyedBy: CodingKeys.self)
-        try container.encode(entries, forKey: .entries)
-        try container.encode(subsidizedHouseholds, forKey: .subsidizedHouseholds)
-        try container.encode(basketPriceCents, forKey: .basketPriceCents)
-        try container.encode(sponsorOrganizationIds, forKey: .sponsorOrganizationIds)
-        try container.encode(fund.balanceCents, forKey: .balanceCents)
-    }
-
     // Champs absents (document écrit à la main, seed) : valeurs par défaut plutôt qu'un échec de décodage.
     init(from decoder: any Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)

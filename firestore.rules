@@ -21,6 +21,12 @@ rules_version = '2';
 //   vendors/{id}                         vendeur ; lecture connectée, le vendeur modifie sa vitrine
 //   vendorReviews/{vendorId}_{household} avis d'une famille (T-157) ; lecture connectée, écrit par le ménage acheteur
 //   products/{id}, offers/{id}           catalogue ; lecture connectée, écrit par le vendeur propriétaire
+//   organizations/{id}                   organisme (T-194) ; lu et modifié (profil seulement) par ses membres, c.-à-d. les
+//                                        comptes dont users/{uid}.organizationId == id ; ce champ vient du seed, jamais du client
+//   organizations/{id}/donations/{id}    don (T-194) ; créé par un membre avec le crédit du fonds, jamais modifié
+//   organizations/{id}/sponsorships/{g}  parrainage (T-194) ; géré par les membres de l'organisme
+//   groups/{id}/solidarity/fund          fonds de solidarité (T-194) ; lecture par les membres du groupe et les comptes
+//                                        d'organisme ; crédité par un don d'organisme ; aucun débit (T-195)
 //   groupOrders/{id}                     commande groupée ; lecture connectée, écriture serveur/seed seulement
 //   groupOrders/{id}/shares/{householdId} part d'un ménage ; le ménage la crée, change sa quantité, la retire
 //   groupOrders/{id}/shares/{householdId}/private/pickup  jeton secret du code de cueillette ; créé par le ménage,
@@ -113,7 +119,7 @@ service cloud.firestore {
       return data.keys().hasOnly(['id', 'displayName', 'photoURL', 'language', 'roles', 'neighborhood',
                                   'dietaryPreferences', 'seniorMode', 'householdId', 'vendorId',
                                   'photoUpdatedAt', 'favoriteCategories', 'onboardingCompleted',
-                                  'pendingHouseholdId'])
+                                  'pendingHouseholdId', 'organizationId'])
         && data.keys().hasAll(['id', 'displayName', 'language', 'roles', 'neighborhood',
                                'dietaryPreferences', 'seniorMode'])
         && isShortString(data.displayName, 1, 80)
@@ -126,6 +132,7 @@ service cloud.firestore {
         && isOptionalString(data, 'photoURL', 2048)
         && isOptionalString(data, 'householdId', 128)
         && isOptionalString(data, 'pendingHouseholdId', 128)
+        && isOptionalString(data, 'organizationId', 128)
         // Avatar en bytes (T-132) : horodatage posé avec l'image, pour invalider le cache des autres appareils.
         && (!('photoUpdatedAt' in data) || data.photoUpdatedAt == null || data.photoUpdatedAt is timestamp)
         // Onboarding après l'inscription (T-156) : catégories aimées (Product.Category) et drapeau « fini ».
@@ -166,10 +173,12 @@ service cloud.firestore {
         && isValidUser(request.resource.data)
         && request.resource.data.id == userId
         && !('vendorId' in request.resource.data)
+        // T-194 : le rattachement à un organisme vient du seed ou de l'Admin SDK, jamais du client.
+        && !('organizationId' in request.resource.data)
         && isOwnHouseholdLink(userId);
       allow update: if isOwner(userId)
         && isValidUser(request.resource.data)
-        && areImmutableFieldsUnchanged(['id'])
+        && areImmutableFieldsUnchanged(['id', 'organizationId'])
         && (areImmutableFieldsUnchanged(['vendorId']) || isClaimingOwnVendor(userId))
         && (isHouseholdLinkUnchanged() || isOwnHouseholdLink(userId));
       allow delete: if isOwner(userId);
@@ -674,52 +683,6 @@ service cloud.firestore {
           && onlyChanges(['authorName', 'rating', 'comment', 'updatedAt'])
           && isRatingAggregateChange(householdId, 0, request.resource.data.rating - resource.data.rating);
         allow delete: if false;
-      }
-
-      // -------------------------------------------------------------
-      // groups/{groupId}/solidarity/fund — fonds de solidarité du groupe (T-195)
-      // -------------------------------------------------------------
-      // Champs : entries (liste d'écritures SolidarityFund.Entry, sans identifiant de ménage), balanceCents (solde =
-      // contributions moins applications, tenu à jour avec entries), subsidizedHouseholds, basketPriceCents,
-      // sponsorOrganizationIds. Lecture : les membres du groupe. Débit : seulement dans l'écriture de clôture d'une
-      // commande du groupe (isClosureDebit). Le crédit par les organismes (T-194) s'ajoute à ce bloc.
-      //
-      // isClosureDebit : la coordination ou le vendeur du lot ferme la commande (open|reached -> closed) et ajoute UNE
-      // écriture « application » au fonds, du montant des subventions déclaré dans payouts/vendor
-      // (subsidyTotalCents moins les paniers suspendus déjà versés dans le fonds), sans toucher aux écritures
-      // précédentes. Le solde ne devient jamais négatif. Limite : la somme des subventions des parts n'est pas
-      // recoupée par les règles (pas de boucle) ; chaque subvention de part reste bornée par son prix et réservée aux
-      // ménages subventionnés (isClosingAllocation).
-      function isClosureDebit(groupId) {
-        let before = resource.data;
-        let after = request.resource.data;
-        let n = before.get('entries', []).size();
-        let entry = after.entries[n];
-        let orderPath = /databases/$(database)/documents/groupOrders/$(entry.orderId);
-        let payoutPath = /databases/$(database)/documents/groupOrders/$(entry.orderId)/payouts/vendor;
-        return after.diff(before).affectedKeys().hasOnly(['entries', 'balanceCents'])
-          && after.entries.size() == n + 1
-          && after.entries[0:n] == before.get('entries', [])
-          && entry.keys().hasOnly(['kind', 'orderId', 'amountCents', 'basketCount', 'date'])
-          && entry.kind == 'application'
-          && entry.orderId is string && entry.orderId.size() > 0
-          && entry.amountCents is int && entry.amountCents > 0
-          && entry.basketCount is int && entry.basketCount >= 0
-          && entry.date is timestamp
-          && get(orderPath).data.groupId == groupId
-          && isOpenStatus(get(orderPath).data.status)
-          && getAfter(orderPath).data.status == 'closed'
-          && (isGroupCoordinator(groupId) || isOfferVendor(offerOf(get(orderPath).data)))
-          && entry.amountCents == getAfter(payoutPath).data.subsidyTotalCents
-                                  - getAfter(payoutPath).data.solidarityContributedCents
-          && after.balanceCents is int && after.balanceCents >= 0
-          && after.balanceCents == before.get('balanceCents', after.balanceCents + entry.amountCents) - entry.amountCents;
-      }
-
-      match /solidarity/{docId} {
-        allow read: if isGroupMember(groupId);
-        allow update: if docId == 'fund' && isClosureDebit(groupId);
-        allow create, delete: if false;
       }
     }
 
@@ -1654,6 +1617,222 @@ service cloud.firestore {
         && mediaId == 'photo'
         && isValidMedia(request.resource.data);
       allow delete: if isPickupPointHost(pointId);
+    }
+
+    // ---------------------------------------------------------------
+    // Portail Organismes (T-194, RQ-081) — organizations/{id}, dons, parrainages, fonds de solidarité
+    // ---------------------------------------------------------------
+    // Rattachement : users/{uid}.organizationId == orgId. Le champ est posé par le seed ou l'Admin SDK (qui ignorent les
+    // règles) : les règles de users/{uid} interdisent au client de l'écrire, de le changer ou de l'effacer.
+    // Montants entiers, positifs, en cents. Paiements simulés : `isSimulated` reste vrai.
+    // ---------------------------------------------------------------
+
+    function myOrganizationId() {
+      let linked = isAuthenticated() && exists(myUserPath());
+      return linked ? get(myUserPath()).data.get('organizationId', '') : '';
+    }
+
+    function isOrgMember(orgId) {
+      return orgId is string && orgId != '' && myOrganizationId() == orgId;
+    }
+
+    function isOrganizationAccount() {
+      return myOrganizationId() is string && myOrganizationId() != '';
+    }
+
+    // Profil de l'organisme : le seul ensemble de champs qu'un membre modifie (pas memberUserIds, createdAt, id).
+    function isValidOrgProfileUpdate() {
+      let d = request.resource.data;
+      return onlyChanges(['name', 'kind', 'neighborhood', 'geohash', 'mission'])
+        && isShortString(d.name, 1, 120)
+        && d.kind in ['foodBank', 'communityCenter', 'foundation', 'localBusiness']
+        && isShortString(d.neighborhood, 0, 60)
+        && isShortString(d.geohash, 0, 12)
+        && isShortString(d.mission, 0, 1000);
+    }
+
+    function fundPath(groupId) {
+      return /databases/$(database)/documents/groups/$(groupId)/solidarity/fund;
+    }
+
+    function donationPath(orgId, donationId) {
+      return /databases/$(database)/documents/organizations/$(orgId)/donations/$(donationId);
+    }
+
+    function sponsorshipPath(orgId, groupId) {
+      return /databases/$(database)/documents/organizations/$(orgId)/sponsorships/$(groupId);
+    }
+
+    // Dernière ligne de l'historique du fonds après l'écriture.
+    function lastFundEntryAfter(groupId) {
+      let entries = getAfter(fundPath(groupId)).data.get('entries', []);
+      return entries[entries.size() - 1];
+    }
+
+    function isValidDonation(orgId, donationId) {
+      let d = request.resource.data;
+      return d.keys().hasOnly(['id', 'organizationId', 'groupId', 'groupName', 'kind', 'amountCents',
+                               'basketCount', 'householdsReached', 'date', 'isSimulated'])
+        && d.keys().hasAll(['id', 'organizationId', 'groupId', 'groupName', 'kind', 'amountCents',
+                            'basketCount', 'householdsReached', 'date', 'isSimulated'])
+        && d.id == donationId
+        && d.organizationId == orgId
+        && isShortString(d.groupId, 1, 128)
+        && exists(/databases/$(database)/documents/groups/$(d.groupId))
+        && isShortString(d.groupName, 1, 120)
+        && d.kind in ['fund', 'suspendedBaskets']
+        && isIntIn(d.amountCents, 1, 500000)
+        && isIntIn(d.basketCount, 0, 500000)
+        && isIntIn(d.householdsReached, 0, d.basketCount)
+        && d.date is timestamp
+        && d.isSimulated == true
+        // Le don et son crédit au fonds sont écrits ensemble : la dernière ligne du fonds nomme ce don.
+        && existsAfter(fundPath(d.groupId))
+        && lastFundEntryAfter(d.groupId).get('donationId', '') == donationId
+        && lastFundEntryAfter(d.groupId).get('organizationId', '') == orgId
+        && lastFundEntryAfter(d.groupId).get('amountCents', 0) == d.amountCents;
+    }
+
+    function isValidSponsorship(orgId, groupId) {
+      let d = request.resource.data;
+      let groupPath = /databases/$(database)/documents/groups/$(groupId);
+      return d.keys().hasOnly(['id', 'organizationId', 'groupName', 'neighborhood', 'monthlyBasketGoal', 'startedAt'])
+        && d.keys().hasAll(['id', 'organizationId', 'groupName', 'neighborhood', 'monthlyBasketGoal', 'startedAt'])
+        && d.id == groupId
+        && d.organizationId == orgId
+        && exists(groupPath)
+        && d.groupName == get(groupPath).data.name
+        && isShortString(d.neighborhood, 0, 60)
+        && isIntIn(d.monthlyBasketGoal, 1, 1000)
+        && d.startedAt is timestamp;
+    }
+
+    match /organizations/{orgId} {
+      // Le document porte memberUserIds : lecture par les membres seulement.
+      allow read: if isOrgMember(orgId);
+      allow create, delete: if false;
+      allow update: if isOrgMember(orgId) && isValidOrgProfileUpdate();
+
+      // Un don : créé une fois par un membre, avec le crédit du fonds du groupe (voir le fonds, plus bas).
+      match /donations/{donationId} {
+        allow read: if isOrgMember(orgId);
+        allow create: if isOrgMember(orgId) && isValidDonation(orgId, donationId);
+        allow update, delete: if false;
+      }
+
+      // Un parrainage par groupe ; seul l'objectif mensuel change ensuite. Il va de pair avec
+      // `sponsorOrganizationIds` du fonds du groupe (même batch).
+      match /sponsorships/{groupId} {
+        allow read: if isOrgMember(orgId);
+        allow create: if isOrgMember(orgId) && isValidSponsorship(orgId, groupId);
+        allow update: if isOrgMember(orgId)
+          && onlyChanges(['monthlyBasketGoal'])
+          && isIntIn(request.resource.data.monthlyBasketGoal, 1, 1000);
+        allow delete: if isOrgMember(orgId);
+      }
+    }
+
+    // Fonds de solidarité d'un groupe : un seul document, `fund`. Le solde se déduit de `entries`
+    // (contributions moins applications). Aucune ligne n'a d'identifiant de ménage.
+    // Un membre d'organisme le crédite (don) ou y inscrit son parrainage. Le DÉBIT (application du fonds à la
+    // clôture d'une commande, T-195) a sa propre fonction `isFundDebit`.
+    function fundBefore() {
+      return resource == null ? {} : resource.data;
+    }
+
+    // Les champs hors historique et hors parrainage ne bougent pas pour les écritures d'organisme.
+    function fundExtrasUnchanged() {
+      let before = fundBefore();
+      let after = request.resource.data;
+      return after.keys().hasOnly(['entries', 'subsidizedHouseholds', 'basketPriceCents', 'sponsorOrganizationIds'])
+        && after.get('subsidizedHouseholds', null) == before.get('subsidizedHouseholds', null)
+        && after.get('basketPriceCents', null) == before.get('basketPriceCents', null);
+    }
+
+    // Crédit : exactement une ligne ajoutée à la fin, une contribution du montant du don, écrite avec le don.
+    function isFundCredit(groupId) {
+      let before = fundBefore();
+      let after = request.resource.data;
+      let oldEntries = before.get('entries', []);
+      let entries = after.get('entries', []);
+      let entry = entries.size() > 0 ? entries[entries.size() - 1] : {};
+      let donation = donationPath(entry.get('organizationId', ''), entry.get('donationId', ''));
+      return entries is list && entries.size() == oldEntries.size() + 1
+        && (oldEntries.size() == 0 || entries[0:oldEntries.size()] == oldEntries)
+        && fundExtrasUnchanged()
+        && after.get('sponsorOrganizationIds', null) == before.get('sponsorOrganizationIds', null)
+        && entry.keys().hasOnly(['kind', 'amountCents', 'basketCount', 'date', 'donationId', 'organizationId'])
+        && entry.keys().hasAll(['kind', 'amountCents', 'basketCount', 'date', 'donationId', 'organizationId'])
+        && entry.kind == 'contribution'
+        && isIntIn(entry.amountCents, 1, 500000)
+        && entry.basketCount == 0
+        && entry.date is timestamp
+        && isOrgMember(entry.organizationId)
+        && !exists(donation)
+        && existsAfter(donation)
+        && getAfter(donation).data.amountCents == entry.amountCents
+        && getAfter(donation).data.groupId == groupId;
+    }
+
+    // Débit (T-195) : seulement dans l'écriture de clôture d'une commande du groupe. La coordination ou le vendeur du
+    // lot ferme la commande (open|reached -> closed) et ajoute UNE ligne « application » à la fin de l'historique, du
+    // montant des subventions déclaré dans payouts/vendor (subsidyTotalCents moins les paniers suspendus déjà versés
+    // dans le fonds). Les lignes précédentes ne bougent pas, aucun autre champ du fonds non plus.
+    // Limites : les règles ne peuvent pas sommer `entries` (pas de boucle), donc le solde non négatif est tenu par
+    // la transaction de l'app (SolidarityLedger.apply plafonne la subvention au solde ; Firestore rejoue la transaction
+    // si le fonds change), et la somme des subventions des parts n'est pas recoupée ici (chaque subvention de part est
+    // bornée par son prix et réservée aux ménages subventionnés, voir isClosingAllocation).
+    function isFundDebit(groupId) {
+      let before = fundBefore();
+      let after = request.resource.data;
+      let oldEntries = before.get('entries', []);
+      let entries = after.get('entries', []);
+      let entry = entries.size() > 0 ? entries[entries.size() - 1] : {};
+      let orderPath = /databases/$(database)/documents/groupOrders/$(entry.get('orderId', ''));
+      let payoutPath = /databases/$(database)/documents/groupOrders/$(entry.get('orderId', ''))/payouts/vendor;
+      return resource != null
+        && entries is list && entries.size() == oldEntries.size() + 1
+        && (oldEntries.size() == 0 || entries[0:oldEntries.size()] == oldEntries)
+        && fundExtrasUnchanged()
+        && after.get('sponsorOrganizationIds', null) == before.get('sponsorOrganizationIds', null)
+        && entry.keys().hasOnly(['kind', 'orderId', 'amountCents', 'basketCount', 'date'])
+        && entry.keys().hasAll(['kind', 'orderId', 'amountCents', 'basketCount', 'date'])
+        && entry.kind == 'application'
+        && entry.orderId is string && entry.orderId.size() > 0
+        && entry.amountCents is int && entry.amountCents > 0
+        && entry.basketCount is int && entry.basketCount >= 0
+        && entry.date is timestamp
+        && get(orderPath).data.groupId == groupId
+        && isOpenStatus(get(orderPath).data.status)
+        && getAfter(orderPath).data.status == 'closed'
+        && (isGroupCoordinator(groupId) || isOfferVendor(offerOf(get(orderPath).data)))
+        && entry.amountCents == getAfter(payoutPath).data.subsidyTotalCents
+                                - getAfter(payoutPath).data.solidarityContributedCents;
+    }
+
+    // Parrainage : l'organisme s'ajoute ou se retire de `sponsorOrganizationIds`, avec son document de parrainage.
+    function isFundSponsorChange(groupId) {
+      let before = fundBefore();
+      let after = request.resource.data;
+      let orgId = myOrganizationId();
+      let oldIds = before.get('sponsorOrganizationIds', []);
+      let newIds = after.get('sponsorOrganizationIds', []);
+      return isOrganizationAccount()
+        && fundExtrasUnchanged()
+        && after.get('entries', null) == before.get('entries', null)
+        && newIds is list && newIds.size() <= 200 && newIds.size() == newIds.toSet().size()
+        && ((existsAfter(sponsorshipPath(orgId, groupId))
+              && newIds.toSet() == oldIds.toSet().union([orgId].toSet()))
+            || (!existsAfter(sponsorshipPath(orgId, groupId))
+              && newIds.toSet() == oldIds.toSet().difference([orgId].toSet())));
+    }
+
+    match /groups/{groupId}/solidarity/{fundId} {
+      allow read: if fundId == 'fund' && (isGroupMember(groupId) || isOrganizationAccount());
+      allow create, update: if fundId == 'fund'
+        && exists(/databases/$(database)/documents/groups/$(groupId))
+        && (isFundCredit(groupId) || isFundSponsorChange(groupId) || isFundDebit(groupId));
+      allow delete: if false;
     }
 
     // ---------------------------------------------------------------

@@ -71,7 +71,9 @@ nonisolated enum OrganizationLedger {
         date: Date = .now
     ) throws -> (donation: OrganizationDonation, fund: SolidarityFund) {
         let plan = try plan(request, for: profile)
-        let fund = try SolidarityLedger.donating(plan.amountCents, to: profile.fund, date: date)
+        let fund = try SolidarityLedger.donating(
+            plan.amountCents, to: profile.fund, date: date, donationId: donationId, organizationId: organizationId
+        )
         let donation = OrganizationDonation(
             id: donationId, organizationId: organizationId, groupId: profile.groupId, groupName: profile.groupName,
             kind: plan.kind, amountCents: plan.amountCents, basketCount: plan.basketCount,

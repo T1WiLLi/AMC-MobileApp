@@ -25,6 +25,7 @@ import {
   updateDoc,
   increment,
   arrayUnion,
+  arrayRemove,
   writeBatch,
   type Firestore
 } from 'firebase/firestore'
@@ -1840,6 +1841,283 @@ describe('groups : passation du créateur qui quitte (T-193)', () => {
   })
 })
 
+// ---------------------------------------------------------------------------
+// Portail Organismes (T-194) : rattachement, profil, dons, parrainages, fonds de solidarité
+// ---------------------------------------------------------------------------
+describe('portail Organismes (T-194)', () => {
+  const orgId = 'org-banque'
+  const groupId = 'group-parc-extension'
+  const fund = `groups/${groupId}/solidarity/fund`
+  const orgUser = () => env.authenticatedContext('orgmembre').firestore()
+  const otherOrgUser = () => env.authenticatedContext('autreorg').firestore()
+  const orgDoc = {
+    id: orgId, name: 'Banque alimentaire CDN', kind: 'foodBank', neighborhood: 'cote-des-neiges',
+    geohash: 'f25dv', memberUserIds: ['orgmembre'], mission: 'Nourrir le quartier', createdAt: Timestamp.now()
+  }
+  const donation = (over: Record<string, unknown> = {}) => ({
+    id: 'don-1', organizationId: orgId, groupId, groupName: 'Voisins de Parc-Ex', kind: 'fund',
+    amountCents: 5000, basketCount: 1, householdsReached: 1, date: Timestamp.now(), isSimulated: true, ...over
+  })
+  const entry = (over: Record<string, unknown> = {}) => ({
+    kind: 'contribution', amountCents: 5000, basketCount: 0, date: Timestamp.now(),
+    donationId: 'don-1', organizationId: orgId, ...over
+  })
+  const oldEntry = { kind: 'contribution', amountCents: 2600, basketCount: 0, date: Timestamp.fromMillis(1_700_000_000_000) }
+  const fullFund = (over: Record<string, unknown> = {}) => ({
+    entries: [oldEntry], subsidizedHouseholds: 4, basketPriceCents: 2600, sponsorOrganizationIds: [], ...over
+  })
+  const sponsorship = (over: Record<string, unknown> = {}) => ({
+    id: groupId, organizationId: orgId, groupName: 'Voisins de Parc-Ex', neighborhood: 'parc-extension',
+    monthlyBasketGoal: 10, startedAt: Timestamp.now(), ...over
+  })
+
+  beforeEach(async () => {
+    await env.withSecurityRulesDisabled(async (c) => {
+      const db = c.firestore()
+      await setDoc(doc(db, 'users/orgmembre'), { ...aminaUser, id: 'orgmembre', displayName: 'Marie', householdId: null, organizationId: orgId })
+      await setDoc(doc(db, 'users/autreorg'), { ...aminaUser, id: 'autreorg', displayName: 'Paul', householdId: null, organizationId: 'org-autre' })
+      await setDoc(doc(db, `organizations/${orgId}`), orgDoc)
+      await setDoc(doc(db, 'organizations/org-autre'), { ...orgDoc, id: 'org-autre', memberUserIds: ['autreorg'] })
+      await setDoc(doc(db, 'groups/group-parc-extension'), { id: groupId, name: 'Voisins de Parc-Ex', neighborhood: 'parc-extension', isPublic: true, inviteCode: 'PARC', householdCount: 3 })
+      await setDoc(doc(db, 'groups/group-parc-extension/members/household-amina'), { householdId: 'household-amina', role: 'member', joinedAt: Timestamp.now() })
+    })
+  })
+
+  const seedFund = (data: Record<string, unknown>) => env.withSecurityRulesDisabled(async (c) => {
+    await setDoc(doc(c.firestore(), fund), data)
+  })
+  const fundDoc = async () => {
+    let data: Record<string, any> | undefined
+    await env.withSecurityRulesDisabled(async (c) => { data = (await getDoc(doc(c.firestore(), fund))).data() })
+    return data
+  }
+
+  // Don + crédit du fonds dans un même batch (arrayUnion : l'historique existant n'est pas réécrit).
+  const donateBatch = (db: Firestore, o: { donation?: Record<string, unknown>, entry?: Record<string, unknown> } = {}) => {
+    const batch = writeBatch(db)
+    batch.set(doc(db, `organizations/${orgId}/donations/don-1`), o.donation ?? donation())
+    batch.set(doc(db, fund), { entries: arrayUnion(o.entry ?? entry()) }, { merge: true })
+    return batch.commit()
+  }
+
+  describe('rattachement (users/{uid}.organizationId)', () => {
+    test('le client ne peut pas se l’ajouter à la création de son profil', async () => {
+      const db = env.authenticatedContext('nouveau').firestore()
+      await assertFails(setDoc(doc(db, 'users/nouveau'), { ...aminaUser, id: 'nouveau', householdId: null, organizationId: orgId }))
+      await assertSucceeds(setDoc(doc(db, 'users/nouveau'), { ...aminaUser, id: 'nouveau', householdId: null }))
+    })
+    test('le client ne peut pas se l’ajouter, le changer ni l’effacer à la mise à jour', async () => {
+      await assertFails(updateDoc(doc(intruder(), 'users/intrus'), { organizationId: orgId }))
+      await assertFails(setDoc(doc(intruder(), 'users/intrus'), { ...aminaUser, id: 'intrus', householdId: null, organizationId: orgId }))
+      await assertFails(setDoc(doc(intruder(), 'users/intrus'), { organizationId: orgId }, { merge: true }))
+      await assertFails(updateDoc(doc(otherOrgUser(), 'users/autreorg'), { organizationId: orgId }))
+      await assertFails(updateDoc(doc(orgUser(), 'users/orgmembre'), { organizationId: null }))
+      await assertFails(setDoc(doc(orgUser(), 'users/orgmembre'), { ...aminaUser, id: 'orgmembre', householdId: null }))
+    })
+    test('un compte rattaché lit son champ et modifie le reste de son profil (merge)', async () => {
+      const snap = await assertSucceeds(getDoc(doc(orgUser(), 'users/orgmembre')))
+      assert.equal(snap.data()?.organizationId, orgId)
+      await assertSucceeds(setDoc(doc(orgUser(), 'users/orgmembre'), { ...aminaUser, id: 'orgmembre', householdId: null, organizationId: orgId, seniorMode: true }, { merge: true }))
+      await assertSucceeds(updateDoc(doc(orgUser(), 'users/orgmembre'), { neighborhood: 'cote-des-neiges' }))
+    })
+    test('personne d’autre ne lit le profil d’un compte rattaché', async () => {
+      await assertFails(getDoc(doc(otherOrgUser(), 'users/orgmembre')))
+    })
+  })
+
+  describe('organizations/{id}', () => {
+    test('lisible par ses membres seulement', async () => {
+      await assertSucceeds(getDoc(doc(orgUser(), `organizations/${orgId}`)))
+      await assertFails(getDoc(doc(otherOrgUser(), `organizations/${orgId}`)))
+      await assertFails(getDoc(doc(amina(), `organizations/${orgId}`)))
+      await assertFails(getDoc(doc(anonymous(), `organizations/${orgId}`)))
+    })
+    test('un membre modifie le profil, pas memberUserIds ni les champs figés', async () => {
+      const ref = doc(orgUser(), `organizations/${orgId}`)
+      await assertSucceeds(updateDoc(ref, { mission: 'Nouvelle mission', name: 'Banque CDN' }))
+      await assertFails(updateDoc(ref, { memberUserIds: ['orgmembre', 'intrus'] }))
+      await assertFails(updateDoc(ref, { createdAt: Timestamp.now() }))
+      await assertFails(updateDoc(ref, { kind: 'casino' }))
+      await assertFails(updateDoc(ref, { extra: 1 }))
+    })
+    test('un non-membre ne modifie rien, personne ne crée ni ne supprime', async () => {
+      await assertFails(updateDoc(doc(otherOrgUser(), `organizations/${orgId}`), { mission: 'x' }))
+      await assertFails(updateDoc(doc(amina(), `organizations/${orgId}`), { mission: 'x' }))
+      await assertFails(setDoc(doc(orgUser(), 'organizations/org-neuf'), { ...orgDoc, id: 'org-neuf' }))
+      await assertFails(deleteDoc(doc(orgUser(), `organizations/${orgId}`)))
+    })
+  })
+
+  describe('dons et crédit du fonds', () => {
+    test('un membre crée un don et crédite le fonds dans la même écriture (fonds absent)', async () => {
+      await assertSucceeds(donateBatch(orgUser()))
+      const data = await fundDoc()
+      assert.equal(data?.entries.length, 1)
+      assert.equal(data?.entries[0].amountCents, 5000)
+    })
+    test('crédit d’un fonds existant : une ligne ajoutée, l’historique et les autres champs intacts', async () => {
+      await seedFund(fullFund({ sponsorOrganizationIds: ['org-autre'] }))
+      await assertSucceeds(donateBatch(orgUser()))
+      const data = await fundDoc()
+      assert.equal(data?.entries.length, 2)
+      assert.equal(data?.subsidizedHouseholds, 4)
+      assert.deepEqual(data?.sponsorOrganizationIds, ['org-autre'])
+    })
+    test('réécrire tout le fonds avec un solde gonflé est refusé', async () => {
+      await seedFund(fullFund())
+      const db = orgUser()
+      const batch = writeBatch(db)
+      batch.set(doc(db, `organizations/${orgId}/donations/don-1`), donation())
+      batch.set(doc(db, fund), fullFund({ entries: [{ ...oldEntry, amountCents: 999_999 }, entry()] }))
+      await assertFails(batch.commit())
+    })
+    test('crédit qui ne correspond pas au don : montant, groupe ou organisme différents', async () => {
+      await assertFails(donateBatch(orgUser(), { entry: entry({ amountCents: 9000 }) }))
+      await assertFails(donateBatch(orgUser(), { donation: donation({ groupId: 'group-autre' }) }))
+      await assertFails(donateBatch(orgUser(), { entry: entry({ organizationId: 'org-autre' }) }))
+      await assertFails(donateBatch(orgUser(), { entry: entry({ donationId: 'don-2' }) }))
+    })
+    test('un crédit sans don, ou deux lignes d’un coup, sont refusés', async () => {
+      await assertFails(setDoc(doc(orgUser(), fund), { entries: arrayUnion(entry()) }, { merge: true }))
+      const db = orgUser()
+      const batch = writeBatch(db)
+      batch.set(doc(db, `organizations/${orgId}/donations/don-1`), donation())
+      batch.set(doc(db, fund), { entries: [entry(), entry()] })
+      await assertFails(batch.commit())
+    })
+    test('un don avec un montant négatif, nul, décimal ou énorme est refusé', async () => {
+      for (const amountCents of [-5000, 0, 12.5, 500_001]) {
+        await assertFails(donateBatch(orgUser(), { donation: donation({ amountCents }), entry: entry({ amountCents }) }))
+      }
+    })
+    test('un don isSimulated faux, un champ en trop ou des paniers négatifs sont refusés', async () => {
+      await assertFails(donateBatch(orgUser(), { donation: donation({ isSimulated: false }) }))
+      await assertFails(donateBatch(orgUser(), { donation: donation({ extra: 1 }) }))
+      await assertFails(donateBatch(orgUser(), { donation: donation({ basketCount: -1 }) }))
+      await assertFails(donateBatch(orgUser(), { donation: donation({ householdsReached: 5 }) }))
+    })
+    test('un non-membre, ou un membre d’un autre organisme, ne peut pas donner', async () => {
+      await assertFails(donateBatch(otherOrgUser()))
+      await assertFails(donateBatch(amina()))
+      await assertFails(donateBatch(anonymous()))
+    })
+    test('un don n’est jamais modifié ni supprimé, et se lit par ses membres seulement', async () => {
+      await assertSucceeds(donateBatch(orgUser()))
+      await assertFails(updateDoc(doc(orgUser(), `organizations/${orgId}/donations/don-1`), { amountCents: 1 }))
+      await assertFails(deleteDoc(doc(orgUser(), `organizations/${orgId}/donations/don-1`)))
+      await assertSucceeds(getDoc(doc(orgUser(), `organizations/${orgId}/donations/don-1`)))
+      await assertSucceeds(getDocs(collection(orgUser(), `organizations/${orgId}/donations`)))
+      await assertFails(getDoc(doc(otherOrgUser(), `organizations/${orgId}/donations/don-1`)))
+      await assertFails(getDoc(doc(amina(), `organizations/${orgId}/donations/don-1`)))
+    })
+    test('un don ne se crée pas sans le crédit du fonds', async () => {
+      await assertFails(setDoc(doc(orgUser(), `organizations/${orgId}/donations/don-1`), donation()))
+    })
+  })
+
+  describe('fonds de solidarité : lecture et débit', () => {
+    test('les membres du groupe et les comptes d’organisme lisent le fonds, pas les autres', async () => {
+      await seedFund(fullFund())
+      await assertSucceeds(getDoc(doc(amina(), fund)))
+      await assertSucceeds(getDoc(doc(orgUser(), fund)))
+      await assertFails(getDoc(doc(intruder(), fund)))
+      await assertFails(getDoc(doc(lafleur(), fund)))
+      await assertFails(getDoc(doc(anonymous(), fund)))
+    })
+    test('aucun débit : application, suppression d’une ligne ou baisse du solde refusés', async () => {
+      await seedFund(fullFund())
+      const application = { kind: 'application', orderId: 'order-1', amountCents: 2600, basketCount: 1, date: Timestamp.now() }
+      await assertFails(setDoc(doc(orgUser(), fund), { entries: arrayUnion(application) }, { merge: true }))
+      await assertFails(setDoc(doc(amina(), fund), { entries: arrayUnion(application) }, { merge: true }))
+      await assertFails(setDoc(doc(orgUser(), fund), { entries: [] }, { merge: true }))
+      await assertFails(updateDoc(doc(orgUser(), fund), { entries: [{ ...oldEntry, amountCents: 1 }] }))
+      await assertFails(deleteDoc(doc(orgUser(), fund)))
+      await assertFails(deleteDoc(doc(amina(), fund)))
+      // Un débit déguisé en don (même écriture qu'un don) est refusé aussi.
+      const db = orgUser()
+      const batch = writeBatch(db)
+      batch.set(doc(db, `organizations/${orgId}/donations/don-1`), donation())
+      batch.set(doc(db, fund), { entries: arrayUnion({ ...entry(), kind: 'application' }) }, { merge: true })
+      await assertFails(batch.commit())
+      assert.equal((await fundDoc())?.entries.length, 1)
+    })
+    test('une famille ne peut ni créditer ni modifier le fonds', async () => {
+      await assertFails(setDoc(doc(amina(), fund), { entries: arrayUnion(entry()) }, { merge: true }))
+      await assertFails(setDoc(doc(amina(), fund), { subsidizedHouseholds: 99 }, { merge: true }))
+    })
+    test('un membre d’organisme ne change ni le prix du panier ni les ménages aidés', async () => {
+      await seedFund(fullFund())
+      await assertFails(setDoc(doc(orgUser(), fund), { basketPriceCents: 1 }, { merge: true }))
+      await assertFails(setDoc(doc(orgUser(), fund), { subsidizedHouseholds: 0 }, { merge: true }))
+    })
+    test('un autre document sous solidarity est refusé', async () => {
+      await assertFails(setDoc(doc(orgUser(), `groups/${groupId}/solidarity/autre`), { entries: [] }))
+      await assertFails(getDoc(doc(amina(), `groups/${groupId}/solidarity/autre`)))
+    })
+  })
+
+  describe('parrainages', () => {
+    const sponsorBatch = (db: Firestore, o: { spons?: Record<string, unknown>, ids?: unknown } = {}) => {
+      const batch = writeBatch(db)
+      batch.set(doc(db, `organizations/${orgId}/sponsorships/${groupId}`), o.spons ?? sponsorship())
+      batch.set(doc(db, fund), { sponsorOrganizationIds: o.ids ?? arrayUnion(orgId) }, { merge: true })
+      return batch.commit()
+    }
+    test('un membre parraine un groupe : document + sponsorOrganizationIds (fonds absent)', async () => {
+      await assertSucceeds(sponsorBatch(orgUser()))
+      assert.deepEqual((await fundDoc())?.sponsorOrganizationIds, [orgId])
+    })
+    test('parrainage sur un fonds existant : historique et solde intacts', async () => {
+      await seedFund(fullFund({ sponsorOrganizationIds: ['org-autre'] }))
+      await assertSucceeds(sponsorBatch(orgUser()))
+      const data = await fundDoc()
+      assert.equal(data?.entries.length, 1)
+      assert.deepEqual(data?.sponsorOrganizationIds.sort(), ['org-autre', orgId].sort())
+    })
+    test('l’objectif mensuel se change, rien d’autre ; nombre entier et positif', async () => {
+      await assertSucceeds(sponsorBatch(orgUser()))
+      const ref = doc(orgUser(), `organizations/${orgId}/sponsorships/${groupId}`)
+      await assertSucceeds(updateDoc(ref, { monthlyBasketGoal: 20 }))
+      await assertFails(updateDoc(ref, { monthlyBasketGoal: 0 }))
+      await assertFails(updateDoc(ref, { monthlyBasketGoal: -3 }))
+      await assertFails(updateDoc(ref, { monthlyBasketGoal: 2.5 }))
+      await assertFails(updateDoc(ref, { startedAt: Timestamp.now() }))
+      await assertFails(updateDoc(ref, { groupName: 'Autre nom' }))
+    })
+    test('un objectif négatif ou une identité falsifiée à la création sont refusés', async () => {
+      await assertFails(sponsorBatch(orgUser(), { spons: sponsorship({ monthlyBasketGoal: -1 }) }))
+      await assertFails(sponsorBatch(orgUser(), { spons: sponsorship({ groupName: 'Faux nom' }) }))
+      await assertFails(sponsorBatch(orgUser(), { spons: sponsorship({ organizationId: 'org-autre' }) }))
+    })
+    test('on ne s’ajoute pas au fonds sans parrainage, ni un autre organisme', async () => {
+      await assertFails(setDoc(doc(orgUser(), fund), { sponsorOrganizationIds: arrayUnion(orgId) }, { merge: true }))
+      await assertFails(sponsorBatch(orgUser(), { ids: ['org-autre'] }))
+      await assertFails(sponsorBatch(orgUser(), { ids: [orgId, 'org-autre'] }))
+    })
+    test('un membre met fin au parrainage : suppression + retrait de sponsorOrganizationIds', async () => {
+      await assertSucceeds(sponsorBatch(orgUser()))
+      const db = orgUser()
+      const batch = writeBatch(db)
+      batch.delete(doc(db, `organizations/${orgId}/sponsorships/${groupId}`))
+      batch.set(doc(db, fund), { sponsorOrganizationIds: arrayRemove(orgId) }, { merge: true })
+      await assertSucceeds(batch.commit())
+      assert.deepEqual((await fundDoc())?.sponsorOrganizationIds, [])
+    })
+    test('on ne retire pas un autre organisme du fonds', async () => {
+      await seedFund(fullFund({ entries: [], sponsorOrganizationIds: ['org-autre'] }))
+      await assertFails(setDoc(doc(orgUser(), fund), { sponsorOrganizationIds: arrayRemove('org-autre') }, { merge: true }))
+    })
+    test('non-membres : aucune lecture ni écriture des parrainages', async () => {
+      await assertFails(sponsorBatch(otherOrgUser()))
+      await assertFails(sponsorBatch(amina()))
+      await assertSucceeds(sponsorBatch(orgUser()))
+      await assertSucceeds(getDocs(collection(orgUser(), `organizations/${orgId}/sponsorships`)))
+      await assertFails(getDocs(collection(otherOrgUser(), `organizations/${orgId}/sponsorships`)))
+      await assertFails(deleteDoc(doc(otherOrgUser(), `organizations/${orgId}/sponsorships/${groupId}`)))
+    })
+  })
+})
+
 describe('clôture : paiements enregistrés, versement vendeur et débit du fonds (T-195)', () => {
   const GROUP = 'group-parc-extension'
   const ORDER = 'order-cloture'
@@ -1873,18 +2151,18 @@ describe('clôture : paiements enregistrés, versement vendeur et débit du fond
   }
   const debit = { kind: 'application', orderId: ORDER, amountCents: 5000, basketCount: 0, date: Timestamp.now() }
 
-  type Parts = { payment?: object | null; payout?: object | null; debit?: object | null; balance?: number; subsidy?: number }
+  type Parts = { payment?: object | null; payout?: object | null; debit?: object | null; subsidy?: number }
 
   // Ce que fait `closeGroupOrder` : la part figée et payée, le paiement, le versement, le fonds, puis la commande.
   const closeBatch = (db: Firestore, parts: Parts = {}) => {
     const batch = writeBatch(db)
     batch.update(doc(db, sharePath), {
-      finalPriceCents: 7000, subsidyCents: parts.subsidy ?? 5000, qrCode: qr('household-amina'), isPaid: true
+      finalPriceCents: 7000, subsidyCents: parts.subsidy ?? 5000, isPaid: true
     })
     if (parts.payment !== null) batch.set(doc(db, paymentPath), parts.payment ?? payment)
     if (parts.payout !== null) batch.set(doc(db, payoutPath), parts.payout ?? payout)
     if (parts.debit !== null) {
-      batch.update(doc(db, fundPath), { entries: arrayUnion(parts.debit ?? debit), balanceCents: parts.balance ?? 3000 })
+      batch.update(doc(db, fundPath), { entries: arrayUnion(parts.debit ?? debit) })
     }
     batch.update(doc(db, orderPath), closed)
     return batch.commit()
@@ -1901,7 +2179,7 @@ describe('clôture : paiements enregistrés, versement vendeur et débit du fond
       await setDoc(doc(db, sharePath), { ...share, quantity: 10 })
       await setDoc(doc(db, fundPath), {
         entries: [{ kind: 'contribution', amountCents: 8000, basketCount: 0, date: Timestamp.now() }],
-        balanceCents: 8000, subsidizedHouseholds: 1, basketPriceCents: 2600, sponsorOrganizationIds: []
+        subsidizedHouseholds: 1, basketPriceCents: 2600, sponsorOrganizationIds: []
       })
     })
   })
@@ -1910,7 +2188,7 @@ describe('clôture : paiements enregistrés, versement vendeur et débit du fond
     await env.withSecurityRulesDisabled(async (c) => {
       const db = c.firestore()
       await updateDoc(doc(db, orderPath), closed)
-      await updateDoc(doc(db, sharePath), { finalPriceCents: 7000, subsidyCents: 5000, qrCode: qr('household-amina'), isPaid: true })
+      await updateDoc(doc(db, sharePath), { finalPriceCents: 7000, subsidyCents: 5000, isPaid: true })
       await setDoc(doc(db, paymentPath), payment)
       await setDoc(doc(db, payoutPath), payout)
     })
@@ -1931,7 +2209,7 @@ describe('clôture : paiements enregistrés, versement vendeur et débit du fond
     await assertFails(closeBatch(amina()))
     await assertFails(setDoc(doc(amina(), paymentPath), payment))
     await assertFails(setDoc(doc(amina(), payoutPath), payout))
-    await assertFails(updateDoc(doc(amina(), fundPath), { entries: arrayUnion(debit), balanceCents: 3000 }))
+    await assertFails(updateDoc(doc(amina(), fundPath), { entries: arrayUnion(debit) }))
   })
   test('un paiement hors de l’écriture de clôture est refusé (commande ouverte ou déjà fermée)', async () => {
     await assertFails(setDoc(doc(lafleur(), paymentPath), payment))
@@ -1977,18 +2255,13 @@ describe('clôture : paiements enregistrés, versement vendeur et débit du fond
     await assertSucceeds(getDocs(collection(intruder(), `${orderPath}/payments`)))
     await assertSucceeds(getDoc(doc(intruder(), payoutPath)))
   })
-  test('fonds : jamais sous zéro (subvention de 90 $ avec 80 $ dans le fonds)', async () => {
-    const overdraw = { ...debit, amountCents: 9000 }
-    const overdrawPayout = { ...payout, subsidyTotalCents: 9000 }
-    await assertFails(closeBatch(lafleur(), { subsidy: 7000, debit: overdraw, balance: -1000, payout: overdrawPayout }))
-    // Solde annoncé à 0 alors que 8 000 - 9 000 < 0 : refusé aussi.
-    await assertFails(closeBatch(lafleur(), { debit: overdraw, balance: 0, payout: overdrawPayout }))
-  })
-  test('fonds : le débit est exactement celui des subventions déclarées, et le solde suit', async () => {
-    await assertFails(closeBatch(lafleur(), { debit: { ...debit, amountCents: 1000 }, balance: 7000 }))
-    await assertFails(closeBatch(lafleur(), { balance: 4000 }))
+  test('fonds : le débit est exactement celui des subventions déclarées (le solde non négatif est tenu par l’app)', async () => {
+    // Le débit dépasse ce que le versement déclare : refusé. Les règles ne somment pas l'historique.
+    await assertFails(closeBatch(lafleur(), { debit: { ...debit, amountCents: 9000 } }))
+    await assertFails(closeBatch(lafleur(), { debit: { ...debit, amountCents: 1000 } }))
     await assertFails(closeBatch(lafleur(), { debit: { ...debit, kind: 'contribution' } }))
     await assertFails(closeBatch(lafleur(), { debit: { ...debit, orderId: 'order-1' } }))
+    await assertFails(closeBatch(lafleur(), { debit: { ...debit, ménage: 'household-amina' } }))
   })
   test('fonds vide ou sans subvention : la clôture ne touche pas au fonds', async () => {
     await assertSucceeds(closeBatch(lafleur(), {
@@ -1998,11 +2271,11 @@ describe('clôture : paiements enregistrés, versement vendeur et débit du fond
     }))
   })
   test('fonds : pas de débit hors clôture, ni de crédit, ni de réécriture de l’historique', async () => {
-    await assertFails(updateDoc(doc(lafleur(), fundPath), { entries: arrayUnion(debit), balanceCents: 3000 }))
+    await assertFails(updateDoc(doc(lafleur(), fundPath), { entries: arrayUnion(debit) }))
     await seedClosed()
-    await assertFails(updateDoc(doc(lafleur(), fundPath), { entries: arrayUnion(debit), balanceCents: 3000 }))
-    await assertFails(updateDoc(doc(lafleur(), fundPath), { balanceCents: 99999 }))
-    await assertFails(updateDoc(doc(lafleur(), fundPath), { entries: [], balanceCents: 0 }))
+    await assertFails(updateDoc(doc(lafleur(), fundPath), { entries: arrayUnion(debit) }))
+    await assertFails(updateDoc(doc(lafleur(), fundPath), { sponsorOrganizationIds: ['org-x'] }))
+    await assertFails(updateDoc(doc(lafleur(), fundPath), { entries: [] }))
     await assertFails(deleteDoc(doc(lafleur(), fundPath)))
   })
   test('fonds : lisible par les membres du groupe seulement', async () => {

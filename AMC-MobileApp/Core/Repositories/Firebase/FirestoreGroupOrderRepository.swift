@@ -352,11 +352,10 @@ nonisolated final class FirestoreGroupOrderRepository: GroupOrderRepository, @un
                 if let payout = closure.vendorPayout, closure.isConfirmed {
                     transaction.setData(try Firestore.Encoder().encode(payout), forDocument: self.payoutRef(groupOrderId))
                 }
-                if let entry = closure.fundEntry, let document = fundDocument {
+                if let entry = closure.fundEntry, fundDocument != nil {
                     // arrayUnion : les écritures déjà là ne sont pas réécrites (firestore.rules, isClosureDebit).
                     transaction.updateData([
                         "entries": FieldValue.arrayUnion([try Firestore.Encoder().encode(entry)]),
-                        "balanceCents": document.fund.balanceCents - entry.amountCents,
                     ], forDocument: fundRef)
                 }
                 transaction.updateData(Self.counterFields(closure.order), forDocument: orderRef)

@@ -121,6 +121,8 @@ final class VendorOnboardingViewModel {
     private(set) var step: Step = .identity
     private(set) var isSaving = false
     private(set) var isAddingPhoto = false
+    /// Photos en cours de lecture (tuiles d'attente dans la grille).
+    private(set) var loadingPhotoCount = 0
     private(set) var saveError: AppError?
     private(set) var photoError: AppError?
     /// Vendeur créé à la fin ; nil avant.
@@ -206,7 +208,9 @@ final class VendorOnboardingViewModel {
     }
 
     var canContinue: Bool { stepError == nil && !isSaving && !isAddingPhoto }
-    var canAddPhoto: Bool { photoURLs.count < Rules.maxPhotos && !isAddingPhoto }
+    var canAddPhoto: Bool { remainingPhotoSlots > 0 && !isAddingPhoto }
+    /// Places libres pour des photos (limite de `Rules.maxPhotos`) : nombre max d'une multi-sélection.
+    var remainingPhotoSlots: Int { max(0, Rules.maxPhotos - photoURLs.count) }
 
     // MARK: Récapitulatif
 
@@ -255,31 +259,78 @@ final class VendorOnboardingViewModel {
 
     // MARK: Photos
 
-    /// Garde l'image choisie (PhotosPicker) en local pour l'aperçu ; elle part au stockage final après la
-    /// création du vendeur. Renvoie true si elle a été ajoutée.
+    /// Source d'une photo choisie : charge ses données (PhotosPicker en vrai, données en test) ; nil si illisible.
+    typealias PhotoSource = @Sendable () async -> Data?
+
+    /// Garde une image en local pour l'aperçu ; elle part au stockage final après la création du vendeur.
+    /// Renvoie true si elle a été ajoutée.
     @discardableResult
     func addPhoto(data: Data) async -> Bool {
+        await addPhotos([{ data }]) == 1
+    }
+
+    /// Ajoute les photos choisies d'un coup (multi-sélection), dans l'ordre, après celles déjà là : la première
+    /// photo de la liste reste la couverture. Au-delà de `Rules.maxPhotos`, le surplus est ignoré (avec un message).
+    /// Lecture et compression hors du fil principal. Renvoie le nombre de photos ajoutées.
+    @discardableResult
+    func addPhotos(_ sources: [PhotoSource]) async -> Int {
+        guard !isAddingPhoto, !sources.isEmpty else { return 0 }
         photoError = nil
-        guard photoURLs.count < Rules.maxPhotos else {
+        let accepted = Array(sources.prefix(remainingPhotoSlots))
+        guard !accepted.isEmpty else {
             photoError = .invalidInput(String(localized: "Tu peux ajouter 10 photos au plus."))
-            return false
-        }
-        guard !data.isEmpty else {
-            photoError = .invalidInput(String(localized: "Cette image est vide."))
-            return false
+            return 0
         }
         isAddingPhoto = true
-        defer { isAddingPhoto = false }
-        do {
-            // Image réduite comme les photos de produit ; le stockage final la recadre en 4:3.
-            let jpeg = ProductPhoto.jpegData(from: data) ?? data
-            let localURL = try await stagingStore.store(jpeg, vendorId: vendorId)
-            pendingPhotos[localURL] = jpeg
-            photoURLs.append(localURL)
-            return true
-        } catch {
-            photoError = AppError(error)
-            return false
+        loadingPhotoCount = accepted.count
+        defer {
+            isAddingPhoto = false
+            loadingPhotoCount = 0
+        }
+        // Lecture et réduction en parallèle, hors du fil principal ; les résultats gardent l'ordre du choix.
+        let jpegs = await Self.prepare(accepted)
+        var added = 0
+        var unreadable = 0
+        var failure: Error?
+        for jpeg in jpegs {
+            guard let jpeg else {
+                unreadable += 1
+                continue
+            }
+            do {
+                let localURL = try await stagingStore.store(jpeg, vendorId: vendorId)
+                pendingPhotos[localURL] = jpeg
+                photoURLs.append(localURL)
+                added += 1
+            } catch {
+                failure = error
+            }
+        }
+        if let failure {
+            photoError = AppError(failure)
+        } else if sources.count > accepted.count {
+            photoError = .invalidInput(String(localized: "Tu peux ajouter 10 photos au plus : les premières choisies ont été gardées."))
+        } else if unreadable > 0 {
+            photoError = .invalidInput(accepted.count == 1
+                ? String(localized: "Cette image est vide.")
+                : String(localized: "Certaines images n'ont pas pu être lues."))
+        }
+        return added
+    }
+
+    /// Charge et réduit chaque photo (comme les photos de produit ; le stockage final la recadre en 4:3).
+    @concurrent
+    private nonisolated static func prepare(_ sources: [PhotoSource]) async -> [Data?] {
+        await withTaskGroup(of: (Int, Data?).self) { group in
+            for (index, source) in sources.enumerated() {
+                group.addTask {
+                    guard let data = await source(), !data.isEmpty else { return (index, nil) }
+                    return (index, ProductPhoto.jpegData(from: data) ?? data)
+                }
+            }
+            var results = [Data?](repeating: nil, count: sources.count)
+            for await (index, data) in group { results[index] = data }
+            return results
         }
     }
 

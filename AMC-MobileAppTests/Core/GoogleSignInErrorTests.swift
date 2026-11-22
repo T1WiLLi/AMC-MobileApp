@@ -6,6 +6,7 @@ import Testing
 @testable import AMC_MobileApp
 
 /// QA : les erreurs du SDK Google Sign-In deviennent des `AuthError` en français, jamais le texte brut du SDK.
+@MainActor
 struct GoogleSignInErrorTests {
     @Test func cancellationIsSilent() {
         let error = NSError(domain: kGIDSignInErrorDomain, code: GIDSignInError.canceled.rawValue)

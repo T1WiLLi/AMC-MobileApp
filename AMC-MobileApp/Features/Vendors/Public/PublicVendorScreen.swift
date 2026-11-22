@@ -418,7 +418,7 @@ private struct OpenOfferCard: View {
         }
         .grenierCard()
         .contextMenu {
-            NavigationLink(value: item.route) {
+            NavigationLink { OfferDetailScreen(offerId: item.route.offerId) } label: {
                 Label("Voir le lot", systemImage: "shippingbox")
             }
         }
@@ -426,7 +426,9 @@ private struct OpenOfferCard: View {
 
     @ViewBuilder
     private var joinButton: some View {
-        let link = NavigationLink(value: item.route) {
+        // Lien par vue, pas par valeur : la fiche producteur est aussi ouverte par `navigationDestination(item:)`
+        // (carte du quartier), où un lien par valeur passait SOUS cette fiche et le lot ne s'affichait jamais.
+        let link = NavigationLink { OfferDetailScreen(offerId: item.route.offerId) } label: {
             Label("Rejoindre", systemImage: "person.badge.plus")
                 .font(.headline)
                 .frame(minHeight: 32)

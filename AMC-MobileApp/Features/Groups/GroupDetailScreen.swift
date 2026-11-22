@@ -469,7 +469,10 @@ private struct GroupDetailContent: View {
     @ViewBuilder
     private var members: some View {
         let initials = content.memberInitials
-        AvatarStack(initials: initials, extraCount: max(group.householdCount - initials.count, 0))
+        // Sans aucune pastille de membre, « +22 » seul doublerait « 22 familles » juste à côté.
+        if !initials.isEmpty {
+            AvatarStack(initials: initials, extraCount: max(group.householdCount - initials.count, 0))
+        }
         VStack(alignment: .leading, spacing: 2) {
             Label {
                 Text(FrenchPlural.count(group.householdCount, "famille"))
@@ -648,7 +651,7 @@ private struct GroupMapHeader: View {
         }
         .clipShape(.rect(cornerRadius: 24))
         .accessibilityElement(children: .ignore)
-        .accessibilityLabel("Carte du quartier \(group.neighborhood), rayon de \(GroupCard.distanceText(group.radiusMeters))")
+        .accessibilityLabel("Carte du quartier \(MontrealNeighborhood.displayName(for: group.neighborhood)), rayon de \(GroupCard.distanceText(group.radiusMeters))")
     }
 
     private func mapBadge(_ text: String, systemImage: String) -> some View {
@@ -755,7 +758,7 @@ private struct InvitationCard: View {
 
 private enum GroupInvite {
     static func message(for group: NeighborhoodGroup) -> String {
-        String(localized: "Rejoins « \(group.name) » sur LeGrenier pour acheter en gros avec tes voisins de \(group.neighborhood). Code : \(group.inviteCode)")
+        String(localized: "Rejoins « \(group.name) » sur LeGrenier pour acheter en gros avec tes voisins de \(MontrealNeighborhood.displayName(for: group.neighborhood)). Code : \(group.inviteCode)")
     }
 }
 

@@ -43,7 +43,8 @@ struct PortalChoiceScreen: View {
             .padding(.bottom, 24)
         }
         .scrollBounceBehavior(.basedOnSize)
-        .safeAreaInset(edge: .bottom, spacing: 0) {
+        // Barre (et non simple inset) : le contenu s'estompe sous le bouton au lieu de passer dessous, texte lisible.
+        .safeAreaBar(edge: .bottom, spacing: 0) {
             Button(action: confirm) {
                 Text("Continuer")
                     .font(.headline)
@@ -57,6 +58,7 @@ struct PortalChoiceScreen: View {
             .padding(.horizontal, 24)
             .padding(.vertical, 12)
         }
+        .scrollEdgeEffectStyle(.soft, for: .bottom)
         .grenierBackground()
         .sensoryFeedback(.selection, trigger: model.selection)
     }

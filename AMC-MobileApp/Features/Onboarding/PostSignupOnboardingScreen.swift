@@ -104,7 +104,8 @@ struct PostSignupOnboardingScreen: View {
         .scrollBounceBehavior(.basedOnSize)
         .scrollDismissesKeyboard(.interactively)
         .animation(animation, value: model.step)
-        .safeAreaInset(edge: .bottom, spacing: 0) { bottomBar }
+        .safeAreaBar(edge: .bottom, spacing: 0) { bottomBar }
+        .scrollEdgeEffectStyle(.soft, for: .bottom)
     }
 
     private var header: some View {

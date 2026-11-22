@@ -712,16 +712,9 @@ private struct OfferDetailContent: View {
         } else if content.committedShares < content.offer.minimumSharesToLaunch {
             // La barre de paliers dit déjà « Encore N pour lancer la commande » : pas de second message sur le palier suivant.
             EmptyView()
-        } else if let missing = pricing.sharesToNextTier {
-            let discount = pricing.nextTierDiscountPercent ?? 0
-            hintLabel(
-                discount > 0
-                    ? String(localized: "Encore \(missing) \(FrenchPlural.word(missing, "part", plural: "parts")) pour le palier suivant (−\(discount) %).")
-                    : String(localized: "Encore \(missing) \(FrenchPlural.word(missing, "part", plural: "parts")) pour le palier suivant."),
-                systemImage: OfferDetailSymbol.nextTier,
-                tint: .economie,
-                numericValue: missing
-            )
+        } else if pricing.sharesToNextTier != nil {
+            // Même chose pour le palier suivant : « Encore N parts pour débloquer −X % » est déjà sous la barre.
+            EmptyView()
         } else {
             hintLabel(String(localized: "Meilleur prix atteint pour tout le groupe !"), systemImage: OfferDetailSymbol.bestTier)
         }

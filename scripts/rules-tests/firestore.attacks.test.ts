@@ -232,6 +232,15 @@ describe('parcours légitimes de l’app (ne doivent pas casser)', () => {
       closedShare('household-amina', 4, 739), closedShare('household-bob', 6, 739)
     ], { ...dueOrder, status: 'closed', currentTierIndex: 0 }))
   })
+  test('E21 : le coordonnateur ferme avant la date limite, parts payées au pot', async () => {
+    await env.withSecurityRulesDisabled(async (c) => {
+      await updateDoc(doc(c.firestore(), 'offers/offer-due'), { deadline: future() })
+    })
+    await assertSucceeds(closeBatch(as('jean'), 'order-due', [
+      { ...closedShare('household-amina', 4, 739), isPaid: true },
+      { ...closedShare('household-bob', 6, 739), isPaid: true }
+    ], { ...dueOrder, status: 'closed', currentTierIndex: 0 }))
+  })
   test('minimum non atteint : le coordonnateur annule', async () => {
     await assertSucceeds(setDoc(doc(as('jean'), 'groupOrders/order-low'), { ...lowOrder, status: 'cancelled' }))
   })
@@ -479,11 +488,13 @@ describe('attaques : la part d’une famille', () => {
 })
 
 describe('attaques : coordonnateur et vendeur à la clôture', () => {
-  test('clôturer avant la date limite', async () => {
+  test('une famille ferme avant la date limite', async () => {
     await env.withSecurityRulesDisabled(async (c) => {
       await updateDoc(doc(c.firestore(), 'offers/offer-due'), { deadline: future() })
     })
-    await assertFails(closeBatch(as('jean'), 'order-due', [], { ...dueOrder, status: 'closed', currentTierIndex: 0 }))
+    await assertFails(closeBatch(as('amina'), 'order-due', [
+      closedShare('household-amina', 4, 739), closedShare('household-bob', 6, 739)
+    ], { ...dueOrder, status: 'closed', currentTierIndex: 0 }))
   })
   test('confirmer (closed) une commande sous le minimum', async () => {
     await assertFails(setDoc(doc(as('jean'), 'groupOrders/order-low'), { ...lowOrder, status: 'closed', currentTierIndex: 0 }))

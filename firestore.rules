@@ -983,6 +983,8 @@ service cloud.firestore {
 
     // Clôture (TierEngine.closed) : confirmée au palier atteint si le minimum et le premier palier
     // sont atteints, sinon annulée. Ni les compteurs ni le palier ne se choisissent à la main.
+    // E21 (décision de samuel) : le coordonnateur ou le vendeur peut fermer avant la date limite
+    // (ClosurePolicy.close) ; la clôture automatique, elle, attend la date limite côté app.
     function isClosingUpdate() {
       let before = resource.data;
       let after = request.resource.data;
@@ -990,7 +992,6 @@ service cloud.firestore {
       let isConfirmed = before.committedShares >= offer.minimumSharesToLaunch
         && before.committedShares >= offer.tiers[0].minShares;
       return (isGroupCoordinator(before.groupId) || isOfferVendor(offer))
-        && request.time >= offer.deadline
         && isOpenStatus(before.status)
         && after.diff(before).affectedKeys().hasOnly(['status', 'currentTierIndex', 'pickupPointId'])
         && isSameOptional(after, before, 'pickupPointId')

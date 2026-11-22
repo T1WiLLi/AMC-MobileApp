@@ -1634,6 +1634,48 @@ service cloud.firestore {
     }
 
     // ---------------------------------------------------------------
+    // Livraison entre voisins (RQ-069, T-117) — groupOrders/{orderId}/deliveries/{requestId}
+    // ---------------------------------------------------------------
+    // Les règles n'avaient jamais été écrites : toute lecture était refusée (« Action non permise »).
+    // Demande : lisible par les familles du groupe de la commande (aucune adresse dedans). Créée par un ménage membre
+    // pour lui-même, statut « requested ». Modifiée par le ménage demandeur (annuler) ou par un ménage bénévole du groupe
+    // (prendre en charge, en route, livrée) ; demandeur, commande et groupe ne changent jamais.
+    // Adresse (private/address) : le ménage demandeur et son bénévole seulement.
+    match /groupOrders/{orderId}/deliveries/{requestId} {
+      function deliveryOrderGroup() {
+        return get(/databases/$(database)/documents/groupOrders/$(orderId)).data.groupId;
+      }
+
+      allow read: if isGroupMember(deliveryOrderGroup());
+      allow create: if isGroupMember(deliveryOrderGroup())
+        && isMemberOfHousehold(request.resource.data.householdId)
+        && request.resource.data.groupOrderId == orderId
+        && request.resource.data.groupId == deliveryOrderGroup()
+        && request.resource.data.status == 'requested'
+        && request.resource.data.quantity is int && request.resource.data.quantity >= 1;
+      allow update: if isGroupMember(deliveryOrderGroup())
+        && request.resource.data.householdId == resource.data.householdId
+        && request.resource.data.groupOrderId == resource.data.groupOrderId
+        && request.resource.data.groupId == resource.data.groupId
+        && request.resource.data.status in ['requested', 'claimed', 'onTheWay', 'delivered', 'cancelled']
+        && (isMemberOfHousehold(resource.data.householdId)
+            || (request.resource.data.get('volunteerHouseholdId', null) is string
+                && isMemberOfHousehold(request.resource.data.volunteerHouseholdId)));
+
+      match /private/{docId} {
+        function deliveryRequest() {
+          return get(/databases/$(database)/documents/groupOrders/$(orderId)/deliveries/$(requestId)).data;
+        }
+        allow read: if isMemberOfHousehold(deliveryRequest().householdId)
+          || (deliveryRequest().get('volunteerHouseholdId', null) is string
+              && isMemberOfHousehold(deliveryRequest().volunteerHouseholdId));
+        // Écrite avec la demande, dans la même transaction.
+        allow create: if docId == 'address'
+          && isMemberOfHousehold(getAfter(/databases/$(database)/documents/groupOrders/$(orderId)/deliveries/$(requestId)).data.householdId);
+      }
+    }
+
+    // ---------------------------------------------------------------
     // Portail Organismes (T-194, RQ-081) — organizations/{id}, dons, parrainages, fonds de solidarité
     // ---------------------------------------------------------------
     // Rattachement : users/{uid}.organizationId == orgId. Le champ est posé par le seed ou l'Admin SDK (qui ignorent les

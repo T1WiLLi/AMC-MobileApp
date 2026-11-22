@@ -11,11 +11,11 @@ nonisolated enum NeighbourHelpFormat {
     static func distance(_ meters: Double?) -> String? {
         guard let meters else { return nil }
         switch meters {
-        case ..<100: return "Tout près"
-        case ..<1_000: return "À \(Int((meters / 50).rounded()) * 50) m"
+        case ..<100: return String(localized: "Tout près")
+        case ..<1_000: return String(localized: "À \(Int((meters / 50).rounded()) * 50) m")
         default:
             let km = (meters / 100).rounded() / 10
-            return "À \(km.formatted(.number.precision(.fractionLength(0...1)).locale(locale))) km"
+            return String(localized: "À \(km.formatted(.number.precision(.fractionLength(0...1)).locale(locale))) km")
         }
     }
 
@@ -23,15 +23,15 @@ nonisolated enum NeighbourHelpFormat {
     static func hour(_ date: Date) -> String {
         let parts = Calendar.current.dateComponents([.hour, .minute], from: date)
         let hour = parts.hour ?? 0, minute = parts.minute ?? 0
-        return minute == 0 ? "\(hour) h" : "\(hour) h \(String(format: "%02d", minute))"
+        return minute == 0 ? String(localized: "\(hour) h") : String(localized: "\(hour) h \(String(format: "%02d", minute))")
     }
 
     /// « Aujourd'hui », « Demain », « Jeudi 27 novembre ».
     static func day(_ date: Date, now: Date = .now) -> String {
         let calendar = Calendar.current
-        if calendar.isDate(date, inSameDayAs: now) { return "Aujourd'hui" }
+        if calendar.isDate(date, inSameDayAs: now) { return String(localized: "Aujourd'hui") }
         if let tomorrow = calendar.date(byAdding: .day, value: 1, to: now), calendar.isDate(date, inSameDayAs: tomorrow) {
-            return "Demain"
+            return String(localized: "Demain")
         }
         let text = date.formatted(.dateTime.weekday(.wide).day().month(.wide).locale(locale))
         return text.prefix(1).uppercased() + text.dropFirst()

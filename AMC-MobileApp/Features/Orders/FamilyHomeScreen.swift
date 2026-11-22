@@ -143,10 +143,10 @@ enum HomeSection: String, CaseIterable {
     static var infos: [SectionInfo] {
         allCases.map { section in
             switch section {
-            case .group: SectionInfo(id: section.rawValue, title: "Mon groupe", systemImage: GrenierSymbol.groups, tint: .grenier)
-            case .savings: SectionInfo(id: section.rawValue, title: "Économies", systemImage: GrenierSymbol.savings, tint: .economie)
-            case .orders: SectionInfo(id: section.rawValue, title: "Commandes en cours", systemImage: "cart.fill", tint: .grenier)
-            case .offers: SectionInfo(id: section.rawValue, title: "Nouveaux lots près de toi", systemImage: "sparkles", tint: .solidarite)
+            case .group: SectionInfo(id: section.rawValue, title: String(localized: "Mon groupe"), systemImage: GrenierSymbol.groups, tint: .grenier)
+            case .savings: SectionInfo(id: section.rawValue, title: String(localized: "Économies"), systemImage: GrenierSymbol.savings, tint: .economie)
+            case .orders: SectionInfo(id: section.rawValue, title: String(localized: "Commandes en cours"), systemImage: "cart.fill", tint: .grenier)
+            case .offers: SectionInfo(id: section.rawValue, title: String(localized: "Nouveaux lots près de toi"), systemImage: "sparkles", tint: .solidarite)
             }
         }
     }

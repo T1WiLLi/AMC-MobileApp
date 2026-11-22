@@ -13,7 +13,7 @@ struct SuspendedBasketChips: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
             Label {
-                Text(amountCents > 0 ? "Panier suspendu : \(Money.formatRounded(amountCents)) offerts" : "Offrir un panier suspendu")
+                Text(amountCents > 0 ? String(localized: "Panier suspendu : \(Money.formatRounded(amountCents)) offerts") : String(localized: "Offrir un panier suspendu"))
                     .contentTransition(.numericText(value: Double(amountCents)))
             } icon: {
                 Image(systemName: amountCents > 0 ? "heart.fill" : "heart")
@@ -61,7 +61,7 @@ struct SuspendedBasketChips: View {
             .contentShape(.capsule)
         }
         .buttonStyle(.plain)
-        .accessibilityLabel(isOn ? "Retirer le panier suspendu de \(Money.formatRounded(cents))" : "Ajouter un panier suspendu de \(Money.formatRounded(cents))")
+        .accessibilityLabel(isOn ? String(localized: "Retirer le panier suspendu de \(Money.formatRounded(cents))") : String(localized: "Ajouter un panier suspendu de \(Money.formatRounded(cents))"))
         .accessibilityAddTraits(isOn ? .isSelected : [])
     }
 }

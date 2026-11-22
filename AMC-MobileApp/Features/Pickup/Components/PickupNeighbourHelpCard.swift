@@ -22,8 +22,8 @@ struct PickupNeighbourHelpCard: View {
                     ))
                 } label: {
                     NeighbourHelpRow(
-                        title: "Livraison par un voisin",
-                        subtitle: "Aîné ou mobilité réduite ? Un voisin t'apporte ta part. Ou deviens bénévole.",
+                        title: String(localized: "Livraison par un voisin"),
+                        subtitle: String(localized: "Aîné ou mobilité réduite ? Un voisin t'apporte ta part. Ou deviens bénévole."),
                         systemImage: "figure.walk.motion"
                     )
                 }

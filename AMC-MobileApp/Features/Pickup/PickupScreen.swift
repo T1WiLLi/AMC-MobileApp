@@ -340,7 +340,7 @@ private struct PickupCodeCard: View {
     }
 
     private var articles: String {
-        content.items.count == 1 ? String(localized: "1 article") : "\(content.items.count) articles"
+        content.items.count == 1 ? String(localized: "1 article") : String(localized: "\(content.items.count) articles")
     }
 }
 
@@ -716,7 +716,7 @@ private enum PickupFormat {
     static func hour(_ date: Date) -> String {
         let parts = Calendar.current.dateComponents([.hour, .minute], from: date)
         let hour = parts.hour ?? 0, minute = parts.minute ?? 0
-        return minute == 0 ? "\(hour) h" : "\(hour) h \(String(format: "%02d", minute))"
+        return minute == 0 ? String(localized: "\(hour) h") : String(localized: "\(hour) h \(String(format: "%02d", minute))")
     }
 
     static func mapsURL(for point: PickupPoint) -> URL? {

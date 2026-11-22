@@ -592,20 +592,21 @@ private struct OfferDetailContent: View {
     private func tierHint(_ content: OfferDetailViewModel.Content) -> some View {
         let pricing = content.pricing
         if content.groupOrder == nil {
-            hintLabel("Ton groupe n'a pas encore lancé de commande sur ce lot.", systemImage: "person.badge.plus")
+            hintLabel(String(localized: "Ton groupe n'a pas encore lancé de commande sur ce lot."), systemImage: "person.badge.plus")
         } else if !content.isOpen {
-            hintLabel("La commande est fermée : les parts ne bougent plus.", systemImage: OfferDetailSymbol.deadlineClosed)
+            hintLabel(String(localized: "La commande est fermée : les parts ne bougent plus."), systemImage: OfferDetailSymbol.deadlineClosed)
         } else if let missing = pricing.sharesToNextTier {
             let discount = pricing.nextTierDiscountPercent ?? 0
             hintLabel(
-                String(localized: "Encore \(missing) \(FrenchPlural.word(missing, "part", plural: "parts")) pour le palier suivant")
-                    + (discount > 0 ? " (−\(discount) %)" : "") + ".",
+                discount > 0
+                    ? String(localized: "Encore \(missing) \(FrenchPlural.word(missing, "part", plural: "parts")) pour le palier suivant (−\(discount) %).")
+                    : String(localized: "Encore \(missing) \(FrenchPlural.word(missing, "part", plural: "parts")) pour le palier suivant."),
                 systemImage: OfferDetailSymbol.nextTier,
                 tint: .economie,
                 numericValue: missing
             )
         } else {
-            hintLabel("Meilleur prix atteint pour tout le groupe !", systemImage: OfferDetailSymbol.bestTier)
+            hintLabel(String(localized: "Meilleur prix atteint pour tout le groupe !"), systemImage: OfferDetailSymbol.bestTier)
         }
     }
 
@@ -745,7 +746,9 @@ private struct OfferDetailContent: View {
                     .foregroundStyle(.texteSecondaire)
             }
             .accessibilityElement(children: .combine)
-            .accessibilityLabel("Total \(Money.format(viewModel.selectedTotalWithBasketCents)) pour \(quantity)\(viewModel.suspendedCents > 0 ? ", dont \(Money.formatRounded(viewModel.suspendedCents)) de panier suspendu" : ""), payé à la cueillette")
+            .accessibilityLabel(viewModel.suspendedCents > 0
+                ? String(localized: "Total \(Money.format(viewModel.selectedTotalWithBasketCents)) pour \(quantity), dont \(Money.formatRounded(viewModel.suspendedCents)) de panier suspendu, payé à la cueillette")
+                : String(localized: "Total \(Money.format(viewModel.selectedTotalWithBasketCents)) pour \(quantity), payé à la cueillette"))
 
             if !dynamicTypeSize.isAccessibilitySize { Spacer(minLength: 0) }
 
@@ -828,7 +831,7 @@ private struct OfferDetailContent: View {
             let day = slot.start.formatted(.dateTime.weekday(.wide).day().month(.wide).locale(AppLanguage.formattingLocale))
             let start = slot.start.formatted(.dateTime.hour().minute().locale(AppLanguage.formattingLocale))
             let end = slot.end.formatted(.dateTime.hour().minute().locale(AppLanguage.formattingLocale))
-            return "\(day), \(start) à \(end)"
+            return String(localized: "\(day), \(start) à \(end)")
         }
         if order?.pickupPointId != nil { return String(localized: "Lieu choisi par ton groupe, horaire à venir") }
         return String(localized: "Choisi par ton groupe à la fermeture")

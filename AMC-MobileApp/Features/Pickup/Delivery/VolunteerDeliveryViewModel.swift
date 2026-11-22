@@ -14,7 +14,7 @@ final class VolunteerDeliveryViewModel {
         case volunteer
 
         var id: Self { self }
-        var title: String { self == .family ? "Me faire livrer" : "Livrer un voisin" }
+        var title: String { self == .family ? String(localized: "Me faire livrer") : String(localized: "Livrer un voisin") }
         var systemImage: String { self == .family ? "house.fill" : "figure.walk" }
     }
 
@@ -152,8 +152,8 @@ final class VolunteerDeliveryViewModel {
             let offer = try? await repositories.offers.offer(id: order.offerId)
             var product: Product?
             if let offer { product = try? await repositories.vendors.product(id: offer.productId) }
-            options.append(OrderOption(order: order, share: share, productName: product?.name ?? "Ta commande",
-                                       shareUnit: offer?.shareUnit ?? "part"))
+            options.append(OrderOption(order: order, share: share, productName: product?.name ?? String(localized: "Ta commande"),
+                                       shareUnit: offer?.shareUnit ?? String(localized: "part")))
         }
 
         let geohash = household?.geohash ?? ""
@@ -175,7 +175,7 @@ final class VolunteerDeliveryViewModel {
             }
         }
 
-        let name = user?.displayName ?? household?.name ?? "Moi"
+        let name = user?.displayName ?? household?.name ?? String(localized: "Moi")
         return Content(
             firstName: name.split(separator: " ").first.map(String.init) ?? name,
             householdName: household?.name ?? name,
@@ -197,7 +197,7 @@ final class VolunteerDeliveryViewModel {
     func submit(_ draft: Draft) async -> String? {
         guard let content = state.value, !isSubmitting else { return nil }
         guard let option = content.orderOptions.first(where: { $0.id == draft.orderId }) else {
-            return "Choisis la commande à te faire livrer."
+            return String(localized: "Choisis la commande à te faire livrer.")
         }
         isSubmitting = true
         defer { isSubmitting = false }

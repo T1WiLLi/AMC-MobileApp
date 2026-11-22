@@ -42,7 +42,7 @@ struct FamilyHomeScreen: View {
                 }
             }
             .grenierBackground()
-            .navigationTitle(usesInlineTitle ? "Accueil" : title)
+            .navigationTitle(usesInlineTitle ? String(localized: "Accueil") : title)
             .navigationBarTitleDisplayMode(usesInlineTitle ? .inline : .automatic)
             .profileToolbar()
             .toolbar {

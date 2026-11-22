@@ -32,7 +32,7 @@ nonisolated struct GroupOrderNotificationContext: Sendable, Hashable {
         return GroupOrderNotificationContext(
             groupName: group?.name ?? String(localized: "ton groupe"),
             productName: product.map { Self.withArticle($0.name) } ?? String(localized: "ta commande"),
-            unit: product?.unit ?? offer?.shareUnit ?? "part",
+            unit: product?.displayUnit ?? offer?.displayShareUnit ?? String(localized: "part"),
             offer: offer,
             pickupPoint: pickupPoint
         )

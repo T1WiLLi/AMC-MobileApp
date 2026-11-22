@@ -213,7 +213,7 @@ struct VendorProfileScreen: View {
                                 .accessibilityHidden(true)
                             VStack(alignment: .leading, spacing: 2) {
                                 Text(product.name).foregroundStyle(Color.texte)
-                                Text(product.unit).font(.caption).foregroundStyle(.secondary)
+                                Text(product.displayUnit).font(.caption).foregroundStyle(.secondary)
                             }
                             Spacer(minLength: 8)
                             Image(systemName: featured ? "heart.fill" : "heart")

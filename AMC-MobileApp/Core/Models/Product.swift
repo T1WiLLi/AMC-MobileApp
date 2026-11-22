@@ -44,3 +44,12 @@ nonisolated struct Product: Identifiable, Codable, Sendable, Hashable {
     /// Prix d'épicerie de référence pour une unité, pour calculer l'économie.
     var referenceGroceryPriceCents: Cents
 }
+
+nonisolated extension Product {
+    /// `unit` dans la langue de l'app (« sac de 5 kg » / "bag of 5 kg"), pour l'affichage seulement.
+    /// Une unité libre que `ShareSpec` ne relit pas fidèlement (« douzaine ») reste telle quelle.
+    var displayUnit: String {
+        let spec = ShareSpec(parsing: unit)
+        return spec.label == unit ? spec.displayLabel : unit
+    }
+}

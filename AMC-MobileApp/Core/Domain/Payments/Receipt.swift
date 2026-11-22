@@ -54,7 +54,7 @@ nonisolated struct Receipt: Sendable, Equatable {
             householdId: share.householdId,
             groupOrderId: order.id,
             productName: productName,
-            shareUnit: offer.shareUnit,
+            shareUnit: offer.displayShareUnit,
             quantity: share.quantity,
             unitPriceCents: finalPrice / share.quantity,
             finalPriceCents: finalPrice,

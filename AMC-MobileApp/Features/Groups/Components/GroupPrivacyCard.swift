@@ -249,9 +249,9 @@ private struct InvitationRow: View {
     private var statusText: String {
         switch invitation.status {
         case .active:
-            String(localized: "Active · créée \(invitation.createdAt.formatted(.relative(presentation: .named)))")
+            String(localized: "Active · créée \(invitation.createdAt.formatted(.relative(presentation: .named).locale(AppLanguage.formattingLocale)))")
         case .used:
-            String(localized: "Utilisée \((invitation.usedAt ?? invitation.createdAt).formatted(.relative(presentation: .named)))")
+            String(localized: "Utilisée \((invitation.usedAt ?? invitation.createdAt).formatted(.relative(presentation: .named).locale(AppLanguage.formattingLocale)))")
         case .revoked:
             String(localized: "Révoquée")
         }

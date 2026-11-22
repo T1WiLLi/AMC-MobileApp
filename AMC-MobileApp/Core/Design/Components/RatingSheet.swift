@@ -61,7 +61,7 @@ struct RatingSheet: View {
                             .foregroundStyle(Color.grenier)
                             .symbolEffect(.bounce, value: savedCount)
                             .accessibilityHidden(true)
-                        Text(isEditing ? "Modifie ton avis" : prompt)
+                        Text(isEditing ? String(localized: "Modifie ton avis") : prompt)
                             .font(.title2.bold())
                             .multilineTextAlignment(.center)
                         if let context {

@@ -725,7 +725,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "%@ in expected savings, needs %lld %% covered"
+            "value" : "%@ in expected savings, needs %lld%% covered"
           }
         },
         "fr" : {
@@ -1191,7 +1191,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "%@ for −%lld %%"
+            "value" : "%@ for −%lld%%"
           }
         },
         "fr" : {
@@ -1771,7 +1771,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "%lld %%"
+            "value" : "%lld%%"
           }
         }
       }
@@ -1781,7 +1781,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "%lld %% of purchases go to Quebec farms and businesses."
+            "value" : "%lld%% of purchases go to Quebec farms and businesses."
           }
         }
       }
@@ -1791,7 +1791,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "%lld %% of active households got the same prices thanks to solidarity."
+            "value" : "%lld%% of active households got the same prices thanks to solidarity."
           }
         }
       }
@@ -4373,7 +4373,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "−%lld %%"
+            "value" : "−%lld%%"
           }
         }
       }
@@ -4383,7 +4383,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "−%lld %% vs grocery store"
+            "value" : "−%lld%% vs grocery store"
           }
         }
       }
@@ -9843,7 +9843,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "%lld %% covered"
+            "value" : "%lld%% covered"
           }
         }
       }
@@ -11827,7 +11827,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Up %lld %% from the previous sales week"
+            "value" : "Up %lld%% from the previous sales week"
           }
         }
       }
@@ -11984,7 +11984,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "%@ more for −%lld %%"
+            "value" : "%@ more for −%lld%%"
           }
         },
         "fr" : {
@@ -12000,7 +12000,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "%@ more to unlock −%lld %%"
+            "value" : "%@ more to unlock −%lld%%"
           }
         },
         "fr" : {
@@ -12069,7 +12069,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "%lld more %@ to unlock −%lld %%"
+            "value" : "%lld more %@ to unlock −%lld%%"
           }
         },
         "fr" : {
@@ -13785,7 +13785,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "%lld more %@ needed to unlock −%lld %%"
+            "value" : "%lld more %@ needed to unlock −%lld%%"
           }
         },
         "fr" : {
@@ -25525,7 +25525,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "You save %@ (%lld %%)"
+            "value" : "You save %@ (%lld%%)"
           }
         },
         "fr" : {
@@ -27389,6 +27389,233 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Reviews come from the group's families. Join it to add yours."
+          }
+        }
+      }
+    },
+    "Banque alimentaire" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Food bank"
+          }
+        }
+      }
+    },
+    "Bleu du Saint-Laurent, coins plus nets" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "St. Lawrence blue, sharper corners"
+          }
+        }
+      }
+    },
+    "Centre communautaire" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Community centre"
+          }
+        }
+      }
+    },
+    "Commerce partenaire" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Partner business"
+          }
+        }
+      }
+    },
+    "cueillette %@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "pickup %@"
+          }
+        }
+      }
+    },
+    "Fondation" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Foundation"
+          }
+        }
+      }
+    },
+    "Image illisible." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Unreadable image."
+          }
+        }
+      }
+    },
+    "Mode aîné activé" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Senior mode on"
+          }
+        }
+      }
+    },
+    "Modifie ton avis" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Edit your review"
+          }
+        }
+      }
+    },
+    "moins " : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "minus "
+          }
+        }
+      }
+    },
+    "Mont-Royal" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mont-Royal"
+          }
+        }
+      }
+    },
+    "Orange chaleureux du marché" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Warm market orange"
+          }
+        }
+      }
+    },
+    "Rayon %@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Radius %@"
+          }
+        }
+      }
+    },
+    "Score global" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Overall score"
+          }
+        }
+      }
+    },
+    "Vert des sentiers, coins plus ronds" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Trail green, rounder corners"
+          }
+        }
+      }
+    },
+    "Chargement du groupe…" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Loading group…"
+          }
+        }
+      }
+    },
+    "Chargement des groupes…" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Loading groups…"
+          }
+        }
+      }
+    },
+    "Chargement des envies…" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Loading wishes…"
+          }
+        }
+      }
+    },
+    "Ce groupe n'existe plus. Il a peut-être été fermé par son coordinateur." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "This group no longer exists. Its coordinator may have closed it."
+          }
+        }
+      }
+    },
+    "Le groupe" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The group"
+          }
+        }
+      }
+    },
+    "Emblème" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Emblem"
+          }
+        }
+      }
+    },
+    "Couleur" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Colour"
           }
         }
       }

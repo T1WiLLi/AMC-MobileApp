@@ -148,7 +148,7 @@ private struct DeliveryFamilyHero: View {
                     .font(.subheadline)
                     .foregroundStyle(.texteSecondaire)
                 if seniorMode {
-                    NeighbourBadge(text: "Mode aîné activé", systemImage: "checkmark.seal.fill", tint: .economie)
+                    NeighbourBadge(text: String(localized: "Mode aîné activé"), systemImage: "checkmark.seal.fill", tint: .economie)
                 }
             }
             Spacer(minLength: 0)

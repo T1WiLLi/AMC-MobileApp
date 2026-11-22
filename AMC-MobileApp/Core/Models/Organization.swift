@@ -19,10 +19,10 @@ nonisolated struct Organization: Identifiable, Codable, Sendable, Hashable {
 
         var label: String {
             switch self {
-            case .foodBank: "Banque alimentaire"
-            case .communityCenter: "Centre communautaire"
-            case .foundation: "Fondation"
-            case .localBusiness: "Commerce partenaire"
+            case .foodBank: String(localized: "Banque alimentaire")
+            case .communityCenter: String(localized: "Centre communautaire")
+            case .foundation: String(localized: "Fondation")
+            case .localBusiness: String(localized: "Commerce partenaire")
             }
         }
 

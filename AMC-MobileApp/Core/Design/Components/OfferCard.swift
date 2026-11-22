@@ -94,7 +94,7 @@ struct OfferCard: View {
 
     /// « −19 % » se lit « tiret 19 pour cent » : on écrit le mot.
     static func spokenPercent(_ text: String) -> String {
-        text.replacingOccurrences(of: "−", with: "moins ").replacingOccurrences(of: " %", with: String(localized: " pour cent"))
+        text.replacingOccurrences(of: "−", with: String(localized: "moins ")).replacingOccurrences(of: " %", with: String(localized: " pour cent"))
     }
 
     /// Incitation au prochain palier, ou l'avancement du groupe quand le dernier palier est atteint.
@@ -169,7 +169,7 @@ struct OfferCard: View {
     }
 
     private var price: some View {
-        PriceTag(priceCents: currentPriceCents, unit: product.unit, font: .priceCompact)
+        PriceTag(priceCents: currentPriceCents, unit: product.displayUnit, font: .priceCompact)
     }
 
     @ViewBuilder

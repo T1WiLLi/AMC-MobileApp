@@ -985,12 +985,12 @@ extension DemandMapViewModel.Scope {
 nonisolated enum DemandFormatting {
     /// « 1 famille », « 24 familles ».
     static func families(_ count: Int) -> String {
-        "\(count.formatted()) \(FrenchPlural.word(count, "famille", plural: "familles"))"
+        "\(count.formatted(.number.locale(AppLanguage.formattingLocale))) \(FrenchPlural.word(count, "famille", plural: "familles"))"
     }
 
     /// « 1 part », « 26 parts ».
     static func shares(_ count: Int) -> String {
-        "\(count.formatted()) \(FrenchPlural.word(count, "part", plural: "parts"))"
+        "\(count.formatted(.number.locale(AppLanguage.formattingLocale))) \(FrenchPlural.word(count, "part", plural: "parts"))"
     }
 
     /// « 260 kg voulus » si l'unité de part contient un poids (« sac de 10 kg »), sinon « 26 parts voulues ».

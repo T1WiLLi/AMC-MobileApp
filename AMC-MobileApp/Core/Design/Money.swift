@@ -29,7 +29,7 @@ enum Money {
     /// Montant tel qu'on le dit à voix haute : « 2 dollars 60 », « 48 dollars », « 1 dollar », « 60 cents ».
     /// VoiceOver lit « 2,60 $ » comme « deux virgule soixante dollars » : on lui donne la forme parlée.
     static func spoken(_ cents: Cents) -> String {
-        let sign = cents < 0 ? "moins " : ""
+        let sign = cents < 0 ? String(localized: "moins ") : ""
         let value = abs(cents)
         let dollars = value / 100
         let rest = value % 100

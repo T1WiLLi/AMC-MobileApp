@@ -71,7 +71,7 @@ struct VendorSearchScreen: View {
                         row(.product(product.id), hint: "Modifie ce produit") {
                             ResultRow(
                                 title: product.name,
-                                subtitle: "\(product.category.title) · \(product.unit)",
+                                subtitle: "\(product.category.title) · \(product.displayUnit)",
                                 subtitleSymbol: "tag.fill"
                             ) {
                                 ProductIcon(category: product.category)

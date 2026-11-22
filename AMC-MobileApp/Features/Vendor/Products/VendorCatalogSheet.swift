@@ -153,7 +153,7 @@ private struct CatalogProductRow: View {
                 Text(product.name)
                     .font(.headline)
                     .foregroundStyle(.texte)
-                Text("\(product.unit) · \(product.origin)")
+                Text("\(product.displayUnit) · \(product.origin)")
                     .font(.subheadline)
                     .foregroundStyle(.texteSecondaire)
                 Label("\(Money.format(product.referenceGroceryPriceCents)) en épicerie", systemImage: "cart")

@@ -11887,6 +11887,16 @@
         }
       }
     },
+    "Dès" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "From"
+          }
+        }
+      }
+    },
     "Des lots près de chez toi" : {
       "localizations" : {
         "en" : {
@@ -14201,6 +14211,16 @@
         }
       }
     },
+    "Format d'une part" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Share format"
+          }
+        }
+      }
+    },
     "Fraîcheur, ponctualité, quantité…" : {
       "localizations" : {
         "en" : {
@@ -16140,6 +16160,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "The bundle"
+          }
+        }
+      }
+    },
+    "Le lot est publié : les familles voient déjà ces conditions, elles ne peuvent plus changer." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The lot is published: families already see these terms, so they can no longer change."
           }
         }
       }

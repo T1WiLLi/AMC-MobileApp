@@ -6,6 +6,8 @@ import SwiftUI
 ///     HStack { Text("Paliers"); InfoButton(topic: .tiers) }
 struct InfoButton: View {
     let topic: InfoTopic
+    /// Symbole du bouton : « i » par défaut, un cadenas pour expliquer des champs figés.
+    var systemImage: String = "info.circle"
 
     @State private var isPresented = false
 
@@ -13,7 +15,7 @@ struct InfoButton: View {
         Button {
             isPresented = true
         } label: {
-            Image(systemName: "info.circle")
+            Image(systemName: systemImage)
                 .font(.body)
                 .symbolRenderingMode(.hierarchical)
                 .foregroundStyle(Color.grenier)

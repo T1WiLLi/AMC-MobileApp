@@ -14,6 +14,7 @@ nonisolated enum InfoTopic: String, CaseIterable, Identifiable, Sendable {
     case impact
     case vendorDemand
     case vendorOffers
+    case lockedTerms
 
     var id: String { rawValue }
 
@@ -31,6 +32,7 @@ nonisolated enum InfoTopic: String, CaseIterable, Identifiable, Sendable {
         case .impact: String(localized: "Ton impact")
         case .vendorDemand: String(localized: "La demande")
         case .vendorOffers: String(localized: "Tes lots")
+        case .lockedTerms: String(localized: "Conditions figées")
         }
     }
 
@@ -59,6 +61,8 @@ nonisolated enum InfoTopic: String, CaseIterable, Identifiable, Sendable {
             String(localized: "La demande, c'est ce que les familles ont commandé ou souhaitent acheter près de chez elles. Sers-t'en pour savoir quoi proposer et où livrer.")
         case .vendorOffers:
             String(localized: "Un lot, c'est un produit que tu vends en grande quantité à un groupe. Tu fixes des paliers : plus les familles prennent de parts, plus le prix baisse.")
+        case .lockedTerms:
+            String(localized: "Le lot est publié : les familles voient déjà ces conditions, elles ne peuvent plus changer.")
         }
     }
 
@@ -75,6 +79,7 @@ nonisolated enum InfoTopic: String, CaseIterable, Identifiable, Sendable {
         case .group: "person.3.fill"
         case .impact: "leaf.fill"
         case .vendorDemand: "map.fill"
+        case .lockedTerms: "lock.fill"
         }
     }
 

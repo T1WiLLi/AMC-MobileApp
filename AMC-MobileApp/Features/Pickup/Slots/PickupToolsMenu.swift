@@ -40,7 +40,7 @@ private struct PickupToolsModifier: ViewModifier {
                         if isHost {
                             Button("Remettre les parts", systemImage: "qrcode.viewfinder") { route = .hostPickup }
                         }
-                        Button(isHost ? "Mon point de cueillette" : "Devenir hôte", systemImage: "house.and.flag.fill") {
+                        Button(isHost ? String(localized: "Mon point de cueillette") : String(localized: "Devenir hôte"), systemImage: "house.and.flag.fill") {
                             route = .hostSetup
                         }
                     } label: {

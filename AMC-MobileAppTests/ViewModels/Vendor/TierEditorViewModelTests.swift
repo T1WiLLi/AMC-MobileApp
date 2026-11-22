@@ -28,6 +28,30 @@ struct TierEditorViewModelTests {
         #expect(!model.isValid)
     }
 
+    @Test func totalCannotDropBelowSharesAlreadyReserved() async throws {
+        let model = TierEditorViewModel(repositories: .fake(behavior: .instant), vendorId: ID.fermeRive, offerId: ID.potatoOffer)
+        await model.load()
+        let committed = model.committedShares
+        try #require(committed > 0)
+        model.totalShares = committed - 1
+        model.tiers = [Draft(minShares: 1, priceCents: 1_150)]
+        #expect(model.validationError != nil)
+        model.totalShares = committed
+        #expect(model.validationError == nil)
+    }
+
+    @Test func secondSaveWhileSavingIsIgnored() async throws {
+        let repos = AppRepositories.fake(behavior: FakeBehavior(latencyMilliseconds: 150...150, failure: nil))
+        let model = validEditor(repos)
+        async let first = model.save()
+        try await Task.sleep(for: .milliseconds(30))
+        let second = await model.save()
+        #expect(second == nil)
+        #expect(try #require(await first) != nil)
+        let mine = try await repos.offers.offers(ofVendor: ID.fermeRive).filter { $0.productId == ID.potatoes }
+        #expect(mine.count == 2) // le lot d'origine + un seul nouveau
+    }
+
     // MARK: Chargement
 
     @Test func createModeLoadsProductsAndDefaults() async {

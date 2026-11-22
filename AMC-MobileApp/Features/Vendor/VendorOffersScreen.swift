@@ -342,7 +342,7 @@ private struct VendorOfferCard: View {
                         .accessibilityHidden(true)
                 }
                 VStack(alignment: .leading, spacing: 4) {
-                    Text("\(summary.title) · \(summary.offer.shareUnit)")
+                    Text("\(summary.title) · \(summary.offer.displayShareUnit)")
                         .font(.headline)
                         .foregroundStyle(.texte)
                     deadlineLabel
@@ -406,7 +406,7 @@ private struct VendorOfferCard: View {
 
     private var deadlineLabel: some View {
         Label {
-            Text(summary.isClosingSoon ? String(localized: "ferme bientôt · \(deadlineText)") : "ferme \(deadlineText)")
+            Text(summary.isClosingSoon ? String(localized: "ferme bientôt · \(deadlineText)") : String(localized: "ferme \(deadlineText)"))
         } icon: {
             Image(systemName: summary.isClosingSoon ? "hourglass" : "calendar.badge.clock")
                 .symbolRenderingMode(.hierarchical)

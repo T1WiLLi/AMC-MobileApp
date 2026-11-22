@@ -48,6 +48,13 @@ struct TierProgressBarTests {
         #expect(bar.fill(forSegment: 2) == 0)
     }
 
+    @Test func lastSegmentIsFullOnceBestPriceIsReached() {
+        let reached = TierProgressBar(tiers: tiers, committedShares: 26, totalShares: 40)
+        #expect(reached.fill(forSegment: 2) == 1)
+        let before = TierProgressBar(tiers: tiers, committedShares: 25, totalShares: 40)
+        #expect(before.fill(forSegment: 2) == 0)
+    }
+
     @Test func nudgeMatchesMockup() {
         let bar = TierProgressBar(tiers: tiers, committedShares: 25, unitSingular: "famille", unitPlural: "familles")
         #expect(bar.nudge == "Encore 1 famille pour débloquer −19 %")

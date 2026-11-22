@@ -58,6 +58,10 @@ struct RatingRulesTests {
                 == .formerMember(groupOrderId: "o"))
         #expect(GroupRatingRules.eligibility(householdId: "h", isMember: false, existing: nil, ordersWithMyShare: []) == .notEligible)
         #expect(GroupRatingRules.eligibility(householdId: "", isMember: true, existing: nil, ordersWithMyShare: []) == .notEligible)
+        // Le créateur ne note pas son propre groupe, même membre ou avec un ancien avis.
+        #expect(GroupRatingRules.eligibility(householdId: "h", isMember: true, isOwner: true, existing: nil, ordersWithMyShare: []) == .owner)
+        #expect(GroupRatingRules.eligibility(householdId: "h", isMember: true, isOwner: true, existing: rating(4), ordersWithMyShare: []) == .owner)
+        #expect(!GroupRatingEligibility.owner.canRate)
     }
 
     @Test func finishedOrdersKeepOnlyDeliveredOrClosedOrdersOfTheGroup() {

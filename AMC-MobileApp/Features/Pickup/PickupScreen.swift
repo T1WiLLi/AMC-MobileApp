@@ -6,7 +6,7 @@ import UIKit
 /// F5 Cueillette (maquette `docs/maquettes/F5-cueillette.png`) : QR de la commande, point de cueillette, créneau et articles.
 /// Branché sur `PickupViewModel` ; la luminosité passe au maximum tant que l'écran est affiché pour faciliter le scan.
 /// Chaque en-tête, ligne, statut et chiffre clé porte son SF Symbol (rendu hiérarchique, teinte de la section) ;
-/// l'en-tête et les états vides et de succès ont leur petite scène de symboles (`PickupSymbolScene`).
+/// les états vides et de succès ont leur petite scène de symboles (`PickupSymbolScene`).
 struct PickupScreen: View {
     @Environment(\.appContext) private var context
     @State private var viewModel: PickupViewModel?
@@ -45,7 +45,6 @@ struct PickupScreen: View {
                 }
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
-            .guidedTourTip(.pickup)
             .grenierBackground()
             .navigationTitle("Cueillette")
             .profileToolbar()
@@ -123,6 +122,7 @@ private struct PickupContentView: View {
         ScrollView {
             VStack(alignment: .leading, spacing: 16) {
                 PickupHeroCard(content: content)
+                    .guidedTourAnchor(.pickup)
                 if content.isAllPickedUp {
                     PickupAllDoneCard(hostFirstName: content.hostFirstName)
                 }
@@ -167,47 +167,45 @@ private struct PickupContentView: View {
     }
 }
 
-/// En-tête illustré façon Live Activity : scène de symboles, « Cueillette dans 25 min », hôte et créneau.
+/// En-tête façon Live Activity : « Cueillette dans 3 jours » sur toute la largeur, puis le lieu et le créneau
+/// en lignes pleine largeur (le grand QR est juste en dessous, inutile de le répéter ici).
 private struct PickupHeroCard: View {
     let content: PickupViewModel.Content
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
-    @ScaledMetric(relativeTo: .headline) private var diameter: CGFloat = 78
+    @ScaledMetric(relativeTo: .title3) private var badgeSize: CGFloat = 40
 
     var body: some View {
         TimelineView(.periodic(from: .now, by: 60)) { timeline in
             let minutes = content.minutesUntilPickup(from: timeline.date)
             let done = content.isAllPickedUp
-            let layout = dynamicTypeSize.isAccessibilitySize
-                ? AnyLayout(VStackLayout(alignment: .leading, spacing: 16))
-                : AnyLayout(HStackLayout(spacing: 16))
-            layout {
-                PickupSymbolScene(
-                    main: done ? "checkmark.seal.fill" : "qrcode.viewfinder",
-                    satellites: ["basket.fill", "house.fill", "clock.fill"],
-                    tint: done ? .economie : .grenier,
-                    diameter: min(diameter, 120)
-                )
-                VStack(alignment: .leading, spacing: 8) {
-                    Label {
-                        Text(done ? String(localized: "Cueillette terminée") : PickupFormat.countdown(minutes: minutes))
-                            .font(.title3.bold())
-                            .foregroundStyle(.texte)
-                            .contentTransition(.numericText())
-                    } icon: {
+            let tint: Color = done ? .economie : .grenier
+            VStack(alignment: .leading, spacing: 12) {
+                HStack(spacing: 12) {
+                    // En très grand texte, la pastille et les icônes de ligne prendraient la moitié de la largeur.
+                    if !dynamicTypeSize.isAccessibilitySize {
                         Image(systemName: PickupFormat.countdownSymbol(minutes: minutes, done: done))
+                            .font(.title3)
                             .symbolRenderingMode(.hierarchical)
-                            .foregroundStyle(done ? Color.economie : Color.grenier)
+                            .foregroundStyle(tint)
                             .contentTransition(reduceMotion ? .identity : .symbolEffect(.replace))
                             .symbolEffect(.pulse, options: .repeating,
                                           isActive: !reduceMotion && !done && (minutes ?? .max) < 60)
+                            .frame(width: min(badgeSize, 64), height: min(badgeSize, 64))
+                            .background(tint.opacity(0.14), in: .circle)
+                            .accessibilityHidden(true)
                     }
-                    PickupInfoLabel(text: hostLine, systemImage: "house.fill")
-                    if let slot = content.slot {
-                        PickupInfoLabel(text: PickupFormat.slot(slot), systemImage: "calendar.badge.clock")
-                    }
+                    Text(done ? String(localized: "Cueillette terminée") : PickupFormat.countdown(minutes: minutes))
+                        .font(.title2.bold())
+                        .foregroundStyle(.texte)
+                        .contentTransition(.numericText())
+                        .frame(maxWidth: .infinity, alignment: .leading)
                 }
-                Spacer(minLength: 0)
+                Divider().overlay(Color.piste)
+                heroRow(hostLine, systemImage: "house.fill")
+                if let slot = content.slot {
+                    heroRow(PickupFormat.slot(slot), systemImage: "calendar.badge.clock")
+                }
             }
             .frame(maxWidth: .infinity, alignment: .leading)
             .padding(16)
@@ -215,7 +213,7 @@ private struct PickupHeroCard: View {
                 ZStack {
                     RoundedRectangle(cornerRadius: 24).fill(Color.surface)
                     RoundedRectangle(cornerRadius: 24).fill(
-                        LinearGradient(colors: [(done ? Color.economie : Color.grenier).opacity(0.14), .clear],
+                        LinearGradient(colors: [tint.opacity(0.14), .clear],
                                        startPoint: .topLeading, endPoint: .bottomTrailing)
                     )
                 }
@@ -224,12 +222,41 @@ private struct PickupHeroCard: View {
         }
     }
 
+    /// Ligne pleine largeur, icône alignée sur la première ligne du texte.
+    private func heroRow(_ text: String, systemImage: String) -> some View {
+        Label {
+            Text(text)
+                .foregroundStyle(.texte)
+                .fixedSize(horizontal: false, vertical: true)
+        } icon: {
+            Image(systemName: systemImage)
+                .symbolRenderingMode(.hierarchical)
+                .foregroundStyle(Color.grenier)
+        }
+        .labelStyle(HeroRowLabelStyle(showsIcon: !dynamicTypeSize.isAccessibilitySize))
+        .font(.body)
+        .frame(maxWidth: .infinity, alignment: .leading)
+    }
+
     private var hostLine: String {
         guard let point = content.pickupPoint else { return String(localized: "Lieu à confirmer par ton groupe") }
         if let host = content.hostFirstName {
             return String(localized: "Chez \(host) · \(point.address)")
         }
         return point.address
+    }
+}
+
+/// Icône + texte, ou texte seul en très grand texte (la ligne garde toute la largeur).
+private struct HeroRowLabelStyle: LabelStyle {
+    let showsIcon: Bool
+
+    func makeBody(configuration: Configuration) -> some View {
+        if showsIcon {
+            Label(configuration)
+        } else {
+            configuration.title
+        }
     }
 }
 
@@ -313,14 +340,16 @@ private struct PickupCodeCard: View {
     }
 
     private var articles: String {
-        content.items.count == 1 ? String(localized: "1 article") : "\(content.items.count) articles"
+        content.items.count == 1 ? String(localized: "1 article") : String(localized: "\(content.items.count) articles")
     }
 }
 
-/// Liste des articles à récupérer, chacun avec son statut (« Prêt à récupérer » / « Récupéré »).
+/// Liste des articles à récupérer, comme une liste de cases à cocher native : tuile du produit à gauche,
+/// nom, format et prix au centre, statut (« Prêt à récupérer » / « Récupéré par … ») et coche à droite.
 private struct PickupItemsCard: View {
     let items: [PickupViewModel.Item]
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     @ScaledMetric(relativeTo: .body) private var iconSize: CGFloat = 44
 
     private var pickedUpCount: Int { items.filter(\.isPickedUp).count }
@@ -334,15 +363,22 @@ private struct PickupItemsCard: View {
             .padding(.bottom, 6)
             ForEach(Array(items.enumerated()), id: \.element.id) { index, item in
                 if index > 0 { Divider().overlay(Color.piste) }
-                ViewThatFits(in: .horizontal) {
-                    HStack(spacing: 12) { icon(item); name(item); Spacer(minLength: 8); trailing(item, alignment: .trailing) }
-                    VStack(alignment: .leading, spacing: 8) { icon(item); name(item); trailing(item, alignment: .leading) }
-                }
-                .padding(.vertical, 10)
-                .accessibilityElement(children: .combine)
+                row(item)
             }
         }
         .grenierCard(padding: 16)
+    }
+
+    private func row(_ item: PickupViewModel.Item) -> some View {
+        HStack(alignment: .center, spacing: 12) {
+            // En très grand texte, la tuile mangerait la moitié de la largeur : le nom passe avant.
+            if !dynamicTypeSize.isAccessibilitySize { icon(item) }
+            details(item)
+                .frame(maxWidth: .infinity, alignment: .leading)
+            check(item)
+        }
+        .padding(.vertical, 10)
+        .accessibilityElement(children: .combine)
     }
 
     private var header: some View {
@@ -369,30 +405,26 @@ private struct PickupItemsCard: View {
             .symbolRenderingMode(.hierarchical)
             .foregroundStyle(item.isPickedUp ? Color.economie : Color.grenier)
             .frame(width: iconSize, height: iconSize)
-            .background((item.isPickedUp ? Color.economie : Color.grenier).opacity(0.12), in: .rect(cornerRadius: 14))
+            .background((item.isPickedUp ? Color.economie : Color.grenier).opacity(0.12), in: .rect(cornerRadius: 12))
             .accessibilityHidden(true)
     }
 
-    private func name(_ item: PickupViewModel.Item) -> some View {
-        VStack(alignment: .leading, spacing: 4) {
-            Text(item.product.name).font(.body).foregroundStyle(.texte)
-            PickupInfoLabel(text: Money.format(item.totalCents), systemImage: "dollarsign.circle.fill")
+    /// Nom, « 1 × sac de 4 kg · 14,79 $ », puis le statut en couleur.
+    private func details(_ item: PickupViewModel.Item) -> some View {
+        let format = String(localized: "\(item.quantity) × \(item.offer.displayShareUnit)")
+        return VStack(alignment: .leading, spacing: 2) {
+            Text(item.product.name)
+                .font(.body.weight(.semibold))
+                .foregroundStyle(.texte)
+                .strikethrough(item.isPickedUp, color: .texteSecondaire)
+            Text(verbatim: "\(format) · \(Money.format(item.totalCents))")
+                .font(.subheadline)
+                .foregroundStyle(.texteSecondaire)
                 .monospacedDigit()
-        }
-    }
-
-    private func trailing(_ item: PickupViewModel.Item, alignment: HorizontalAlignment) -> some View {
-        VStack(alignment: alignment, spacing: 6) {
-            Label {
-                Text("\(item.quantity) × \(item.offer.shareUnit)")
-            } icon: {
-                Image(systemName: "square.stack.3d.up.fill").foregroundStyle(Color.grenier)
-            }
-            .font(.headline)
-            .foregroundStyle(.texte)
-            .monospacedDigit()
-            .symbolRenderingMode(.hierarchical)
-            statusBadge(item)
+            Text(statusText(item))
+                .font(.caption.weight(.semibold))
+                .foregroundStyle(item.isPickedUp ? Color.economie : Color.grenier)
+                .padding(.top, 2)
         }
     }
 
@@ -403,21 +435,15 @@ private struct PickupItemsCard: View {
         return String(localized: "Récupéré")
     }
 
-    private func statusBadge(_ item: PickupViewModel.Item) -> some View {
-        let tint: Color = item.isPickedUp ? .economie : .grenier
-        return Label {
-            Text(statusText(item))
-        } icon: {
-            Image(systemName: item.isPickedUp ? "checkmark.circle.fill" : "shippingbox.and.arrow.backward.fill")
-                .contentTransition(reduceMotion ? .identity : .symbolEffect(.replace))
-                .symbolEffect(.bounce, value: reduceMotion ? false : item.isPickedUp)
-        }
-        .font(.caption.weight(.semibold))
-        .symbolRenderingMode(.hierarchical)
-        .foregroundStyle(tint)
-        .padding(.horizontal, 8)
-        .padding(.vertical, 4)
-        .background(tint.opacity(0.12), in: .capsule)
+    /// Coche de la liste : cercle vide tant que la part attend, coche verte une fois récupérée.
+    private func check(_ item: PickupViewModel.Item) -> some View {
+        Image(systemName: item.isPickedUp ? "checkmark.circle.fill" : "circle")
+            .font(.title2)
+            .symbolRenderingMode(.hierarchical)
+            .foregroundStyle(item.isPickedUp ? Color.economie : Color.texteSecondaire.opacity(0.6))
+            .contentTransition(reduceMotion ? .identity : .symbolEffect(.replace))
+            .symbolEffect(.bounce, value: reduceMotion ? false : item.isPickedUp)
+            .accessibilityHidden(true)
     }
 }
 
@@ -690,7 +716,7 @@ private enum PickupFormat {
     static func hour(_ date: Date) -> String {
         let parts = Calendar.current.dateComponents([.hour, .minute], from: date)
         let hour = parts.hour ?? 0, minute = parts.minute ?? 0
-        return minute == 0 ? "\(hour) h" : "\(hour) h \(String(format: "%02d", minute))"
+        return AppLanguage.clockText(hour: hour, minute: minute)
     }
 
     static func mapsURL(for point: PickupPoint) -> URL? {

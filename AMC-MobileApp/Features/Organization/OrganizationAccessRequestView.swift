@@ -19,10 +19,10 @@ struct OrganizationAccessRequestView: View {
         var components = URLComponents()
         components.scheme = "mailto"
         components.queryItems = [
-            URLQueryItem(name: "subject", value: "Rattacher mon organisme à LeGrenier"),
+            URLQueryItem(name: "subject", value: String(localized: "Rattacher mon organisme à LeGrenier")),
             URLQueryItem(
                 name: "body",
-                value: "Bonjour,\n\nNotre organisme souhaite soutenir les groupes de quartier sur LeGrenier.\n\nNom de l'organisme :\nType (banque alimentaire, centre communautaire, fondation…) :\nQuartiers soutenus :\nPersonne-ressource et téléphone :\n\nMerci !"
+                value: String(localized: "Bonjour,\n\nNotre organisme souhaite soutenir les groupes de quartier sur LeGrenier.\n\nNom de l'organisme :\nType (banque alimentaire, centre communautaire, fondation…) :\nQuartiers soutenus :\nPersonne-ressource et téléphone :\n\nMerci !")
             ),
         ]
         return components.url

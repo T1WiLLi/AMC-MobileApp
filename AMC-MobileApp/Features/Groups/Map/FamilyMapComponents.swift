@@ -1,6 +1,6 @@
 // FamilyMapComponents.swift
 // Morceaux de la carte des familles (T-091, refonte T-172) : épingles avec photo, repère du quartier,
-// explication de la position et carrousel des lieux (cartes opaques, synchronisées avec l'épingle choisie).
+// explication de la position et fiche opaque du lieu touché (seulement quand une épingle est choisie).
 
 import MapKit
 import SwiftUI
@@ -17,7 +17,7 @@ extension FamilyMapViewModel.Kind {
 }
 
 extension FamilyMapViewModel.Place {
-    /// Ligne d'info du carrousel : « 27 familles · Hochelaga », « Jeudi, 17 h – 18 h », « Ferme · 3 lots ouverts ».
+    /// Ligne d'info de la fiche du lieu : « 27 familles · Hochelaga », « Jeudi, 17 h – 18 h », « Ferme · 3 lots ouverts ».
     var subtitle: String {
         switch detail {
         case .group(let group, let isMember):
@@ -243,45 +243,32 @@ private extension String {
     var lowercasedFirst: String { prefix(1).lowercased() + dropFirst() }
 }
 
-// MARK: - Carrousel des lieux
+// MARK: - Fiche du lieu choisi
 
-/// Cartes des lieux visibles, du plus proche au plus loin. Faire défiler choisit le lieu (l'épingle grossit et
-/// la carte s'y déplace) ; toucher une épingle fait défiler jusqu'à sa carte (`selectedID` partagé).
-struct FamilyMapCarousel: View {
-    let places: [FamilyMapViewModel.Place]
-    @Binding var selectedID: String?
-    let reduceMotion: Bool
-    /// T-182 : hauteur maximale d'une carte aux tailles d'accessibilité ; au-delà, son texte défile.
+/// Fiche du lieu touché sur la carte, en bas de l'écran. Absente tant qu'aucune épingle n'est touchée, pour que
+/// la carte reste libre ; le bouton « fermer » (ou un second toucher de l'épingle) la retire.
+struct FamilyMapSelectedPlaceCard: View {
+    let place: FamilyMapViewModel.Place
+    /// T-182 : hauteur maximale de la fiche aux tailles d'accessibilité ; au-delà, son texte défile.
     var maxTileHeight: CGFloat? = nil
     let onOpen: (FamilyMapDestination) -> Void
+    let onClose: () -> Void
 
     var body: some View {
-        ScrollView(.horizontal) {
-            LazyHStack(spacing: 10) {
-                ForEach(places) { place in
-                    FamilyMapPlaceTile(place: place, isSelected: place.id == selectedID, maxHeight: maxTileHeight,
-                                       onOpen: onOpen)
-                        .containerRelativeFrame(.horizontal)
-                        .scrollTransition(.interactive) { content, phase in
-                            content
-                                .scaleEffect(phase.isIdentity || reduceMotion ? 1 : 0.94)
-                                .opacity(phase.isIdentity ? 1 : 0.8)
-                        }
-                        .id(place.id)
-                }
+        FamilyMapPlaceTile(place: place, isSelected: true, maxHeight: maxTileHeight, onOpen: onOpen)
+            .overlay(alignment: .topTrailing) {
+                Button("Fermer la fiche du lieu", systemImage: "xmark", action: onClose)
+                    .labelStyle(.iconOnly)
+                    .font(.footnote.weight(.bold))
+                    .foregroundStyle(Color.texteSecondaire)
+                    .frame(width: 30, height: 30)
+                    .glassEffect(.regular.interactive(), in: .circle)
+                    .frame(width: 44, height: 44)
+                    .contentShape(.circle)
+                    .buttonStyle(.plain)
+                    .dynamicTypeSize(...DynamicTypeSize.xxxLarge)
+                    .offset(x: 12, y: -14)
             }
-            .scrollTargetLayout()
-        }
-        .scrollTargetBehavior(.viewAligned)
-        .scrollPosition(id: $selectedID, anchor: .center)
-        // T-182 : un ScrollView horizontal prend toute la hauteur offerte ; sans ce plafond, la couche du bas montait
-        // jusque sous la barre du haut et la pastille « Autour de … » cachait le milieu de la carte.
-        .fixedSize(horizontal: false, vertical: true)
-        .scrollIndicators(.hidden)
-        .contentMargins(.horizontal, 24, for: .scrollContent)
-        .scrollClipDisabled()
-        .accessibilityElement(children: .contain)
-        .accessibilityLabel("Lieux sur la carte")
     }
 }
 

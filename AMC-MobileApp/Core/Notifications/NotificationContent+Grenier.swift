@@ -193,9 +193,7 @@ extension GrenierNotification {
     /// Heure à la québécoise : « 17 h », « 17 h 30 ».
     static func hour(_ date: Date, calendar: Calendar) -> String {
         let parts = calendar.dateComponents([.hour, .minute], from: date)
-        let hour = parts.hour ?? 0
-        let minute = parts.minute ?? 0
-        return minute == 0 ? "\(hour) h" : String(format: "%d h %02d", hour, minute)
+        return AppLanguage.clockText(hour: parts.hour ?? 0, minute: parts.minute ?? 0)
     }
 }
 

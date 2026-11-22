@@ -38,6 +38,7 @@ struct EmailAuthForm: View {
     @FocusState private var focus: Field?
 
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
 
     private var isBusy: Bool { session.isSigningIn }
     private var emailIsValid: Bool { EmailAuthValidation.isValidEmail(email) }
@@ -292,8 +293,10 @@ struct EmailAuthForm: View {
                 if text.isEmpty {
                     Text(placeholder)
                         .foregroundStyle(Color.texteSecondaire)
-                        .lineLimit(1)
-                        .minimumScaleFactor(0.5)
+                        // AX5 : « Mot de passe » passe sur autant de lignes qu'il faut au lieu d'être coupé en « Mot de… ».
+                        .lineLimit(dynamicTypeSize.isAccessibilitySize ? nil : 1)
+                        .fixedSize(horizontal: false, vertical: dynamicTypeSize.isAccessibilitySize)
+                        .minimumScaleFactor(dynamicTypeSize.isAccessibilitySize ? 1 : 0.5)
                         .allowsHitTesting(false)
                         .accessibilityHidden(true)
                 }

@@ -1,10 +1,14 @@
 import Foundation
 
-/// Accord en nombre en français : 0 et 1 sont au singulier, 2 et plus au pluriel.
+/// Accord en nombre : en français 0 et 1 sont au singulier, 2 et plus au pluriel ; en anglais seul 1 est singulier.
 ///
-///     FrenchPlural.count(1, "part")              // « 1 part »
-///     FrenchPlural.count(24, "famille")          // « 24 familles »
-///     FrenchPlural.word(3, "engagée")            // « engagées »
+///     FrenchPlural.count(1, "part")              // « 1 part » / "1 share"
+///     FrenchPlural.count(24, "famille")          // « 24 familles » / "24 families"
+///     FrenchPlural.word(3, "engagée")            // « engagées » / "committed"
+///
+/// T-171 : les mots courants (`knownNouns`) passent par le catalogue de chaînes, avec une clé `%lld <singulier>`
+/// et des variations de pluriel `one` / `other` dans chaque langue. Un mot absent de la liste (unité de vente saisie
+/// par un producteur, mot déjà traduit par `String(localized:)`) garde la règle simple « singulier + s ».
 nonisolated enum FrenchPlural {
     /// Vrai si `count` demande le pluriel (règle française : |n| ≥ 2).
     static func isPlural(_ count: Int) -> Bool {
@@ -12,58 +16,64 @@ nonisolated enum FrenchPlural {
     }
 
     /// Le mot accordé, sans le nombre. Pluriel par défaut : singulier + « s ».
-    /// En anglais (T-171), les mots courants du catalogue sont traduits ici : « 1 family », « 12 families ».
     static func word(_ count: Int, _ singular: String, plural: String? = nil) -> String {
-        if isEnglish, let english = englishWords[singular] {
-            return count == 1 ? english.one : english.other
+        if knownNouns.contains(singular) {
+            let counted = localizedCount(count, singular)
+            let prefix = "\(count) "
+            return counted.hasPrefix(prefix) ? String(counted.dropFirst(prefix.count)) : counted
         }
-        return isPlural(count) ? (plural ?? singular + "s") : singular
+        let plurals = AppLanguage.isEnglish ? count != 1 : isPlural(count)
+        return plurals ? (plural ?? singular + "s") : singular
     }
-
-    private static var isEnglish: Bool {
-        AppLanguage.formattingLocale.language.languageCode?.identifier == "en"
-    }
-
-    /// Mots français passés littéralement à `word` / `count` → (singulier, pluriel) anglais.
-    private static let englishWords: [String: (one: String, other: String)] = [
-        "famille": ("family", "families"),
-        "part": ("share", "shares"),
-        "panier": ("basket", "baskets"),
-        "panier suspendu": ("suspended basket", "suspended baskets"),
-        "panier entier": ("full basket", "full baskets"),
-        "famille intéressée": ("interested family", "interested families"),
-        "famille aidée": ("family helped", "families helped"),
-        "famille couverte": ("family covered", "families covered"),
-        "membre": ("member", "members"),
-        "lot ouvert": ("open bundle", "open bundles"),
-        "autre lot": ("other bundle", "other bundles"),
-        "commande": ("order", "orders"),
-        "manquante": ("missing", "missing"),
-        "engagée": ("committed", "committed"),
-        "produit": ("product", "products"),
-        "ménage": ("household", "households"),
-        "ménage aidé": ("subsidised household", "subsidised households"),
-        "photo": ("photo", "photos"),
-        "mois": ("month", "months"),
-        "personne": ("person", "people"),
-        "heure": ("hour", "hours"),
-        "jour": ("day", "days"),
-        "groupe": ("group", "groups"),
-        "groupe de quartier": ("neighbourhood group", "neighbourhood groups"),
-        "portail": ("portal", "portals"),
-        "ferme": ("closes", "close"),
-        "lieu": ("place", "places"),
-        "avis": ("review", "reviews"),
-        "unité": ("unit", "units"),
-        "zone": ("zone", "zones"),
-        "douzaine": ("dozen", "dozens"),
-        "voulue": ("wanted", "wanted"),
-        "Lot ouvert": ("Open bundle", "Open bundles"),
-        "panier suspendu offert": ("suspended basket offered", "suspended baskets offered"),
-    ]
 
     /// Le nombre suivi du mot accordé : « 1 part », « 40 parts ».
     static func count(_ count: Int, _ singular: String, plural: String? = nil) -> String {
-        "\(count) \(word(count, singular, plural: plural))"
+        if knownNouns.contains(singular) { return localizedCount(count, singular) }
+        return "\(count) \(word(count, singular, plural: plural))"
     }
+
+    /// Résout la clé `%lld <singulier>` du catalogue (variations de pluriel de la langue en cours).
+    private static func localizedCount(_ count: Int, _ singular: String) -> String {
+        var interpolation = String.LocalizationValue.StringInterpolation(literalCapacity: singular.count + 1, interpolationCount: 1)
+        interpolation.appendInterpolation(count)
+        interpolation.appendLiteral(" " + singular)
+        return AppLanguage.localized(String.LocalizationValue(stringInterpolation: interpolation))
+    }
+
+    /// Mots du catalogue (clé `%lld <mot>`, ajoutée à la main dans `Localizable.xcstrings`).
+    private static let knownNouns: Set<String> = [
+        "famille",
+        "part",
+        "panier",
+        "panier suspendu",
+        "panier entier",
+        "famille intéressée",
+        "famille aidée",
+        "famille couverte",
+        "membre",
+        "lot ouvert",
+        "autre lot",
+        "commande",
+        "manquante",
+        "engagée",
+        "produit",
+        "ménage",
+        "ménage aidé",
+        "photo",
+        "mois",
+        "personne",
+        "heure",
+        "jour",
+        "groupe",
+        "groupe de quartier",
+        "portail",
+        "ferme",
+        "lieu",
+        "avis",
+        "unité",
+        "zone",
+        "douzaine",
+        "voulue",
+        "panier suspendu offert",
+    ]
 }

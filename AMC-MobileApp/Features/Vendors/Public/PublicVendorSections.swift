@@ -215,7 +215,7 @@ nonisolated enum SaleText {
 
     /// « Carottes nantaises · il y a 9 jours ».
     static func short(_ sale: VendorSale) -> String {
-        "\(sale.productName) · \(relative(sale.date))"
+        String(localized: "\(sale.productName) · \(relative(sale.date))")
     }
 
     /// « Carottes nantaises : 34 parts (sac de 5 kg) pour 21 familles, il y a 9 jours. »

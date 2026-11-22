@@ -92,9 +92,11 @@ nonisolated enum GroupRatingRules {
 
     /// Le ménage peut-il noter ? Avis existant → modifier ; membre → noter ; sinon la première commande terminée
     /// où il avait une part (`ordersWithMyShare`) prouve qu'il en a fait partie.
-    static func eligibility(householdId: String, isMember: Bool, existing: GroupRating?,
+    static func eligibility(householdId: String, isMember: Bool, isOwner: Bool = false, existing: GroupRating?,
                             ordersWithMyShare: [String]) -> GroupRatingEligibility {
         guard !householdId.isEmpty else { return .notEligible }
+        // Le créateur ne note pas son propre groupe, même s'il en est membre (firestore.rules le refuse aussi).
+        if isOwner { return .owner }
         if existing != nil { return .alreadyRated }
         if isMember { return .member }
         if let orderId = ordersWithMyShare.first { return .formerMember(groupOrderId: orderId) }

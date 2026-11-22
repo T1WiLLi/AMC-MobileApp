@@ -36,20 +36,20 @@ nonisolated enum SolidarityLeaderboard {
 
         var title: String {
             switch self {
-            case .baskets: "Paniers offerts"
-            case .familiesHelped: "Familles aidées"
-            case .savings: "Économies"
-            case .participation: "Participation"
+            case .baskets: String(localized: "Paniers offerts")
+            case .familiesHelped: String(localized: "Familles aidées")
+            case .savings: String(localized: "Économies")
+            case .participation: String(localized: "Participation")
             }
         }
 
         /// Titre bienveillant donné au meilleur arrondissement de la mesure.
         var championTitle: String {
             switch self {
-            case .baskets: "Le plus généreux"
-            case .familiesHelped: "Le plus entraidant"
-            case .savings: "Le plus économe"
-            case .participation: "Le plus mobilisé"
+            case .baskets: String(localized: "Le plus généreux")
+            case .familiesHelped: String(localized: "Le plus entraidant")
+            case .savings: String(localized: "Le plus économe")
+            case .participation: String(localized: "Le plus mobilisé")
             }
         }
 
@@ -151,15 +151,15 @@ nonisolated enum SolidarityLeaderboard {
 
     /// Phrase d'encouragement : toujours positive.
     static func cheer(for entry: Entry) -> String {
-        if entry.rank == 1 { return "En tête de Montréal : bravo !" }
-        if let first = entry.championOf.first { return "\(first.championTitle) de la ville" }
+        if entry.rank == 1 { return String(localized: "En tête de Montréal : bravo !") }
+        if let first = entry.championOf.first { return String(localized: "\(first.championTitle) de la ville") }
         if let points = entry.pointsToNextRank {
             let formatted = points.formatted(.number.precision(.fractionLength(0...1)).locale(AppLanguage.formattingLocale))
             return entry.rank <= 3
-                ? "Plus que \(formatted) pts pour monter sur la marche au-dessus"
-                : "Plus que \(formatted) pts pour gagner une place"
+                ? String(localized: "Plus que \(formatted) pts pour monter sur la marche au-dessus")
+                : String(localized: "Plus que \(formatted) pts pour gagner une place")
         }
-        return "Belle force : \(entry.strength.title.lowercased())"
+        return String(localized: "Belle force : \(entry.strength.title.lowercased())")
     }
 
     /// Valeur brute d'une mesure (total de l'arrondissement ; ménages actifs pour la participation).

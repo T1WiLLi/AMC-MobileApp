@@ -175,7 +175,7 @@ struct HeroValue: View {
                 Text(presentation.state.stage == .recuperee ? String(localized: "Merci") : presentation.pickupTimeText)
                     .font(.title2.bold())
                     .contentTransition(.numericText())
-                Text(presentation.state.stage == .recuperee ? String(localized: "récupérée") : "cueillette")
+                Text(presentation.state.stage == .recuperee ? String(localized: "récupérée") : String(localized: "cueillette"))
                     .font(.caption.weight(.semibold))
                     .foregroundStyle(onDark ? Color.white.opacity(0.7) : GrenierPalette.texteSecondaire)
             }

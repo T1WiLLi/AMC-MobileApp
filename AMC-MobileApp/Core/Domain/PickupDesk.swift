@@ -175,6 +175,6 @@ nonisolated enum PickupDesk {
 
     /// « 1 part », « 3 parts ».
     static func sharesLabel(_ count: Int) -> String {
-        count > 1 ? "\(count) parts" : "\(count) part"
+        count > 1 ? String(localized: "\(count) parts") : String(localized: "\(count) part")
     }
 }

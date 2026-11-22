@@ -197,11 +197,11 @@ final class VendorOnboardingViewModel {
     }
 
     var categoriesSummary: String {
-        orderedCategories.map(\.title).formatted(.list(type: .and).locale(PostSignupOnboardingViewModel.frenchLocale))
+        orderedCategories.map(\.title).formatted(.list(type: .and).locale(AppLanguage.formattingLocale))
     }
 
     var zonesSummary: String {
-        neighborhoods.map(\.name).formatted(.list(type: .and).locale(PostSignupOnboardingViewModel.frenchLocale))
+        neighborhoods.map(\.name).formatted(.list(type: .and).locale(AppLanguage.formattingLocale))
     }
 
     var photosSummary: String {

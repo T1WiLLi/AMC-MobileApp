@@ -11,9 +11,9 @@ struct OrganizationFundScreen: View {
         var id: String { rawValue }
         var title: String {
             switch self {
-            case .all: "Tous"
-            case .inNeed: "En besoin"
-            case .sponsored: "Parrainés"
+            case .all: String(localized: "Tous")
+            case .inNeed: String(localized: "En besoin")
+            case .sponsored: String(localized: "Parrainés")
             }
         }
     }
@@ -108,13 +108,13 @@ struct NeedSummaryCard: View {
                 .contentTransition(.symbolEffect(.replace))
                 .accessibilityHidden(true)
             VStack(alignment: .leading, spacing: 4) {
-                Text(missing > 0 ? "\(FrenchPlural.count(missing, "panier")) manquent" : "Tout est couvert")
+                Text(missing > 0 ? String(localized: "\(FrenchPlural.count(missing, "panier")) manquent") : String(localized: "Tout est couvert"))
                     .font(.title3.bold())
                     .foregroundStyle(Color.texte)
                     .contentTransition(.numericText(value: Double(missing)))
                 Text(missing > 0
-                     ? "\(FrenchPlural.count(groups.count, "groupe")) n'ont pas assez dans leur fonds pour leurs familles aidées."
-                     : "Chaque famille aidée a son panier réservé. Merci !")
+                     ? String(localized: "\(FrenchPlural.count(groups.count, "groupe")) n'ont pas assez dans leur fonds pour leurs familles aidées.")
+                     : String(localized: "Chaque famille aidée a son panier réservé. Merci !"))
                     .font(.subheadline)
                     .foregroundStyle(Color.texteSecondaire)
                     .fixedSize(horizontal: false, vertical: true)

@@ -47,13 +47,13 @@ enum Money {
         case "l": String(localized: "le litre")
         case "ml": String(localized: "le millilitre")
         case "unité", "u": String(localized: "l'unité")
-        default: "par \(unit)"
+        default: String(localized: "par \(unit)")
         }
     }
 
     /// « 2 dollars 60 le kilo » ; sans unité, le montant seul.
     static func spoken(_ cents: Cents, per unit: String?) -> String {
         guard let unit else { return spoken(cents) }
-        return "\(spoken(cents)) \(spokenPerUnit(unit))"
+        return String(localized: "\(spoken(cents)) \(spokenPerUnit(unit))")
     }
 }

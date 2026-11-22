@@ -76,7 +76,7 @@ struct PickupPointCard: View {
 
     /// « Point de cueillette · 450 m à pied »
     var placeSubtitle: String {
-        var parts = ["Point de cueillette"]
+        var parts = [String(localized: "Point de cueillette")]
         if let distanceMeters { parts.append(String(localized: "\(NeighborhoodMapLayout.distanceText(distanceMeters)) à pied")) }
         return parts.joined(separator: " · ")
     }
@@ -116,6 +116,9 @@ enum PickupPointFormatting {
         let parts = calendar.dateComponents([.hour, .minute], from: date)
         let hour = parts.hour ?? 0
         let minute = parts.minute ?? 0
+        if locale.language.languageCode?.identifier == "en" {
+            return date.formatted(Date.FormatStyle(date: .omitted, time: .shortened, locale: locale, calendar: calendar, timeZone: calendar.timeZone))
+        }
         return minute == 0 ? "\(hour) h" : "\(hour) h \(String(format: "%02d", minute))"
     }
 

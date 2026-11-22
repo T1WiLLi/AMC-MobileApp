@@ -1380,6 +1380,13 @@ describe('avis des familles sur un groupe (T-174)', () => {
     await seedMember()
     await assertSucceeds(rateBatch(amina(), rating(), 4, 1))
   })
+  test('le créateur du groupe ne note pas son propre groupe', async () => {
+    await seedMember()
+    await env.withSecurityRulesDisabled(async (context) => {
+      await updateDoc(doc(context.firestore(), groupPath), { createdBy: 'amina' })
+    })
+    await assertFails(rateBatch(amina(), rating(), 4, 1))
+  })
   test('sans commentaire, c’est permis', async () => {
     await seedMember()
     const { comment: _comment, ...withoutComment } = rating()

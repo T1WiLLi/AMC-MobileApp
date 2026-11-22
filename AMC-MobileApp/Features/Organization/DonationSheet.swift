@@ -10,8 +10,8 @@ struct DonationSheet: View {
         var id: String { rawValue }
         var title: String {
             switch self {
-            case .baskets: "Paniers suspendus"
-            case .fund: "Don au fonds"
+            case .baskets: String(localized: "Paniers suspendus")
+            case .fund: String(localized: "Don au fonds")
             }
         }
         var systemImage: String {
@@ -58,11 +58,11 @@ struct DonationSheet: View {
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
             .grenierBackground()
-            .navigationTitle(isDone ? "Merci !" : "Financer")
+            .navigationTitle(isDone ? String(localized: "Merci !") : String(localized: "Financer"))
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button(isDone ? "Terminé" : "Annuler", systemImage: isDone ? "checkmark" : "xmark") { dismiss() }
+                    Button(isDone ? String(localized: "Terminé") : String(localized: "Annuler"), systemImage: isDone ? "checkmark" : "xmark") { dismiss() }
                 }
             }
         }
@@ -213,15 +213,15 @@ struct DonationSheet: View {
                     .foregroundStyle(Color.texte)
                     .symbolRenderingMode(.hierarchical)
                 previewRow("basket.fill", tint: .grenier,
-                           text: "\(FrenchPlural.count(plan.basketCount, "panier entier", plural: "paniers entiers")) dans le fonds",
+                           text: String(localized: "\(FrenchPlural.count(plan.basketCount, "panier entier", plural: "paniers entiers")) dans le fonds"),
                            value: plan.basketCount)
                 previewRow("figure.2.and.child.holdinghands", tint: .solidarite,
                            text: plan.householdsReached > 0
-                               ? "\(FrenchPlural.count(plan.householdsReached, "famille couverte", plural: "familles couvertes")) cette fois-ci"
-                               : "En réserve pour les prochaines familles aidées",
+                               ? String(localized: "\(FrenchPlural.count(plan.householdsReached, "famille couverte", plural: "familles couvertes")) cette fois-ci")
+                               : String(localized: "En réserve pour les prochaines familles aidées"),
                            value: plan.householdsReached)
                 previewRow("cart.fill", tint: .economie,
-                           text: "≈ \(Money.formatRounded(OrganizationLedger.groceryValue(ofGroupSpend: plan.amountCents))) d'épicerie au prix du magasin",
+                           text: String(localized: "≈ \(Money.formatRounded(OrganizationLedger.groceryValue(ofGroupSpend: plan.amountCents))) d'épicerie au prix du magasin"),
                            value: plan.amountCents)
                 Text("Anonyme : le groupe voit le total du fonds, jamais qui est aidé.")
                     .font(.caption)
@@ -276,7 +276,7 @@ struct DonationSheet: View {
                 } else {
                     Image(systemName: "heart.fill")
                 }
-                Text(plan.map { "Financer \(Money.formatRounded($0.amountCents))" } ?? "Financer")
+                Text(plan.map { String(localized: "Financer \(Money.formatRounded($0.amountCents))") } ?? String(localized: "Financer"))
                     .contentTransition(.numericText())
             }
             .font(.headline)
@@ -310,15 +310,15 @@ struct DonationThanksView: View {
                 )
                 VStack(spacing: 8) {
                     Text(donation.kind == .suspendedBaskets
-                         ? "\(FrenchPlural.count(donation.basketCount, "panier suspendu", plural: "paniers suspendus")) pour \(donation.groupName)"
-                         : "\(Money.formatRounded(donation.amountCents)) dans le fonds de \(donation.groupName)")
+                         ? String(localized: "\(FrenchPlural.count(donation.basketCount, "panier suspendu", plural: "paniers suspendus")) pour \(donation.groupName)")
+                         : String(localized: "\(Money.formatRounded(donation.amountCents)) dans le fonds de \(donation.groupName)"))
                         .font(.title2.bold())
                         .multilineTextAlignment(.center)
                         .foregroundStyle(Color.texte)
                         .fixedSize(horizontal: false, vertical: true)
                     Text(donation.householdsReached > 0
-                         ? "\(FrenchPlural.count(donation.householdsReached, "famille")) recevront leur panier à la prochaine commande, sans que personne sache qui."
-                         : "Le fonds est prêt pour les prochaines familles qui en auront besoin.")
+                         ? String(localized: "\(FrenchPlural.count(donation.householdsReached, "famille")) recevront leur panier à la prochaine commande, sans que personne sache qui.")
+                         : String(localized: "Le fonds est prêt pour les prochaines familles qui en auront besoin."))
                         .font(.body)
                         .multilineTextAlignment(.center)
                         .foregroundStyle(Color.texteSecondaire)

@@ -8,6 +8,8 @@ struct FamilyTabView: View {
     @State private var selection: TabID = .home
     /// Lien d'invitation reçu (B-058) : bascule sur l'onglet Groupes, qui ouvre la feuille « Rejoindre ».
     @Environment(InviteLinkRouter.self) private var inviteLinks: InviteLinkRouter?
+    /// Visite guidée de Noisette (FB-19) : chaque étape ouvre son onglet, la bulle passe au-dessus des onglets.
+    @State private var tour = GuidedTour.shared
 
     var body: some View {
         TabView(selection: $selection) {
@@ -35,6 +37,23 @@ struct FamilyTabView: View {
         .grenierScrollEdge()
         .onChange(of: inviteLinks?.pendingCode, initial: true) { _, code in
             if code != nil { selection = .groups }
+        }
+        .overlay { GuidedTourOverlay() }
+        .onChange(of: tour.currentStep, initial: true) { _, step in
+            if let step { selection = Self.tab(for: step.screen) }
+        }
+        // « Revoir le tutoriel » : la carte d'accueil de Noisette se présente sur l'Accueil.
+        .onChange(of: tour.showsWelcome, initial: true) { _, showsWelcome in
+            if showsWelcome { selection = .home }
+        }
+    }
+
+    static func tab(for screen: TourScreen) -> TabID {
+        switch screen {
+        case .home: .home
+        case .pickup: .pickup
+        case .groups: .groups
+        case .impact: .impact
         }
     }
 }

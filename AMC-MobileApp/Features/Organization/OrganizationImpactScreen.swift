@@ -84,7 +84,7 @@ struct TimelineRow: View {
                     .font(.caption)
                     .foregroundStyle(Color.texteSecondaire)
                     .fixedSize(horizontal: false, vertical: true)
-                Text(event.date.formatted(.dateTime.day().month(.wide).year()))
+                Text(event.date.formatted(.dateTime.day().month(.wide).year().locale(AppLanguage.formattingLocale)))
                     .font(.caption2)
                     .foregroundStyle(Color.texteSecondaire)
             }

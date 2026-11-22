@@ -102,7 +102,7 @@ struct SponsoredGroupCard: View {
             }
             VStack(alignment: .leading, spacing: 6) {
                 HStack {
-                    Label(isReached ? "Objectif du mois atteint" : "Objectif du mois",
+                    Label(isReached ? String(localized: "Objectif du mois atteint") : String(localized: "Objectif du mois"),
                           systemImage: isReached ? "trophy.fill" : "target")
                         .symbolRenderingMode(.hierarchical)
                         .foregroundStyle(isReached ? Color.economie : Color.texte)
@@ -119,7 +119,7 @@ struct SponsoredGroupCard: View {
                     .accessibilityLabel("Objectif du mois")
                     .accessibilityValue("\(basketsThisMonth) paniers sur \(goal)")
                 if let sponsorship {
-                    Text("Parrain depuis le \(sponsorship.startedAt.formatted(.dateTime.day().month(.wide).year()))")
+                    Text("Parrain depuis le \(sponsorship.startedAt.formatted(.dateTime.day().month(.wide).year().locale(AppLanguage.formattingLocale)))")
                         .font(.caption)
                         .foregroundStyle(Color.texteSecondaire)
                 }
@@ -175,8 +175,7 @@ struct SponsorSheet: View {
                             Text(profile.groupName)
                                 .font(.title2.bold())
                                 .foregroundStyle(Color.texte)
-                            Text("Parrainer, c'est promettre au groupe un nombre de paniers suspendus chaque mois. "
-                                 + "Ton organisme apparaît comme parrain, les familles aidées restent anonymes.")
+                            Text("Parrainer, c'est promettre au groupe un nombre de paniers suspendus chaque mois. Ton organisme apparaît comme parrain, les familles aidées restent anonymes.")
                                 .font(.subheadline)
                                 .foregroundStyle(Color.texteSecondaire)
                                 .fixedSize(horizontal: false, vertical: true)
@@ -234,7 +233,7 @@ struct SponsorSheet: View {
                 }
             }
             .grenierBackground()
-            .navigationTitle(existing == nil ? "Parrainer" : "Mon parrainage")
+            .navigationTitle(existing == nil ? String(localized: "Parrainer") : String(localized: "Mon parrainage"))
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
@@ -249,7 +248,7 @@ struct SponsorSheet: View {
                 } label: {
                     HStack {
                         if model.isSubmitting { ProgressView().tint(Color.onAccent) }
-                        Label(existing == nil ? "Parrainer ce groupe" : "Enregistrer l'objectif",
+                        Label(existing == nil ? String(localized: "Parrainer ce groupe") : String(localized: "Enregistrer l'objectif"),
                               systemImage: "hands.and.sparkles.fill")
                     }
                     .font(.headline)

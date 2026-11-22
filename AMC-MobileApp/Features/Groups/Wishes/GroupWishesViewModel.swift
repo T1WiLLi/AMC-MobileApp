@@ -138,7 +138,8 @@ final class GroupWishesViewModel {
         let number = quantity.formatted(.number.precision(.fractionLength(0...1)).locale(AppLanguage.formattingLocale))
         switch unit {
         case .kilogram, .liter: return "\(number) \(unit.title)"
-        case .dozen, .unit: return "\(number) \(quantity > 1 ? unit.title + "s" : unit.title)"
+        case .dozen: return "\(number) \(FrenchPlural.word(quantity > 1 ? 2 : 1, "douzaine"))"
+        case .unit: return "\(number) \(FrenchPlural.word(quantity > 1 ? 2 : 1, "unité"))"
         }
     }
 

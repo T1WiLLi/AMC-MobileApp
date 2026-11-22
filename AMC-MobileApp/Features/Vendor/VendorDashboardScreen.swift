@@ -98,7 +98,7 @@ struct VendorDashboardScreen: View {
                     .presentationDetents([.large])
             }
             .sheet(isPresented: $showsLayoutEditor) {
-                SectionLayoutEditor(title: "Modifier le tableau", sections: DashboardSection.infos, raw: $rawLayout)
+                SectionLayoutEditor(title: String(localized: "Modifier le tableau"), sections: DashboardSection.infos, raw: $rawLayout)
             }
             .sheet(isPresented: $showsNotifications) {
                 VendorNotificationsSheet(dashboard: viewModel.state.value)
@@ -354,7 +354,7 @@ private struct DashboardHeader: View {
     private var subtitle: String {
         let kind = vendor.map { VendorKindText.title(for: $0.kind) } ?? String(localized: "Vendeur")
         guard let openOffers else { return kind }
-        return "\(kind) · \(openOffers) \(FrenchPlural.word(openOffers, "lot ouvert", plural: "lots ouverts"))"
+        return String(localized: "\(kind) · \(openOffers) \(FrenchPlural.word(openOffers, "lot ouvert", plural: "lots ouverts"))")
     }
 }
 
@@ -411,10 +411,10 @@ enum DashboardSection: String, CaseIterable {
     static var infos: [SectionInfo] {
         allCases.map { section in
             switch section {
-            case .stats: SectionInfo(id: section.rawValue, title: "Chiffres clés", systemImage: "chart.bar.fill", tint: .grenier)
-            case .highlight: SectionInfo(id: section.rawValue, title: "À la une", systemImage: "star.fill", tint: .economie)
-            case .closingSoon: SectionInfo(id: section.rawValue, title: "Se termine bientôt", systemImage: "hourglass", tint: .solidarite)
-            case .offers: SectionInfo(id: section.rawValue, title: "Lots ouverts", systemImage: "shippingbox.fill", tint: .grenier)
+            case .stats: SectionInfo(id: section.rawValue, title: String(localized: "Chiffres clés"), systemImage: "chart.bar.fill", tint: .grenier)
+            case .highlight: SectionInfo(id: section.rawValue, title: String(localized: "À la une"), systemImage: "star.fill", tint: .economie)
+            case .closingSoon: SectionInfo(id: section.rawValue, title: String(localized: "Se termine bientôt"), systemImage: "hourglass", tint: .solidarite)
+            case .offers: SectionInfo(id: section.rawValue, title: String(localized: "Lots ouverts"), systemImage: "shippingbox.fill", tint: .grenier)
             }
         }
     }
@@ -587,7 +587,7 @@ private struct StatTiles: View {
     private var closingSoonText: String {
         let count = dashboard.closingSoon.count
         if count == 0 { return String(localized: "aucun ne ferme bientôt") }
-        return String(localized: "\(count) \(FrenchPlural.word(count, "ferme", plural: "ferment")) bientôt")
+        return String(localized: "\(count) ferme bientôt")
     }
 }
 
@@ -681,22 +681,22 @@ private struct HighlightBanner: View {
     private var priceText: String? {
         let tiers = highlight.offer.offer.sortedTiers
         guard tiers.indices.contains(highlight.tierIndex) else { return nil }
-        return "\(Money.format(tiers[highlight.tierIndex].priceCents)) le \(highlight.offer.offer.shareUnit)"
+        return String(localized: "\(Money.format(tiers[highlight.tierIndex].priceCents)) le \(highlight.offer.offer.displayShareUnit)")
     }
 
     private var households: Int { highlight.order.order.committedHouseholds }
 
     private var detail: String {
-        var text = "\(highlight.offer.title)"
-        if let priceText { text += " à \(priceText)" }
-        text += String(localized: " pour \(households) \(FrenchPlural.word(households, "famille", plural: "familles")).")
-        return text
+        if let priceText {
+            return String(localized: "\(highlight.offer.title) à \(priceText) pour \(households) \(FrenchPlural.word(households, "famille", plural: "familles")).")
+        }
+        return String(localized: "\(highlight.offer.title) pour \(households) \(FrenchPlural.word(households, "famille", plural: "familles")).")
     }
 
     private var message: AttributedString {
         var bold = AttributedString(String(localized: "Palier \(highlight.tierNumber) atteint"))
         bold.inlinePresentationIntent = .stronglyEmphasized
-        return bold + AttributedString(" à \(highlight.groupName) : \(detail)")
+        return bold + AttributedString(String(localized: " à \(highlight.groupName) : \(detail)"))
     }
 
     private var plainMessage: String {
@@ -753,8 +753,8 @@ private struct ClosingSoonRow: View {
 
     private var remainingText: String {
         let remaining = max(summary.totalShares - summary.committedShares, 0)
-        if remaining == 0 { return "complet" }
-        return "encore \(remaining) \(FrenchPlural.word(remaining, "part", plural: "parts"))"
+        if remaining == 0 { return String(localized: "complet") }
+        return String(localized: "encore \(remaining) \(FrenchPlural.word(remaining, "part", plural: "parts"))")
     }
 }
 

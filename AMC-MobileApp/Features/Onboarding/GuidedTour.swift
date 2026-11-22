@@ -1,20 +1,23 @@
 // GuidedTour.swift
-// Visite guidée avec Noisette (FB-19) : une carte d'accueil sur l'Accueil du portail Familles,
-// puis des bulles TipKit enchaînées par un `TipGroup(.ordered)`, rejouable depuis le Profil.
+// Visite guidée avec Noisette (FB-19) : une carte d'accueil sur l'Accueil du portail Familles, puis une bulle
+// par étape, posée au-dessus de l'élément qu'elle explique, avec « Précédent », « Suivant », « Passer » et « x sur n ».
 //
-// Rejouer sans redémarrer : `Tips.resetDatastore()` ne marche qu'avant `Tips.configure()`, donc demanderait
-// de relancer l'app. À la place, chaque bulle a un identifiant qui contient un numéro de visite (`run`)
-// gardé dans UserDefaults : « Revoir la visite guidée » incrémente ce numéro et recrée le groupe,
-// TipKit voit des bulles neuves (les anciennes, invalidées, restent dans son stockage sans gêner).
+// La visite est une petite machine à états (`GuidedTourMachine`, testée) gardée dans UserDefaults à chaque pas :
+// elle survit à un nouveau rendu des écrans et à un redémarrage en pleine visite.
+// `FamilyTabView` change d'onglet pour chaque étape et dessine la bulle (`GuidedTourOverlay`) au-dessus des onglets ;
+// les écrans ne font que signaler où est l'élément de leur étape (`.guidedTourAnchor(_:)`).
+//
+// Avant (TipKit, `TipGroup(.ordered)`), la visite s'arrêtait après la première bulle : rien ne changeait d'onglet,
+// les deux bulles de l'Accueil partageaient la même ancre, et une bulle fermée d'un toucher à côté n'était pas
+// invalidée, donc le groupe ne passait jamais à la suivante.
 
 import Foundation
 import Observation
 import SwiftUI
-import TipKit
 
 // MARK: - Étapes
 
-/// Écran où une étape de la visite est ancrée.
+/// Écran (onglet du portail Familles) où une étape de la visite est montrée.
 nonisolated enum TourScreen: String, Sendable, CaseIterable {
     case home, pickup, groups, impact
 }
@@ -77,18 +80,78 @@ nonisolated enum TourStep: String, Sendable, CaseIterable {
     }
 }
 
-/// Bulle TipKit d'une étape. L'identifiant contient le numéro de visite : une visite rejouée a des bulles neuves.
-nonisolated struct TourTip: Tip {
-    let step: TourStep
-    let run: Int
+// MARK: - Machine à états
 
-    var id: String { Self.id(step: step, run: run) }
-    var title: Text { Text(step.title) }
-    var message: Text? { Text(step.message) }
-    var image: Image? { Image(systemName: step.systemImage) }
+/// Où en est la visite. Pure et sans effet de bord : `GuidedTour` la persiste à chaque changement.
+nonisolated struct GuidedTourMachine: Equatable, Sendable {
+    nonisolated enum Phase: Equatable, Sendable {
+        /// La carte d'accueil de Noisette n'a pas encore été vue.
+        case welcome
+        /// Visite en cours, à l'étape `index`.
+        case touring(index: Int)
+        /// Visite vue jusqu'au bout.
+        case finished
+        /// « Plus tard », « Passer » ou fermée : rien ne s'affiche jusqu'à « Revoir le tutoriel ».
+        case skipped
+    }
 
-    static func id(step: TourStep, run: Int) -> String {
-        "noisette.\(step.rawValue).\(run)"
+    let steps: [TourStep]
+    private(set) var phase: Phase
+
+    init(steps: [TourStep] = TourStep.allCases, phase: Phase = .welcome) {
+        self.steps = steps
+        // Un index enregistré hors des bornes (étapes changées entre deux versions) reprend au début.
+        if case .touring(let index) = phase, !steps.indices.contains(index) {
+            self.phase = steps.isEmpty ? .finished : .touring(index: 0)
+        } else {
+            self.phase = phase
+        }
+    }
+
+    var index: Int? {
+        if case .touring(let index) = phase { index } else { nil }
+    }
+
+    var currentStep: TourStep? { index.map { steps[$0] } }
+    var isTouring: Bool { index != nil }
+    var isFirstStep: Bool { index == 0 }
+    var isLastStep: Bool { index == steps.count - 1 }
+    /// Visite terminée ou passée : elle ne revient qu'avec `replay()`.
+    var isDone: Bool { phase == .finished || phase == .skipped }
+
+    /// « C'est parti ! » sur la carte d'accueil.
+    mutating func start() {
+        guard phase == .welcome else { return }
+        phase = steps.isEmpty ? .finished : .touring(index: 0)
+    }
+
+    /// « Plus tard » ou carte glissée vers le bas.
+    mutating func postpone() {
+        guard phase == .welcome else { return }
+        phase = .skipped
+    }
+
+    /// « Suivant », ou « Terminer » à la dernière étape.
+    mutating func next() {
+        guard let index else { return }
+        phase = index + 1 < steps.count ? .touring(index: index + 1) : .finished
+    }
+
+    /// « Précédent » : sans effet à la première étape.
+    mutating func back() {
+        guard let index, index > 0 else { return }
+        phase = .touring(index: index - 1)
+    }
+
+    /// « Passer » ou le bouton Fermer : la visite s'arrête là.
+    mutating func skip() {
+        guard phase == .welcome || isTouring else { return }
+        phase = .skipped
+    }
+
+    /// « Revoir le tutoriel avec Noisette » : la carte d'accueil revient.
+    mutating func replay() {
+        phase = .welcome
     }
 }
 
@@ -115,51 +178,51 @@ nonisolated enum GuidedTourPolicy {
 
 // MARK: - État persistant
 
-/// Où en est la visite.
-nonisolated enum GuidedTourPhase: Sendable, Equatable {
-    /// La carte d'accueil de Noisette n'a pas encore été vue.
-    case welcome
-    /// Visite acceptée : les bulles s'enchaînent.
-    case touring
-    /// « Plus tard » : aucune bulle, jusqu'à « Revoir la visite guidée ».
-    case skipped
-}
-
-/// Drapeaux de la visite dans UserDefaults : numéro de visite, carte vue, visite acceptée.
+/// Phase de la visite dans UserDefaults, écrite à chaque pas.
 struct GuidedTourStore {
-    static let runKey = "guidedTour.run"
-    static let welcomeSeenKey = "guidedTour.welcomeSeen"
-    static let acceptedKey = "guidedTour.accepted"
+    static let phaseKey = "guidedTour.phase"
+    /// Ancienne version (TipKit) : carte vue. Une visite déjà vue ne revient pas après la mise à jour.
+    static let legacyWelcomeSeenKey = "guidedTour.welcomeSeen"
 
     let defaults: UserDefaults
 
-    var run: Int { defaults.integer(forKey: Self.runKey) }
-
-    var phase: GuidedTourPhase {
-        guard defaults.bool(forKey: Self.welcomeSeenKey) else { return .welcome }
-        return defaults.bool(forKey: Self.acceptedKey) ? .touring : .skipped
+    func load(steps: [TourStep] = TourStep.allCases) -> GuidedTourMachine {
+        GuidedTourMachine(steps: steps, phase: storedPhase)
     }
 
-    /// Ordre des bulles de la visite courante.
-    var tips: [TourTip] { TourStep.allCases.map { TourTip(step: $0, run: run) } }
-
-    func finishWelcome(accepted: Bool) {
-        defaults.set(true, forKey: Self.welcomeSeenKey)
-        defaults.set(accepted, forKey: Self.acceptedKey)
+    func save(_ machine: GuidedTourMachine) {
+        defaults.set(Self.encode(machine.phase), forKey: Self.phaseKey)
     }
 
-    /// Nouvelle visite : nouveau numéro (bulles neuves), et la carte d'accueil revient.
-    func replay() {
-        defaults.set(run + 1, forKey: Self.runKey)
-        defaults.set(false, forKey: Self.welcomeSeenKey)
-        defaults.set(false, forKey: Self.acceptedKey)
+    private var storedPhase: GuidedTourMachine.Phase {
+        if let raw = defaults.string(forKey: Self.phaseKey), let phase = Self.decode(raw) { return phase }
+        return defaults.bool(forKey: Self.legacyWelcomeSeenKey) ? .finished : .welcome
+    }
+
+    static func encode(_ phase: GuidedTourMachine.Phase) -> String {
+        switch phase {
+        case .welcome: "welcome"
+        case .touring(let index): "touring:\(index)"
+        case .finished: "finished"
+        case .skipped: "skipped"
+        }
+    }
+
+    static func decode(_ raw: String) -> GuidedTourMachine.Phase? {
+        switch raw {
+        case "welcome": return .welcome
+        case "finished": return .finished
+        case "skipped": return .skipped
+        default:
+            guard raw.hasPrefix("touring:"), let index = Int(raw.dropFirst("touring:".count)), index >= 0 else { return nil }
+            return .touring(index: index)
+        }
     }
 }
 
 // MARK: - Visite
 
 /// Visite guidée partagée par l'Accueil, la Cueillette, les Groupes, l'Impact et le Profil.
-/// Chaque écran ancre sa bulle d'une ligne : `.popoverTip(GuidedTour.shared.tip(on: .pickup))`.
 @Observable
 final class GuidedTour {
     static let shared = GuidedTour(
@@ -171,71 +234,64 @@ final class GuidedTour {
     )
 
     let isEnabled: Bool
-    private(set) var phase: GuidedTourPhase
+    private(set) var machine: GuidedTourMachine
+    /// Cadre (coordonnées de la fenêtre) de l'élément de chaque étape, signalé par `.guidedTourAnchor(_:)`.
+    private(set) var anchorFrames: [TourStep: CGRect] = [:]
     @ObservationIgnored private let store: GuidedTourStore
-    /// Bulles enchaînées ; nil tant que TipKit n'est pas configuré (ou visite désactivée).
-    private var group: TipGroup?
 
     init(store: GuidedTourStore, isEnabled: Bool) {
         self.store = store
         self.isEnabled = isEnabled
-        self.phase = store.phase
+        self.machine = store.load()
     }
 
-    /// Au lancement : configure TipKit (une seule fois, ici) et prépare les bulles. Rien en tests ni en mode fake.
+    /// Au lancement : `-demoTour` rejoue la visite depuis la carte d'accueil. Une visite interrompue reprend où elle était.
     func configureAtLaunch(arguments: [String] = ProcessInfo.processInfo.arguments) {
-        guard isEnabled, group == nil else { return }
-        if GuidedTourPolicy.replaysAtLaunch(arguments: arguments) {
-            store.replay()
-            phase = store.phase
-        }
-        do {
-            try Tips.configure([.displayFrequency(.immediate)])
-        } catch {
-            // Déjà configuré : les bulles marchent quand même.
-        }
-        rebuildGroup()
+        guard isEnabled, GuidedTourPolicy.replaysAtLaunch(arguments: arguments) else { return }
+        update { $0.replay() }
     }
 
     /// La carte « Salut, moi c'est Noisette » doit s'afficher.
-    var showsWelcome: Bool { isEnabled && phase == .welcome }
+    var showsWelcome: Bool { isEnabled && machine.phase == .welcome }
 
-    /// Bulle à ancrer sur `screen`, seulement si c'est l'étape courante de la visite.
-    func tip(on screen: TourScreen) -> (any Tip)? {
-        guard isEnabled, phase == .touring,
-              let tip = group?.currentTip as? TourTip, tip.step.screen == screen else { return nil }
-        return tip
-    }
+    /// Étape à montrer maintenant, nil hors visite.
+    var currentStep: TourStep? { isEnabled ? machine.currentStep : nil }
 
-    func finishWelcome(accepted: Bool) {
-        store.finishWelcome(accepted: accepted)
-        phase = store.phase
-    }
+    func start() { update { $0.start() } }
+    func postpone() { update { $0.postpone() } }
+    func next() { update { $0.next() } }
+    func back() { update { $0.back() } }
+    func skip() { update { $0.skip() } }
 
-    /// « Revoir la visite guidée » (Profil) : la carte d'accueil revient sur l'Accueil, sans redémarrer.
+    /// « Revoir le tutoriel avec Noisette » (Profil) : la carte d'accueil revient sur l'Accueil, sans redémarrer.
     func replay() {
         guard isEnabled else { return }
-        store.replay()
-        phase = store.phase
-        rebuildGroup()
+        update { $0.replay() }
     }
 
-    private func rebuildGroup() {
-        let tips: [any Tip] = store.tips
-        group = TipGroup(.ordered) { tips }
+    func updateAnchor(_ frame: CGRect, for step: TourStep) {
+        // Toujours retenu (une ancre ne se signale qu'à son premier rendu et quand elle bouge) ;
+        // seule la bulle lit ces cadres, et seulement pendant la visite.
+        guard isEnabled, anchorFrames[step] != frame else { return }
+        anchorFrames[step] = frame
+    }
+
+    private func update(_ change: (inout GuidedTourMachine) -> Void) {
+        var machine = self.machine
+        change(&machine)
+        guard machine != self.machine else { return }
+        self.machine = machine
+        store.save(machine)
     }
 }
 
 extension View {
-    /// Ancre la bulle de la visite guidée de `screen` en haut de cette vue (FB-19). Sans effet hors visite.
-    /// L'ancre est un point invisible au milieu du bord du haut : la bulle s'ouvre juste en dessous, flèche vers le haut,
-    /// au lieu de chercher une place autour d'une vue grande comme l'écran.
-    func guidedTourTip(_ screen: TourScreen) -> some View {
-        overlay(alignment: .top) {
-            Color.clear
-                .frame(width: 1, height: 1)
-                .popoverTip(GuidedTour.shared.tip(on: screen), arrowEdge: .top)
-                .accessibilityHidden(true)
+    /// Signale à la visite guidée où est l'élément de `step` (FB-19). Sans effet hors visite.
+    func guidedTourAnchor(_ step: TourStep) -> some View {
+        onGeometryChange(for: CGRect.self) { proxy in
+            proxy.frame(in: .global)
+        } action: { frame in
+            GuidedTour.shared.updateAnchor(frame, for: step)
         }
     }
 }

@@ -100,7 +100,7 @@ nonisolated struct DeliveryManifest: Sendable, Equatable {
     /// Bordereau en texte brut, à partager ou imprimer.
     func plainText(title: String = String(localized: "Bordereau de livraison")) -> String {
         guard !isEmpty else { return String(localized: "\(title)\n\nAucune commande fermée à livrer.") }
-        let commandes = orderCount > 1 ? "\(orderCount) commandes" : "\(orderCount) commande"
+        let commandes = orderCount > 1 ? String(localized: "\(orderCount) commandes") : String(localized: "\(orderCount) commande")
         let points = stops.count > 1 ? String(localized: "\(stops.count) points de cueillette") : String(localized: "1 point de cueillette")
         var lines = [title, "\(commandes) · \(points) · \(Self.sharesLabel(totalShares))"]
         for stop in stops {
@@ -108,8 +108,7 @@ nonisolated struct DeliveryManifest: Sendable, Equatable {
             lines.append(stop.address.isEmpty ? "== \(stop.name) ==" : "== \(stop.name) — \(stop.address) ==")
             for line in stop.lines {
                 lines.append(
-                    "- \(line.productName) (\(line.shareUnit)) : \(Self.sharesLabel(line.totalShares)), "
-                        + Self.householdsLabel(line.households)
+                    String(localized: "- \(line.productName) (\(line.shareUnit)) : \(Self.sharesLabel(line.totalShares)), \(Self.householdsLabel(line.households))")
                 )
             }
             lines.append(
@@ -124,7 +123,7 @@ nonisolated struct DeliveryManifest: Sendable, Equatable {
     }
 
     static func sharesLabel(_ count: Int) -> String {
-        count > 1 ? "\(count) parts" : "\(count) part"
+        count > 1 ? String(localized: "\(count) parts") : String(localized: "\(count) part")
     }
 
     static func householdsLabel(_ count: Int) -> String {

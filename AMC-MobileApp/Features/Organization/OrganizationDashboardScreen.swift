@@ -88,16 +88,23 @@ private extension OrganizationDashboardScreen {
 struct OrganizationHeroCard: View {
     let organization: Organization
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
+    /// L'icône grandit avec le texte : un cadre fixe de 56 pt la coupait aux très grandes tailles.
+    @ScaledMetric(relativeTo: .title) private var badgeSize: CGFloat = 56
     @State private var appeared = false
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            HStack(alignment: .center, spacing: 12) {
+        // Aux tailles d'accessibilité, l'icône passe au-dessus du nom au lieu de lui voler la largeur.
+        let layout = dynamicTypeSize.isAccessibilitySize
+            ? AnyLayout(VStackLayout(alignment: .leading, spacing: 12))
+            : AnyLayout(HStackLayout(alignment: .center, spacing: 12))
+        return VStack(alignment: .leading, spacing: 12) {
+            layout {
                 Image(systemName: organization.kind.systemImage)
                     .font(.title)
                     .symbolRenderingMode(.hierarchical)
                     .foregroundStyle(Color.onAccent)
-                    .frame(width: 56, height: 56)
+                    .frame(width: badgeSize, height: badgeSize)
                     .background(Color.grenier.gradient, in: .rect(cornerRadius: 16))
                     .symbolEffect(.bounce, value: reduceMotion ? false : appeared)
                     .accessibilityHidden(true)
@@ -134,15 +141,15 @@ struct OrganizationKPIGrid: View {
             ? [GridItem(.flexible())]
             : [GridItem(.flexible(), spacing: 12), GridItem(.flexible(), spacing: 12)]
         LazyVGrid(columns: columns, spacing: 12) {
-            OrganizationKPITile(title: "Paniers financés", value: "\(impact.basketsFunded)",
+            OrganizationKPITile(title: String(localized: "Paniers financés"), value: "\(impact.basketsFunded)",
                                 systemImage: "basket.fill", tint: .grenier, numericValue: impact.basketsFunded)
-            OrganizationKPITile(title: "Familles aidées", value: "\(impact.familiesHelped)",
+            OrganizationKPITile(title: String(localized: "Familles aidées"), value: "\(impact.familiesHelped)",
                                 systemImage: "figure.2.and.child.holdinghands", tint: .solidarite,
                                 numericValue: impact.familiesHelped)
-            OrganizationKPITile(title: "Groupes parrainés", value: "\(impact.groupsSponsored)",
+            OrganizationKPITile(title: String(localized: "Groupes parrainés"), value: "\(impact.groupsSponsored)",
                                 systemImage: "hands.and.sparkles.fill", tint: .grenier,
                                 numericValue: impact.groupsSponsored)
-            OrganizationKPITile(title: "Valeur d'épicerie pour les familles",
+            OrganizationKPITile(title: String(localized: "Valeur d'épicerie pour les familles"),
                                 value: Money.formatRounded(impact.groceryValueCents / 100 * 100),
                                 systemImage: "cart.fill", tint: .economie, numericValue: impact.groceryValueCents)
         }
@@ -182,19 +189,19 @@ struct MonthlyFundingChart: View {
                 )
                 .foregroundStyle(month.id == months.last?.id ? Color.grenier : Color.grenier.opacity(0.35))
                 .clipShape(.rect(cornerRadius: 6))
-                .accessibilityLabel(month.start.formatted(.dateTime.month(.wide).year()))
+                .accessibilityLabel(month.start.formatted(.dateTime.month(.wide).year().locale(AppLanguage.formattingLocale)))
                 .accessibilityValue("\(Money.formatRounded(month.amountCents)), \(FrenchPlural.count(month.baskets, "panier"))")
             }
             .chartXAxis {
                 AxisMarks(values: .stride(by: .month)) { _ in
-                    AxisValueLabel(format: .dateTime.month(.abbreviated), centered: true)
+                    AxisValueLabel(format: .dateTime.month(.abbreviated).locale(AppLanguage.formattingLocale), centered: true)
                 }
             }
             .chartYAxis {
                 AxisMarks { value in
                     AxisGridLine()
                     AxisValueLabel {
-                        if let amount = value.as(Double.self) { Text("\(Int(amount)) $") }
+                        if let amount = value.as(Double.self) { Text(String(localized: "\(Int(amount)) $")) }
                     }
                 }
             }

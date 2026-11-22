@@ -136,6 +136,6 @@ final class VendorSuppliesViewModel {
     /// « du 3 déc. au 17 déc. »
     nonisolated static func periodText(from: Date, to: Date) -> String {
         let style = Date.FormatStyle.dateTime.day().month(.abbreviated).locale(AppLanguage.formattingLocale)
-        return "du \(from.formatted(style)) au \(to.formatted(style))"
+        return String(localized: "du \(from.formatted(style)) au \(to.formatted(style))")
     }
 }

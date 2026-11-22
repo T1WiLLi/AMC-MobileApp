@@ -160,9 +160,9 @@ final class VendorProfileViewModel {
         if let label = zoneLabels[zone] { return label }
         // Un secteur de ≈ 5 km peut couvrir plusieurs quartiers (Parc-Extension, Saint-Michel et Villeray) : on les nomme tous.
         let named = MontrealNeighborhood.all.filter { Self.zone(for: $0) == zone }.map(\.name)
-        if !named.isEmpty { return named.formatted(.list(type: .and)) }
-        if let nearest = Self.nearestNeighborhood(toZone: zone) { return "Secteur de \(nearest.name)" }
-        return "Secteur personnalisé"
+        if !named.isEmpty { return named.formatted(.list(type: .and).locale(AppLanguage.formattingLocale)) }
+        if let nearest = Self.nearestNeighborhood(toZone: zone) { return String(localized: "Secteur de \(nearest.name)") }
+        return String(localized: "Secteur personnalisé")
     }
 
     /// Quartiers de Montréal dont le nom contient `query` (sans casse ni accents), pas encore desservis.
@@ -348,7 +348,7 @@ final class VendorProfileViewModel {
             let zone = String(group.centerGeohash.prefix(zonePrecision)).lowercased()
             neighborhoods[zone, default: []].insert(group.neighborhood)
         }
-        return neighborhoods.mapValues { $0.sorted().formatted(.list(type: .and)) }
+        return neighborhoods.mapValues { $0.sorted().formatted(.list(type: .and).locale(AppLanguage.formattingLocale)) }
     }
 }
 

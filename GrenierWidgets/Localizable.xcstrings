@@ -1,0 +1,440 @@
+{
+  "sourceLanguage" : "fr",
+  "strings" : {
+    "/%@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "/%@"
+          }
+        }
+      }
+    },
+    "%@ : encore %@ pour le prochain palier. %@." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@: %2$@ more for the next tier. %3$@."
+          }
+        }
+      }
+    },
+    "%@ : meilleur prix atteint, %@ le %@." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@: best price reached, %2$@ per %3$@."
+          }
+        }
+      }
+    },
+    "%@ à %@/%@ pour tout %@." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ at %@/%@ for all of %@."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$@ à %2$@/%3$@ pour tout %4$@."
+          }
+        }
+      }
+    },
+    "%@ de %@ · merci %@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ from %@ · thanks %@"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$@ de %2$@ · merci %3$@"
+          }
+        }
+      }
+    },
+    "%@ pour −%lld %%" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$@ pour −%2$lld %%"
+          }
+        }
+      }
+    },
+    "%@ pour le prochain palier" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ to the next tier"
+          }
+        }
+      }
+    },
+    "%lld famille" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld family"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld families"
+                }
+              }
+            }
+          }
+        },
+        "fr" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld famille"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld familles"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "Arrivée" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Arrival"
+          }
+        }
+      }
+    },
+    "Combien de familles il manque à ton groupe pour faire baisser le prix." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "How many more families your group needs to bring the price down."
+          }
+        }
+      }
+    },
+    "Commande récupérée, bon appétit !" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Order picked up, enjoy!"
+          }
+        }
+      }
+    },
+    "cueillette" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "pickup"
+          }
+        }
+      }
+    },
+    "En route" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "On the way"
+          }
+        }
+      }
+    },
+    "Encore" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Only"
+          }
+        }
+      }
+    },
+    "Encore %@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ to go"
+          }
+        }
+      }
+    },
+    "Groupe ouvert" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Open group"
+          }
+        }
+      }
+    },
+    "Meilleur prix atteint" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Best price reached"
+          }
+        }
+      }
+    },
+    "Meilleur prix atteint pour %@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Best price reached for %@"
+          }
+        }
+      }
+    },
+    "Merci" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Thanks"
+          }
+        }
+      }
+    },
+    "Montre le code %@ à %@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Show code %@ to %@"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Montre le code %1$@ à %2$@"
+          }
+        }
+      }
+    },
+    "Montre le code %@ à %@." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Show code %@ to %@."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Montre le code %1$@ à %2$@."
+          }
+        }
+      }
+    },
+    "Palier débloqué" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tier unlocked"
+          }
+        }
+      }
+    },
+    "Palier débloqué : %@/%@ pour tout le groupe" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tier unlocked: %@/%@ for the whole group"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Palier débloqué : %1$@/%2$@ pour tout le groupe"
+          }
+        }
+      }
+    },
+    "Palier débloqué !" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tier unlocked!"
+          }
+        }
+      }
+    },
+    "pour le prochain palier" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "for the next tier"
+          }
+        }
+      }
+    },
+    "pour le prochain palier (−%lld %%)" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "for the next tier (−%lld%%)"
+          }
+        }
+      }
+    },
+    "Prête" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ready"
+          }
+        }
+      }
+    },
+    "Prochain palier" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Next tier"
+          }
+        }
+      }
+    },
+    "récupérée" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "collected"
+          }
+        }
+      }
+    },
+    "Récupérée" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Picked up"
+          }
+        }
+      }
+    },
+    "Ta commande arrive à %@ au %@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Your order arrives at %@ at %@"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Ta commande arrive à %1$@ au %2$@"
+          }
+        }
+      }
+    },
+    "Ta commande est arrivée" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Your order has arrived"
+          }
+        }
+      }
+    },
+    "Ta commande est en route" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Your order is on its way"
+          }
+        }
+      }
+    },
+    "Ta commande t'attend au %@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Your order is waiting for you at %@"
+          }
+        }
+      }
+    },
+    "Tu es la %llde famille · ta part %@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "You’re family #%lld · your share %@"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Tu es la %1$llde famille · ta part %2$@"
+          }
+        }
+      }
+    }
+  },
+  "version" : "1.0"
+}

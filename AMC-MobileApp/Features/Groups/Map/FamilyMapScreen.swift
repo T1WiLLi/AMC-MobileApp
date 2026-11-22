@@ -4,8 +4,11 @@
 // sont celles du NavigationStack de l'onglet.
 //
 // Couches : carte MapKit plein écran ; en haut, une seule rangée en verre (rayon visible et filtres par sorte) ;
-// en bas, pastille « Autour de … », boussole et recentrage, puis explication de la position, carrousel des
-// lieux (synchronisé avec l'épingle choisie, la caméra glisse vers le lieu), rayon vide ou erreur.
+// en bas, pastille « Autour de … », boussole et recentrage, puis explication de la position, fiche du lieu
+// touché (la caméra glisse vers le lieu ; un bouton la ferme), rayon vide ou erreur.
+//
+// Plus de carrousel au milieu de la carte : il choisissait le premier lieu à l'ouverture et cachait la carte.
+// Rien n'est choisi à l'ouverture, la carte se déplace librement ; la fiche n'apparaît qu'au toucher d'une épingle.
 //
 // T-172 (FB-11) : ouverture toujours sur Montréal (quartier du ménage, groupe, sinon centre-ville). Le bouton
 // « position » de MapKit est remplacé par un recentrage sur l'origine : un simulateur à San Francisco n'emmène
@@ -95,7 +98,7 @@ struct FamilyMapScreen: View {
             if location.authorization == .authorized { await locateFamily() }
         }
         .onChange(of: viewModel?.origin) { _, _ in fitCamera() }
-        // Carrousel défilé ou épingle touchée : la caméra glisse vers le lieu, en gardant le zoom.
+        // Épingle touchée : la caméra glisse vers le lieu, en gardant le zoom.
         .onChange(of: viewModel?.selectedPlaceID) { _, _ in flyToSelectedPlace() }
         .onChange(of: scenePhase) { _, phase in
             // Retour des Réglages : la position vient peut-être d'être autorisée.
@@ -147,17 +150,18 @@ struct FamilyMapScreen: View {
                     )
                     .padding(.horizontal, 16)
                     .transition(.move(edge: .bottom).combined(with: .opacity))
-                } else if !viewModel.places.isEmpty {
-                    FamilyMapCarousel(
-                        places: viewModel.places,
-                        selectedID: Binding(
-                            get: { viewModel.selectedPlaceID },
-                            set: { id in withAnimation(reduceMotion ? nil : .smooth) { viewModel.selectedPlaceID = id } }
-                        ),
-                        reduceMotion: reduceMotion,
+                } else if let place = viewModel.selectedPlace {
+                    // Fiche du lieu seulement quand une épingle est touchée : rien ne cache la carte à l'ouverture.
+                    FamilyMapSelectedPlaceCard(
+                        place: place,
                         maxTileHeight: dynamicTypeSize.isAccessibilitySize ? max(screenHeight * 0.3, 180) : nil,
-                        onOpen: { destination = $0 }
+                        onOpen: { destination = $0 },
+                        onClose: {
+                            withAnimation(reduceMotion ? nil : .smooth) { viewModel.selectedPlaceID = nil }
+                        }
                     )
+                    .padding(.horizontal, 16)
+                    .id(place.id)
                     .transition(.move(edge: .bottom).combined(with: .opacity))
                 } else if case .empty = viewModel.state {
                     FamilyMapEmptyHint(zoomOut: zoomOut)
@@ -171,6 +175,7 @@ struct FamilyMapScreen: View {
             }
         }
         .padding(.bottom, 8)
+        .animation(reduceMotion ? nil : .smooth, value: viewModel.selectedPlace?.id)
         .animation(reduceMotion ? nil : .smooth, value: viewModel.places.isEmpty)
         .animation(reduceMotion ? nil : .smooth, value: needsLocationExplanation)
     }

@@ -14,16 +14,13 @@ struct CardRegistrationSheet: View {
     let onConfirm: () -> Void
     let onCancel: () -> Void
 
-    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
-    @ScaledMetric(relativeTo: .largeTitle) private var cardHeight: CGFloat = 120
     @ScaledMetric(relativeTo: .subheadline) private var iconWidth: CGFloat = 24
-    @State private var appeared = false
 
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 20) {
-                walletCard
+                PaymentCardView(methodLabel: registration.methodLabel)
                 VStack(alignment: .leading, spacing: 6) {
                     Text("Tu paieras au plus")
                         .font(.subheadline)
@@ -60,42 +57,6 @@ struct CardRegistrationSheet: View {
         }
         .presentationDetents(dynamicTypeSize.isAccessibilitySize ? [.large] : [.fraction(0.82), .large])
         .presentationDragIndicator(.visible)
-        .onAppear { appeared = true }
-    }
-
-    /// Carte du portefeuille : opaque (contenu), teinte Grenier.
-    private var walletCard: some View {
-        ZStack(alignment: .topLeading) {
-            RoundedRectangle(cornerRadius: 20, style: .continuous)
-                .fill(LinearGradient(colors: [Color.grenier, Color.grenier.opacity(0.72)],
-                                     startPoint: .topLeading, endPoint: .bottomTrailing))
-            VStack(alignment: .leading) {
-                HStack {
-                    Label(registration.methodLabel, systemImage: "apple.logo")
-                        .font(.headline)
-                    Spacer(minLength: 8)
-                    if !dynamicTypeSize.isAccessibilitySize {
-                        Image(systemName: "wave.3.right")
-                            .font(.title3)
-                            .symbolEffect(.variableColor.iterative, isActive: !reduceMotion && appeared)
-                    }
-                }
-                Spacer(minLength: 12)
-                HStack(alignment: .lastTextBaseline) {
-                    Text(verbatim: "•••• 4242")
-                        .font(.title3.monospacedDigit())
-                    Spacer(minLength: 8)
-                    Image(systemName: "checkmark.seal.fill")
-                        .font(.title2)
-                        .symbolEffect(.bounce, value: reduceMotion ? false : appeared)
-                }
-            }
-            .foregroundStyle(Color.onAccent)
-            .padding(16)
-        }
-        .frame(minHeight: cardHeight)
-        .accessibilityElement(children: .ignore)
-        .accessibilityLabel(String(localized: "Carte \(registration.methodLabel)"))
     }
 
     private var detailText: String {

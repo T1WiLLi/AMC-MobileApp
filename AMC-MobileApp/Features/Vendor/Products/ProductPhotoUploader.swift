@@ -1,7 +1,8 @@
 // ProductPhotoUploader.swift
 // Photo d'un produit du catalogue vendeur (T-089) : téléversement et suppression.
-// Firebase Storage en émulateur ou projet de démo (`StorageProductPhotoUploader`), mémoire sinon.
-// Chemin : `vendors/{vendorId}/{productId}.jpg` (storage.rules : écrit par le vendeur rattaché, image ≤ 5 Mo).
+// Le projet est sur Spark, sans Cloud Storage : la photo est un document `media` Firestore
+// (`vendors/{vendorId}/media/photo-product-{productId}`, firestore.rules), comme les photos de vitrine (T-157).
+// `ImageStoreProductPhotoUploader` passe par `AppRepositories.images` (Firestore en live, mémoire en fake).
 
 import Foundation
 import UIKit
@@ -37,12 +38,21 @@ nonisolated enum ProductPhoto {
         return resized.jpegData(compressionQuality: 0.8)
     }
 
-    /// Téléverseur du backend choisi au lancement.
-    static func uploader(mode: BackendMode) -> any ProductPhotoUploader {
-        #if canImport(FirebaseStorage)
-        if mode.usesFirebase { return StorageProductPhotoUploader() }
-        #endif
-        return FakeProductPhotoUploader(behavior: .realistic)
+}
+
+/// Range la photo dans le dépôt d'images de l'app : recadrée en carré, compressée sous 300 Kio,
+/// renvoie une URL `grenier-media` versionnée (à afficher avec `MediaImage`).
+nonisolated struct ImageStoreProductPhotoUploader: ProductPhotoUploader {
+    let images: any ImageStore
+
+    func uploadPhoto(_ jpegData: Data, vendorId: String, productId: String) async throws -> URL {
+        let path = MediaPath.productPhoto(vendorId: vendorId, productId: productId)
+        let prepared = try ImageProcessing.prepare(jpegData, spec: path.spec)
+        return try await images.save(prepared, at: path)
+    }
+
+    func deletePhoto(vendorId: String, productId: String) async throws {
+        try await images.delete(at: .productPhoto(vendorId: vendorId, productId: productId))
     }
 }
 

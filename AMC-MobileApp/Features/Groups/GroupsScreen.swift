@@ -40,6 +40,16 @@ struct GroupsScreen: View {
                             title: String(localized: "Aucun groupe près de toi"),
                             message: String(localized: "Aucun groupe de quartier n'est ouvert pour l'instant. Reviens bientôt.")
                         ) {
+                            // FB-10 : aucun groupe autour → en créer un est l'action principale.
+                            Button {
+                                isCreatingGroup = true
+                            } label: {
+                                Label("Créer un groupe", systemImage: "plus.circle.fill")
+                                    .fontWeight(.semibold)
+                            }
+                            .buttonStyle(.glassProminent)
+                            .tint(.grenier)
+                            .controlSize(.large)
                             Button {
                                 Task { await viewModel.load() }
                             } label: {
@@ -53,7 +63,9 @@ struct GroupsScreen: View {
                     case .failed(let error):
                         GroupsErrorState(error: error, retry: { await viewModel.load() })
                     case .loaded(let items):
-                        GroupList(items: items, viewModel: viewModel)
+                        GroupList(items: items, viewModel: viewModel,
+                                  onCreate: { isCreatingGroup = true },
+                                  onJoinWithCode: { joinCode = JoinCodeRequest(code: "") })
                     }
                 } else {
                     GroupsLoadingSkeleton()
@@ -148,6 +160,8 @@ private struct JoinCodeRequest: Identifiable {
 private struct GroupList: View {
     let items: [GroupsViewModel.Item]
     let viewModel: GroupsViewModel
+    let onCreate: () -> Void
+    let onJoinWithCode: () -> Void
     @Environment(SessionContextStore.self) private var contextStore: SessionContextStore?
 
     var body: some View {
@@ -160,6 +174,9 @@ private struct GroupList: View {
                     nearbyCount: others.count,
                     familyCount: items.reduce(0) { $0 + $1.group.householdCount }
                 )
+
+                // FB-10 : créer un groupe se voit tout de suite, pas caché dans le menu « + ».
+                CreateGroupCallout(onCreate: onCreate, onJoinWithCode: onJoinWithCode)
 
                 VStack(alignment: .leading, spacing: 12) {
                     GroupsSectionHeader(
@@ -353,45 +370,107 @@ private struct GroupsLoadingSkeleton: View {
     }
 }
 
+// MARK: - Créer un groupe (FB-10)
+
+/// Carte d'appel en tête de liste : créer son groupe est l'action principale de l'écran (« Rejoindre » reste en `.glass`).
+private struct CreateGroupCallout: View {
+    let onCreate: () -> Void
+    let onJoinWithCode: () -> Void
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            HStack(spacing: 14) {
+                GroupsSymbolScene(
+                    systemImage: "person.3.sequence.fill",
+                    satellites: [
+                        .init(systemImage: "plus", tint: .grenier, degrees: -40),
+                        .init(systemImage: "house.fill", tint: .economie, degrees: 150)
+                    ],
+                    diameter: 56,
+                    badgeBackground: .fond
+                )
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("Lance ton groupe")
+                        .font(.headline)
+                        .foregroundStyle(.texte)
+                    Text("Ton ménage en est le premier membre.")
+                        .font(.subheadline)
+                        .foregroundStyle(.texteSecondaire)
+                }
+                .fixedSize(horizontal: false, vertical: true)
+                Spacer(minLength: 0)
+            }
+            ViewThatFits(in: .horizontal) {
+                HStack(spacing: 10) { buttons }
+                VStack(alignment: .leading, spacing: 10) { buttons }
+            }
+        }
+        .grenierCard(padding: 16)
+    }
+
+    @ViewBuilder
+    private var buttons: some View {
+        Button(action: onCreate) {
+            Label("Créer un groupe", systemImage: "plus.circle.fill")
+                .fontWeight(.semibold)
+                .frame(maxWidth: .infinity)
+        }
+        .buttonStyle(.glassProminent)
+        .tint(.grenier)
+        .controlSize(.large)
+        .accessibilityHint("Ton ménage en devient le premier membre")
+        Button(action: onJoinWithCode) {
+            Label("J'ai un code", systemImage: "ticket.fill")
+                .fontWeight(.semibold)
+        }
+        .buttonStyle(.glass)
+        .tint(.grenier)
+        .controlSize(.large)
+        .accessibilityHint("Entre dans un groupe avec une invitation reçue")
+    }
+}
+
 // MARK: - Ligne d'un groupe
 
-/// Un groupe : même contenu qu'un `GroupCard`, mais Rejoindre en `.glass` (une seule action principale par écran)
-/// et le reste de la carte pousse la fiche du groupe.
+/// Un groupe (FB-12) : sa bannière et sa photo en tête, son nom en entier, puis deux pastilles en icônes.
+/// Rejoindre en `.glass` (une seule action principale par écran) ; pour un membre, la carte pousse la fiche du groupe.
 private struct GroupRow: View {
     let item: GroupsViewModel.Item
     let isPending: Bool
     let onJoin: () -> Void
 
-    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
+    @Environment(\.appTheme) private var theme
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
-    @ScaledMetric(relativeTo: .headline) private var photoSize: CGFloat = 48
+    @ScaledMetric(relativeTo: .headline) private var photoSize: CGFloat = 56
+    @ScaledMetric(relativeTo: .headline) private var bannerHeight: CGFloat = 92
 
     private var group: NeighborhoodGroup { item.group }
+    private var avatarSide: CGFloat { min(photoSize, 84) }
+    private var neighborhood: String { MontrealNeighborhood.displayName(for: group.neighborhood) }
 
     var body: some View {
-        let layout = dynamicTypeSize.isAccessibilitySize
-            ? AnyLayout(VStackLayout(alignment: .leading, spacing: 12))
-            : AnyLayout(HStackLayout(alignment: .center, spacing: 12))
-        layout {
+        VStack(alignment: .leading, spacing: 0) {
             // La fiche n'est ouverte qu'aux membres : pour un non-membre, elle finissait sur « Action non permise ».
-            // On garde la carte telle quelle, sans chevron, et l'action reste « Rejoindre ».
             if item.isMember {
                 NavigationLink(value: GroupRoute(groupId: group.id)) {
-                    summary(showsChevron: true)
+                    summary
                 }
                 .buttonStyle(.plain)
                 .accessibilityElement(children: .ignore)
                 .accessibilityLabel("\(group.name), \(detailText), tu es membre")
                 .accessibilityHint("Ouvre la fiche du groupe.")
             } else {
-                summary(showsChevron: false)
+                summary
                     .accessibilityElement(children: .ignore)
                     .accessibilityLabel("\(group.name), \(detailText)")
             }
-
-            trailing
+            if !item.isMember {
+                joinButton
+                    .padding([.horizontal, .bottom], 14)
+            }
         }
-        .grenierCard(padding: 14)
+        .background(Color.surface)
+        .clipShape(.rect(cornerRadius: theme.cornerRadius))
         // La fiche du groupe sort de la carte entière en zoom (T-123).
         .grenierZoomSource(GroupRoute(groupId: group.id))
         .contextMenu {
@@ -407,56 +486,84 @@ private struct GroupRow: View {
         .animation(reduceMotion ? nil : .smooth, value: item.isMember)
     }
 
-    private func summary(showsChevron: Bool) -> some View {
-        HStack(spacing: 12) {
-            // T-122 : photo du groupe (initiales du quartier sur un dégradé s'il n'en a pas).
-            GroupAvatarView(group: group, size: min(photoSize, 72))
-            VStack(alignment: .leading, spacing: 4) {
-                Text(group.name)
-                    .font(.headline)
-                    .foregroundStyle(.texte)
+    private var summary: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            banner
+            VStack(alignment: .leading, spacing: 8) {
+                HStack(alignment: .firstTextBaseline, spacing: 8) {
+                    // Pas de coupure au trait d'union (« Côte-des- / Neiges ») : traits insécables, deux lignes au plus.
+                    Text(Self.unbreakable(group.name))
+                        .font(.headline)
+                        .foregroundStyle(.texte)
+                        .lineLimit(2)
+                        .minimumScaleFactor(0.85)
+                        .fixedSize(horizontal: false, vertical: true)
+                    Spacer(minLength: 0)
+                    if item.isMember {
+                        Image(systemName: "chevron.right")
+                            .font(.footnote.weight(.semibold))
+                            .foregroundStyle(.texteSecondaire)
+                    }
+                }
                 ViewThatFits(in: .horizontal) {
-                    HStack(spacing: 10) { meta }
-                    VStack(alignment: .leading, spacing: 2) { meta }
+                    HStack(spacing: 8) { chips }
+                    VStack(alignment: .leading, spacing: 6) { chips }
                 }
             }
-            Spacer(minLength: 0)
-            if showsChevron {
-                Image(systemName: "chevron.right")
-                    .font(.footnote.weight(.semibold))
-                    .foregroundStyle(.texteSecondaire)
-            }
+            .padding(.horizontal, 14)
+            .padding(.top, avatarSide / 2 + 8)
+            .padding(.bottom, 14)
         }
         .contentShape(.rect)
     }
 
-    @ViewBuilder
-    private var meta: some View {
-        if !group.isPublic {
-            GroupsMetaLabel(text: String(localized: "Privé"), systemImage: "lock.fill", tint: .texteSecondaire)
-        }
-        GroupsMetaLabel(text: familiesText, systemImage: "person.2.fill", tint: .solidarite)
-        if let distance = item.distanceText {
-            // B-056 : distance du ménage au groupe (la liste est triée du plus proche au plus loin).
-            GroupsMetaLabel(text: distance, systemImage: "location.fill", tint: .grenier)
-        } else {
-            GroupsMetaLabel(text: group.neighborhood, systemImage: "mappin", tint: .grenier)
-        }
-        GroupsMetaLabel(text: GroupCard.distanceText(group.radiusMeters), systemImage: "circle.dashed", tint: .economie)
+    /// Bannière du groupe (dégradé Grenier s'il n'en a pas), photo qui la chevauche et badges d'état.
+    private var banner: some View {
+        GroupBannerImage(group: group)
+            .frame(maxWidth: .infinity)
+            .frame(height: min(bannerHeight, 140))
+            .overlay(alignment: .bottom) {
+                LinearGradient(colors: [.clear, .black.opacity(0.25)], startPoint: .top, endPoint: .bottom)
+                    .frame(height: 40)
+            }
+            .overlay(alignment: .topTrailing) { statusBadge.padding(10) }
+            .overlay(alignment: .bottomLeading) {
+                GroupAvatarView(group: group, size: avatarSide, showsRing: true)
+                    .shadow(color: .black.opacity(0.15), radius: 8, y: 4)
+                    .offset(x: 14, y: avatarSide / 2)
+            }
+            .accessibilityHidden(true)
     }
 
     @ViewBuilder
-    private var trailing: some View {
-        if item.isMember {
-            Image(systemName: "checkmark.seal.fill")
-                .font(.title2)
-                .symbolRenderingMode(.hierarchical)
-                .foregroundStyle(Color.economie)
-                .groupsBounce(value: item.isMember)
-                .transition(reduceMotion ? .opacity : .scale.combined(with: .opacity))
-                .accessibilityLabel("Tu es membre")
-        } else {
-            Button(action: onJoin) {
+    private var statusBadge: some View {
+        HStack(spacing: 6) {
+            if !group.isPublic {
+                BannerBadge(systemImage: "lock.fill", text: String(localized: "Privé"))
+            }
+            if item.isMember {
+                BannerBadge(systemImage: "checkmark.seal.fill", text: String(localized: "Membre"), tint: .economie)
+                    .groupsBounce(value: item.isMember)
+                    .transition(reduceMotion ? .opacity : .scale.combined(with: .opacity))
+            }
+        }
+    }
+
+    @ViewBuilder
+    private var chips: some View {
+        GroupsChip(text: "\(group.householdCount)", systemImage: "person.2.fill", tint: .solidarite)
+        if !neighborhood.isEmpty {
+            GroupsChip(text: Self.unbreakable(neighborhood), systemImage: "mappin", tint: .grenier)
+        }
+        if let distance = item.distanceText {
+            // B-056 : distance du ménage au groupe (la liste est triée du plus proche au plus loin).
+            GroupsChip(text: distance, systemImage: "location.fill", tint: .economie)
+        }
+    }
+
+    private var joinButton: some View {
+        Button(action: onJoin) {
+            Group {
                 if isPending {
                     ProgressView()
                 } else {
@@ -464,39 +571,72 @@ private struct GroupRow: View {
                         .fontWeight(.semibold)
                 }
             }
-            .buttonStyle(.glass)
-            .tint(.grenier)
-            .disabled(isPending)
-            .accessibilityLabel("Rejoindre \(group.name)")
+            .frame(maxWidth: .infinity)
         }
+        .buttonStyle(.glass)
+        .tint(.grenier)
+        .disabled(isPending)
+        .accessibilityLabel("Rejoindre \(group.name)")
     }
 
     private var familiesText: String {
         FrenchPlural.count(group.householdCount, "famille")
     }
 
-    /// « 27 familles · Hochelaga · à 1,4 km · rayon 900 m » (« groupe privé » en tête s'il l'est).
+    /// « 27 familles · Hochelaga · à 1,4 km · rayon 900 m » (« groupe privé » en tête s'il l'est), pour VoiceOver.
     private var detailText: String {
         let distance = item.distanceText.map { " · \($0)" } ?? ""
-        let base = String(localized: "\(familiesText) · \(group.neighborhood)\(distance) · rayon \(GroupCard.distanceText(group.radiusMeters))")
+        let base = String(localized: "\(familiesText) · \(neighborhood)\(distance) · rayon \(GroupCard.distanceText(group.radiusMeters))")
         return group.isPublic ? base : String(localized: "Groupe privé · \(base)")
+    }
+
+    /// Remplace les traits d'union par des traits insécables (U+2011) : le texte ne se coupe plus au tiret.
+    static func unbreakable(_ text: String) -> String {
+        text.replacingOccurrences(of: "-", with: "\u{2011}")
     }
 }
 
-/// Tuile du groupe dans la liste : une icône de quartier (les initiales du quartier ressemblaient à des membres).
-private struct GroupRowIcon: View {
-    let isMember: Bool
-    @ScaledMetric(relativeTo: .title3) private var side: CGFloat = 44
+/// Pastille compacte d'une ligne de groupe : icône teintée et une valeur courte.
+private struct GroupsChip: View {
+    let text: String
+    let systemImage: String
+    let tint: Color
 
     var body: some View {
-        let tint: Color = isMember ? .economie : .grenier
-        Image(systemName: isMember ? "checkmark.seal.fill" : GrenierSymbol.groups)
-            .font(.title3)
-            .symbolRenderingMode(.hierarchical)
-            .foregroundStyle(tint)
-            .frame(width: min(side, 72), height: min(side, 72))
-            .background(tint.opacity(0.12), in: .circle)
-            .accessibilityHidden(true)
+        Label {
+            Text(text)
+                .foregroundStyle(.texte)
+                .lineLimit(1)
+        } icon: {
+            Image(systemName: systemImage)
+                .symbolRenderingMode(.hierarchical)
+                .foregroundStyle(tint)
+        }
+        .font(.subheadline.weight(.medium))
+        .padding(.horizontal, 10)
+        .padding(.vertical, 5)
+        .background(tint.opacity(0.12), in: .capsule)
+    }
+}
+
+/// Badge posé sur la bannière (Privé, Membre) : matériau pour rester lisible sur n'importe quelle image.
+private struct BannerBadge: View {
+    let systemImage: String
+    let text: String
+    var tint: Color = .texte
+
+    var body: some View {
+        Label {
+            Text(text).foregroundStyle(.texte)
+        } icon: {
+            Image(systemName: systemImage)
+                .symbolRenderingMode(.hierarchical)
+                .foregroundStyle(tint)
+        }
+        .font(.caption.weight(.semibold))
+        .padding(.horizontal, 8)
+        .padding(.vertical, 4)
+        .background(.thinMaterial, in: .capsule)
     }
 }
 

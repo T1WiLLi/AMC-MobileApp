@@ -26595,6 +26595,16 @@
         }
       }
     },
+    "Verrouillé dès que tu quittes l'app." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Locks as soon as you leave the app."
+          }
+        }
+      }
+    },
     "Va à la connexion" : {
       "localizations" : {
         "en" : {

@@ -32,6 +32,12 @@ nonisolated struct FakeData: Sendable {
         static let hochelaga = "group-hochelaga"
         /// B-056 : groupe privé créé par Amina, sur invitation seulement.
         static let villerayKitchen = "group-villeray-prive"
+        /// T-180 : parcours de démo du pitch (Amina, Parc-Extension, « Riz basmati — Ferme Lafleur »).
+        static let parcExtension = "group-parc-extension"
+        static let fermeLafleur = "vendor-ferme-lafleur"
+        static let lafleurRice = "product-riz-basmati-lafleur"
+        static let lafleurRiceOffer = "offer-riz-basmati-lafleur"
+        static let lafleurRiceOrder = "order-parc-extension-demo-riz"
         static let fermeRive = "vendor-ferme-rive"
         static let moulinsDuNord = "vendor-moulins-du-nord"
         static let potatoes = "product-pommes-de-terre"
@@ -75,6 +81,24 @@ nonisolated struct FakeData: Sendable {
                   suspendedAmountCents: 0, subsidyCents: 0, qrCode: nil, isPickedUp: false)
         }
 
+        // T-180 : Parc-Extension (9 ménages voisins) a 19 parts sur 20 du riz basmati de Ferme Lafleur ;
+        // la part d'Amina (1 sac de 5 kg) fait franchir le palier de 20 et le prix baisse en direct.
+        let parcExtensionMembers =
+            [GroupMember(householdId: ID.aminaHousehold, role: .coordinator, joinedAt: now.addingTimeInterval(-40 * day))]
+            + neighborHouseholds.prefix(9).map { GroupMember(householdId: $0.id, role: .member, joinedAt: now.addingTimeInterval(-12 * day)) }
+        let riceQuantities = [3, 2, 2, 2, 2, 2, 2, 2, 2]
+        let riceShares = zip(neighborHouseholds.prefix(9), riceQuantities).map { household, quantity in
+            Share(householdId: household.id, quantity: quantity, finalPriceCents: nil, isPaid: false,
+                  suspendedAmountCents: 0, subsidyCents: 0, qrCode: nil, isPickedUp: false)
+        }
+        let lafleurRiceOffer = Offer(
+            id: ID.lafleurRiceOffer, vendorId: ID.fermeLafleur, productId: ID.lafleurRice, totalShares: 30,
+            share: ShareSpec(container: .bag, weight: .init(5, .kilogram), valueCents: 1_999),
+            tiers: [PriceTier(minShares: 6, priceCents: 1_759), PriceTier(minShares: 12, priceCents: 1_559),
+                    PriceTier(minShares: 20, priceCents: 1_359)],
+            minimumSharesToLaunch: 6, deadline: now.addingTimeInterval(6 * day), zones: ["f25dt"], status: .active
+        )
+
         let potatoOffer = Offer(
             id: ID.potatoOffer, vendorId: ID.fermeRive, productId: ID.potatoes, totalShares: 40,
             share: ShareSpec(container: .bag, weight: .init(10, .kilogram), valueCents: 1_599),
@@ -111,6 +135,13 @@ nonisolated struct FakeData: Sendable {
                                                           accentDark: "#D79BE0",
                                                           welcomeMessage: "Hochelaga, on se serre les coudes."),
                                   photoURL: DemoMedia.hochelagaPhoto, bannerURL: DemoMedia.hochelagaBanner),
+                NeighborhoodGroup(id: ID.parcExtension, name: "Parc-Extension solidaire", neighborhood: "Parc-Extension",
+                                  centerGeohash: "f25dt", radiusMeters: 1_000, coordinatorIds: [ID.amina],
+                                  householdCount: parcExtensionMembers.count, isPublic: true, inviteCode: "PE-2026",
+                                  branding: GroupBranding(emblem: "building.2.fill", accentLight: "#2F5D9E",
+                                                          accentDark: "#8DB4F0",
+                                                          welcomeMessage: "Bienvenue à Parc-Extension !"),
+                                  photoURL: nil, bannerURL: nil),
                 // B-056 : groupe privé, jamais listé ; on y entre avec une invitation d'Amina.
                 NeighborhoodGroup(id: ID.villerayKitchen, name: "Cuisine collective Villeray", neighborhood: "Villeray",
                                   centerGeohash: "f25du", radiusMeters: 1_000, coordinatorIds: [ID.amina],
@@ -120,7 +151,8 @@ nonisolated struct FakeData: Sendable {
                                                           welcomeMessage: "Bienvenue à la cuisine collective !"),
                                   createdBy: ID.amina),
             ],
-            members: [ID.saintMichel: saintMichelMembers, ID.villerayKitchen: villerayMembers],
+            members: [ID.saintMichel: saintMichelMembers, ID.villerayKitchen: villerayMembers,
+                      ID.parcExtension: parcExtensionMembers],
             vendors: [
                 Vendor(id: ID.fermeRive, legalName: "Ferme Bio-Rive", kind: .farm,
                        description: "Légumes biologiques cultivés à Mirabel depuis 1998.",
@@ -132,6 +164,11 @@ nonisolated struct FakeData: Sendable {
                        photoURLs: [], servedZones: ["f25d"], averageRating: 4.4, isVerified: true,
                        storefrontGeohash: "f25dvrh", city: "Laval",
                        memberSince: now.addingTimeInterval(-300 * day)),
+                Vendor(id: ID.fermeLafleur, legalName: "Ferme Lafleur", kind: .farm,
+                       description: "Ferme familiale de Saint-Rémi : légumes de garde, céréales et riz importé en vrac.",
+                       photoURLs: [], servedZones: ["f25dt"], averageRating: 4.8, isVerified: true,
+                       storefrontGeohash: nil, city: "Saint-Rémi",
+                       memberSince: now.addingTimeInterval(-360 * day), featuredProductIds: [ID.lafleurRice]),
                 // Producteurs du quartier, sans lot ouvert : visibles sur la carte des familles (T-091).
                 Vendor(id: ID.fournil, legalName: "Le Fournil du coin", kind: .bakery,
                        description: "Boulangerie de quartier : pains au levain et viennoiseries du jour.",
@@ -151,12 +188,16 @@ nonisolated struct FakeData: Sendable {
                 Product(id: ID.apples, vendorId: ID.fermeRive, name: "Pommes Cortland", category: .produce,
                         unit: "caisse de 5 kg", origin: "Rougemont, QC", tags: [.local], photoURL: nil,
                         referenceGroceryPriceCents: 1_499),
+                Product(id: ID.lafleurRice, vendorId: ID.fermeLafleur, name: "Riz basmati", category: .grains,
+                        unit: "sac de 5 kg", origin: "Importé", tags: [.halal, .vegan], photoURL: nil,
+                        referenceGroceryPriceCents: 1_999),
                 Product(id: ID.rice, vendorId: ID.moulinsDuNord, name: "Riz basmati", category: .grains,
                         unit: "sac de 10 kg", origin: "Importé", tags: [.halal, .vegan], photoURL: nil,
                         referenceGroceryPriceCents: 2_899),
             ],
             offers: [
                 potatoOffer,
+                lafleurRiceOffer,
                 Offer(id: ID.riceOffer, vendorId: ID.moulinsDuNord, productId: ID.rice, totalShares: 30,
                       share: ShareSpec(container: .bag, weight: .init(10, .kilogram), valueCents: 2_899),
                       tiers: [PriceTier(minShares: 8, priceCents: 2_300), PriceTier(minShares: 16, priceCents: 1_990)],
@@ -171,8 +212,12 @@ nonisolated struct FakeData: Sendable {
                            currentTierIndex: potatoOffer.tierIndex(forCommittedShares: 19),
                            committedShares: 19, committedHouseholds: potatoShares.count,
                            pickupPointId: ID.jarryPickup, pickupSlots: [slot]),
+                GroupOrder(id: ID.lafleurRiceOrder, groupId: ID.parcExtension, offerId: ID.lafleurRiceOffer, status: .reached,
+                           currentTierIndex: lafleurRiceOffer.tierIndex(forCommittedShares: 19),
+                           committedShares: 19, committedHouseholds: riceShares.count,
+                           pickupPointId: ID.jarryPickup, pickupSlots: [slot]),
             ],
-            shares: [ID.potatoOrder: potatoShares],
+            shares: [ID.potatoOrder: potatoShares, ID.lafleurRiceOrder: riceShares],
             pickupPoints: [
                 PickupPoint(id: ID.jarryPickup, hostUserId: ID.amina, name: "Chez Amina, rue Jarry",
                             address: "Rue Jarry Est, Saint-Michel, Montréal", photoURL: nil, capacity: 25,

@@ -205,7 +205,9 @@ const productDefinitions: ProductDefinition[] = [
   ['sirop-erable', 'coop-ile-orleans', "Sirop d'érable", 'canned', 'caisse de 4 × 540 mL', "Île d'Orléans, QC", ['vegan', 'glutenFree', 'local'], 4396],
   ['savon-mains', 'savonnerie-laurentides', 'Savon à mains (recharge)', 'household', 'bidon de 4 L', 'Sainte-Agathe-des-Monts, QC', ['vegan', 'local'], 2899],
   ['nettoyant-tout-usage', 'savonnerie-laurentides', 'Nettoyant tout usage écologique', 'household', 'bidon de 4 L', 'Sainte-Agathe-des-Monts, QC', ['vegan', 'local'], 2499],
-  ['lessive-poudre', 'savonnerie-laurentides', 'Lessive en poudre', 'household', 'seau de 5 kg (80 brassées)', 'Sainte-Agathe-des-Monts, QC', ['local'], 3499]
+  ['lessive-poudre', 'savonnerie-laurentides', 'Lessive en poudre', 'household', 'seau de 5 kg (80 brassées)', 'Sainte-Agathe-des-Monts, QC', ['local'], 3499],
+  // T-180 : lot du parcours de démo (pitch) : « Riz basmati — Ferme Lafleur ».
+  ['riz-basmati-lafleur', 'ferme-lafleur', 'Riz basmati', 'grains', 'sac de 5 kg', 'Importé', ['halal', 'vegan'], 1999]
 ]
 
 const newProducts: Raw[] = productDefinitions.map(([id, vendor, name, category, unit, origin, tags, referenceCents]) => ({
@@ -554,6 +556,31 @@ export function enrichFixtures(base: RawFixtures): RawFixtures {
       })
     }
   }
+
+  // T-180 : lot du parcours de démo. Parc-Extension a 19 parts sur 20 (palier 3) : la part d'Amina
+  // (5 kg = 1 sac) fait franchir le palier et le prix baisse en direct. Ids fixes, sans rng.
+  const demoOffer = offerFor('riz-basmati-lafleur', 'offer-riz-basmati-lafleur', 6, 30, [6, 12, 20], ['parc-extension'], 'active')
+  offers.push(demoOffer)
+  const demoPeers = (membersOf.get('group-parc-extension') ?? []).filter((id) => id !== 'household-amina')
+  const demoQuantities = [3, 2, 2, 2, 2, 2, 2, 2, 2]
+  const demoShares = demoPeers.slice(0, demoQuantities.length).map((householdId, index) => ({
+    householdId, quantity: demoQuantities[index]!, finalPriceCents: null, isPaid: false,
+    suspendedAmountCents: 0, subsidyCents: 0, qrCode: null, isPickedUp: false
+  }))
+  const demoCommitted = demoShares.reduce((sum, { quantity }) => sum + quantity, 0)
+  if (demoShares.length !== demoQuantities.length || demoCommitted !== 19) {
+    throw new Error('richDemo : le lot de démo Riz basmati doit avoir 19 parts')
+  }
+  groupOrders.push({
+    id: 'order-parc-extension-demo-riz', groupId: 'group-parc-extension', offerId: demoOffer.id, status: 'reached',
+    currentTierIndex: tierIndexFor(demoOffer.tiers as Tier[], demoCommitted), committedShares: demoCommitted,
+    committedHouseholds: demoShares.length, pickupPointId: 'pickup-parc-extension-1',
+    pickupSlotsInDays: [
+      { inDays: demoOffer.deadlineInDays + 1, startHour: 16, endHour: 19 },
+      { inDays: demoOffer.deadlineInDays + 2, startHour: 10, endHour: 12 }
+    ],
+    shares: demoShares
+  })
 
   // Historique : commandes livrées (ou clôturées, en attente de cueillette) des lots terminés.
   let historyNumber = 0

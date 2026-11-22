@@ -49,13 +49,13 @@ struct AppContext: Sendable {
     )
 
     /// PREVIEWS, TESTS ET MODE `.fake` SEULEMENT (`-useFakeData`, CI) — jamais avec Firebase.
-    /// Personas de `FakeData` (Amina, Saint-Michel, Moulins du Nord), latence réaliste, derrière le cache mémoire (T-112).
+    /// Personas de `FakeData` (Amina, Parc-Extension, Ferme Lafleur), latence réaliste, derrière le cache mémoire (T-112).
     static let demo = AppContext(
         repositories: .fake().cached(),
         userId: FakeData.ID.amina,
         householdId: FakeData.ID.aminaHousehold,
-        groupId: FakeData.ID.saintMichel,
-        vendorId: FakeData.ID.moulinsDuNord,
+        groupId: FakeData.ID.parcExtension,
+        vendorId: FakeData.ID.fermeLafleur,
         organizationId: FakeData.ID.laRuche
     )
 
@@ -64,8 +64,8 @@ struct AppContext: Sendable {
         repositories: .fake(behavior: .instant),
         userId: FakeData.ID.amina,
         householdId: FakeData.ID.aminaHousehold,
-        groupId: FakeData.ID.saintMichel,
-        vendorId: FakeData.ID.moulinsDuNord,
+        groupId: FakeData.ID.parcExtension,
+        vendorId: FakeData.ID.fermeLafleur,
         organizationId: FakeData.ID.laRuche
     )
 

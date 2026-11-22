@@ -501,10 +501,10 @@ private struct GroupRow: View {
                             .foregroundStyle(.texteSecondaire)
                     }
                 }
-                ViewThatFits(in: .horizontal) {
-                    HStack(spacing: 8) { chips }
-                    VStack(alignment: .leading, spacing: 6) { chips }
-                }
+                // Pastilles en ligne, qui passent à la ligne une à une quand la place manque
+                // (au lieu de tout empiler en colonne dès qu'un nom de quartier est long).
+                PickupFlowLayout(spacing: 6) { chips }
+                    .frame(maxWidth: .infinity, alignment: .leading)
             }
             .padding(.horizontal, 14)
             .padding(.top, avatarSide / 2 + 8)
@@ -593,6 +593,16 @@ private struct GroupRow: View {
 }
 
 /// Pastille compacte d'une ligne de groupe : icône teintée et une valeur courte.
+/// Icône et texte serrés (4 pt) : trois pastilles tiennent sur une ligne.
+private struct GroupsChipLabelStyle: LabelStyle {
+    func makeBody(configuration: Configuration) -> some View {
+        HStack(spacing: 4) {
+            configuration.icon
+            configuration.title
+        }
+    }
+}
+
 private struct GroupsChip: View {
     let text: String
     let systemImage: String
@@ -608,8 +618,9 @@ private struct GroupsChip: View {
                 .symbolRenderingMode(.hierarchical)
                 .foregroundStyle(tint)
         }
-        .font(.subheadline.weight(.medium))
-        .padding(.horizontal, 10)
+        .font(.footnote.weight(.semibold))
+        .labelStyle(GroupsChipLabelStyle())
+        .padding(.horizontal, 9)
         .padding(.vertical, 5)
         .background(tint.opacity(0.12), in: .capsule)
     }

@@ -417,6 +417,21 @@ actor FakeGroupRepository: GroupRepository {
         sendGroupIds(of: householdId)
     }
 
+    func removeHousehold(_ householdId: String, fromGroup groupId: String, byUserId userId: String,
+                         creatorHouseholdId: String?) async throws {
+        try await behavior.simulate()
+        guard let group = groups[groupId] else { throw AppError.notFound }
+        try GroupRules.requireCanRemoveHousehold(householdId, byUserId: userId,
+                                                 creatorHouseholdId: creatorHouseholdId, from: group)
+        let before = members[groupId, default: []].count
+        members[groupId]?.removeAll { $0.householdId == householdId }
+        guard members[groupId, default: []].count < before else { return }
+        var updated = group
+        updated.householdCount = max(0, group.householdCount - 1)
+        update(updated)
+        sendGroupIds(of: householdId)
+    }
+
     func observeGroup(id: String) async -> AsyncThrowingStream<NeighborhoodGroup, any Error> {
         let (stream, continuation) = AsyncThrowingStream<NeighborhoodGroup, any Error>.makeStream()
         guard let group = groups[id] else {

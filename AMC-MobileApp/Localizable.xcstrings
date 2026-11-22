@@ -44,12 +44,32 @@
         }
       }
     },
+    "%@, coordonnateur du groupe" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@, group coordinator"
+          }
+        }
+      }
+    },
     "%@, le raton laveur du Grenier" : {
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "%@, the Grenier raccoon"
+          }
+        }
+      }
+    },
+    "%@, ta famille" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@, your family"
           }
         }
       }
@@ -100,6 +120,26 @@
         }
       }
     },
+    "Actions pour %@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Actions for %@"
+          }
+        }
+      }
+    },
+    "Aucune famille pour l'instant" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No families yet"
+          }
+        }
+      }
+    },
     "Avec le bouton +, rejoins un groupe avec un code ou crée le tien. Tout près, la carte montre les groupes, les points de cueillette et les producteurs autour de toi." : {
       "localizations" : {
         "en" : {
@@ -140,6 +180,16 @@
         }
       }
     },
+    "Cette famille ne verra plus le groupe, ses lots ni ses cueillettes. Ses parts déjà réservées restent valides. Elle pourra revenir si le groupe l'accepte." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "This family will no longer see the group, its lots or its pickups. Shares it already reserved stay valid. It can come back if the group accepts it."
+          }
+        }
+      }
+    },
     "Chaque carte montre où en est un lot. Si le minimum de commande risque de ne pas être atteint, un badge t'indique combien de parts manquent." : {
       "localizations" : {
         "en" : {
@@ -170,6 +220,16 @@
         }
       }
     },
+    "Chargement des familles" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Loading families"
+          }
+        }
+      }
+    },
     "Choisis ta quantité, puis touche Réserver : tu paies seulement à la cueillette. Tu peux aussi ajouter un panier suspendu, un petit montant qui offre un panier à une famille qui en a besoin." : {
       "localizations" : {
         "en" : {
@@ -186,6 +246,26 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Order cancelled"
+          }
+        }
+      }
+    },
+    "Coordonnateur" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Coordinator"
+          }
+        }
+      }
+    },
+    "Familles membres" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Member families"
           }
         }
       }
@@ -330,6 +410,16 @@
         }
       }
     },
+    "Les familles qui rejoindront le groupe apparaîtront ici." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Families that join the group will show up here."
+          }
+        }
+      }
+    },
     "Les familles seront débitées au prix final de %@ par %@. Les parts ne pourront plus changer." : {
       "localizations" : {
         "en" : {
@@ -390,6 +480,16 @@
         }
       }
     },
+    "Permet de retirer cette famille du groupe." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Lets you remove this family from the group."
+          }
+        }
+      }
+    },
     "Prix final : %@ pour ta part, payé au pot du groupe. Rendez-vous à la cueillette avec ton code QR." : {
       "localizations" : {
         "en" : {
@@ -440,12 +540,42 @@
         }
       }
     },
+    "Retirer %@ du groupe ?" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Remove %@ from the group?"
+          }
+        }
+      }
+    },
+    "Retirer du groupe" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Remove from group"
+          }
+        }
+      }
+    },
     "Rien à montrer ici pour l'instant : l'élément apparaîtra dès que cet écran sera rempli." : {
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Nothing to show here yet: it will appear once this screen has content."
+          }
+        }
+      }
+    },
+    "Ta famille" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Your family"
           }
         }
       }
@@ -596,6 +726,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Tap + in the Bundles tab to publish a new bundle: product, quantity, grocery price and price tiers."
+          }
+        }
+      }
+    },
+    "Une famille du quartier" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "A neighborhood family"
           }
         }
       }

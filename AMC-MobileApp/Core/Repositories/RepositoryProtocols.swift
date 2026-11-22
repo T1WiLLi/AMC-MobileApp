@@ -96,6 +96,12 @@ nonisolated protocol GroupRepository: Sendable {
     /// Ajoute le ménage au groupe ; sans effet s'il en fait déjà partie.
     func join(groupId: String, householdId: String) async throws
     func leave(groupId: String, householdId: String) async throws
+    /// T-191 : le créateur du groupe (`GroupRules.isCreator`) retire une famille : l'inverse exact de `join`
+    /// (adhésion supprimée et `householdCount` −1). `.permissionDenied` si `userId` n'est pas le créateur ou si
+    /// la famille est la sienne (`creatorHouseholdId`) ; `.notFound` si le groupe n'existe pas ; sans effet si
+    /// la famille n'est pas membre.
+    func removeHousehold(_ householdId: String, fromGroup groupId: String, byUserId userId: String,
+                         creatorHouseholdId: String?) async throws
     /// Écoute en temps réel : émet l'état courant, puis chaque changement.
     func observeGroup(id: String) async -> AsyncThrowingStream<NeighborhoodGroup, any Error>
     /// FB-22 : ids des groupes dont le ménage est membre, en direct. Émet l'état courant, puis chaque fois

@@ -201,6 +201,13 @@ nonisolated struct CachedGroupRepository: GroupRepository {
         await Self.invalidateMembership(groupId: groupId, householdId: householdId, in: cache)
     }
 
+    func removeHousehold(_ householdId: String, fromGroup groupId: String, byUserId userId: String,
+                         creatorHouseholdId: String?) async throws {
+        try await base.removeHousehold(householdId, fromGroup: groupId, byUserId: userId,
+                                       creatorHouseholdId: creatorHouseholdId)
+        await Self.invalidateMembership(groupId: groupId, householdId: householdId, in: cache)
+    }
+
     /// T-122 : la fiche et les listes qui contiennent le groupe sont relues avec la nouvelle image.
     func updateImage(_ kind: GroupImageKind, url: URL?, ofGroup groupId: String, byUserId userId: String) async throws {
         try await base.updateImage(kind, url: url, ofGroup: groupId, byUserId: userId)

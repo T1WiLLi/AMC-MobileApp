@@ -137,6 +137,17 @@ nonisolated final class FirestoreGroupRepository: GroupRepository, @unchecked Se
         try await changeMembership(groupId: groupId, householdId: householdId, joining: false)
     }
 
+    /// T-191 : retrait par le créateur. Même batch que `leave` (adhésion supprimée, `householdCount` −1,
+    /// `lastMembershipChange` = la famille retirée) ; les règles n'acceptent ce chemin que du créateur du groupe
+    /// et jamais pour son propre ménage.
+    func removeHousehold(_ householdId: String, fromGroup groupId: String, byUserId userId: String,
+                         creatorHouseholdId: String?) async throws {
+        let group = try await group(id: groupId)
+        try GroupRules.requireCanRemoveHousehold(householdId, byUserId: userId,
+                                                 creatorHouseholdId: creatorHouseholdId, from: group)
+        try await changeMembership(groupId: groupId, householdId: householdId, joining: false)
+    }
+
     /// T-122 : l'image est déjà dans `groups/{id}/media/{photo|banner}` ; on pose `photoUpdatedAt` / `bannerUpdatedAt`
     /// = horodatage serveur (firestore.rules T-132 : coordinateur seulement, `== request.time`, rien d'autre).
     /// L'URL lue ensuite en est déduite (`resolvingMediaURLs()`).

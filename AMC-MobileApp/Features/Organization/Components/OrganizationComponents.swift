@@ -163,13 +163,18 @@ struct GroupNeedCard<Actions: View>: View {
                 ? AnyLayout(VStackLayout(alignment: .leading, spacing: 8))
                 : AnyLayout(HStackLayout(alignment: .top, spacing: 12))
             layout {
-                Image(systemName: "person.3.fill")
-                    .font(.title3)
-                    .symbolRenderingMode(.hierarchical)
-                    .foregroundStyle(profile.needLevel.tint)
-                    .frame(width: 44, height: 44)
-                    .background(profile.needLevel.tint.opacity(0.12), in: .rect(cornerRadius: 12))
-                    .accessibilityHidden(true)
+                // Photo du groupe (groups/{id}/media/photo) ; l'icône reste s'il n'en a pas.
+                MediaImage(url: MediaPath.groupPhoto(groupId: profile.groupId).url) {
+                    Image(systemName: "person.3.fill")
+                        .font(.title3)
+                        .symbolRenderingMode(.hierarchical)
+                        .foregroundStyle(profile.needLevel.tint)
+                        .frame(maxWidth: .infinity, maxHeight: .infinity)
+                        .background(profile.needLevel.tint.opacity(0.12))
+                }
+                .frame(width: 44, height: 44)
+                .clipShape(.rect(cornerRadius: 12))
+                .accessibilityHidden(true)
                 VStack(alignment: .leading, spacing: 4) {
                     Text(profile.groupName)
                         .font(.headline)

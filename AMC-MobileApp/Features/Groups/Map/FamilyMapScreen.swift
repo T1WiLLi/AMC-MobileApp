@@ -3,9 +3,12 @@
 // Poussée depuis l'onglet Groupes (bouton carte de la barre d'outils) : les routes `GroupRoute` et `OfferRoute`
 // sont celles du NavigationStack de l'onglet.
 //
-// Couches : carte MapKit plein écran ; en haut, barre en verre (rayon 1 / 1,5 / 2 km et filtres par sorte) ;
-// en bas, pastille « Autour de … », contrôles de carte, puis explication de la position, carte du lieu touché,
-// rayon vide ou erreur.
+// Couches : carte MapKit plein écran ; en haut, barre en verre (pastille « Dans un rayon de 4,2 km » et filtres
+// par sorte) ; en bas, pastille « Autour de … », contrôles de carte, puis explication de la position, carte du
+// lieu touché, rayon vide ou erreur.
+//
+// R-015 : plus de rayons prédéfinis. La famille zoome et dézoome librement ; chaque mouvement de carte
+// (`onMapCameraChange`) donne la zone visible au ViewModel, qui en tire le rayon et refiltre après un court délai.
 
 import MapKit
 import SwiftUI
@@ -16,6 +19,9 @@ struct FamilyMapScreen: View {
     @State private var location = FamilyLocationRequester()
     @State private var camera: MapCameraPosition = .region(.montreal)
     @State private var showsLocationDeniedAlert = false
+    /// Dernière caméra de la carte, une fois le premier cadrage fait (recentrer en gardant le zoom, dézoomer).
+    @State private var lastMapCamera: MapCamera?
+    @State private var hasFittedCamera = false
     /// L'explication de la position a reçu une réponse (autoriser ou rester sur le quartier) : on ne la remontre plus.
     @AppStorage("familyMap.locationExplained") private var locationExplained = false
 
@@ -33,7 +39,7 @@ struct FamilyMapScreen: View {
         ZStack {
             if let viewModel {
                 FamilyMapCanvas(viewModel: viewModel, camera: $camera, destination: $destination, scope: mapScope,
-                                reduceMotion: reduceMotion)
+                                reduceMotion: reduceMotion, onCameraChange: cameraChanged)
                     .ignoresSafeArea()
             } else {
                 Color.fond.ignoresSafeArea()
@@ -73,7 +79,6 @@ struct FamilyMapScreen: View {
             if location.authorization == .authorized { await locateFamily() }
         }
         .onChange(of: viewModel?.origin) { _, _ in fitCamera() }
-        .onChange(of: viewModel?.radius) { _, _ in fitCamera() }
         .onChange(of: scenePhase) { _, phase in
             // Retour des Réglages : la position vient peut-être d'être autorisée.
             guard phase == .active else { return }
@@ -118,7 +123,7 @@ struct FamilyMapScreen: View {
                         .id(place.id)
                         .transition(.move(edge: .bottom).combined(with: .opacity))
                     } else if case .empty = viewModel.state {
-                        FamilyMapEmptyHint(viewModel: viewModel, reduceMotion: reduceMotion)
+                        FamilyMapEmptyHint(zoomOut: zoomOut)
                             .transition(.opacity)
                     } else if let error = viewModel.state.error {
                         FamilyMapErrorCard(error: error) { await viewModel.load() }
@@ -161,12 +166,48 @@ struct FamilyMapScreen: View {
         }
     }
 
-    /// Cadre le cercle du rayon autour du centre.
+    /// Centre la carte sur l'origine : au premier cadrage avec le rayon par défaut, ensuite en gardant le zoom choisi.
     private func fitCamera() {
         guard let viewModel, let origin = viewModel.origin else { return }
-        let region = NeighborhoodMapLayout.camera(center: origin.coordinate.location,
-                                                  radiusMeters: viewModel.radius.rawValue)
-        withAnimation(reduceMotion ? nil : .smooth(duration: 0.7)) { camera = region }
+        let center = origin.coordinate.location
+        let target: MapCameraPosition
+        if hasFittedCamera, let last = lastMapCamera {
+            target = .camera(MapCamera(centerCoordinate: center, distance: last.distance,
+                                       heading: last.heading, pitch: last.pitch))
+        } else {
+            // MapKit étire la région carrée à la hauteur de l'écran : ce côté donne ≈ 1,5 km au coin sur un iPhone.
+            let side = FamilyMapViewModel.defaultRadiusMeters * 0.85
+            target = .region(MKCoordinateRegion(center: center, latitudinalMeters: side, longitudinalMeters: side))
+        }
+        hasFittedCamera = true
+        withAnimation(reduceMotion ? nil : .smooth(duration: 0.7)) { camera = target }
+    }
+
+    /// Chaque mouvement de carte (pincement, déplacement, boutons) donne la zone visible au ViewModel.
+    private func cameraChanged(_ context: MapCameraUpdateContext) {
+        // Avant le premier cadrage, la carte montre tout Montréal : ce n'est pas un choix de la famille.
+        guard hasFittedCamera, let viewModel else { return }
+        lastMapCamera = context.camera
+        let region = context.region
+        viewModel.visibleRegionChanged(center: Geohash.Coordinate(region.center),
+                                       latitudeDelta: region.span.latitudeDelta,
+                                       longitudeDelta: region.span.longitudeDelta)
+    }
+
+    /// « Dézoomer » de l'état vide : double la distance de la caméra.
+    private func zoomOut() {
+        guard let viewModel else { return }
+        let target: MapCameraPosition
+        if let last = lastMapCamera {
+            target = .camera(MapCamera(centerCoordinate: last.centerCoordinate, distance: last.distance * 2,
+                                       heading: last.heading, pitch: last.pitch))
+        } else if let center = viewModel.searchArea?.center {
+            let side = viewModel.displayedRadiusMeters * 2 * 2.0.squareRoot()
+            target = .region(MKCoordinateRegion(center: center.location, latitudinalMeters: side, longitudinalMeters: side))
+        } else {
+            return
+        }
+        withAnimation(reduceMotion ? nil : .smooth(duration: 0.6)) { camera = target }
     }
 }
 
@@ -178,16 +219,13 @@ private struct FamilyMapCanvas: View {
     @Binding var destination: FamilyMapDestination?
     let scope: Namespace.ID
     let reduceMotion: Bool
+    let onCameraChange: (MapCameraUpdateContext) -> Void
 
     var body: some View {
         Map(position: $camera, interactionModes: [.pan, .zoom, .rotate], scope: scope) {
             UserAnnotation()
 
             if let origin = viewModel.origin {
-                MapCircle(center: origin.coordinate.location, radius: viewModel.radius.meters)
-                    .foregroundStyle(Color.grenier.opacity(0.08))
-                    .stroke(Color.grenier.opacity(0.5), style: StrokeStyle(lineWidth: 1.5, dash: [6, 5]))
-
                 if !origin.isUserLocation {
                     Annotation(origin.title, coordinate: origin.coordinate.location, anchor: .center) {
                         FamilyMapHomeMarker()
@@ -219,6 +257,8 @@ private struct FamilyMapCanvas: View {
         }
         .mapStyle(.standard(elevation: .realistic, emphasis: .muted, pointsOfInterest: .excludingAll))
         .mapControls {}
+        // Continu : la pastille du rayon suit le doigt ; le ViewModel diffère le filtrage.
+        .onMapCameraChange(frequency: .continuous) { context in onCameraChange(context) }
         .overlay {
             if viewModel.state.isLoading || viewModel.origin == nil, viewModel.state.error == nil {
                 FamilyMapLoadingBadge().transition(.opacity)
@@ -245,7 +285,7 @@ private struct FamilyMapLoadingBadge: View {
     }
 }
 
-// MARK: - Barre du haut (rayon et filtres)
+// MARK: - Barre du haut (rayon visible et filtres)
 
 private struct FamilyMapControlBar: View {
     @Bindable var viewModel: FamilyMapViewModel
@@ -254,16 +294,7 @@ private struct FamilyMapControlBar: View {
     var body: some View {
         GlassEffectContainer(spacing: 10) {
             VStack(spacing: 10) {
-                Picker("Rayon", selection: $viewModel.radius) {
-                    ForEach(FamilyMapViewModel.Radius.allCases) { radius in
-                        Text(radius.title).tag(radius)
-                    }
-                }
-                .pickerStyle(.segmented)
-                .padding(4)
-                .glassEffect(.regular, in: .capsule)
-                .accessibilityLabel("Rayon autour de chez toi")
-                .sensoryFeedback(.selection, trigger: viewModel.radius)
+                FamilyMapRadiusPill(viewModel: viewModel, reduceMotion: reduceMotion)
 
                 ScrollView(.horizontal) {
                     HStack(spacing: 8) {
@@ -287,6 +318,56 @@ private struct FamilyMapControlBar: View {
         .padding(.top, 4)
         .padding(.bottom, 8)
         .sensoryFeedback(.selection, trigger: viewModel.visibleKinds)
+    }
+}
+
+/// « Dans un rayon de 4,2 km » : suit le zoom de la carte (R-015). Pas un bouton : on change le rayon en zoomant.
+private struct FamilyMapRadiusPill: View {
+    let viewModel: FamilyMapViewModel
+    let reduceMotion: Bool
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
+
+    /// Tailles d'accessibilité : seul le rayon reste, pour ne pas cacher la carte (l'indice passe par VoiceOver).
+    private var isCompact: Bool { dynamicTypeSize.isAccessibilitySize }
+
+    var body: some View {
+        HStack(spacing: 12) {
+            if !isCompact { icon }
+            VStack(alignment: .leading, spacing: 2) {
+                Text(viewModel.radiusTitle)
+                    .font(.headline)
+                    .foregroundStyle(Color.texte)
+                    .monospacedDigit()
+                    .contentTransition(reduceMotion ? .identity : .numericText(value: viewModel.displayedRadiusMeters))
+                    .animation(reduceMotion ? nil : .snappy, value: viewModel.displayedRadiusMeters)
+                if !isCompact {
+                    Label("Pince la carte pour zoomer ou dézoomer", systemImage: "hand.pinch")
+                        .font(.caption)
+                        .foregroundStyle(Color.texteSecondaire)
+                }
+            }
+            .fixedSize(horizontal: false, vertical: true)
+            .multilineTextAlignment(.leading)
+            Spacer(minLength: 0)
+        }
+        // Surcouche de carte : comme dans Plans, le texte s'arrête à AX3 pour laisser voir la carte.
+        .dynamicTypeSize(...DynamicTypeSize.accessibility3)
+        .padding(.horizontal, 16)
+        .padding(.vertical, 10)
+        .frame(maxWidth: .infinity, minHeight: 44, alignment: .leading)
+        .glassEffect(.regular, in: .rect(cornerRadius: 24))
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(viewModel.radiusTitle)
+        .accessibilityHint("Zoome ou dézoome la carte pour changer le rayon")
+    }
+
+    private var icon: some View {
+        Image(systemName: "scope")
+            .font(.title3.weight(.semibold))
+            .symbolRenderingMode(.hierarchical)
+            .foregroundStyle(Color.grenier)
+            .symbolEffect(.pulse, isActive: !reduceMotion && viewModel.liveRadiusMeters != nil)
+            .accessibilityHidden(true)
     }
 }
 
@@ -382,8 +463,7 @@ private struct FamilyMapOriginPill: View {
 // MARK: - États du bas
 
 private struct FamilyMapEmptyHint: View {
-    let viewModel: FamilyMapViewModel
-    let reduceMotion: Bool
+    let zoomOut: () -> Void
 
     var body: some View {
         HStack(spacing: 12) {
@@ -393,22 +473,21 @@ private struct FamilyMapEmptyHint: View {
                 .foregroundStyle(Color.grenier)
                 .accessibilityHidden(true)
             VStack(alignment: .leading, spacing: 2) {
-                Text("Rien à moins de \(viewModel.radius.title)")
+                Text("Rien dans ce coin")
                     .font(.headline)
                     .foregroundStyle(Color.texte)
-                Text("Élargis le rayon ou affiche d'autres sortes de lieux.")
+                Text("Dézoome la carte ou affiche d'autres sortes de lieux.")
                     .font(.subheadline)
                     .foregroundStyle(Color.texteSecondaire)
             }
             Spacer(minLength: 0)
-            if viewModel.radius != .twoKilometers {
-                Button("2 km") {
-                    withAnimation(reduceMotion ? nil : .smooth) { viewModel.radius = .twoKilometers }
-                }
+            Button("Dézoomer", systemImage: "minus.magnifyingglass", action: zoomOut)
+                .labelStyle(.iconOnly)
+                .font(.title3)
+                .frame(minWidth: 44, minHeight: 44)
                 .buttonStyle(.glass)
                 .tint(.grenier)
-                .accessibilityLabel("Élargir le rayon à 2 km")
-            }
+                .accessibilityLabel("Dézoomer la carte")
         }
         .padding(16)
         .glassEffect(.regular, in: .rect(cornerRadius: 28))

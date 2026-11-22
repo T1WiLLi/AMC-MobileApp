@@ -165,6 +165,71 @@ struct LiveViewModelTests {
         #expect(viewModel.state.value?.openOrders.first { $0.offer.id == ID.potatoOffer }?.pricing.currentPriceCents == 990)
     }
 
+    @Test func groupsListFollowsGroupChangesWithoutReloading() async throws {
+        let repos = AppRepositories.fake(behavior: .instant)
+        let viewModel = GroupsViewModel(repositories: repos, householdId: ID.aminaHousehold)
+        await viewModel.load()
+        let countBefore = try #require(viewModel.state.value?.first { $0.id == ID.saintMichel }?.group.householdCount)
+        let task = Task { await viewModel.observeGroups() }
+        defer { task.cancel() }
+        await settle()
+
+        try await repos.groups.join(groupId: ID.saintMichel, householdId: "household-nouveau")
+        #expect(await waitUntil {
+            viewModel.state.value?.first { $0.id == ID.saintMichel }?.group.householdCount == countBefore + 1
+        })
+    }
+
+    @Test func groupsListFollowsNewPhotoAndBannerWithoutReloading() async throws {
+        let repos = AppRepositories.fake(behavior: .instant)
+        let viewModel = GroupsViewModel(repositories: repos, householdId: ID.aminaHousehold)
+        await viewModel.load()
+        let task = Task { await viewModel.observeGroups() }
+        defer { task.cancel() }
+        await settle()
+
+        let photo = MediaPath.groupPhoto(groupId: ID.saintMichel).url(version: 1_732_200_000_000)
+        let banner = MediaPath.groupBanner(groupId: ID.saintMichel).url(version: 1_732_200_000_001)
+        try await repos.groups.updateImage(.photo, url: photo, ofGroup: ID.saintMichel, byUserId: ID.amina)
+        try await repos.groups.updateImage(.banner, url: banner, ofGroup: ID.saintMichel, byUserId: ID.amina)
+        #expect(await waitUntil {
+            let group = viewModel.state.value?.first { $0.id == ID.saintMichel }?.group
+            return group?.photoURL == photo && group?.bannerURL == banner
+        })
+
+        // Image retirée par le coordinateur : la ligne repasse sans photo.
+        try await repos.groups.updateImage(.photo, url: nil, ofGroup: ID.saintMichel, byUserId: ID.amina)
+        #expect(await waitUntil { viewModel.state.value?.first { $0.id == ID.saintMichel }?.group.photoURL == nil })
+    }
+
+    @Test func groupDetailFollowsNewBannerWithoutReloading() async throws {
+        let repos = AppRepositories.fake(behavior: .instant)
+        let viewModel = GroupDetailViewModel(repositories: repos, householdId: ID.aminaHousehold, groupId: ID.saintMichel)
+        await viewModel.load()
+        let task = Task { await viewModel.observe() }
+        defer { task.cancel() }
+        #expect(await waitUntil { viewModel.isLive })
+
+        let banner = MediaPath.groupBanner(groupId: ID.saintMichel).url(version: 1_732_200_000_002)
+        try await repos.groups.updateImage(.banner, url: banner, ofGroup: ID.saintMichel, byUserId: ID.amina)
+        #expect(await waitUntil { viewModel.state.value?.group.bannerURL == banner })
+    }
+
+    @Test func groupDetailCatchesUpOnChangesMadeWhileHidden() async throws {
+        let repos = AppRepositories.fake(behavior: .instant)
+        let viewModel = GroupDetailViewModel(repositories: repos, householdId: ID.aminaHousehold, groupId: ID.saintMichel)
+        await viewModel.load()
+        // Écran caché (page poussée par-dessus) : pas d'écoute pendant le changement.
+        let photo = MediaPath.groupPhoto(groupId: ID.saintMichel).url(version: 1_732_200_000_003)
+        try await repos.groups.updateImage(.photo, url: photo, ofGroup: ID.saintMichel, byUserId: ID.amina)
+        #expect(viewModel.state.value?.group.photoURL != photo)
+
+        // Retour sur l'écran : la première émission rattrape la photo.
+        let task = Task { await viewModel.observe() }
+        defer { task.cancel() }
+        #expect(await waitUntil { viewModel.state.value?.group.photoURL == photo })
+    }
+
     @Test func groupDetailStopsListeningWhenCancelled() async throws {
         let repos = AppRepositories.fake(behavior: .instant)
         let viewModel = GroupDetailViewModel(repositories: repos, householdId: ID.aminaHousehold, groupId: ID.saintMichel)

@@ -24,13 +24,18 @@ final class GroupsViewModel {
     }
 
     /// Groupes publics ; les groupes du ménage d'abord. `.empty` s'il n'y en a aucun.
-    private(set) var state: LoadState<[Item]> = .idle
+    private(set) var state: LoadState<[Item]> = .idle {
+        didSet { shownIdsContinuation?.yield(shownIds) }
+    }
     /// Groupes dont l'adhésion est en cours de changement (pour désactiver le bouton / montrer un `ProgressView`).
     private(set) var pendingGroupIds: Set<String> = []
     /// Dernière erreur d'une action (rejoindre / quitter), à montrer en alerte ; remise à nil par la vue.
     var actionError: AppError?
     /// FB-22 : incrémenté quand un autre membre du ménage rejoint ou quitte un groupe (la session doit suivre).
     private(set) var householdMembershipChangeCount = 0
+
+    /// Prévenu quand l'ensemble des groupes affichés change (`observeGroups()` relance ses écoutes).
+    @ObservationIgnored private var shownIdsContinuation: AsyncStream<Set<String>>.Continuation?
 
     private let repositories: AppRepositories
     private let householdId: String
@@ -105,6 +110,60 @@ final class GroupsViewModel {
         } catch {
             // Réseau ou accès : la liste reste telle quelle ; `.refreshable` relit.
         }
+    }
+
+    /// Ids des groupes affichés.
+    private var shownIds: Set<String> { Set(state.value?.map(\.id) ?? []) }
+
+    /// Suit en direct chaque groupe affiché (nom, photo, bannière, nombre de ménages, visibilité…) jusqu'à
+    /// l'annulation de la tâche (`.task` de l'écran) : la ligne change sans recharger ni tirer pour rafraîchir.
+    /// Les écoutes suivent la liste : un groupe ajouté est écouté, un groupe retiré ne l'est plus.
+    func observeGroups() async {
+        let (changes, continuation) = AsyncStream.makeStream(of: Set<String>.self, bufferingPolicy: .bufferingNewest(1))
+        shownIdsContinuation?.finish()
+        shownIdsContinuation = continuation
+        continuation.yield(shownIds)
+        var following: Set<String> = []
+        var listeners: Task<Void, Never>?
+        for await ids in changes where ids != following {
+            following = ids
+            listeners?.cancel()
+            listeners = Task { [weak self] in await self?.follow(ids) }
+        }
+        listeners?.cancel()
+    }
+
+    private func follow(_ ids: Set<String>) async {
+        let repositories = repositories
+        await withTaskGroup(of: Void.self) { tasks in
+            for id in ids {
+                tasks.addTask { [weak self] in
+                    let updates = await repositories.groups.observeGroup(id: id)
+                    do {
+                        for try await group in updates { await self?.groupChanged(group) }
+                    } catch AppError.notFound {
+                        await self?.groupRemoved(id: id)
+                    } catch {
+                        // Réseau ou accès : la ligne garde sa dernière valeur.
+                    }
+                }
+            }
+        }
+    }
+
+    private func groupChanged(_ group: NeighborhoodGroup) {
+        guard var items = state.value, let index = items.firstIndex(where: { $0.id == group.id }) else { return }
+        // Un groupe devenu privé disparaît pour les ménages qui n'en sont pas membres (B-056).
+        if !group.isPublic && !items[index].isMember { return groupRemoved(id: group.id) }
+        guard items[index].group != group else { return }
+        items[index].group = group
+        state = .loaded(items)
+    }
+
+    private func groupRemoved(id: String) {
+        guard var items = state.value, items.contains(where: { $0.id == id }) else { return }
+        items.removeAll { $0.id == id }
+        state = .from(items)
     }
 
     /// B-056 : après une entrée avec un code (feuille « Rejoindre avec un code »), le groupe passe dans « Tes groupes ».

@@ -2048,8 +2048,14 @@ describe('portail Organismes (T-194)', () => {
       await assertSucceeds(getDoc(doc(amina(), fund)))
       await assertSucceeds(getDoc(doc(orgUser(), fund)))
       await assertFails(getDoc(doc(intruder(), fund)))
-      await assertFails(getDoc(doc(lafleur(), fund)))
       await assertFails(getDoc(doc(anonymous(), fund)))
+    })
+    test('T-203 : un vendeur lit le document du fonds (clôture T-196), sans pouvoir lister ni écrire', async () => {
+      await seedFund(fullFund())
+      await assertSucceeds(getDoc(doc(lafleur(), fund)))
+      await assertFails(getDocs(collection(lafleur(), `groups/${groupId}/solidarity`)))
+      await assertFails(getDoc(doc(lafleur(), `groups/${groupId}/solidarity/autre`)))
+      await assertFails(setDoc(doc(lafleur(), fund), { subsidizedHouseholds: 0 }, { merge: true }))
     })
     test('aucun débit : application, suppression d’une ligne ou baisse du solde refusés', async () => {
       await seedFund(fullFund())
@@ -2322,6 +2328,35 @@ describe('clôture : paiements enregistrés, versement vendeur et débit du fond
 
   test('le vendeur du lot clôture : parts, paiement, versement et débit du fonds dans la même écriture', async () => {
     await assertSucceeds(closeBatch(lafleur()))
+  })
+  // T-203 : la même clôture, rejouée comme `FirestoreGroupOrderRepository.closeGroupOrder` : une transaction qui relit
+  // la commande, le lot, les parts, le fonds et le vendeur avant d'écrire. Avant le correctif, la lecture du fonds
+  // était refusée au vendeur : « Fermer la commande » côté vendeur échouait toujours.
+  const closeTransaction = (db: Firestore) => runTransaction(db, async (tx) => {
+    await tx.get(doc(db, orderPath))
+    await tx.get(doc(db, 'offers/offer-carottes'))
+    await tx.get(doc(db, sharePath))
+    await tx.get(doc(db, fundPath))
+    await tx.get(doc(db, 'vendors/vendor-lafleur'))
+    tx.update(doc(db, sharePath), { finalPriceCents: 7000, subsidyCents: 5000, isPaid: true })
+    tx.set(doc(db, paymentPath), payment)
+    tx.set(doc(db, payoutPath), payout)
+    tx.update(doc(db, fundPath), { entries: arrayUnion(debit) })
+    tx.update(doc(db, orderPath), { committedShares: 10, committedHouseholds: 1, currentTierIndex: 0, status: 'closed' })
+  })
+  test('T-203 : le vendeur du lot clôture dans une transaction qui relit le fonds', async () => {
+    await assertSucceeds(closeTransaction(lafleur()))
+    let entries: unknown[] = []
+    await env.withSecurityRulesDisabled(async (c) => {
+      entries = (await getDoc(doc(c.firestore(), fundPath))).data()?.entries ?? []
+    })
+    assert.equal(entries.length, 2)
+  })
+  test('T-203 : un autre vendeur ne clôture pas la commande, même s’il lit le fonds', async () => {
+    await env.withSecurityRulesDisabled(async (c) => {
+      await setDoc(doc(c.firestore(), 'users/intrus'), { ...aminaUser, id: 'intrus', householdId: null, vendorId: 'vendor-autre' })
+    })
+    await assertFails(closeTransaction(intruder()))
   })
   test('la coordination du groupe clôture aussi', async () => {
     await makeCoordinator()

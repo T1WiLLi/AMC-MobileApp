@@ -363,5 +363,64 @@ struct FirestoreGroupOrderRepositoryTests {
             try await coordinator.repository.setShare(quantity: 1, householdId: coordinatorHousehold, groupOrderId: orderId)
         }
     }
+
+    /// T-203 : « Fermer la commande » côté vendeur (T-196), la vraie transaction du dépôt : elle relit le fonds de
+    /// solidarité du groupe. Avant le correctif de firestore.rules, cette lecture était refusée au vendeur et la
+    /// clôture échouait toujours (« Action non permise »). Le ménage subventionné reçoit sa subvention du fonds.
+    @Test func vendorClosesWithTheFundReadInTheTransaction() async throws {
+        let world = EmulatorWorld()
+        let vendor = try await EmulatorDevice.signIn()
+        try await world.seedGroup()
+        try await world.seedOffer(deadline: .now.addingTimeInterval(86_400))
+        try await FirestoreEmulator.seed("users/\(vendor.uid)", [
+            "id": vendor.uid, "displayName": "Ferme", "language": "fr", "roles": ["vendor"],
+            "neighborhood": "test", "dietaryPreferences": [String](), "seniorMode": false, "vendorId": world.vendorId,
+        ])
+        try await FirestoreEmulator.seed("vendors/\(world.vendorId)", [
+            "id": world.vendorId, "legalName": "Ferme test", "kind": "farm", "description": "x",
+            "photoURLs": [String](), "servedZones": [String](), "isVerified": true,
+        ])
+        let subsidized = "household-aide-\(world.groupId)"
+        try await FirestoreEmulator.seed("households/\(subsidized)/private/profile", [
+            "isSubsidized": true, "referralCode": "ORG-PE-00035",
+        ])
+        try await FirestoreEmulator.seed("groups/\(world.groupId)/solidarity/fund", [
+            "entries": [["kind": "contribution", "amountCents": 2_000, "basketCount": 0, "date": Date()]],
+            "subsidizedHouseholds": 1, "basketPriceCents": 2_600, "sponsorOrganizationIds": [String](),
+        ])
+        let orderId = FirestoreGroupOrderRepository.orderId(groupId: world.groupId, offerId: world.offerId)
+        try await FirestoreEmulator.seed("groupOrders/\(orderId)", [
+            "id": orderId, "groupId": world.groupId, "offerId": world.offerId, "status": "reached",
+            "currentTierIndex": 1, "committedShares": 12, "committedHouseholds": 2, "pickupSlots": [Any](),
+        ])
+        try await FirestoreEmulator.seed("groupOrders/\(orderId)/shares/household-voisin", [
+            "householdId": "household-voisin", "quantity": 7, "isPaid": false, "suspendedAmountCents": 0,
+            "subsidyCents": 0, "isPickedUp": false,
+        ])
+        try await FirestoreEmulator.seed("groupOrders/\(orderId)/shares/\(subsidized)", [
+            "householdId": subsidized, "quantity": 5, "isPaid": false, "suspendedAmountCents": 0,
+            "subsidyCents": 0, "isPickedUp": false, "solidarityEligible": true,
+        ])
+        let user = AppUser(id: vendor.uid, displayName: "Ferme", photoURL: nil, language: .french, roles: [.vendor],
+                           neighborhood: "test", dietaryPreferences: [], seniorMode: false,
+                           householdId: nil, vendorId: world.vendorId)
+
+        let closure = try await vendor.repository.closeGroupOrder(
+            id: orderId, trigger: .manual(user: user, groupCoordinatorIds: [])
+        )
+        #expect(closure.order.status == .closed)
+        #expect(closure.fundUsedCents == 2_000)
+        let shares = try await vendor.repository.shares(ofGroupOrder: orderId)
+        let byHousehold = Dictionary(uniqueKeysWithValues: shares.map { ($0.householdId, $0) })
+        let aided = try #require(byHousehold[subsidized])
+        #expect(aided.finalPriceCents == 4_000)
+        #expect(aided.subsidyCents == 2_000)
+        #expect(shares.allSatisfy { $0.isPaid })
+        let payout = try await vendor.repository.vendorPayout(ofGroupOrder: orderId)
+        #expect(payout?.subsidyTotalCents == 2_000)
+        let fund = try await vendor.db.document("groups/\(world.groupId)/solidarity/fund").getDocument()
+        let entries = fund.data()?["entries"] as? [Any]
+        #expect(entries?.count == 2)
+    }
 }
 #endif

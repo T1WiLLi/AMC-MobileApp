@@ -165,8 +165,8 @@ struct PickupArrivalTests {
         #expect(PickupViewModel.qrPayload(for: Self.order(.closed), code: "grenier://part/h1", memberId: "u1") == nil)
     }
 
-    /// `-demoPickupPlaces -demoArrival` : deux lieux ; rue Jarry a deux commandes (une fermée avec SON code,
-    /// une ouverte sans code), la zone de Villeray n'a qu'une commande ouverte (pas de code).
+    /// `-demoPickupPlaces -demoArrival` : deux groupes. Villeray a une commande fermée à la rue Jarry (avec son code)
+    /// et une ouverte à sa zone ; Saint-Michel n'a qu'une commande ouverte (pas de code).
     @Test func eachPlaceAndOrderHasItsOwnCode() async throws {
         let data = FakeData.demo.withPickupPlacesDemo().withArrivalDemo()
         let repos = AppRepositories.fake(behavior: .instant, data: data)
@@ -174,11 +174,16 @@ struct PickupArrivalTests {
                                         userId: ID.amina)
         await viewModel.load()
         let content = try #require(viewModel.state.value)
-        #expect(content.places.map(\.id) == [ID.jarryPickup, FakeData.PickupPlacesDemoID.villerayZone])
-
-        let jarry = content.places[0]
+        // T-198 : une section par groupe, le groupe actif d'abord ; chaque groupe range ses articles par lieu.
+        #expect(content.groups.first?.id == ID.saintMichel)
+        #expect(content.groups.allSatisfy { $0.groupName != nil })
+        let jarry = try #require(content.groups.first { group in
+            group.items.contains { $0.groupOrderId == FakeData.HostDemoID.onTheWayOrder }
+        })
+        #expect(jarry.id == ID.villerayKitchen)
+        #expect(jarry.places.map(\.id) == [ID.jarryPickup, FakeData.PickupPlacesDemoID.villerayZone])
         guard case .codes(let items, let waiting) = jarry.codeState else {
-            Issue.record("attendu : un code à la rue Jarry")
+            Issue.record("attendu : un code pour le groupe de la rue Jarry")
             return
         }
         #expect(items.map(\.groupOrderId) == [FakeData.HostDemoID.onTheWayOrder])
@@ -188,12 +193,17 @@ struct PickupArrivalTests {
         #expect(payload.hasSuffix("#\(ID.amina)"))
         // Sécurité : le code porte le jeton privé du ménage, pas une somme recalculable.
         #expect(PickupDesk.parse(payload).map { PickupDesk.isPickupToken($0.secret) } == true)
-        #expect(content.places[1].codeState == .awaitingClosure)
+        // UN QR par groupe : celui de Villeray ne porte que ses commandes fermées ; Saint-Michel (ouverte) n'en a pas.
+        #expect(jarry.qrPayload == PickupDesk.bundleCode([payload]))
+        let saintMichel = try #require(content.groups.first { $0.id == ID.saintMichel })
+        #expect(saintMichel.codeState == .awaitingClosure)
+        #expect(saintMichel.qrPayload == nil)
 
-        // Le sélecteur limite l'écran au lieu choisi.
-        let villeray = content.scoped(to: FakeData.PickupPlacesDemoID.villerayZone)
-        #expect(villeray.places.map(\.id) == [FakeData.PickupPlacesDemoID.villerayZone])
-        #expect(content.scoped(to: nil).places.map(\.id) == [ID.jarryPickup])
+        // Le sélecteur limite l'écran au groupe choisi.
+        let villeray = content.scoped(to: ID.villerayKitchen)
+        #expect(villeray.groups.map(\.id) == [ID.villerayKitchen])
+        #expect(villeray.places.map(\.id) == [ID.jarryPickup, FakeData.PickupPlacesDemoID.villerayZone])
+        #expect(content.scoped(to: nil).groups.map(\.id) == [ID.saintMichel])
 
         // En route, puis arrivée.
         #expect(content.arrival == .onTheWay)

@@ -255,4 +255,29 @@ struct PickupDeskTests {
         #expect(stored?.pickedUpBy == "hote")
         #expect(try await repository.confirmPickupByHand(householdId: "h1", groupOrderId: "go1", confirmedBy: "hote", at: .now) == .alreadyPickedUp(stored!))
     }
+
+    // MARK: QR d'un groupe (T-198)
+
+    @Test func groupCodeBundlesEachOrderCode() {
+        let c1 = PickupDesk.pickupCode(orderId: "go1", householdId: "h1", token: PickupDesk.newPickupToken())
+        let c2 = PickupDesk.pickupCode(orderId: "go2", householdId: "h1", token: PickupDesk.newPickupToken())
+        let bundle = PickupDesk.bundleCode([PickupDesk.memberCode(c1, memberId: "amina"), PickupDesk.memberCode(c2, memberId: "amina")])
+        #expect(bundle == "\(c1)|\(c2)#amina")
+        #expect(PickupDesk.bundledCodes(bundle ?? "") == ["\(c1)#amina", "\(c2)#amina"])
+        #expect(PickupDesk.code(for: "go2", in: bundle ?? "") == "\(c2)#amina")
+        // Un code de commande seul reste lui-même ; une commande absente du QR → son premier code (mauvaise commande).
+        #expect(PickupDesk.bundledCodes(c1) == [c1])
+        #expect(PickupDesk.code(for: "go9", in: bundle ?? "") == "\(c1)#amina")
+        #expect(PickupDesk.bundleCode([]) == nil)
+    }
+
+    @Test func scanningAGroupCodeHandsOverOnlyThisOrder() {
+        let bundle = PickupDesk.bundleCode([
+            PickupDesk.pickupCode(orderId: "autre", householdId: "h1", token: PickupDesk.newPickupToken()),
+            code("h1"),
+        ]).map { PickupDesk.memberCode($0, memberId: "amina") } ?? ""
+        let result = scan(bundle)
+        #expect(result.isSuccess)
+        #expect(result.share?.pickedUpBy == "amina")
+    }
 }

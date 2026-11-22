@@ -68,6 +68,25 @@ struct HostPickupViewModelTests {
         #expect(stored?.pickedUpBy == "user-voisin-1")
     }
 
+    /// T-198 : le QR d'un groupe porte le code de chaque commande ; l'hôte remet celle qu'il sert, le reste est ignoré.
+    @Test func groupCodeHandsOverTheOrderTheHostServes() async throws {
+        let repos = AppRepositories.fake(behavior: .instant, data: .demo)
+        let model = HostPickupViewModel(repositories: repos, userId: ID.amina, householdId: ID.aminaHousehold,
+                                        groupId: ID.saintMichel)
+        await model.load()
+        let household = "household-voisin-1"
+        let familyCode = try await repos.groupOrders.pickupCode(householdId: household, groupOrderId: FakeData.HostDemoID.deliveredOrder)
+        let elsewhere = PickupDesk.pickupCode(orderId: "commande-ailleurs", householdId: household, token: PickupDesk.newPickupToken())
+        let bundle = try #require(PickupDesk.bundleCode([PickupDesk.memberCode(elsewhere, memberId: "user-voisin-1"),
+                                                         PickupDesk.memberCode(familyCode, memberId: "user-voisin-1")]))
+        await model.scan(bundle)
+        #expect(model.outcome?.result.isSuccess == true)
+        #expect(model.outcome?.otherOrdersHandedOver == 0)
+        let stored = try await repos.groupOrders.shares(ofGroupOrder: FakeData.HostDemoID.deliveredOrder).first { $0.householdId == household }
+        #expect(stored?.isPickedUp == true)
+        #expect(stored?.pickedUpBy == "user-voisin-1")
+    }
+
     /// Côté famille : Amina est l'hôte de son point, son écran QR ne dit pas « Montre ce code à Amina ».
     @Test func hostSeesGenericInstructionOnHerOwnCode() async throws {
         let repos = AppRepositories.fake(behavior: .instant)

@@ -532,6 +532,8 @@ nonisolated final class FirestoreGroupOrderRepository: GroupOrderRepository, @un
     /// coordonnateurs) ; un code qui ne le porte pas est refusé (`.unknownCode`, ancien code : `.outdatedCode`).
     func confirmPickup(code: String, groupOrderId: String, at date: Date) async throws -> PickupDesk.ScanResult {
         let order = try await groupOrder(id: groupOrderId)
+        // QR d'un groupe (T-198) : seul le code de cette commande compte.
+        let code = PickupDesk.code(for: groupOrderId, in: code)
         guard PickupDesk.canPickUp(order.status), let parsed = PickupDesk.parse(code),
               parsed.orderId == groupOrderId, !parsed.isLegacy else {
             return PickupDesk.scan(code, order: order, shares: [], pickupTokens: [:], at: date)

@@ -80,7 +80,7 @@ actor FakeOrganizationRepository: OrganizationRepository {
         }
         let sponsorship = Sponsorship(
             id: groupId, organizationId: organizationId, groupName: profile.groupName,
-            neighborhood: profile.neighborhood, monthlyBasketGoal: monthlyBasketGoal, startedAt: now()
+            neighborhood: Sponsorship.storedNeighborhood(profile.neighborhood), monthlyBasketGoal: monthlyBasketGoal, startedAt: now()
         )
         list.append(sponsorship)
         sponsorships[organizationId] = list

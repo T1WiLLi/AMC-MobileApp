@@ -27,6 +27,7 @@ import {
   arrayUnion,
   arrayRemove,
   writeBatch,
+  runTransaction,
   type Firestore
 } from 'firebase/firestore'
 
@@ -2140,6 +2141,101 @@ describe('portail Organismes (T-194)', () => {
       await assertSucceeds(getDocs(collection(orgUser(), `organizations/${orgId}/sponsorships`)))
       await assertFails(getDocs(collection(otherOrgUser(), `organizations/${orgId}/sponsorships`)))
       await assertFails(deleteDoc(doc(otherOrgUser(), `organizations/${orgId}/sponsorships/${groupId}`)))
+    })
+  })
+
+  // T-202 : QA adverse. Chaque test reproduit à l'identique une écriture de FirestoreOrganizationRepository
+  // (mêmes champs, mêmes types, même transaction ou même batch), pas une écriture « idéale ».
+  describe('écritures exactes de l’app (T-202)', () => {
+    // OrganizationLedger.record + SolidarityLedger.donating : ligne sans orderId (nil omis à l'encodage).
+    const appEntry = (donationId: string, amountCents: number, date: Timestamp) => ({
+      kind: 'contribution', amountCents, basketCount: 0, date, donationId, organizationId: orgId
+    })
+    type Plan = { kind: string, amountCents: number, basketCount: number, householdsReached: number }
+    const appDonation = (donationId: string, o: Plan, date: Timestamp) => ({
+      id: donationId, organizationId: orgId, groupId, groupName: 'Voisins de Parc-Ex', kind: o.kind,
+      amountCents: o.amountCents, basketCount: o.basketCount, householdsReached: o.householdsReached, date, isSimulated: true
+    })
+    // FirestoreOrganizationRepository.donate : lit l'organisme, le groupe et le fonds, puis ajoute la ligne
+    // (arrayUnion, merge) et crée le don, dans UNE transaction.
+    const appDonate = (db: Firestore, donationId: string, o: Plan = { kind: 'fund', amountCents: 5000, basketCount: 1, householdsReached: 1 }) => {
+      const date = Timestamp.now()
+      return runTransaction(db, async (tx) => {
+        assert.ok((await tx.get(doc(db, `organizations/${orgId}`))).exists())
+        assert.ok((await tx.get(doc(db, `groups/${groupId}`))).exists())
+        await tx.get(doc(db, fund))
+        tx.set(doc(db, fund), { entries: arrayUnion(appEntry(donationId, o.amountCents, date)) }, { merge: true })
+        tx.set(doc(db, `organizations/${orgId}/donations/${donationId}`), appDonation(donationId, o, date))
+      })
+    }
+
+    test('don en transaction, fonds absent puis fonds existant : une ligne par don, aucun doublon', async () => {
+      await assertSucceeds(appDonate(orgUser(), 'don-a'))
+      await assertSucceeds(appDonate(orgUser(), 'don-b', { kind: 'suspendedBaskets', amountCents: 3 * 2600, basketCount: 3, householdsReached: 3 }))
+      const data = await fundDoc()
+      assert.deepEqual(data?.entries.map((e: { donationId: string }) => e.donationId), ['don-a', 'don-b'])
+      assert.deepEqual(data?.entries.map((e: { amountCents: number }) => e.amountCents), [5000, 7800])
+      assert.equal('orderId' in data!.entries[0], false)
+    })
+    test('rejouer la même transaction (même id de don) est refusé : pas de double crédit', async () => {
+      await seedFund(fullFund())
+      await assertSucceeds(appDonate(orgUser(), 'don-a'))
+      await assertFails(appDonate(orgUser(), 'don-a'))
+      assert.equal((await fundDoc())?.entries.length, 2)
+    })
+    test('montants limites de la feuille : 5 $ (minimum), 5 000 $ (maximum) acceptés, 5 000,01 $ refusé', async () => {
+      await seedFund(fullFund())
+      await assertSucceeds(appDonate(orgUser(), 'don-min', { kind: 'fund', amountCents: 500, basketCount: 0, householdsReached: 0 }))
+      await assertSucceeds(appDonate(orgUser(), 'don-max', { kind: 'fund', amountCents: 500_000, basketCount: 192, householdsReached: 4 }))
+      await assertFails(appDonate(orgUser(), 'don-trop', { kind: 'fund', amountCents: 500_001, basketCount: 192, householdsReached: 4 }))
+      assert.equal((await fundDoc())?.entries.length, 3)
+    })
+    test('lectures du portail : groupes publics, fonds (même absent), dons et parrainages', async () => {
+      const db = orgUser()
+      await assertSucceeds(getDocs(query(collection(db, 'groups'), where('isPublic', '==', true))))
+      await assertSucceeds(getDoc(doc(db, fund)))
+      await assertSucceeds(getDoc(doc(db, `groups/${groupId}`)))
+      await assertSucceeds(getDocs(collection(db, `organizations/${orgId}/donations`)))
+      await assertSucceeds(getDocs(collection(db, `organizations/${orgId}/sponsorships`)))
+      await assertSucceeds(getDoc(doc(db, `organizations/${orgId}/sponsorships/${groupId}`)))
+    })
+    test('changer l’objectif : updateData(monthlyBasketGoal) + arrayUnion dans le même batch, sans doublon', async () => {
+      await seedFund(fullFund())
+      const db = orgUser()
+      const create = writeBatch(db)
+      create.set(doc(db, `organizations/${orgId}/sponsorships/${groupId}`), sponsorship())
+      create.set(doc(db, fund), { sponsorOrganizationIds: arrayUnion(orgId) }, { merge: true })
+      await assertSucceeds(create.commit())
+      const update = writeBatch(db)
+      update.update(doc(db, `organizations/${orgId}/sponsorships/${groupId}`), { monthlyBasketGoal: 40 })
+      update.set(doc(db, fund), { sponsorOrganizationIds: arrayUnion(orgId) }, { merge: true })
+      await assertSucceeds(update.commit())
+      const data = await fundDoc()
+      assert.deepEqual(data?.sponsorOrganizationIds, [orgId])
+      assert.equal(data?.entries.length, 1)
+    })
+    test('mettre fin à un parrainage sans fonds : le batch de l’app passe', async () => {
+      const db = orgUser()
+      const batch = writeBatch(db)
+      batch.delete(doc(db, `organizations/${orgId}/sponsorships/${groupId}`))
+      batch.set(doc(db, fund), { sponsorOrganizationIds: arrayRemove(orgId) }, { merge: true })
+      await assertSucceeds(batch.commit())
+    })
+    test('quartier de groupe de 61 à 80 caractères : le parrainage passe avec le quartier tronqué à 60 (app)', async () => {
+      const longNeighborhood = 'Quartier '.padEnd(80, 'x')
+      await env.withSecurityRulesDisabled(async (c) => {
+        await setDoc(doc(c.firestore(), `groups/${groupId}`), { id: groupId, name: 'Voisins de Parc-Ex', neighborhood: longNeighborhood, isPublic: true, inviteCode: 'PARC', householdCount: 3 })
+      })
+      const sponsorWith = (neighborhood: string) => {
+        const db = orgUser()
+        const batch = writeBatch(db)
+        batch.set(doc(db, `organizations/${orgId}/sponsorships/${groupId}`), sponsorship({ neighborhood }))
+        batch.set(doc(db, fund), { sponsorOrganizationIds: arrayUnion(orgId) }, { merge: true })
+        return batch.commit()
+      }
+      // Les règles des groupes acceptent 80 caractères, celles du parrainage 60 : l'app tronque (T-202).
+      await assertFails(sponsorWith(longNeighborhood))
+      await assertSucceeds(sponsorWith(longNeighborhood.slice(0, 60)))
     })
   })
 })

@@ -11,6 +11,8 @@ struct GroupRoute: Hashable, Sendable {
 struct GroupsScreen: View {
     @Environment(\.appContext) private var context
     @Environment(InviteLinkRouter.self) private var inviteLinks: InviteLinkRouter?
+    /// Notification touchée (T-107) : ouvre la fiche du groupe de la commande.
+    @Environment(NotificationRouter.self) private var notificationRouter: NotificationRouter?
     /// Rejoindre, quitter ou créer un groupe change le groupe actif : l'Accueil suit (contexte rechargé).
     @Environment(SessionContextStore.self) private var contextStore: SessionContextStore?
     @State private var viewModel: GroupsViewModel?
@@ -146,6 +148,12 @@ struct GroupsScreen: View {
         .onChange(of: inviteLinks?.pendingCode, initial: true) { _, code in
             guard code != nil, let code = inviteLinks?.consume() else { return }
             joinCode = JoinCodeRequest(code: code)
+        }
+        .onChange(of: notificationRouter?.pendingDestination, initial: true) { _, destination in
+            guard destination != nil, let groupId = notificationRouter?.consumeGroup() else { return }
+            var route = NavigationPath()
+            route.append(GroupRoute(groupId: groupId))
+            path = route
         }
         .task { await startViewModel() }
     }

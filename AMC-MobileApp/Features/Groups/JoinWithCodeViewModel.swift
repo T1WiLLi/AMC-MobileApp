@@ -61,8 +61,13 @@ final class JoinWithCodeViewModel {
             return GroupRules.inviteCode(fromUserInput: trimmed) ?? trimmed
         }
         let normalized = GroupRules.normalizedInviteCode(trimmed)
-        return normalized.count > GroupRules.inviteCodeLength
-            ? String(normalized.prefix(GroupRules.inviteCodeLength)) : raw
+        guard normalized.count > GroupRules.inviteCodeLength else { return raw }
+        // Message de partage collé en entier : on garde le code qu'il contient.
+        if let code = GroupRules.inviteCode(inMessage: trimmed) { return code }
+        // Une phrase sans code reste telle quelle (aucun faux code comme « REJOIN ») ;
+        // un code trop long tapé d'un bloc est coupé.
+        return trimmed.contains(where: \.isWhitespace)
+            ? trimmed : String(normalized.prefix(GroupRules.inviteCodeLength))
     }
 
     private static func looksLikeLink(_ text: String) -> Bool { text.contains("://") }

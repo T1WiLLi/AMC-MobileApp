@@ -1,4 +1,5 @@
 import SwiftUI
+import UserNotifications
 #if canImport(GoogleSignIn)
 import GoogleSignIn
 #endif
@@ -17,6 +18,10 @@ struct AMCMobileApp: App {
     @State private var network = NetworkMonitor()
     /// Liens d'invitation reçus (B-058) : lus par `FamilyTabView` et `GroupsScreen`.
     @State private var inviteLinks = InviteLinkRouter()
+    /// Notification touchée (T-107) : lue par `FamilyTabView` et `GroupsScreen` pour ouvrir le bon écran.
+    @State private var notificationRouter: NotificationRouter
+    /// Délégué du centre de notifications : le centre le garde en référence faible, l'app le garde en vie.
+    private let notificationDelegate: NotificationDelegate
     /// Langue de l'interface (T-171) : choisie dans Préférences, appliquée à toute l'app sans relancer.
     @AppStorage(AppLanguage.storageKey) private var language: AppLanguage = .system
 
@@ -37,6 +42,12 @@ struct AMCMobileApp: App {
                 && ProcessInfo.processInfo.arguments.contains(OnboardingKeys.demoVendorOnboardingArgument)
         )
         _sessionContext = State(initialValue: sessionContext)
+        // Bannières au premier plan et notification touchée → écran de la commande. Posé avant la fin du
+        // lancement, comme l'exige iOS pour recevoir la notification qui a ouvert l'app.
+        let notificationRouter = NotificationRouter()
+        _notificationRouter = State(initialValue: notificationRouter)
+        notificationDelegate = NotificationDelegate(router: notificationRouter)
+        UNUserNotificationCenter.current().delegate = notificationDelegate
         // Notifications locales sans serveur (T-107) : iOS réveille l'app, qui compare au dernier état connu.
         // Enregistré pendant le lancement, comme l'exige BGTaskScheduler ; le gestionnaire garde l'objet en vie.
         let lastKnownState = UserDefaultsLastKnownStateStore()
@@ -71,6 +82,7 @@ struct AMCMobileApp: App {
                 // T-171 : changer de langue recrée les écrans, pour que les textes déjà calculés suivent aussi.
                 .id(language)
                 .environment(inviteLinks)
+                .environment(notificationRouter)
                 .appLock(appLock)
                 // T-171 : `Text("…")` et les formats SwiftUI suivent la langue choisie.
                 .environment(\.locale, language.locale)

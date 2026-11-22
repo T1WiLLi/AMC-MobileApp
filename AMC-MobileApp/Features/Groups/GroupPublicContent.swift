@@ -182,7 +182,8 @@ struct GroupPublicContent: View {
                     NavigationLink(value: GroupOfferRoute(offerId: summary.offer.id, groupId: group.id)) {
                         OfferCard(offer: summary.offer, product: summary.product, vendor: summary.vendor,
                                   committedShares: summary.committedShares,
-                                  committedHouseholds: summary.committedHouseholds)
+                                  committedHouseholds: summary.committedHouseholds,
+                                  orderStatus: summary.groupOrder?.status)
                     }
                     .buttonStyle(.plain)
                     .accessibilityHint("Ouvre la fiche du lot, en consultation.")

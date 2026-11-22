@@ -14,6 +14,8 @@ struct OfferCard: View {
     var isClosed = false
     /// E21-4 : la part du ménage est payée au pot du groupe : la pastille dit « Payé ».
     var isPaid = false
+    /// T-196 : statut de la commande du groupe ; fermée, livrée ou annulée, elle remplace « se termine » par son statut.
+    var orderStatus: GroupOrder.Status?
 
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
 
@@ -27,10 +29,21 @@ struct OfferCard: View {
                     Text("\(product.name) · \(offer.displayShareUnit)")
                         .font(.headline)
                         .foregroundStyle(.texte)
-                    Text("\(Image(systemName: vendor.isVerified ? "checkmark.seal.fill" : "storefront.fill")) \(vendor.legalName) · \(Image(systemName: "clock.fill")) se termine \(deadlineText)")
-                        .font(.subheadline)
-                        .foregroundStyle(.texteSecondaire)
-                        .symbolRenderingMode(.hierarchical)
+                    if let title = phase.title {
+                        Text("\(Image(systemName: vendor.isVerified ? "checkmark.seal.fill" : "storefront.fill")) \(vendor.legalName)")
+                            .font(.subheadline)
+                            .foregroundStyle(.texteSecondaire)
+                            .symbolRenderingMode(.hierarchical)
+                        Label(title, systemImage: phase.symbol)
+                            .font(.subheadline.weight(.semibold))
+                            .foregroundStyle(phase.tint)
+                            .symbolRenderingMode(.hierarchical)
+                    } else {
+                        Text("\(Image(systemName: vendor.isVerified ? "checkmark.seal.fill" : "storefront.fill")) \(vendor.legalName) · \(Image(systemName: "clock.fill")) se termine \(deadlineText)")
+                            .font(.subheadline)
+                            .foregroundStyle(.texteSecondaire)
+                            .symbolRenderingMode(.hierarchical)
+                    }
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .fixedSize(horizontal: false, vertical: true)
@@ -55,6 +68,9 @@ struct OfferCard: View {
 
     // MARK: - Calculs (testés)
 
+    /// T-196 : ouverte, fermée en préparation, livrée ou annulée.
+    var phase: OrderPhase { .of(offer: offer.status, order: orderStatus, isClosed: isClosed) }
+
     var progressBar: TierProgressBar {
         TierProgressBar(
             tiers: offer.tiers,
@@ -62,7 +78,7 @@ struct OfferCard: View {
             totalShares: offer.totalShares,
             compact: true,
             minimumToLaunch: offer.minimumSharesToLaunch,
-            isClosed: isClosed
+            isClosed: phase == .closed || phase == .delivered
         )
     }
 
@@ -84,11 +100,13 @@ struct OfferCard: View {
 
     /// Lecture VoiceOver courte : « Riz basmati, Ferme Lafleur, 2 dollars 60 le kilo, 37 pour cent moins cher… ».
     var accessibilityText: String {
-        var parts = ["\(product.name), \(offer.displayShareUnit)", vendor.legalName, String(localized: "se termine \(deadlineText)"), Money.spoken(currentPriceCents, per: product.unit)]
+        var parts = ["\(product.name), \(offer.displayShareUnit)", vendor.legalName]
+        parts.append(phase.spokenText ?? String(localized: "se termine \(deadlineText)"))
+        parts.append(Money.spoken(currentPriceCents, per: product.unit))
         if savingsPercent > 0 { parts.append(String(localized: "\(savingsPercent) pour cent moins cher qu'en épicerie")) }
         parts.append(progressText)
         if myShareQuantity > 0 { parts.append(myShareText) }
-        if isClosed { parts.append(String(localized: "Commande fermée, prix final figé")) }
+        if phase == .closed || phase == .delivered { parts.append(String(localized: "Commande fermée, prix final figé")) }
         if let nudge = progressBar.shortNudge { parts.append(Self.spokenPercent(nudge)) }
         return parts.joined(separator: ", ")
     }
@@ -107,8 +125,8 @@ struct OfferCard: View {
     /// Incitation au prochain palier, ou l'avancement du groupe quand le dernier palier est atteint.
     @ViewBuilder
     private var statusLabel: some View {
-        if isClosed {
-            Label("Commande fermée · prix final figé", systemImage: "lock.fill")
+        if let detail = phase.detail {
+            Label(detail, systemImage: phase.detailSymbol)
                 .font(.subheadline)
                 .foregroundStyle(.texteSecondaire)
                 .symbolRenderingMode(.hierarchical)

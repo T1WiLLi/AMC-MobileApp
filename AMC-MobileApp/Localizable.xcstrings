@@ -29434,6 +29434,96 @@
           }
         }
       }
+    },
+    "Nom du groupe" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Group name"
+          }
+        }
+      }
+    },
+    "Les voisins le verront dans la liste des groupes." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Neighbours will see it in the list of groups."
+          }
+        }
+      }
+    },
+    "Touche la carte pour placer le centre." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tap the map to place the centre."
+          }
+        }
+      }
+    },
+    "Touche la carte pour placer le centre" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tap the map to place the centre"
+          }
+        }
+      }
+    },
+    "Recentrer sur chez moi" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Recentre on my home"
+          }
+        }
+      }
+    },
+    "Les familles dans ce cercle verront le groupe près de chez elles." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Families inside this circle will see the group near them."
+          }
+        }
+      }
+    },
+    "Créer le groupe" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Create the group"
+          }
+        }
+      }
+    },
+    "Tes revenus prévus et tes chiffres clés, puis plus bas les ventes par produit : tu vois tout de suite ce qui marche le mieux." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Your expected revenue and key figures, then sales by product further down: you can see right away what sells best."
+          }
+        }
+      }
+    },
+    "Pas envoyées : ajoute-les depuis ton profil" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Not uploaded: add them from your profile"
+          }
+        }
+      }
     }
   },
   "version" : "1.0"

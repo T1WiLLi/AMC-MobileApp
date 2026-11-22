@@ -131,14 +131,9 @@ private struct ClosedOrdersSettlementCard: View {
                 .font(.subheadline)
                 .foregroundStyle(.texteSecondaire)
             case .empty:
-                VStack(alignment: .leading, spacing: 6) {
-                    Label("Aucune commande fermée pour l'instant", systemImage: "tray")
-                        .font(.headline)
-                        .foregroundStyle(.texte)
-                    Text("Quand une commande sera fermée, tu verras ici l'encaissé, la commission et le net. Le revenu prévu ci-dessus ne concerne que les commandes ouvertes.")
-                        .font(.subheadline)
-                        .foregroundStyle(.texteSecondaire)
-                }
+                Label("Aucune commande fermée", systemImage: "tray")
+                    .font(.headline)
+                    .foregroundStyle(.texte)
             case .failed:
                 VStack(alignment: .leading, spacing: 10) {
                     Label("Impossible de charger les versements", systemImage: "exclamationmark.triangle.fill")

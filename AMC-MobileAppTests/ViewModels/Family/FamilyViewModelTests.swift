@@ -53,15 +53,19 @@ struct FamilyViewModelTests {
 
     @Test func homeShowsAminaOrderAndSavingsOnceShared() async throws {
         let repos = repositories()
-        try await repos.groupOrders.setShare(quantity: 2, householdId: ID.aminaHousehold, groupOrderId: ID.potatoOrder)
+        let order = try await repos.groupOrders.setShare(quantity: 2, householdId: ID.aminaHousehold,
+                                                         groupOrderId: ID.potatoOrder)
+        // 19 + 2 = 21 parts, au-dessus du minimum de 10 : la commande est `.reached` (TierEngine.recalculated).
+        // Si les données fake changent ce statut, le test le dit ici au lieu d'échouer sur un montant.
+        try #require(order.status == .reached)
         let viewModel = FamilyHomeViewModel(repositories: repos, userId: ID.amina,
                                             householdId: ID.aminaHousehold, groupId: ID.saintMichel)
         await viewModel.load()
         let content = try #require(viewModel.state.value)
         #expect(content.myOrders.first?.myShareQuantity == 2)
         #expect(content.savedCents == 2 * (1_599 - 990))
-        // La commande des pommes de terre a déjà atteint son minimum (`.reached`) : l'économie est « lancée ».
-        #expect(content.launchedSavedCents == content.savedCents)
+        // Minimum atteint : toute l'économie est « lancée » (« Tu économises », pas « Tu économiseras »).
+        #expect(content.launchedSavedCents == 2 * (1_599 - 990))
     }
 
     @Test func openOrderSavingsAreOnlyAnEstimate() async throws {

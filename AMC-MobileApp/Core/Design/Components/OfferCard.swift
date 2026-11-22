@@ -13,8 +13,8 @@ struct OfferCard: View {
 
     var body: some View {
         let headerLayout = rowLayout(alignment: .top)
-        let footerLayout = rowLayout(alignment: .firstTextBaseline)
         VStack(alignment: .leading, spacing: 14) {
+            // Le badge d'économie a quitté l'en-tête pour la ligne du prix : le titre garde toute la largeur.
             headerLayout {
                 ProductIcon(product: product)
                 VStack(alignment: .leading, spacing: 2) {
@@ -26,33 +26,20 @@ struct OfferCard: View {
                         .foregroundStyle(.texteSecondaire)
                         .symbolRenderingMode(.hierarchical)
                 }
-                if !isAccessibilityLayout { Spacer(minLength: 8) }
-                if savingsPercent > 0 {
-                    SavingsBadge(kind: .percent(savingsPercent), compact: true)
-                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .fixedSize(horizontal: false, vertical: true)
             }
 
-            progressBar
-
-            footerLayout {
-                if let nudge = progressBar.shortNudge {
-                    Label(nudge, systemImage: "arrow.up.forward.circle.fill")
-                        .font(.subheadline.weight(.semibold))
-                        .foregroundStyle(Color.grenier)
-                        .symbolRenderingMode(.hierarchical)
-                        .monospacedDigit()
-                } else {
-                    Label(progressText, systemImage: "person.2.fill")
-                        .font(.subheadline)
-                        .foregroundStyle(.texteSecondaire)
-                        .symbolRenderingMode(.hierarchical)
-                        .monospacedDigit()
-                }
-                if !isAccessibilityLayout { Spacer(minLength: 8) }
-                PriceTag(priceCents: currentPriceCents, unit: product.unit, font: .priceCompact)
-                    // Le prix garde sa largeur ; c'est l'incitation à gauche qui passe à la ligne.
-                    .layoutPriority(1)
+            VStack(alignment: .leading, spacing: 8) {
+                progressBar
+                // Sous la barre qu'il explique, sur toute la largeur : une ligne à la taille par défaut,
+                // retour à la ligne entre les mots aux grandes tailles, jamais une colonne écrasée.
+                statusLabel
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .fixedSize(horizontal: false, vertical: true)
             }
+
+            priceRow
         }
         .grenierCard()
         .accessibilityElement(children: .ignore)
@@ -100,6 +87,54 @@ struct OfferCard: View {
     /// « −19 % » se lit « tiret 19 pour cent » : on écrit le mot.
     static func spokenPercent(_ text: String) -> String {
         text.replacingOccurrences(of: "−", with: "moins ").replacingOccurrences(of: " %", with: String(localized: " pour cent"))
+    }
+
+    /// Incitation au prochain palier, ou l'avancement du groupe quand le dernier palier est atteint.
+    @ViewBuilder
+    private var statusLabel: some View {
+        if let nudge = progressBar.shortNudge {
+            Label(nudge, systemImage: "arrow.up.forward.circle.fill")
+                .font(.subheadline.weight(.semibold))
+                .foregroundStyle(Color.grenier)
+                .symbolRenderingMode(.hierarchical)
+                .monospacedDigit()
+        } else {
+            Label(progressText, systemImage: "person.2.fill")
+                .font(.subheadline)
+                .foregroundStyle(.texteSecondaire)
+                .symbolRenderingMode(.hierarchical)
+                .monospacedDigit()
+        }
+    }
+
+    /// Prix sur sa propre ligne : montant en avant, unité secondaire qui peut passer à la ligne, badge d'économie à droite.
+    /// Si le badge ne tient pas à côté du prix (grandes tailles), il passe dessous.
+    private var priceRow: some View {
+        ViewThatFits(in: .horizontal) {
+            HStack(alignment: .center, spacing: 12) {
+                price.fixedSize()
+                Spacer(minLength: 0)
+                badge
+            }
+            VStack(alignment: .leading, spacing: 8) {
+                price
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .fixedSize(horizontal: false, vertical: true)
+                badge
+            }
+        }
+    }
+
+    private var price: some View {
+        PriceTag(priceCents: currentPriceCents, unit: product.unit, font: .priceCompact)
+    }
+
+    @ViewBuilder
+    private var badge: some View {
+        if savingsPercent > 0 {
+            SavingsBadge(kind: .percent(savingsPercent), compact: true)
+                .fixedSize()
+        }
     }
 
     private var isAccessibilityLayout: Bool { dynamicTypeSize.isAccessibilitySize }

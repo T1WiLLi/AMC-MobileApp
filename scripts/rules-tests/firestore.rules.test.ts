@@ -217,9 +217,10 @@ describe('ménage partagé (T-159)', () => {
   }
 
   async function acceptAsAmina() {
-    const batch = writeBatch(amina())
-    batch.update(doc(amina(), 'households/household-amina'), { userIds: ['amina', 'karim'], 'memberNames.karim': 'Karim Benali' })
-    batch.update(doc(amina(), 'households/household-amina/joinRequests/karim'), { status: 'accepted' })
+    const db = amina()
+    const batch = writeBatch(db)
+    batch.update(doc(db, 'households/household-amina'), { userIds: ['amina', 'karim'], 'memberNames.karim': 'Karim Benali' })
+    batch.update(doc(db, 'households/household-amina/joinRequests/karim'), { status: 'accepted' })
     return batch.commit()
   }
 
@@ -282,9 +283,10 @@ describe('ménage partagé (T-159)', () => {
       await updateDoc(doc(context.firestore(), 'households/household-amina'), { userIds: ['amina', 'intrus'] })
       await setDoc(doc(context.firestore(), 'households/household-amina/joinRequests/karim'), request())
     })
-    const batch = writeBatch(intruder())
-    batch.update(doc(intruder(), 'households/household-amina'), { userIds: ['amina', 'intrus', 'karim'] })
-    batch.update(doc(intruder(), 'households/household-amina/joinRequests/karim'), { status: 'accepted' })
+    const db = intruder()
+    const batch = writeBatch(db)
+    batch.update(doc(db, 'households/household-amina'), { userIds: ['amina', 'intrus', 'karim'] })
+    batch.update(doc(db, 'households/household-amina/joinRequests/karim'), { status: 'accepted' })
     await assertFails(batch.commit())
   })
   test('le propriétaire refuse : il supprime la demande', async () => {

@@ -161,6 +161,17 @@ const closedShare = (householdId: string, quantity: number, unit: number, subsid
   ...familyShare(householdId, quantity), finalPriceCents: quantity * unit, subsidyCents, qrCode: qr('order-due', householdId)
 })
 
+
+// T-159 : un compte ne peut plus pointer son profil vers un ménage dont il n'est pas membre. Les attaques
+// suivantes vérifient que la règle refuse, puis plantent quand même la valeur (données d'avant T-159) pour
+// tester la défense suivante (myHouseholdId vérifie userIds).
+async function declareHousehold(householdId: string) {
+  await assertFails(updateDoc(doc(as('intrus'), 'users/intrus'), { householdId }))
+  await env.withSecurityRulesDisabled(async (c) => {
+    await updateDoc(doc(c.firestore(), 'users/intrus'), { householdId })
+  })
+}
+
 describe('parcours légitimes de l’app (ne doivent pas casser)', () => {
   test('Amina réserve 3 parts : part + commande recalculée', async () => {
     await assertSucceeds(setShareBatch(as('amina'), 'order-open', 'household-amina',
@@ -276,22 +287,22 @@ describe('parcours légitimes de l’app (ne doivent pas casser)', () => {
 
 describe('attaques : identité et ménage', () => {
   test('un étranger se déclare du ménage d’Amina puis écrit sa part', async () => {
-    await updateDoc(doc(as('intrus'), 'users/intrus'), { householdId: 'household-amina' })
+    await declareHousehold('household-amina')
     await assertFails(setShareBatch(as('intrus'), 'order-open', 'household-amina',
       familyShare('household-amina', 3), { ...openOrder, committedShares: 5, committedHouseholds: 2 }))
   })
   test('un étranger qui se déclare du ménage de Bob ne lit pas les parts du groupe', async () => {
-    await updateDoc(doc(as('intrus'), 'users/intrus'), { householdId: 'household-bob' })
+    await declareHousehold('household-bob')
     await assertFails(getDocs(collection(as('intrus'), 'groupOrders/order-open/shares')))
     await assertFails(getDoc(doc(as('intrus'), 'groupOrders/order-open/shares/household-bob')))
   })
   test('un étranger qui se déclare du ménage de Bob ne retire pas sa part', async () => {
-    await updateDoc(doc(as('intrus'), 'users/intrus'), { householdId: 'household-bob' })
+    await declareHousehold('household-bob')
     await assertFails(setShareBatch(as('intrus'), 'order-open', 'household-bob', null,
       { ...openOrder, committedShares: 0, committedHouseholds: 0 }))
   })
   test('un étranger qui se déclare du ménage d’Amina n’ouvre pas de commande', async () => {
-    await updateDoc(doc(as('intrus'), 'users/intrus'), { householdId: 'household-amina' })
+    await declareHousehold('household-amina')
     await assertFails(setDoc(doc(as('intrus'), 'groupOrders/order-x'), {
       id: 'order-x', groupId: GROUP, offerId: 'offer-carottes', status: 'open', committedShares: 0, committedHouseholds: 0, pickupSlots: []
     }))
@@ -527,7 +538,7 @@ describe('attaques : coordonnateur et vendeur à la clôture', () => {
     await assertFails(updateDoc(doc(as('amina'), 'groupOrders/order-open'), { pickupPointId: 'pickup-1' }))
   })
   test('un étranger qui se déclare du ménage de Bob lui change son créneau', async () => {
-    await updateDoc(doc(as('intrus'), 'users/intrus'), { householdId: 'household-bob' })
+    await declareHousehold('household-bob')
     await assertFails(updateDoc(doc(as('intrus'), 'groupOrders/order-open/shares/household-bob'), { pickupSlotStart: Timestamp.now() }))
   })
   test('le coordonnateur modifie la part d’une famille en cours de commande', async () => {

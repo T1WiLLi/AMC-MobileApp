@@ -156,6 +156,8 @@ private struct GroupDetailContent: View {
     /// Le nom passe dans la barre de navigation une fois la bannière remontée.
     @State private var showsNavigationTitle = false
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    /// Type de produit choisi dans les puces au-dessus des lots ouverts (nil = tous).
+    @State private var offerCategory: Product.Category?
 
     private var group: NeighborhoodGroup { content.group }
 
@@ -452,7 +454,21 @@ private struct GroupDetailContent: View {
                 .grenierCard()
                 .accessibilityElement(children: .combine)
             } else {
-                ForEach(orders) { summary in
+                let categories = orders.map(\.product.category)
+                // Une catégorie choisie qui n'a plus de lot (après un rechargement) retombe sur « Tous ».
+                let category = offerCategory.flatMap { categories.contains($0) ? $0 : nil }
+                if HomeOfferFilter.showsChips(categories) {
+                    OfferCategoryChips(
+                        counts: HomeOfferFilter.categoryCounts(categories),
+                        total: orders.count,
+                        selection: category,
+                        reduceMotion: reduceMotion
+                    ) { newValue in
+                        withAnimation(reduceMotion ? nil : .smooth) { offerCategory = newValue }
+                    }
+                    .sensoryFeedback(.selection, trigger: offerCategory)
+                }
+                ForEach(HomeOfferFilter.filter(orders, category: category)) { summary in
                     NavigationLink(value: OfferRoute(offerId: summary.offer.id)) {
                         OfferCard(
                             offer: summary.offer,

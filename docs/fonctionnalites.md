@@ -3,9 +3,9 @@
 > **Plus on est, moins ça coûte.**
 > Les familles d'un même quartier se regroupent pour acheter en gros, directement aux producteurs et grossistes du Québec. Plus il y a de familles, plus le prix baisse pour tout le monde.
 
-**Équipe :** willi, samuel, zachary, yann · **Sphère principale :** sécurité alimentaire (la faim à Montréal) · **Plateforme :** iOS 26 natif (SwiftUI, Liquid Glass) · **Backend :** Firebase (Auth, Firestore, Storage), sans serveur
+**Équipe :** Zachari Lavallée, William Beaudin, Yann Cedrick Kouekam, Samuel Courchesne · **Sphère principale :** sécurité alimentaire (la faim à Montréal) · **Plateforme :** iOS 26 natif (SwiftUI, Liquid Glass) · **Backend :** Firebase (Auth, Firestore), sans serveur
 
-État au 2026-11-21, d'après le code de `main` (`AMC-MobileApp/Features/`) et les 160 PR mergées. Chaque ligne se teste dans l'app installée.
+État au 2026-11-22, d'après le code de `main` (`8ac38b7`, `AMC-MobileApp/Features/`) et environ 310 PR mergées. Chaque ligne se teste dans l'app installée.
 
 **Légende :** ✅ fonctionne dans l'app · 🟡 présente mais partielle · 🧪 simulée (aucun argent réel, aucune livraison réelle).
 
@@ -18,79 +18,95 @@
 | Présentation animée en 3 écrans au premier lancement | ✅ |
 | Connexion avec Google, ou par courriel et mot de passe | ✅ |
 | Création de compte par courriel avec lien de vérification et mot de passe oublié | ✅ |
-| Choix du portail à l'inscription : Famille, Vendeur, Organisme ; un même compte peut en avoir plusieurs | ✅ |
+| Choix du portail à l'inscription : Famille ou Vendeur ; un même compte peut avoir les deux. Le portail Organismes est réservé aux organismes inscrits par l'équipe | ✅ |
+| Après l'inscription : goûts, quartier, adresse vérifiée et ménage en quelques écrans | ✅ |
 | Bascule animée entre les portails, sans se déconnecter | ✅ |
+| Visites guidées par une mascotte, rejouables depuis le Profil : Noisette l'écureuil (12 étapes, portail Famille) et Racoonette le raton laveur (portail Vendeur) | ✅ |
+| Boutons « i » et états vides qui expliquent chaque écran | ✅ |
+| Application entièrement en français et en anglais, changement de langue immédiat dans le Profil ; le widget et la Live Activity suivent la langue de l'app sur iPhone | ✅ |
 | Modifier son compte, se déconnecter, supprimer son compte | ✅ |
 | Verrouiller l'app avec Face ID | ✅ |
 | Thèmes de couleurs interchangeables dans le Profil | ✅ |
-| Mode aîné : texte très grand et parcours simplifié | ✅ |
+| Mode aîné : texte plus grand, contraste renforcé, rangées plus hautes et Accueil simplifié, dans toute l'app | ✅ |
 | Signaler un contenu ou un membre | ✅ |
 | Données en cache : l'app s'ouvre hors ligne, avec un indicateur « hors ligne » et un rechargement automatique au retour du réseau | ✅ |
-| Choix de la langue (renvoie aux réglages iOS) ; l'interface n'est traduite qu'en français pour l'instant | 🟡 |
+| Adresses vérifiées avec Apple Plans (suggestions pendant la saisie, adresse introuvable refusée) | ✅ |
 
 ## Portail Famille
 
-Onglets : **Accueil · Groupes · Cueillette · Impact**.
+Onglets : **Accueil · Groupes · Cueillette · Impact · Recherche**.
 
 | Fonctionnalité | Statut |
 |---|---|
-| Accueil : ma commande en cours, mes économies, les lots ouverts près de chez moi | ✅ |
-| Réorganiser et masquer les sections de l'Accueil | ✅ |
+| Accueil : mon groupe, mes économies, ma commande en cours, les nouveaux lots près de chez moi (filtrables par type de produit) | ✅ |
+| Changer de groupe actif quand mon ménage est dans plusieurs groupes | ✅ |
+| Réorganiser et masquer les sections de l'Accueil dans une vue en 3D isométrique | ✅ |
 | Chercher un lot ou un produit, avec filtres par catégorie | ✅ |
 | Fiche d'un lot : producteur, origine, paliers de prix, nombre de familles engagées, temps restant | ✅ |
-| Choisir sa part (ex. 5 kg sur un sac de 20 kg) et voir tout de suite le prix et l'économie | ✅ |
+| Choisir sa part (ex. un sac de 5 kg) et voir tout de suite le prix, l'économie et le prix maximum à payer | ✅ |
 | Réserver sa part, la modifier ou l'annuler tant que la commande est ouverte | ✅ |
-| Prix par palier en temps réel : la barre montre combien de familles il manque pour le palier suivant | ✅ |
+| Prix par palier en temps réel : la barre montre combien de parts il manque pour le palier suivant | ✅ |
 | Célébration « Palier débloqué ! » quand ma part fait baisser le prix de tout le groupe | ✅ |
-| Avertissement quand le minimum de lancement d'un lot risque de ne pas être atteint | ✅ |
-| Page publique d'un producteur : description, photos, zones desservies, ses lots | ✅ |
-| Groupes de quartier près de moi, sur une liste et sur une carte | ✅ |
-| Carte des familles et des points de cueillette du quartier | ✅ |
-| Rejoindre ou quitter un groupe ; inviter des voisins par code ou code QR | ✅ |
-| Groupe à l'image de son quartier : couleur, emblème et bannière propres au groupe | ✅ |
+| Avertissement quand le minimum de lancement d'un lot risque de ne pas être atteint (« Il manque 7 parts pour commander · plus que 1 jour ») | ✅ |
+| Panier suspendu en un geste dans la réservation (+5, +10 ou +20 $) pour offrir la part d'une famille en difficulté | 🧪 montant simulé |
+| Paiement : la première réservation enregistre une carte (« Apple Pay (démo) »), rien n'est débité avant le prix final ; à la clôture, les parts sont payées au pot du groupe, avec reçu | 🧪 aucun argent réel |
+| Page publique d'un producteur : description, photos, coups de cœur, zones desservies, ses lots et les étoiles des familles | ✅ |
+| Noter un producteur après la cueillette | ✅ |
+| Groupes de quartier près de moi, sur une liste et sur une carte centrée sur Montréal ; les pins proches se regroupent selon le zoom | ✅ |
+| Carte des familles, des groupes, des producteurs et des points de cueillette du quartier ; le rayon suit le zoom | ✅ |
+| Créer un groupe depuis l'app (nom, quartier, centre sur la carte, public ou privé) | ✅ |
+| Rejoindre un groupe avec un code, un code QR ou un lien d'invitation qui ouvre l'app ; invitations à usage unique | ✅ |
+| Fiche publique d'un groupe, même sans en être membre : membres, avis des familles, lots ouverts (consultables, réservation réservée aux membres) | ✅ |
+| Noter son groupe avec des étoiles et des commentaires rapides (le créateur ne note pas le sien) | ✅ |
+| Groupe à l'image de son quartier : couleur, emblème, bannière et photo choisis par le coordonnateur | ✅ |
+| Le créateur peut retirer un membre, quitter son groupe et le confier à un héritier | ✅ |
+| Plusieurs comptes dans un même ménage (même adresse, demande et acceptation) ; le propriétaire peut céder son rôle | ✅ |
 | « Ce que le groupe veut » : chaque famille dit ce qu'elle veut acheter, la demande s'additionne en direct | ✅ |
 | Planificateur du mois : mes besoins et mon budget, et les lots qui y répondent | ✅ |
-| Cueillette : code QR de ma commande, adresse, itinéraire à pied, liste de ce que je récupère | ✅ |
+| Cueillette rangée par groupe : un seul code QR par groupe pour toutes mes commandes, adresse, créneau, itinéraire à pied, liste de ce que je récupère | ✅ |
+| Code de cueillette protégé par un jeton privé ; une seule cueillette par ménage, « Récupéré par » le membre qui s'est présenté | ✅ |
+| Suivi de la commande : « En route », puis « Arrivée ! Viens la chercher » quand l'hôte la marque comme arrivée | ✅ |
 | Réserver un créneau de cueillette | ✅ |
-| Devenir hôte : offrir son garage ou son entrée comme point de cueillette, avec créneaux et capacité | ✅ |
+| Devenir hôte : offrir son garage ou son entrée comme point de cueillette, avec adresse vérifiée, photo, créneaux et capacité | ✅ |
+| Écran de l'hôte : « Marquer comme arrivée », puis « Remettre les parts » en scannant le QR (ou en tapant le code sans caméra), listes « À servir » et « Servis », recherche | ✅ |
 | Livraison à domicile par un voisin bénévole (aînés, personnes sans auto) | ✅ |
-| Le scan du code QR par l'hôte au moment de la remise | 🟡 le QR de la commande est affiché ; il n'y a pas encore de scanner côté hôte |
-| Paiement de la part : « payé à la cueillette » | 🧪 aucun paiement en ligne réel |
-| Panier suspendu : ajouter quelques dollars à sa part pour payer, anonymement, celle d'une famille en difficulté | 🧪 montant simulé |
-| Ménage soutenu : bandeau discret pour une famille dont la part est financée ; personne dans le groupe ne voit qui reçoit de l'aide | ✅ |
+| Ménage soutenu : bandeau discret pour une famille dont la part est financée | ✅ |
 | Profil du ménage : quartier de Montréal, taille du foyer, préférences ; statut subventionné privé | ✅ |
-| Impact : mes économies et celles du quartier, graphique dans le temps, effets sur 7 sphères de Montréal | ✅ |
+| Impact : mes économies et celles du quartier, graphique dans le temps, effets sur 7 sphères de Montréal, classement solidaire des arrondissements calculé sur les vraies commandes | ✅ |
 | Historique de mes commandes | ✅ |
 | Live Activity sur l'écran verrouillé : état de ma commande jusqu'à la cueillette | ✅ |
-| Widget « prochain palier » : combien de familles il manque | ✅ |
-| Notifications : palier débloqué, commande fermée, rappel de cueillette | ✅ notifications locales (pas de push serveur) |
+| Widget « prochain palier » : combien de parts il manque | ✅ |
+| Notifications : palier débloqué, commande fermée, commande arrivée, rappel de cueillette ; toucher une notification ouvre le bon écran | ✅ notifications locales (pas de push serveur) |
 
 ## Portail Vendeur
 
-Onglets : **Tableau · Lots · Demande · Revenus**.
+Onglets : **Tableau · Lots · Demande · Revenus**. Ouvert à tout producteur, avec un onboarding (boutique, photos, premier produit).
 
 | Fonctionnalité | Statut |
 |---|---|
-| Tableau de bord : lots en vente, familles engagées, revenu prévu, lots dont le minimum est en danger | ✅ |
-| Créer, modifier et retirer un produit avec photo | ✅ |
-| Publier un lot : quantité, taille des parts, minimum de lancement, date de fermeture | ✅ |
-| Éditeur de paliers de prix (ex. 1–10 familles : 3,20 $/kg ; 11–25 : 2,60 $ ; 26+ : 2,10 $) avec aperçu | ✅ |
+| Tableau de bord : revenus prévus, parts réservées, familles servies, lots ouverts, lots dont le minimum est en danger ; sections réorganisables | ✅ |
+| « Ma vitrine » : description, photos, coups de cœur, zones desservies, comme les familles la voient | ✅ |
+| « Mes produits » : créer, modifier et retirer un produit avec photo, réutilisable d'un lot à l'autre | ✅ |
+| Publier un lot : produit, part structurée (contenant, poids, valeur), quantité, minimum de lancement, date de fermeture | ✅ |
+| Éditeur de paliers de prix (ex. 6 parts : 17,59 $ ; 12 : 15,59 $ ; 20 : 13,59 $) avec courbe d'aperçu | ✅ |
+| Conditions d'un lot figées une fois publié | ✅ |
 | Cycle de vie d'un lot : pause, retrait, duplication | ✅ |
-| Carte de la demande : les quartiers de Montréal colorés selon le nombre de familles intéressées | ✅ |
+| Fermer la commande soi-même depuis l'onglet Lots ; état « Fermée, en préparation » sur les cartes | ✅ |
+| Carte de la demande : où les familles commandent et ce qu'elles souhaitent, « Proposer un lot ici » | ✅ |
 | Groupes intéressés et envies qui correspondent à mes produits | ✅ |
 | « Mes disponibilités » : déclarer ce que je peux fournir, et créer un lot à partir d'une disponibilité | ✅ |
 | Revenus : revenu encaissé et revenu prévu, par lot | 🧪 calculé sur les paiements simulés |
+| Commission de 6 %, versement au vendeur et revenus réels après la clôture | 🟡 calcul fait et testé dans le code ; affichage en cours (PR #307) |
 | Statistiques de ventes par produit | ✅ |
-| Profil vendeur public : description, photos, zones desservies | ✅ |
 
 ## Portail Organismes
 
-Onglets : **Tableau · Financer · Parrainages · Impact**. Pour les banques alimentaires et organismes communautaires. **Tous les paiements de ce portail sont simulés** : un bandeau « Simulation » est affiché sur chaque écran et aucun argent réel n'est prélevé (plafond de 5 000 $ par financement).
+Onglets : **Tableau · Financer · Parrainages · Impact**. Pour les banques alimentaires et organismes communautaires, inscrits par l'équipe. Branché sur le vrai Firebase. **Tous les paiements de ce portail sont simulés** : un bandeau « Simulation » est affiché sur chaque écran et aucun argent réel n'est prélevé.
 
 | Fonctionnalité | Statut |
 |---|---|
 | Tableau : fonds disponible, paniers financés, familles aidées | 🧪 |
-| Financer des paniers suspendus ou donner au fonds, avec aperçu en direct (paniers, familles couvertes) et remerciement animé | 🧪 |
+| Financer des paniers suspendus ou donner au fonds d'un groupe, avec aperçu en direct (paniers, familles couvertes) et remerciement animé | 🧪 |
 | Chercher et filtrer les groupes, voir ceux qui en ont le plus besoin | ✅ |
 | Parrainer un groupe de quartier | 🧪 |
 | Impact de l'organisme : familles aidées, dollars versés, par quartier | 🧪 calculé sur les dons simulés |
@@ -101,18 +117,18 @@ Onglets : **Tableau · Financer · Parrainages · Impact**. Pour les banques ali
 |---|---|
 | SwiftUI pour iOS 26, Liquid Glass natif, mode clair et sombre | ✅ |
 | Accessibilité : VoiceOver, Dynamic Type jusqu'aux plus grandes tailles, contraste AA, Réduire les animations | ✅ |
-| Firebase : Auth (Apple, Google, courriel), Firestore en temps réel, Storage pour les images | ✅ |
-| Règles de sécurité Firestore et Storage testées en CI | ✅ |
-| Moteur de paliers et répartition des parts en Swift pur, couvert par des tests unitaires | ✅ |
+| Firebase : Auth (Google, courriel), Firestore en temps réel ; les images sont stockées dans Firestore (pas de Cloud Storage) | ✅ |
+| Règles de sécurité Firestore testées en CI, y compris des tests d'attaque | ✅ |
+| Moteur de paliers, répartition des parts, pot de paiement et commission en Swift pur, couverts par des tests unitaires (plus de 1 500 tests) | ✅ |
+| Réservations protégées contre les conflits : chaque part se recalcule dans une transaction Firestore | ✅ |
 | États de chargement, vides et d'erreur sur chaque écran | ✅ |
-| Données de démo réalistes (personas, groupes de Montréal, producteurs du Québec) dans le projet Firebase de démo | ✅ |
+| Données de démo réalistes (personas, groupes de Montréal, producteurs du Québec), en mode hors ligne et dans le projet Firebase de démo | ✅ |
 
 ## Ce qui est simulé ou pas encore fait
 
-- **Paiements** : aucun paiement réel. Les familles « paient à la cueillette » ; les paniers suspendus, les revenus des vendeurs et tous les financements des organismes sont simulés.
+- **Paiements** : aucun argent réel. La carte « Apple Pay (démo) », le pot du groupe, les paniers suspendus, les revenus des vendeurs et tous les financements des organismes sont simulés.
 - **Livraison** : la demande de livraison par un voisin bénévole fonctionne dans l'app ; aucun transporteur n'est relié.
 - **Notifications** : locales sur l'appareil, pas de push envoyé par un serveur.
-- **Langues** : français seulement ; anglais, arabe, espagnol et créole sont prévus.
-- **Scan du QR** par l'hôte : à venir (le QR est généré et affiché).
+- **Langues** : français et anglais ; arabe, espagnol et créole sont prévus.
 - **Bordereau de livraison** du vendeur : calculé dans le code (un envoi par point de cueillette), pas encore d'écran dédié.
 - **Commandes récurrentes** (panier de base mensuel) et **recettes anti-gaspillage** : prévues après le hackathon.

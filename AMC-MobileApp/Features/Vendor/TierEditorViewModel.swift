@@ -209,6 +209,7 @@ final class TierEditorViewModel {
 
     /// Ajoute un palier après le dernier : seuil +10 parts (borné au total), prix −10 %.
     func addTier() {
+        guard tiers.count < OfferLifecycle.maxTiers else { return }
         guard let last = tiers.last else {
             tiers = [TierDraft(minShares: 1, priceCents: referenceGroceryPriceCents ?? 0)]
             return
@@ -264,6 +265,9 @@ final class TierEditorViewModel {
         }
         guard let productId else { throw .invalidInput(String(localized: "Choisis un produit pour ce lot.")) }
         guard totalShares > 0 else { throw .invalidInput(String(localized: "Le lot doit contenir au moins une part.")) }
+        guard totalShares <= OfferLifecycle.maxTotalShares else {
+            throw .invalidInput(String(localized: "Le lot ne peut pas dépasser 10 000 parts."))
+        }
         guard totalShares >= committedShares else {
             throw .invalidInput(String(localized: "Des familles ont déjà réservé \(committedShares) parts : le lot ne peut pas en contenir moins."))
         }
@@ -271,6 +275,9 @@ final class TierEditorViewModel {
             throw .invalidInput(String(localized: "Indique ce que contient une part : un poids plus grand que 0 (par exemple « sac de 10 kg »)."))
         }
         guard !tiers.isEmpty else { throw .invalidInput(String(localized: "Ajoute au moins un palier de prix.")) }
+        guard tiers.count <= OfferLifecycle.maxTiers else {
+            throw .invalidInput(String(localized: "Un lot ne peut pas avoir plus de 10 paliers de prix."))
+        }
         for (index, tier) in tiers.enumerated() {
             let rank = index + 1
             guard tier.minShares >= 1 else {

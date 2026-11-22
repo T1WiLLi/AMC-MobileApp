@@ -366,4 +366,20 @@ struct OfferLifecycleTests {
         #expect(Self.message { _ = try OfferLifecycle.leftoversOffer(from: Self.offer(), leftoverShares: 5, discountPercent: 100, now: Self.now) { "x" } } != nil)
         #expect(Self.message { _ = try OfferLifecycle.leftoversOffer(from: Self.offer(), leftoverShares: 5, now: Self.now) { "o1" } } != nil)
     }
+
+    @Test func totalSharesIsCappedAtTenThousand() throws {
+        var offer = Self.offer()
+        offer.totalShares = 10_000
+        try OfferLifecycle.validate(offer, now: Self.now)
+        offer.totalShares = 10_001
+        #expect(Self.message { try OfferLifecycle.validate(offer, now: Self.now) } == "Le lot ne peut pas dépasser 10 000 parts.")
+    }
+
+    @Test func tiersAreCappedAtTen() throws {
+        var offer = Self.offer()
+        offer.tiers = (1...10).map { PriceTier(minShares: $0, priceCents: 2_000 - $0 * 100) }
+        try OfferLifecycle.validate(offer, now: Self.now)
+        offer.tiers = (1...11).map { PriceTier(minShares: $0, priceCents: 2_000 - $0 * 100) }
+        #expect(Self.message { try OfferLifecycle.validate(offer, now: Self.now) } == "Un lot ne peut pas avoir plus de 10 paliers de prix.")
+    }
 }

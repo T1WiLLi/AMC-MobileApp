@@ -78,7 +78,7 @@ final class GroupsViewModel {
         let memberIds = Set(householdGroups.map(\.id))
         let mine = householdGroups
             .filter { neighborhood == nil || $0.neighborhood == neighborhood }
-            .sorted { $0.name < $1.name }
+            .sorted { $0.name.localizedStandardCompare($1.name) == .orderedAscending }
             .map { Item(group: $0, isMember: true, distanceMeters: distance($0)) }
         let others = publicGroups
             .filter { $0.isPublic && !memberIds.contains($0.id) }
@@ -88,7 +88,7 @@ final class GroupsViewModel {
                 case let (left?, right?) where left != right: left < right
                 case (.some, nil): true
                 case (nil, .some): false
-                default: lhs.group.name < rhs.group.name
+                default: lhs.group.name.localizedStandardCompare(rhs.group.name) == .orderedAscending
                 }
             }
         return mine + others

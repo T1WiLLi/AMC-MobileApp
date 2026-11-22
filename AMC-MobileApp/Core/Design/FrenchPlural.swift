@@ -75,5 +75,8 @@ nonisolated enum FrenchPlural {
         "douzaine",
         "voulue",
         "panier suspendu offert",
+        "hôte",
+        "trajet",
+        "producteur",
     ]
 }

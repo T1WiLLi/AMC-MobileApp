@@ -8,6 +8,8 @@ struct FamilyTabView: View {
     @State private var selection: TabID = .home
     /// Lien d'invitation reçu (B-058) : bascule sur l'onglet Groupes, qui ouvre la feuille « Rejoindre ».
     @Environment(InviteLinkRouter.self) private var inviteLinks: InviteLinkRouter?
+    /// Notification touchée (T-107) : Cueillette, ou l'onglet Groupes qui pousse la fiche du groupe.
+    @Environment(NotificationRouter.self) private var notificationRouter: NotificationRouter?
     /// Visite guidée de Noisette (FB-19) : chaque étape ouvre son onglet, la bulle passe au-dessus des onglets.
     @State private var tour = GuidedTour.noisette
 
@@ -37,6 +39,17 @@ struct FamilyTabView: View {
         .grenierScrollEdge()
         .onChange(of: inviteLinks?.pendingCode, initial: true) { _, code in
             if code != nil { selection = .groups }
+        }
+        .onChange(of: notificationRouter?.pendingDestination, initial: true) { _, destination in
+            switch destination {
+            case .pickup:
+                selection = .pickup
+                notificationRouter?.consumePickup()
+            case .group:
+                selection = .groups
+            case nil:
+                break
+            }
         }
         .overlay { GuidedTourOverlay(.noisette) }
         .onChange(of: tour.currentStep, initial: true) { _, step in

@@ -185,13 +185,29 @@ nonisolated enum GroupRules {
         return normalizedInviteCode(candidate)
     }
 
-    /// Ce que la personne colle dans le champ « Rejoindre » : un code seul ou un lien d'invitation.
+    /// Ce que la personne colle dans le champ « Rejoindre » : un code seul, un lien d'invitation, ou tout le
+    /// message de partage de l'app (`InviteCard.shareMessage`, `GroupInvitationsViewModel.shareMessage`).
     static func inviteCode(fromUserInput input: String) -> String? {
         let trimmed = input.trimmingCharacters(in: .whitespacesAndNewlines)
-        if trimmed.contains("://"), let url = URL(string: trimmed) {
-            return inviteCode(from: url)
+        if isValidInviteCode(trimmed), !trimmed.contains("://") { return normalizedInviteCode(trimmed) }
+        if trimmed.contains("://"), let url = URL(string: trimmed), let code = inviteCode(from: url) {
+            return code
         }
-        return isValidInviteCode(trimmed) ? normalizedInviteCode(trimmed) : nil
+        return inviteCode(inMessage: trimmed)
+    }
+
+    /// Cherche l'invitation dans un texte plus long : d'abord un lien reconnu (« … : https://grenier.app/join/ABC123
+    /// (code ABC123) »), sinon le code qui suit le dernier mot « code » (« Code d'invitation : PARCEX »,
+    /// « Invite code: PARCEX »). Sans l'un ni l'autre, nil : on ne devine jamais un code au hasard du texte.
+    static func inviteCode(inMessage text: String) -> String? {
+        let edges = CharacterSet.punctuationCharacters.union(.symbols)
+        for token in text.split(whereSeparator: \.isWhitespace) where token.contains("://") {
+            let candidate = String(token).trimmingCharacters(in: edges)
+            if let url = URL(string: candidate), let code = inviteCode(from: url) { return code }
+        }
+        let words = text.split { !($0.isLetter || $0.isNumber) }.map(String.init)
+        guard let marker = words.lastIndex(where: { $0.lowercased() == "code" }) else { return nil }
+        return words[(marker + 1)...].first(where: isValidInviteCode).map(normalizedInviteCode)
     }
 
     // MARK: - B-056 Groupes publics ou privés, invitations à usage unique

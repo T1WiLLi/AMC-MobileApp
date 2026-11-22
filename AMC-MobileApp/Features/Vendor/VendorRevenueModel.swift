@@ -83,7 +83,11 @@ nonisolated struct VendorRevenueSummary: Sendable, Hashable {
                     shareUnit: summary.offer.shareUnit, tierNumber: summary.bestTierNumber
                 )
             }
-            .sorted { ($0.revenueCents, $1.title) > ($1.revenueCents, $0.title) }
+            .sorted { lhs, rhs in
+                lhs.revenueCents != rhs.revenueCents
+                    ? lhs.revenueCents > rhs.revenueCents
+                    : lhs.title.localizedStandardCompare(rhs.title) == .orderedAscending
+            }
 
         var byNeighborhood: [String: NeighborhoodRevenue] = [:]
         for summary in dashboard.offers {
@@ -102,10 +106,14 @@ nonisolated struct VendorRevenueSummary: Sendable, Hashable {
         neighborhoods = byNeighborhood.values
             .map { entry in
                 var sorted = entry
-                sorted.groupNames.sort()
+                sorted.groupNames.sort { $0.localizedStandardCompare($1) == .orderedAscending }
                 return sorted
             }
-            .sorted { ($0.revenueCents, $1.neighborhood) > ($1.revenueCents, $0.neighborhood) }
+            .sorted { lhs, rhs in
+                lhs.revenueCents != rhs.revenueCents
+                    ? lhs.revenueCents > rhs.revenueCents
+                    : lhs.neighborhood.localizedStandardCompare(rhs.neighborhood) == .orderedAscending
+            }
 
         deliveries = dashboard.closingSoon.flatMap { summary -> [Delivery] in
             guard !summary.linkedOrders.isEmpty else {

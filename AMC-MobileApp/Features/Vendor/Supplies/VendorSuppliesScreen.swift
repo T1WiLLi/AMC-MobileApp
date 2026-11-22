@@ -75,48 +75,57 @@ struct VendorSuppliesScreen: View {
         }
     }
 
+    /// Même mise en page que l'onglet Lots : cartes opaques sur fond crème, bien espacées.
     private func list(_ supplies: [VendorSupply]) -> some View {
-        List {
-            Section {
-                ForEach(supplies) { supply in
-                    SupplyRow(supply: supply, isPast: model.isPast(supply),
-                              edit: { draft = .init(supply) }, createLot: { onCreateLot(supply) })
-                    .swipeActions {
-                        Button("Retirer", systemImage: "trash", role: .destructive) {
-                            Task { await model.remove(supply) }
+        ScrollView {
+            LazyVStack(alignment: .leading, spacing: 20) {
+                ForEach(Array(supplies.enumerated()), id: \.element.id) { index, supply in
+                    SupplyCard(supply: supply, isPast: model.isPast(supply),
+                               edit: { draft = .init(supply) }, createLot: { onCreateLot(supply) })
+                        .contextMenu {
+                            Button("Modifier", systemImage: "pencil") { draft = .init(supply) }
+                            if !model.isPast(supply) {
+                                Button("Créer un lot à paliers", systemImage: "square.stack.3d.up.badge.plus") {
+                                    onCreateLot(supply)
+                                }
+                            }
+                            Button("Retirer", systemImage: "trash", role: .destructive) {
+                                Task { await model.remove(supply) }
+                            }
                         }
-                    }
+                        .grenierTransition(.cardAppear)
+                        .grenierAppear(index: index)
                 }
-            } footer: {
-                Text("Touche une disponibilité pour la modifier, glisse pour la retirer.")
             }
+            .padding(.horizontal, 16)
+            .padding(.vertical, 16)
         }
         .scrollContentBackground(.hidden)
         .animation(reduceMotion ? nil : .smooth, value: supplies)
     }
 }
 
-// MARK: - Ligne
+// MARK: - Carte
 
-private struct SupplyRow: View {
+private struct SupplyCard: View {
     let supply: VendorSupply
     let isPast: Bool
     let edit: () -> Void
     let createLot: () -> Void
 
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
+
     var body: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            HStack(spacing: 12) {
-                Image(systemName: ProductIcon.symbol(for: supply.category))
-                    .font(.title3)
-                    .symbolRenderingMode(.hierarchical)
-                    .foregroundStyle(Color.grenier)
-                    .frame(width: 36, height: 36)
-                    .background(Color.grenier.opacity(0.12), in: .rect(cornerRadius: 10))
-                    .accessibilityHidden(true)
-                VStack(alignment: .leading, spacing: 2) {
+        VStack(alignment: .leading, spacing: 14) {
+            let header = dynamicTypeSize.isAccessibilitySize
+                ? AnyLayout(VStackLayout(alignment: .leading, spacing: 8))
+                : AnyLayout(HStackLayout(alignment: .top, spacing: 12))
+            header {
+                ProductIcon(category: supply.category)
+                VStack(alignment: .leading, spacing: 4) {
                     Text(supply.category.title)
                         .font(.headline)
+                        .foregroundStyle(.texte)
                     Label(VendorSuppliesViewModel.periodText(from: supply.availableFrom, to: supply.availableTo),
                           systemImage: isPast ? "calendar.badge.exclamationmark" : "calendar")
                         .font(.subheadline)
@@ -126,7 +135,7 @@ private struct SupplyRow: View {
                         .font(.subheadline)
                         .foregroundStyle(.texteSecondaire)
                 }
-                Spacer(minLength: 8)
+                if !dynamicTypeSize.isAccessibilitySize { Spacer(minLength: 8) }
                 Text(GroupWishesViewModel.quantityText(supply.quantity, unit: supply.unit))
                     .priceStyle(.headline)
             }
@@ -143,9 +152,11 @@ private struct SupplyRow: View {
                         .frame(maxWidth: .infinity)
                 }
                 .buttonStyle(.glass)
+                .controlSize(.large)
             }
         }
-        .padding(.vertical, 4)
+        .grenierCard()
+        .opacity(isPast ? 0.75 : 1)
     }
 }
 

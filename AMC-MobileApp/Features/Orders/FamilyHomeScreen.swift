@@ -30,7 +30,11 @@ struct FamilyHomeScreen: View {
                                      message: "Aucune commande ni aucun lot dans ton quartier. Reviens un peu plus tard."),
                         retry: { await viewModel.load() }
                     ) { content in
-                        FamilyHomeContent(content: content, largeGreeting: usesInlineTitle ? title : nil)
+                        FamilyHomeContent(
+                            content: content,
+                            largeGreeting: usesInlineTitle ? title : nil,
+                            isArrangingSections: isEditingLayout
+                        )
                     }
                 } else {
                     FamilyHomeSkeleton()
@@ -145,6 +149,8 @@ private struct FamilyHomeContent: View {
     let content: FamilyHomeViewModel.Content
     /// Salutation affichée dans le contenu (tailles d'accessibilité) : elle passe à la ligne au lieu d'être coupée.
     var largeGreeting: String?
+    /// FB-21 : l'éditeur de sections est ouvert ; les sections s'inclinent en 3D derrière la feuille.
+    var isArrangingSections = false
 
     @AppStorage(HomeSection.storageKey) private var rawLayout = ""
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
@@ -176,6 +182,7 @@ private struct FamilyHomeContent: View {
                 ForEach(Array(sections.enumerated()), id: \.element) { index, section in
                     view(for: section)
                         .cascadeAppear(index)
+                        .sectionArrangeTilt(isArrangingSections)
                         .transition(.opacity.combined(with: .scale(scale: 0.96)))
                 }
             }
@@ -183,6 +190,8 @@ private struct FamilyHomeContent: View {
             .padding(.horizontal, 16)
             .padding(.bottom, 24)
         }
+        // Pendant le réarrangement, l'Accueil n'est qu'un aperçu : pas de toucher par erreur sur une carte inclinée.
+        .allowsHitTesting(!isArrangingSections)
         .grenierScrollEdge()
         .task(id: "\(context.householdId)|\(content.group.id)") {
             guard !context.householdId.isEmpty else { return }

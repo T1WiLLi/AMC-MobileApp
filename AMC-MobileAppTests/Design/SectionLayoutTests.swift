@@ -72,3 +72,18 @@ struct DashboardSectionTests {
         #expect(layout.visible == ["highlight", "closingSoon", "offers"])
     }
 }
+
+/// FB-21 : sections inclinées en 3D pendant le réarrangement, jamais sous Reduce Motion.
+struct SectionArrangeTiltTests {
+    @Test @MainActor func tiltsAboutFortyFiveDegreesWhileArranging() {
+        #expect(SectionArrangeTilt.angle(isArranging: true, reduceMotion: false) == 45)
+        #expect(SectionArrangeTilt.scale(isArranging: true, reduceMotion: false) < 1)
+        #expect(SectionArrangeTilt.angle(isArranging: false, reduceMotion: false) == 0)
+        #expect(SectionArrangeTilt.scale(isArranging: false, reduceMotion: false) == 1)
+    }
+
+    @Test @MainActor func reduceMotionKeepsTheSectionsFlat() {
+        #expect(SectionArrangeTilt.angle(isArranging: true, reduceMotion: true) == 0)
+        #expect(SectionArrangeTilt.scale(isArranging: true, reduceMotion: true) == 1)
+    }
+}

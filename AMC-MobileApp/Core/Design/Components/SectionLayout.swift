@@ -72,6 +72,55 @@ nonisolated struct SectionLayout: Equatable, Sendable {
     }
 }
 
+// MARK: - Vue inclinée pendant le réarrangement (FB-21)
+
+/// Inclinaison 3D des sections d'un écran pendant que son éditeur de sections est ouvert.
+enum SectionArrangeTilt {
+    /// Rotation de côté, autour d'un axe presque vertical.
+    static let angle: Double = 45
+    static let axis: (x: CGFloat, y: CGFloat, z: CGFloat) = (x: 0.12, y: 1, z: 0)
+    /// Perspective marquée : le bord éloigné fuit, les sections se lisent comme des cartes posées de biais.
+    static let perspective: CGFloat = 0.55
+    /// Recul des sections inclinées, pour qu'elles restent dans l'écran.
+    static let scale: CGFloat = 0.86
+
+    /// Angle joué : aucun sous Reduce Motion.
+    static func angle(isArranging: Bool, reduceMotion: Bool) -> Double {
+        isArranging && !reduceMotion ? angle : 0
+    }
+
+    /// Échelle jouée : 1 sous Reduce Motion.
+    static func scale(isArranging: Bool, reduceMotion: Bool) -> CGFloat {
+        isArranging && !reduceMotion ? scale : 1
+    }
+}
+
+private struct SectionArrangeTiltModifier: ViewModifier {
+    let isArranging: Bool
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
+    func body(content: Content) -> some View {
+        content
+            .scaleEffect(SectionArrangeTilt.scale(isArranging: isArranging, reduceMotion: reduceMotion))
+            .rotation3DEffect(
+                .degrees(SectionArrangeTilt.angle(isArranging: isArranging, reduceMotion: reduceMotion)),
+                axis: SectionArrangeTilt.axis,
+                anchor: .center,
+                perspective: SectionArrangeTilt.perspective
+            )
+            .animation(reduceMotion ? nil : .smooth, value: isArranging)
+    }
+}
+
+extension View {
+    /// Incline la section de ~45° de côté, en perspective, pendant que l'éditeur de sections est ouvert :
+    /// au-dessus de la feuille (détente moyenne), l'écran montre l'ordre en train de changer.
+    /// Entrée et sortie en `.smooth` ; rien sous Reduce Motion. L'éditeur (glisser pour réordonner) n'est pas touché.
+    func sectionArrangeTilt(_ isArranging: Bool) -> some View {
+        modifier(SectionArrangeTiltModifier(isArranging: isArranging))
+    }
+}
+
 // MARK: - Éditeur
 
 /// Une section proposée dans l'éditeur.

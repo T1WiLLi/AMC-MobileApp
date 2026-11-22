@@ -6666,6 +6666,16 @@
         }
       }
     },
+    "Aucune zone" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No areas"
+          }
+        }
+      }
+    },
     "Aucune zone : tes lots n'apparaissent nulle part." : {
       "localizations" : {
         "en" : {

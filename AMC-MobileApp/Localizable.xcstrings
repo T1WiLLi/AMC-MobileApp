@@ -21268,6 +21268,26 @@
           }
         }
       }
+    },
+    "Le quartier" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The neighbourhood"
+          }
+        }
+      }
+    },
+    "Groupe de quartier · %@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Neighbourhood group · %@"
+          }
+        }
+      }
     }
   },
   "version" : "1.0"

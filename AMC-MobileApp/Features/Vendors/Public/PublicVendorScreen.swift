@@ -224,14 +224,14 @@ private struct VendorIdentity: View {
             if let summary, let average = summary.average {
                 HStack(spacing: 8) {
                     StarRatingView(rating: average, font: .headline)
-                    Text("\(StarRatingText.average(average)) · \(FrenchPlural.count(summary.count, String(localized: "avis"), plural: String(localized: "avis")))")
+                    Text("\(StarRatingText.average(average)) · \(FrenchPlural.count(summary.count, "avis", plural: "avis"))")
                         .font(.subheadline.weight(.semibold))
                         .foregroundStyle(.texte)
                         .monospacedDigit()
                         .contentTransition(.numericText())
                 }
                 .accessibilityElement(children: .ignore)
-                .accessibilityLabel("Note moyenne \(StarRatingText.average(average)) sur 5, \(FrenchPlural.count(summary.count, String(localized: "avis"), plural: String(localized: "avis")))")
+                .accessibilityLabel("Note moyenne \(StarRatingText.average(average)) sur 5, \(FrenchPlural.count(summary.count, "avis", plural: "avis"))")
             }
             FlowLayout(spacing: 8) {
                 Pill(title: profile.kind.title, systemImage: profile.kind.systemImage, tint: .grenier)

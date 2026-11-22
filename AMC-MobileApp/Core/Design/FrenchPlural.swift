@@ -53,6 +53,7 @@ nonisolated enum FrenchPlural {
         "portail": ("portal", "portals"),
         "ferme": ("closes", "close"),
         "lieu": ("place", "places"),
+        "avis": ("review", "reviews"),
         "unité": ("unit", "units"),
         "zone": ("zone", "zones"),
         "douzaine": ("dozen", "dozens"),

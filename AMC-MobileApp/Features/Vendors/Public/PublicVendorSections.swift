@@ -288,7 +288,7 @@ private struct RatingSummaryCard: View {
                             .foregroundStyle(.texte)
                         StarRatingView(rating: average)
                         Text(summary.count > 0
-                             ? FrenchPlural.count(summary.count, String(localized: "avis"), plural: String(localized: "avis"))
+                             ? FrenchPlural.count(summary.count, "avis", plural: "avis")
                              : String(localized: "note du catalogue"))
                             .font(.caption)
                             .foregroundStyle(.texteSecondaire)

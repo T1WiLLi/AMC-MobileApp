@@ -8,8 +8,11 @@ struct DeliveryRequestSheet: View {
     @State private var validationMessage: String?
     @Environment(\.dismiss) private var dismiss
     @FocusState private var focusedField: Field?
+    @FocusState private var addressFocused: Bool
+    /// T-185 : l'adresse doit être trouvée par Apple Maps avant l'envoi.
+    @State private var addressCheck = AddressFieldModel(validator: MapKitAddressValidator.shared)
 
-    private enum Field { case address, instructions, note }
+    private enum Field { case instructions, note }
 
     private static let durations: [(label: String, seconds: TimeInterval)] = [
         (String(localized: "30 min"), 30 * 60), (String(localized: "1 h"), 3_600), (String(localized: "2 h"), 2 * 3_600),
@@ -57,7 +60,7 @@ struct DeliveryRequestSheet: View {
                     }
                     .buttonStyle(.glassProminent)
                     .tint(.grenier)
-                    .disabled(!isEligible || viewModel.isSubmitting)
+                    .disabled(!isEligible || viewModel.isSubmitting || addressCheck.blocksSaving(draft.address))
                 }
             }
             .grenierHaptic(.warning, trigger: validationMessage) { _, new in new != nil }
@@ -129,9 +132,7 @@ struct DeliveryRequestSheet: View {
 
     private var addressSection: some View {
         Section {
-            TextField("Adresse et appartement", text: $draft.address, axis: .vertical)
-                .textContentType(.fullStreetAddress)
-                .focused($focusedField, equals: .address)
+            AddressField("Adresse et appartement", text: $draft.address, model: addressCheck, isFocused: $addressFocused)
             TextField("Indications (sonnette, étage…)", text: $draft.instructions)
                 .focused($focusedField, equals: .instructions)
         } header: {
@@ -158,6 +159,15 @@ struct DeliveryRequestSheet: View {
 
     private func send() async {
         focusedField = nil
+        addressFocused = false
+        if !draft.address.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+            guard let checked = await addressCheck.ensureValid(draft.address) else {
+                validationMessage = String(localized: "Adresse introuvable. Vérifie le numéro et la rue.")
+                return
+            }
+            draft.address = checked
+            draft.addressGeohash = addressCheck.validatedAddress(for: checked)?.geohash()
+        }
         if let message = await viewModel.submit(draft) {
             validationMessage = message
         } else {

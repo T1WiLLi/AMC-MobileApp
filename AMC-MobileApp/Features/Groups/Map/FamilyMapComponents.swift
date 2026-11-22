@@ -141,6 +141,8 @@ private extension String {
 /// Détails du lieu et une action : voir le groupe, l'itinéraire vers le point, ou le lot du producteur.
 struct FamilyMapPlaceCard: View {
     let place: FamilyMapViewModel.Place
+    /// Ouvre un groupe, un producteur ou un lot : la carte pousse elle-même l'écran (`FamilyMapDestination`).
+    var onOpen: (FamilyMapDestination) -> Void = { _ in }
     let onClose: () -> Void
 
     @ScaledMetric(relativeTo: .title2) private var badgeSize: CGFloat = 48
@@ -222,7 +224,9 @@ struct FamilyMapPlaceCard: View {
     @ViewBuilder private var action: some View {
         switch place.detail {
         case .group(let group, _):
-            NavigationLink(value: GroupRoute(groupId: group.id)) {
+            Button {
+                onOpen(.group(group.id))
+            } label: {
                 actionLabel("Voir le groupe", systemImage: "person.3.fill")
             }
             .buttonStyle(.glassProminent)
@@ -242,8 +246,8 @@ struct FamilyMapPlaceCard: View {
         case .producer(let vendor, let offerId, _):
             // T-157 : la page du producteur (étoiles, produits, prix, dernière vente) est l'action principale.
             VStack(spacing: 8) {
-                NavigationLink {
-                    PublicVendorScreen(vendorId: vendor.id)
+                Button {
+                    onOpen(.vendor(vendor.id))
                 } label: {
                     actionLabel("Voir le producteur", systemImage: "storefront.fill")
                 }
@@ -252,7 +256,9 @@ struct FamilyMapPlaceCard: View {
                 .controlSize(.large)
                 .accessibilityHint("Ouvre la page de \(vendor.legalName) : avis, produits et prix")
                 if let offerId {
-                    NavigationLink(value: OfferRoute(offerId: offerId)) {
+                    Button {
+                        onOpen(.offer(offerId))
+                    } label: {
                         actionLabel("Voir son lot", systemImage: "basket.fill")
                     }
                     .buttonStyle(.glass)

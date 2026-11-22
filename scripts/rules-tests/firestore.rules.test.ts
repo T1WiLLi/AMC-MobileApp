@@ -1561,3 +1561,129 @@ describe('groups/members : retrait d’une famille par le créateur (T-191)', ()
     await assertFails(removeBatch(member(), 'household-coord'))
   })
 })
+
+// T-193 : le créateur quitte son groupe et le confie à une famille encore membre.
+describe('groups : passation du créateur qui quitte (T-193)', () => {
+  const groupPath = 'groups/group-passation'
+  const memberOf = (householdId: string) => `${groupPath}/members/${householdId}`
+  const creator = () => env.authenticatedContext('createur').firestore()
+  const coordinator = () => env.authenticatedContext('coord').firestore()
+  const member = () => env.authenticatedContext('membre').firestore()
+
+  beforeEach(async () => {
+    await env.withSecurityRulesDisabled(async (c) => {
+      const db = c.firestore()
+      for (const [uid, household, role] of [['createur', 'household-createur', 'coordinator'], ['coord', 'household-coord', 'coordinator'],
+                                            ['membre', 'household-membre', 'member'], ['etranger', 'household-etranger', 'member']]) {
+        await setDoc(doc(db, `users/${uid}`), { ...aminaUser, id: uid, householdId: household })
+        await setDoc(doc(db, `households/${household}`), { id: household, name: `Famille ${uid}`, size: 2, geohash: 'f25du', userIds: [uid] })
+        // `etranger` a un ménage mais n'est PAS membre du groupe.
+        if (uid !== 'etranger') {
+          await setDoc(doc(db, memberOf(household)), { householdId: household, role, joinedAt: Timestamp.now() })
+        }
+      }
+      await setDoc(doc(db, groupPath), {
+        id: 'group-passation', name: 'Groupe passation', isPublic: true, inviteCode: 'ABCDEF',
+        createdBy: 'createur', coordinatorIds: ['createur', 'coord'], householdCount: 3
+      })
+    })
+  })
+
+  // Ce que fait FirestoreGroupRepository.leave(…handingOverTo:) : adhésion du partant supprimée, héritier promu,
+  // compteur −1, `createdBy` / `coordinatorIds` / `handoverHouseholdId` mis à jour, le tout en une écriture.
+  function handoverBatch(db: Firestore, o: {
+    leaver?: string, heirHousehold?: string, newOwner?: string, coordinatorIds?: string[], promote?: boolean, delta?: number,
+    leave?: boolean
+  } = {}) {
+    const leaver = o.leaver ?? 'household-createur'
+    const heirHousehold = o.heirHousehold ?? 'household-membre'
+    const batch = writeBatch(db)
+    if (o.leave !== false) batch.delete(doc(db, memberOf(leaver)))
+    if (o.promote !== false) batch.update(doc(db, memberOf(heirHousehold)), { role: 'coordinator' })
+    batch.update(doc(db, groupPath), {
+      householdCount: increment(o.delta ?? -1), lastMembershipChange: leaver,
+      createdBy: o.newOwner ?? 'membre', coordinatorIds: o.coordinatorIds ?? ['coord', 'membre'],
+      handoverHouseholdId: heirHousehold
+    })
+    return batch.commit()
+  }
+  async function groupData() {
+    let data: Record<string, unknown> | undefined
+    await env.withSecurityRulesDisabled(async (c) => { data = (await getDoc(doc(c.firestore(), groupPath))).data() })
+    return data
+  }
+  async function roleOf(householdId: string) {
+    let role: unknown
+    await env.withSecurityRulesDisabled(async (c) => { role = (await getDoc(doc(c.firestore(), memberOf(householdId)))).data()?.role })
+    return role
+  }
+
+  test('passation valide : le créateur sort, l’héritier devient créateur et coordonnateur', async () => {
+    await assertSucceeds(handoverBatch(creator()))
+    const data = await groupData()
+    assert.equal(data?.createdBy, 'membre')
+    assert.deepEqual(data?.coordinatorIds, ['coord', 'membre'])
+    assert.equal(data?.householdCount, 2)
+    assert.equal(await roleOf('household-membre'), 'coordinator')
+  })
+  test('passation valide vers un coordonnateur déjà promu (sans toucher à son adhésion)', async () => {
+    await assertSucceeds(handoverBatch(creator(), { heirHousehold: 'household-coord', newOwner: 'coord', promote: false, coordinatorIds: ['coord'] }))
+    assert.equal((await groupData())?.createdBy, 'coord')
+  })
+  test('un non-créateur ne change pas createdBy, même en sortant', async () => {
+    await assertFails(handoverBatch(coordinator(), { leaver: 'household-coord', heirHousehold: 'household-membre', newOwner: 'membre', coordinatorIds: ['createur', 'membre'] }))
+    await assertFails(handoverBatch(member(), { leaver: 'household-membre', heirHousehold: 'household-coord', newOwner: 'coord', promote: false, coordinatorIds: ['createur', 'coord'] }))
+    await assertFails(updateDoc(doc(member(), groupPath), { createdBy: 'membre' }))
+    assert.equal((await groupData())?.createdBy, 'createur')
+  })
+  test('le créateur ne donne pas le groupe à un non-membre', async () => {
+    // « etranger » n'a pas d'adhésion : ni promotion possible, ni héritier valide.
+    await assertFails(handoverBatch(creator(), { heirHousehold: 'household-etranger', newOwner: 'etranger', promote: false, coordinatorIds: ['coord', 'etranger'] }))
+    // Compte qui n'appartient pas au ménage héritier.
+    await assertFails(handoverBatch(creator(), { newOwner: 'etranger', coordinatorIds: ['coord', 'etranger'] }))
+    assert.equal((await groupData())?.createdBy, 'createur')
+  })
+  test('changer createdBy sans quitter le groupe est refusé', async () => {
+    await assertFails(handoverBatch(creator(), { leave: false, delta: 0 }))
+    await assertFails(updateDoc(doc(creator(), groupPath), { createdBy: 'membre', coordinatorIds: ['coord', 'membre'] }))
+    await assertFails(updateDoc(doc(creator(), groupPath), { createdBy: 'createur', handoverHouseholdId: 'household-membre' }))
+    assert.equal((await groupData())?.createdBy, 'createur')
+  })
+  test('promouvoir un membre au rôle de coordonnateur sans passation est refusé', async () => {
+    await assertFails(updateDoc(doc(creator(), memberOf('household-membre')), { role: 'coordinator' }))
+    await assertFails(updateDoc(doc(member(), memberOf('household-membre')), { role: 'coordinator' }))
+    // Promotion + groupe qui annonce l'héritier sans changer createdBy : refusé aussi.
+    const db = creator()
+    const batch = writeBatch(db)
+    batch.update(doc(db, memberOf('household-membre')), { role: 'coordinator' })
+    batch.update(doc(db, groupPath), { handoverHouseholdId: 'household-membre' })
+    await assertFails(batch.commit())
+    assert.equal(await roleOf('household-membre'), 'member')
+  })
+  test('la passation ne passe pas avec un compteur, une liste de coordonnateurs ou un champ de trop faussés', async () => {
+    await assertFails(handoverBatch(creator(), { delta: -2 }))
+    await assertFails(handoverBatch(creator(), { delta: 0 }))
+    await assertFails(handoverBatch(creator(), { coordinatorIds: ['createur', 'coord', 'membre'] }))
+    await assertFails(handoverBatch(creator(), { coordinatorIds: ['coord', 'membre', 'etranger'] }))
+    const db = creator()
+    const batch = writeBatch(db)
+    batch.delete(doc(db, memberOf('household-createur')))
+    batch.update(doc(db, memberOf('household-membre')), { role: 'coordinator' })
+    batch.update(doc(db, groupPath), {
+      householdCount: increment(-1), lastMembershipChange: 'household-createur', createdBy: 'membre',
+      coordinatorIds: ['coord', 'membre'], handoverHouseholdId: 'household-membre', isPublic: false
+    })
+    await assertFails(batch.commit())
+  })
+  test('un héritier sans promotion (reste simple membre) est refusé', async () => {
+    await assertFails(handoverBatch(creator(), { promote: false }))
+  })
+  test('le créateur qui sort sans passation reste permis (sortie ordinaire inchangée)', async () => {
+    const db = creator()
+    const batch = writeBatch(db)
+    batch.delete(doc(db, memberOf('household-createur')))
+    batch.update(doc(db, groupPath), { householdCount: increment(-1), lastMembershipChange: 'household-createur' })
+    await assertSucceeds(batch.commit())
+    assert.equal((await groupData())?.createdBy, 'createur')
+  })
+})

@@ -8,7 +8,7 @@ import PhotosUI
 import SwiftUI
 
 struct ProductEditorScreen: View {
-    private enum Field: Hashable { case name, unit, origin, price }
+    private enum Field: Hashable { case name, origin, price }
 
     @State private var model: ProductEditorViewModel
     private let onSaved: (Product) -> Void
@@ -29,8 +29,6 @@ struct ProductEditorScreen: View {
     @ScaledMetric(relativeTo: .largeTitle) private var photoHeight: CGFloat = 200
 
     /// Unités proposées dans le menu à côté du champ.
-    private static let unitSuggestions = ["kg", "sac de 10 kg", "sac de 20 kg", "douzaine", "litre", "caisse de 12", "pot de 500 g"]
-
     init(
         repositories: AppRepositories,
         vendorId: String,
@@ -207,7 +205,7 @@ struct ProductEditorScreen: View {
                     .focused($focusedField, equals: .name)
                     .textInputAutocapitalization(.sentences)
                     .submitLabel(.next)
-                    .onSubmit { focusedField = .unit }
+                    .onSubmit { focusedField = .origin }
             }
 
             Picker(selection: $model.category) {
@@ -224,23 +222,9 @@ struct ProductEditorScreen: View {
             .grenierHaptic(.selection, trigger: model.category)
 
             fieldRow("scalemass.fill") {
-                TextField("Unité de vente", text: $model.unit, prompt: Text("Ex. sac de 10 kg"))
-                    .focused($focusedField, equals: .unit)
-                    .textInputAutocapitalization(.never)
-                    .submitLabel(.next)
-                    .onSubmit { focusedField = .origin }
-                Menu {
-                    ForEach(Self.unitSuggestions, id: \.self) { unit in
-                        Button(unit) { model.unit = unit }
-                    }
-                } label: {
-                    Image(systemName: "list.bullet.circle.fill")
-                        .font(.title3)
-                        .symbolRenderingMode(.hierarchical)
-                        .foregroundStyle(Color.grenier)
-                        .frame(minWidth: 44, minHeight: 44)
+                LabeledContent("Unité de vente") {
+                    ProductUnitPicker(selection: $model.unit)
                 }
-                .accessibilityLabel("Unités suggérées")
             }
 
             fieldRow("mappin.and.ellipse") {

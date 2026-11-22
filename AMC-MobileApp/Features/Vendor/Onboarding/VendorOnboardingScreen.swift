@@ -16,7 +16,7 @@ struct VendorOnboardingScreen: View {
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     @FocusState private var focus: Field?
 
-    private enum Field { case name, description, search, productName, productUnit, productOrigin, productPrice }
+    private enum Field { case name, description, search, productName, productOrigin, productPrice }
 
     init(model: VendorOnboardingViewModel, onFinish: @escaping (String) -> Void = { _ in }, onCancel: (() -> Void)? = nil) {
         _model = State(initialValue: model)
@@ -376,8 +376,12 @@ struct VendorOnboardingScreen: View {
                         .tint(.grenier)
                         .labelsHidden()
                     }
-                    productField("Unité de vente", text: $product.unit, prompt: "sac de 5 kg", field: .productUnit,
-                                 systemImage: "scalemass.fill")
+                    VStack(alignment: .leading, spacing: 6) {
+                        Label("Unité de vente", systemImage: "scalemass.fill")
+                            .font(.headline)
+                            .foregroundStyle(Color.texte)
+                        ProductUnitPicker(selection: $product.unit)
+                    }
                     productField("Provenance", text: $product.origin, prompt: "Mirabel, QC", field: .productOrigin,
                                  systemImage: "location.fill")
                     productField("Prix en épicerie", text: $product.referencePriceText, prompt: "8,99 $",

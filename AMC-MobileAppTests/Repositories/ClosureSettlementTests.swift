@@ -166,10 +166,10 @@ struct ClosureSettlementTests {
         try await repository.closeGroupOrder(id: "go1", trigger: Self.trigger)
 
         let payout = try #require(await repository.vendorPayout(ofGroupOrder: "go1"))
-        // 22 parts × 9,90 $ ; 6 % arrondi part par part : 3,56 $ + 2 × 4,75 $.
+        // 22 parts × 9,90 $ ; 1 % arrondi part par part : 0,59 $ + 2 × 0,79 $.
         #expect(payout.grossCents == 21_780)
-        #expect(payout.commissionCents == 356 + 475 + 475)
-        #expect(payout.netCents == 21_780 - 1_306)
+        #expect(payout.commissionCents == 59 + 79 + 79)
+        #expect(payout.netCents == 21_780 - 217)
         #expect(payout.releasedCents == 0)
         #expect(payout.heldCents == payout.netCents)
         #expect(!payout.isDeposit)
@@ -183,8 +183,8 @@ struct ClosureSettlementTests {
 
         let payout = try #require(await repository.vendorPayout(ofGroupOrder: "go1"))
         #expect(payout.isDeposit)
-        // Acompte arrondi au cent inférieur, part par part : 27,92 $ + 2 × 37,22 $.
-        #expect(payout.releasedCents == 2_792 + 3_722 + 3_722)
+        // Acompte arrondi au cent inférieur, part par part : 29,40 $ + 2 × 39,20 $.
+        #expect(payout.releasedCents == 2_940 + 3_920 + 3_920)
         #expect(payout.heldCents == payout.netCents - payout.releasedCents)
     }
 
@@ -208,10 +208,10 @@ struct ClosureSettlementTests {
         #expect(settlement.solidarityCents == Self.h1Price)
         // Les familles paient le prix moins la subvention ; le reste vient du fonds.
         #expect(settlement.collectedFromFamiliesCents == 21_780 - Self.h1Price)
-        #expect(settlement.commissionCents == 1_306)
-        #expect(settlement.netCents == 20_474)
-        #expect(settlement.releasedCents == 10_236)
-        #expect(settlement.heldCents == 20_474 - 10_236)
+        #expect(settlement.commissionCents == 217)
+        #expect(settlement.netCents == 21_563)
+        #expect(settlement.releasedCents == 10_780)
+        #expect(settlement.heldCents == 21_563 - 10_780)
         #expect(settlement.outstandingCents == 0)
         #expect(!settlement.isEmpty)
     }

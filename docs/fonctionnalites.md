@@ -96,7 +96,7 @@ Onglets : **Tableau · Lots · Demande · Revenus**. Ouvert à tout producteur, 
 | Groupes intéressés et envies qui correspondent à mes produits | ✅ |
 | « Mes disponibilités » : déclarer ce que je peux fournir, et créer un lot à partir d'une disponibilité | ✅ |
 | Revenus : revenu encaissé et revenu prévu, par lot | 🧪 calculé sur les paiements simulés |
-| Commandes fermées : encaissé, part payée par le fonds solidaire, commission de 6 %, net, acompte de 50 % versé à un vendeur vérifié, reste dû | 🧪 paiements simulés |
+| Commandes fermées : encaissé, part payée par le fonds solidaire, commission de 1 %, net, acompte de 50 % versé à un vendeur vérifié, reste dû | 🧪 paiements simulés |
 | Statistiques de ventes par produit | ✅ |
 
 ## Portail Organismes

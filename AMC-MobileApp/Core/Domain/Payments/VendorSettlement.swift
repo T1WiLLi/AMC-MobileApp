@@ -12,7 +12,7 @@ nonisolated struct VendorSettlement: Sendable, Equatable {
     var grossCents: Cents
     /// Dont payé par le fonds de solidarité (subventions).
     var solidarityCents: Cents
-    /// Commission de l'app (6 %).
+    /// Commission de l'app (1 %).
     var commissionCents: Cents
     var netCents: Cents
     /// Acompte déjà versé (vendeur vérifié) ou remise de la cueillette.

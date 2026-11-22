@@ -1380,7 +1380,7 @@ service cloud.firestore {
       // -------------------------------------------------------------
       // groupOrders/{orderId}/payouts/vendor — versement au vendeur, écrit à la clôture (T-195)
       // -------------------------------------------------------------
-      // Brut, commission (6 %), net, acompte versé, retenu (VendorPayout). Même écriture de clôture, jamais modifiable.
+      // Brut, commission (1 %), net, acompte versé, retenu (VendorPayout). Même écriture de clôture, jamais modifiable.
       // Lecture : le vendeur du lot et la coordination du groupe.
       function isClosurePayout(data) {
         return data.keys().hasOnly(['id', 'groupOrderId', 'vendorId', 'mode', 'grossCents', 'commissionCents',
@@ -1403,9 +1403,9 @@ service cloud.firestore {
           && data.subsidyTotalCents >= 0 && data.subsidyTotalCents <= data.grossCents
           && data.solidarityContributedCents >= 0
           && data.paidShareCount >= 0
-          // 6 % arrondi au cent part par part : l'écart au 6 % exact reste sous un demi-cent par part payée.
-          && data.commissionCents * 10000 >= data.grossCents * 600 - data.paidShareCount * 5000
-          && data.commissionCents * 10000 <= data.grossCents * 600 + data.paidShareCount * 5000
+          // 1 % arrondi au cent part par part : l'écart au 1 % exact reste sous un demi-cent par part payée.
+          && data.commissionCents * 10000 >= data.grossCents * 100 - data.paidShareCount * 5000
+          && data.commissionCents * 10000 <= data.grossCents * 100 + data.paidShareCount * 5000
           && data.date is timestamp;
       }
 

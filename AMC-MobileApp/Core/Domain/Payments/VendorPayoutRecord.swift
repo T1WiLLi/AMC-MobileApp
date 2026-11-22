@@ -13,7 +13,7 @@ nonisolated struct VendorPayoutRecord: Identifiable, Codable, Sendable, Hashable
     var mode: String
     /// Prix finaux des parts payées (la part du fonds de solidarité comprise).
     var grossCents: Cents
-    /// Commission de l'app (6 %).
+    /// Commission de l'app (1 %).
     var commissionCents: Cents
     var netCents: Cents
     /// Versé à la clôture (acompte), le reste suit à la cueillette.

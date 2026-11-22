@@ -106,7 +106,7 @@ nonisolated enum TierEngine {
         guard let missing = progress.sharesToNextTier, let next = progress.nextTier else {
             return String(localized: "Meilleur prix atteint")
         }
-        let parts = missing == 1 ? String(localized: "1 part") : "\(missing) parts"
+        let parts = FrenchPlural.count(missing, "part")
         return String(localized: "Encore \(parts) pour passer à \(Money.format(next.priceCents)) la part")
     }
 }

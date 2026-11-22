@@ -892,7 +892,7 @@ private struct PriceField: View {
                 .multilineTextAlignment(.trailing)
                 .priceStyle(.headline)
                 .accessibilityLabel(label)
-                .accessibilityValue(value > 0 ? Money.format(Self.cents(value)) : "vide")
+                .accessibilityValue(value > 0 ? Money.format(Self.cents(value)) : String(localized: "vide"))
             Text("$")
                 .font(.headline)
                 .fontDesign(.rounded)

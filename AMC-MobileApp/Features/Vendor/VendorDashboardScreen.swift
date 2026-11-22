@@ -587,7 +587,7 @@ private struct StatTiles: View {
     private var closingSoonText: String {
         let count = dashboard.closingSoon.count
         if count == 0 { return String(localized: "aucun ne ferme bientôt") }
-        return String(localized: "\(count) \(FrenchPlural.word(count, "ferme", plural: "ferment")) bientôt")
+        return String(localized: "\(count) ferme bientôt")
     }
 }
 

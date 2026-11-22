@@ -562,7 +562,7 @@ private struct DeliveryCard: View {
     @ViewBuilder
     private var orderLabel: some View {
         if let group = delivery.groupName {
-            let shares = delivery.shares == 1 ? String(localized: "1 part") : "\(delivery.shares) parts"
+            let shares = FrenchPlural.count(delivery.shares, "part")
             Label("\(group) · \(shares) · \(Money.format(delivery.revenueCents))", systemImage: GrenierSymbol.groups)
                 .font(.subheadline)
                 .foregroundStyle(.texteSecondaire)

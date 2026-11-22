@@ -180,10 +180,14 @@ extension View {
 
 private struct AppThemedModifier: ViewModifier {
     @AppStorage(AppTheme.storageKey) private var theme: AppTheme = .grenier
+    /// T-171 : une feuille ouverte pendant le changement de langue perd son parent (la racine est recréée) :
+    /// elle garde donc l'ancienne `\.locale`. On la repose ici, à la racine de la feuille comme de l'app.
+    @AppStorage(AppLanguage.storageKey) private var language: AppLanguage = .system
 
     func body(content: Content) -> some View {
         content
             .environment(\.appTheme, theme)
+            .environment(\.locale, language.locale)
             .tint(Color.grenier)
     }
 }

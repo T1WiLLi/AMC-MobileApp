@@ -103,6 +103,23 @@ struct CreateGroupTests {
         #expect(model.hasRoomForAnotherGroup)
     }
 
+    /// T-188 : le bouton « Chez moi » de la carte ramène le centre sur le ménage ; inactif tant qu'on n'a pas bougé.
+    @Test func homeCenterFollowsTheHousehold() async throws {
+        let model = Self.viewModel()
+        #expect(model.homeCenter == nil && model.isCenteredAtHome)
+        await model.load()
+        let home = try #require(model.homeCenter)
+        #expect(model.center == home && model.isCenteredAtHome)
+        model.center = Geohash.Coordinate(latitude: home.latitude + 0.01, longitude: home.longitude)
+        #expect(!model.isCenteredAtHome)
+    }
+
+    @Test func nameCountIgnoresSurroundingSpaces() {
+        let model = Self.viewModel()
+        model.name = "  Voisins  "
+        #expect(model.trimmedNameCount == 7)
+    }
+
     @Test func createIsEnabledOnceTheFormIsValid() async {
         let model = Self.viewModel()
         await model.load()

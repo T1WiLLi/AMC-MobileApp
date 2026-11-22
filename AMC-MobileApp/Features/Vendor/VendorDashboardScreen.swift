@@ -97,9 +97,6 @@ struct VendorDashboardScreen: View {
                 VendorProfileScreen(repositories: repositories, vendorId: vendorId)
                     .presentationDetents([.large])
             }
-            .sheet(isPresented: $showsLayoutEditor) {
-                SectionLayoutEditor(title: String(localized: "Modifier le tableau"), sections: DashboardSection.infos, raw: $rawLayout)
-            }
             .sheet(isPresented: $showsNotifications) {
                 VendorNotificationsSheet(dashboard: viewModel.state.value)
                     .presentationDetents([.medium, .large])
@@ -120,6 +117,8 @@ struct VendorDashboardScreen: View {
             // Retour au premier plan ou du réseau : recharge sans repasser par le squelette.
             .refreshOnForeground { await viewModel.refresh() }
         }
+        // Panneau latéral de mise en page : les sections passent en vue isométrique derrière lui.
+        .layoutEditorPanel(isPresented: $showsLayoutEditor, title: String(localized: "Modifier le tableau"), sections: DashboardSection.infos, raw: $rawLayout)
     }
 
     // MARK: - États
@@ -423,16 +422,19 @@ private struct DashboardContent: View {
 
     @AppStorage(DashboardSection.storageKey) private var rawLayout = ""
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Environment(\.isEditingLayout) private var isEditingLayout
+
+    private var layout: SectionLayout { SectionLayout(raw: rawLayout, defaults: DashboardSection.allCases.map(\.rawValue)) }
 
     private var sections: [DashboardSection] {
-        SectionLayout(raw: rawLayout, defaults: DashboardSection.allCases.map(\.rawValue))
-            .visible.compactMap(DashboardSection.init(rawValue:))
+        layout.displayed(isEditing: isEditingLayout).compactMap(DashboardSection.init(rawValue:))
     }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 20) {
             ForEach(sections, id: \.self) { section in
                 view(for: section)
+                    .isoLayoutEditing(isActive: isEditingLayout, isDimmed: layout.hidden.contains(section.rawValue))
                     .transition(.opacity.combined(with: .scale(scale: 0.96)))
             }
         }

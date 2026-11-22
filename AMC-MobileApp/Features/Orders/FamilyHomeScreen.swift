@@ -34,8 +34,7 @@ struct FamilyHomeScreen: View {
                     ) { content in
                         FamilyHomeContent(
                             content: content,
-                            largeGreeting: usesInlineTitle ? title : nil,
-                            isArrangingSections: isEditingLayout
+                            largeGreeting: usesInlineTitle ? title : nil
                         )
                     }
                 } else {
@@ -56,9 +55,6 @@ struct FamilyHomeScreen: View {
                     }
                 }
             }
-            .sheet(isPresented: $isEditingLayout) {
-                SectionLayoutEditor(title: "Modifier l'accueil", sections: HomeSection.infos, raw: $rawLayout)
-            }
             .offerDestination()
             .refreshable {
                 // Le contexte d'abord : un nouveau groupe recrée le modèle de l'Accueil (task(id: identity)).
@@ -72,6 +68,8 @@ struct FamilyHomeScreen: View {
             // tout de suite, sans attendre le retour. Le zoom de la fiche ne relance pas toujours `onAppear`.
             .onChange(of: ShareActivity.shared.generation) { reloadIfAlreadyLoaded() }
         }
+        // Panneau latéral de mise en page : les sections passent en vue isométrique derrière lui.
+        .layoutEditorPanel(isPresented: $isEditingLayout, title: String(localized: "Modifier l'accueil"), sections: HomeSection.infos, raw: $rawLayout)
         // Bascule de portail : le voile attend que l'accueil ait son contenu.
         .portalContentReady(.family, when: isContentReady)
         // FB-19 : « Salut, moi c'est Noisette », avant les bulles de la visite guidée.
@@ -156,9 +154,8 @@ private struct FamilyHomeContent: View {
     let content: FamilyHomeViewModel.Content
     /// Salutation affichée dans le contenu (tailles d'accessibilité) : elle passe à la ligne au lieu d'être coupée.
     var largeGreeting: String?
-    /// FB-21 : l'éditeur de sections est ouvert ; les sections s'inclinent en 3D derrière la feuille.
-    var isArrangingSections = false
-
+    /// Le panneau de mise en page est ouvert : sections en vue isométrique, masquées incluses (atténuées).
+    @Environment(\.isEditingLayout) private var isEditingLayout
     @AppStorage(HomeSection.storageKey) private var rawLayout = ""
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Environment(\.isSeniorMode) private var isSeniorMode
@@ -171,9 +168,11 @@ private struct FamilyHomeContent: View {
     /// La liste des nouveaux lots est dépliée au-delà des premiers.
     @State private var showsAllOffers = false
 
+    private var layout: SectionLayout { SectionLayout(raw: rawLayout, defaults: HomeSection.allCases.map(\.rawValue)) }
+
     private var sections: [HomeSection] {
-        let chosen = SectionLayout(raw: rawLayout, defaults: HomeSection.allCases.map(\.rawValue))
-            .visible.compactMap(HomeSection.init(rawValue:))
+        let chosen = layout.displayed(isEditing: isEditingLayout && !isSeniorMode)
+            .compactMap(HomeSection.init(rawValue:))
         // T-181 : mode aîné = ma commande et mon groupe seulement.
         return SeniorMode.visibleHomeSections(chosen, isSenior: isSeniorMode)
     }
@@ -194,7 +193,7 @@ private struct FamilyHomeContent: View {
                         view(for: section)
                             .id(section)
                             .cascadeAppear(index)
-                            .sectionArrangeTilt(isArrangingSections)
+                            .isoLayoutEditing(isActive: isEditingLayout, isDimmed: layout.hidden.contains(section.rawValue))
                             .transition(.opacity.combined(with: .scale(scale: 0.96)))
                     }
                 }
@@ -210,8 +209,6 @@ private struct FamilyHomeContent: View {
                 }
             }
         }
-        // Pendant le réarrangement, l'Accueil n'est qu'un aperçu : pas de toucher par erreur sur une carte inclinée.
-        .allowsHitTesting(!isArrangingSections)
         .grenierScrollEdge()
         .task(id: "\(context.householdId)|\(content.group.id)") {
             guard !context.householdId.isEmpty else { return }

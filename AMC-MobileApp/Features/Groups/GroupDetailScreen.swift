@@ -56,6 +56,11 @@ struct GroupDetailScreen: View {
             }
         }
         .grenierBackground()
+        // T-187 : lot d'un groupe visité, en consultation (enregistré ici pour survivre au passage visiteur → membre).
+        .navigationDestination(for: GroupOfferRoute.self) { route in
+            OfferDetailScreen(offerId: route.offerId,
+                              consultation: viewModel.map { OfferConsultation(groupId: route.groupId, groupModel: $0) })
+        }
         // B-034 : accent et emblème de la marque du groupe ; Grenier revient en quittant la fiche.
         .environment(\.groupTheme, theme)
         .tint(theme.accent)

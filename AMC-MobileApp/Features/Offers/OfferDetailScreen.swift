@@ -5,25 +5,32 @@ import SwiftUI
 /// Lit `@Environment(\.appContext)` pour les dépôts, le ménage et le groupe, et pilote `OfferDetailViewModel`.
 struct OfferDetailScreen: View {
     let offerId: String
+    /// T-187 : lot d'un groupe dont le ménage n'est pas membre (consultation, sans réserver).
+    var consultation: OfferConsultation? = nil
     @Environment(\.appContext) private var context
     @State private var viewModel: OfferDetailViewModel?
+
+    private var isConsulting: Bool { consultation?.isActive ?? false }
 
     var body: some View {
         Group {
             if let viewModel {
-                OfferDetailContent(viewModel: viewModel)
+                OfferDetailContent(viewModel: viewModel, consultation: isConsulting ? consultation : nil)
+                    .id(ObjectIdentifier(viewModel))
             } else {
                 OfferLoadingView()
             }
         }
         .toolbarVisibility(.hidden, for: .tabBar)
-        .task {
-            if viewModel == nil {
+        // T-187 : rejoindre le groupe depuis la fiche la rend réservable (nouveau modèle, hors lecture seule).
+        .task(id: isConsulting) {
+            if viewModel == nil || viewModel?.isReadOnly != isConsulting {
                 viewModel = OfferDetailViewModel(
                     repositories: context.repositories,
                     offerId: offerId,
                     householdId: context.householdId,
-                    groupId: context.groupId
+                    groupId: consultation?.groupId ?? context.groupId,
+                    isReadOnly: isConsulting
                 )
             }
         }
@@ -124,6 +131,7 @@ enum OfferDetailSymbol {
 
 private struct OfferDetailContent: View {
     @Bindable var viewModel: OfferDetailViewModel
+    var consultation: OfferConsultation?
 
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
@@ -230,7 +238,11 @@ private struct OfferDetailContent: View {
                     priceSection(content)
                     aboutCard(content)
                     groupSection(content)
-                    shareSection(content)
+                    if let consultation {
+                        OfferConsultationNote(groupName: consultation.group?.name ?? String(localized: "ce groupe"))
+                    } else {
+                        shareSection(content)
+                    }
                 }
                 .padding(.horizontal, 16)
                 .padding(.top, 28)
@@ -249,7 +261,11 @@ private struct OfferDetailContent: View {
         // en fin de défilement) et un bord net la sépare du texte qui passe dessous : rien de superposé.
         .scrollEdgeEffectStyle(.hard, for: .bottom)
         .safeAreaBar(edge: .bottom, spacing: 0) {
-            reserveBar(content)
+            if let consultation, let group = consultation.group {
+                GroupJoinBar(group: group, viewModel: consultation.groupModel).padding(.top, 12)
+            } else {
+                reserveBar(content)
+            }
         }
     }
 
@@ -530,7 +546,8 @@ private struct OfferDetailContent: View {
         let pricing = content.pricing
         let households = content.groupOrder?.committedHouseholds ?? 0
         return VStack(alignment: .leading, spacing: 10) {
-            sectionHeader(String(localized: "Ton groupe"), systemImage: OfferDetailSymbol.groupSection, info: .tiers)
+            sectionHeader(consultation == nil ? String(localized: "Ton groupe") : String(localized: "Ce groupe"),
+                          systemImage: OfferDetailSymbol.groupSection, info: .tiers)
             VStack(alignment: .leading, spacing: 14) {
                 ViewThatFits(in: .horizontal) {
                     HStack(alignment: .firstTextBaseline) {

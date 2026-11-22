@@ -1,7 +1,8 @@
 import SwiftUI
 
 /// « Avis des familles » d'un groupe (T-174, FB-20) : moyenne, répartition, avis récents et « Noter ce groupe ».
-/// Réutilisable dans toute vue d'un groupe (fiche, vue publique T-172) ; la note compacte des cartes est
+/// Réutilisable dans toute vue d'un groupe (fiche, vue publique T-172) ; sur la fiche publique (T-187), le modèle
+/// est en lecture seule (`isReadOnly`) : mêmes avis, sans « Noter ce groupe ». La note compacte des cartes est
 /// `RatingSummaryView(summary: group.ratingSummary)`.
 ///
 ///     GroupRatingsSection(model: ratings, groupName: group.name) { updated in viewModel.replaceGroup(updated) }
@@ -27,7 +28,7 @@ struct GroupRatingsSection: View {
             case .empty:
                 EmptyView()
             case .loaded(let content):
-                GroupRatingsCard(content: content) { isRating = true }
+                GroupRatingsCard(content: content, isReadOnly: model.isReadOnly) { isRating = true }
                 ForEach(Array(content.recent.enumerated()), id: \.element.id) { index, rating in
                     RatingCommentCard(
                         authorName: rating.authorName, rating: rating.rating, comment: rating.comment,
@@ -79,6 +80,8 @@ private extension GroupRatingsViewModel.Content {
 /// Moyenne, étoiles, répartition et action principale de la section.
 private struct GroupRatingsCard: View {
     let content: GroupRatingsViewModel.Content
+    /// T-187 : fiche publique (visiteur), on lit les avis sans pouvoir noter.
+    var isReadOnly = false
     let rate: () -> Void
 
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
@@ -111,9 +114,11 @@ private struct GroupRatingsCard: View {
                         Text("Aucun avis pour l'instant")
                             .font(.headline)
                             .foregroundStyle(.texte)
-                        Text("Sois la première famille à dire comment ça se passe.")
-                            .font(.subheadline)
-                            .foregroundStyle(.texteSecondaire)
+                        if content.eligibility.canRate {
+                            Text("Sois la première famille à dire comment ça se passe.")
+                                .font(.subheadline)
+                                .foregroundStyle(.texteSecondaire)
+                        }
                     }
                 }
                 .accessibilityElement(children: .combine)
@@ -140,6 +145,12 @@ private struct GroupRatingsCard: View {
             } else if content.eligibility == .owner {
                 Label("Tu as créé ce groupe : les avis viennent des autres familles.",
                       systemImage: "person.crop.circle.badge.checkmark")
+                    .font(.footnote)
+                    .symbolRenderingMode(.hierarchical)
+                    .foregroundStyle(.texteSecondaire)
+            } else if isReadOnly {
+                Label("Les avis viennent des familles du groupe. Rejoins-le pour donner le tien.",
+                      systemImage: "person.3.fill")
                     .font(.footnote)
                     .symbolRenderingMode(.hierarchical)
                     .foregroundStyle(.texteSecondaire)

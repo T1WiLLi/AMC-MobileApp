@@ -37,6 +37,12 @@ struct SectionLayoutTests {
         #expect(layout.visible == ["group", "offers"])
     }
 
+    @Test func editingShowsHiddenSectionsInOrderWhileViewingDoesNot() {
+        let layout = SectionLayout(raw: "offers,group,savings,orders|group", defaults: defaults)
+        #expect(layout.displayed(isEditing: true) == ["offers", "group", "savings", "orders"])
+        #expect(layout.displayed(isEditing: false) == ["offers", "savings", "orders"])
+    }
+
     @Test func shiftMovesOneStepAndStopsAtTheEdges() {
         var layout = SectionLayout(raw: "", defaults: defaults)
         layout.shift("group", by: -1)
@@ -73,17 +79,34 @@ struct DashboardSectionTests {
     }
 }
 
-/// FB-21 : sections inclinées en 3D pendant le réarrangement, jamais sous Reduce Motion.
-struct SectionArrangeTiltTests {
-    @Test @MainActor func tiltsAboutFortyFiveDegreesWhileArranging() {
-        #expect(SectionArrangeTilt.angle(isArranging: true, reduceMotion: false) == 45)
-        #expect(SectionArrangeTilt.scale(isArranging: true, reduceMotion: false) < 1)
-        #expect(SectionArrangeTilt.angle(isArranging: false, reduceMotion: false) == 0)
-        #expect(SectionArrangeTilt.scale(isArranging: false, reduceMotion: false) == 1)
+/// Mode édition de la mise en page : vue isométrique, identique pour chaque section, jamais sous Reduce Motion.
+struct IsoLayoutStyleTests {
+    @Test @MainActor func everySectionGetsTheSameAngleWhileEditing() {
+        #expect(IsoLayoutStyle.angle(isActive: true, reduceMotion: false) > 0)
+        #expect(IsoLayoutStyle.scale(isActive: true, reduceMotion: false) < 1)
+        #expect(IsoLayoutStyle.angle(isActive: false, reduceMotion: false) == 0)
+        #expect(IsoLayoutStyle.scale(isActive: false, reduceMotion: false) == 1)
     }
 
     @Test @MainActor func reduceMotionKeepsTheSectionsFlat() {
-        #expect(SectionArrangeTilt.angle(isArranging: true, reduceMotion: true) == 0)
-        #expect(SectionArrangeTilt.scale(isArranging: true, reduceMotion: true) == 1)
+        #expect(IsoLayoutStyle.angle(isActive: true, reduceMotion: true) == 0)
+        #expect(IsoLayoutStyle.scale(isActive: true, reduceMotion: true) == 1)
+    }
+
+    @Test @MainActor func hiddenSectionsAreDimmedOnlyWhileEditing() {
+        #expect(IsoLayoutStyle.opacity(isActive: true, isDimmed: true) < 0.6)
+        #expect(IsoLayoutStyle.opacity(isActive: true, isDimmed: false) == 1)
+        #expect(IsoLayoutStyle.opacity(isActive: false, isDimmed: true) == 1)
+    }
+
+    @Test @MainActor func panelWidthIsNarrowerOnIPad() {
+        #expect(LayoutEditorPanel.width(in: 393, isRegular: false) == 393 * 0.72)
+        #expect(LayoutEditorPanel.width(in: 1024, isRegular: true) <= 400)
+    }
+
+    @Test @MainActor func swipeLeftBeyondTheThresholdCloses() {
+        #expect(LayoutEditorPanel.shouldClose(translation: -90, predictedEnd: -120))
+        #expect(!LayoutEditorPanel.shouldClose(translation: -10, predictedEnd: -20))
+        #expect(!LayoutEditorPanel.shouldClose(translation: 80, predictedEnd: 200))
     }
 }

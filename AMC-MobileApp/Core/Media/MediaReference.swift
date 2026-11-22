@@ -23,6 +23,19 @@ nonisolated enum MediaPath: Hashable, Sendable {
     case groupBanner(groupId: String)
     /// T-157 : photo de vitrine d'un vendeur (`vendors/{id}/media/photo-…`), plusieurs par vendeur.
     case vendorPhoto(vendorId: String, photoId: String)
+    /// Photo d'un produit du catalogue (`vendors/{id}/media/photo-product-{productId}`), une par produit.
+    /// Même collection et mêmes règles que les photos de vitrine : Spark n'a pas Cloud Storage.
+    case productPhoto(vendorId: String, productId: String)
+
+    /// Préfixe du document d'une photo de produit.
+    static let productPhotoPrefix = "photo-product-"
+
+    /// Id de document accepté par firestore.rules (`photo-[A-Za-z0-9-]{1,64}`) pour la photo d'un produit.
+    static func productPhotoId(productId: String) -> String {
+        let allowed = Set("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-")
+        let safe = String(productId.map { allowed.contains($0) ? $0 : "-" }.prefix(64 - 8))
+        return productPhotoPrefix + (safe.isEmpty ? "x" : safe)
+    }
 
     /// Chemin du document Firestore.
     var documentPath: String {
@@ -31,6 +44,8 @@ nonisolated enum MediaPath: Hashable, Sendable {
         case .groupPhoto(let groupId): "groups/\(groupId)/media/photo"
         case .groupBanner(let groupId): "groups/\(groupId)/media/banner"
         case .vendorPhoto(let vendorId, let photoId): "vendors/\(vendorId)/media/\(photoId)"
+        case .productPhoto(let vendorId, let productId):
+            "vendors/\(vendorId)/media/\(Self.productPhotoId(productId: productId))"
         }
     }
 
@@ -40,6 +55,7 @@ nonisolated enum MediaPath: Hashable, Sendable {
         case .userAvatar, .groupPhoto: .square
         case .groupBanner: .banner
         case .vendorPhoto: .showcase
+        case .productPhoto: .product
         }
     }
 
@@ -51,6 +67,9 @@ nonisolated enum MediaPath: Hashable, Sendable {
         case ("users", "avatar"): self = .userAvatar(userId: parts[1])
         case ("groups", "photo"): self = .groupPhoto(groupId: parts[1])
         case ("groups", "banner"): self = .groupBanner(groupId: parts[1])
+        case ("vendors", let photoId) where photoId.hasPrefix(Self.productPhotoPrefix)
+            && photoId.count > Self.productPhotoPrefix.count:
+            self = .productPhoto(vendorId: parts[1], productId: String(photoId.dropFirst(Self.productPhotoPrefix.count)))
         case ("vendors", let photoId) where photoId.hasPrefix("photo-"):
             self = .vendorPhoto(vendorId: parts[1], photoId: photoId)
         default: return nil
@@ -127,6 +146,8 @@ nonisolated struct ImageSpec: Hashable, Sendable {
     static let banner = ImageSpec(width: 1_200, height: 450, quality: 0.65, targetBytes: 200_000)
     /// Photo de vitrine d'un vendeur (T-157) : 1000 × 750 (4:3), JPEG 0,65 (< 200 Ko visés).
     static let showcase = ImageSpec(width: 1_000, height: 750, quality: 0.65, targetBytes: 200_000)
+    /// Photo de produit : 800 × 800 (carrée, comme ses vignettes), JPEG 0,7 (< 150 Ko visés).
+    static let product = ImageSpec(width: 800, height: 800, quality: 0.7, targetBytes: 150_000)
 
     var size: CGSize { CGSize(width: width, height: height) }
     var aspectRatio: CGFloat { CGFloat(width) / CGFloat(height) }

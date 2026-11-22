@@ -13348,12 +13348,12 @@
         }
       }
     },
-    "Glisse pour changer l'ordre, touche l'œil pour masquer une section." : {
+    "Glisse les poignées pour changer l'ordre, touche l'œil pour masquer une section." : {
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Drag to reorder, tap the eye to hide a section."
+            "value" : "Drag the handles to reorder, tap the eye to hide a section."
           }
         }
       }
@@ -26595,6 +26595,16 @@
         }
       }
     },
+    "Verrouillé dès que tu quittes l'app." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Locks as soon as you leave the app."
+          }
+        }
+      }
+    },
     "Va à la connexion" : {
       "localizations" : {
         "en" : {
@@ -27309,6 +27319,76 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Checking the address"
+          }
+        }
+      }
+    },
+    "Rejoins ce groupe pour réserver ta part." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Join this group to reserve your share."
+          }
+        }
+      }
+    },
+    "Rejoins ce groupe pour réserver ta part" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Join this group to reserve your share"
+          }
+        }
+      }
+    },
+    "Tu vois le lot de %@ en consultation : les parts se réservent entre familles du groupe, qui partagent la commande et la cueillette." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "You're viewing %@'s lot: shares are reserved by the group's families, who share the order and the pickup."
+          }
+        }
+      }
+    },
+    "ce groupe" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "this group"
+          }
+        }
+      }
+    },
+    "Ce groupe" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "This group"
+          }
+        }
+      }
+    },
+    "Ouvre la fiche du lot, en consultation." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Opens the lot, view only."
+          }
+        }
+      }
+    },
+    "Les avis viennent des familles du groupe. Rejoins-le pour donner le tien." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Reviews come from the group's families. Join it to add yours."
           }
         }
       }

@@ -109,7 +109,10 @@ final class VendorOnboardingViewModel {
     /// Quartiers choisis, dans l'ordre du choix.
     private(set) var neighborhoods: [MontrealNeighborhood] = []
     var neighborhoodQuery = ""
+    /// Photos choisies (URL locales d'aperçu), dans l'ordre : la première est la couverture.
     private(set) var photoURLs: [URL] = []
+    /// Données JPEG des photos choisies, par URL locale.
+    private var pendingPhotos: [URL: Data] = [:]
     /// Premier produit (facultatif), validé et enregistré par l'éditeur de produit du catalogue.
     let product: ProductEditorViewModel
 
@@ -126,19 +129,35 @@ final class VendorOnboardingViewModel {
     private(set) var savedProduct: Product?
     /// Le vendeur est créé mais le premier produit a échoué : on le dit, sans bloquer.
     private(set) var productSaveFailed = false
+    /// Le vendeur est créé mais ses photos n'ont pas pu être envoyées : on le dit, sans bloquer.
+    private(set) var photosSaveFailed = false
 
     let userId: String
     /// Id du vendeur créé (connu d'avance : un vendeur par compte).
     let vendorId: String
     private let repositories: AppRepositories
+    /// Stockage final des photos (documents `media` Firestore en live) : utilisable seulement une fois
+    /// le vendeur créé et rattaché au compte (firestore.rules : `isVendorOf`).
     private let photoStore: any VendorPhotoStoring
+    /// Copie locale des photos choisies avant la création du vendeur (aperçu à l'écran).
+    private let stagingStore: any VendorPhotoStoring
 
-    init(repositories: AppRepositories, userId: String, photoStore: any VendorPhotoStoring = LocalVendorPhotoStore()) {
+    init(
+        repositories: AppRepositories,
+        userId: String,
+        photoStore: (any VendorPhotoStoring)? = nil,
+        stagingStore: any VendorPhotoStoring = LocalVendorPhotoStore()
+    ) {
         self.repositories = repositories
         self.userId = userId
         self.vendorId = Vendor.ownedId(forUserId: userId)
-        self.photoStore = photoStore
-        self.product = ProductEditorViewModel(repositories: repositories, vendorId: Vendor.ownedId(forUserId: userId))
+        self.photoStore = photoStore ?? ImageStoreVendorPhotoStore(images: repositories.images)
+        self.stagingStore = stagingStore
+        self.product = ProductEditorViewModel(
+            repositories: repositories,
+            vendorId: Vendor.ownedId(forUserId: userId),
+            photoUploader: ImageStoreProductPhotoUploader(images: repositories.images)
+        )
     }
 
     convenience init(context: AppContext) {
@@ -205,7 +224,9 @@ final class VendorOnboardingViewModel {
     }
 
     var photosSummary: String {
-        photoURLs.isEmpty ? String(localized: "Aucune pour l'instant") : FrenchPlural.count(photoURLs.count, "photo")
+        if photoURLs.isEmpty { return String(localized: "Aucune pour l'instant") }
+        if photosSaveFailed { return String(localized: "Pas envoyées : ajoute-les depuis ton profil") }
+        return FrenchPlural.count(photoURLs.count, "photo")
     }
 
     var productSummary: String {
@@ -234,7 +255,8 @@ final class VendorOnboardingViewModel {
 
     // MARK: Photos
 
-    /// Enregistre l'image choisie (PhotosPicker) et l'ajoute. Renvoie true si elle a été ajoutée.
+    /// Garde l'image choisie (PhotosPicker) en local pour l'aperçu ; elle part au stockage final après la
+    /// création du vendeur. Renvoie true si elle a été ajoutée.
     @discardableResult
     func addPhoto(data: Data) async -> Bool {
         photoError = nil
@@ -249,9 +271,11 @@ final class VendorOnboardingViewModel {
         isAddingPhoto = true
         defer { isAddingPhoto = false }
         do {
-            // Même stockage que le profil vendeur ; image réduite comme les photos de produit.
+            // Image réduite comme les photos de produit ; le stockage final la recadre en 4:3.
             let jpeg = ProductPhoto.jpegData(from: data) ?? data
-            photoURLs.append(try await photoStore.store(jpeg, vendorId: vendorId))
+            let localURL = try await stagingStore.store(jpeg, vendorId: vendorId)
+            pendingPhotos[localURL] = jpeg
+            photoURLs.append(localURL)
             return true
         } catch {
             photoError = AppError(error)
@@ -261,6 +285,7 @@ final class VendorOnboardingViewModel {
 
     func removePhoto(_ url: URL) {
         photoURLs.removeAll { $0 == url }
+        pendingPhotos[url] = nil
     }
 
     // MARK: Navigation
@@ -301,7 +326,8 @@ final class VendorOnboardingViewModel {
             legalName: Rules.trimmed(legalName),
             kind: kind,
             description: Rules.trimmed(productionDescription),
-            photoURLs: photoURLs,
+            // Les photos suivent, une fois le vendeur rattaché au compte (les règles l'exigent).
+            photoURLs: [],
             servedZones: zones,
             averageRating: nil,
             isVerified: false,
@@ -315,10 +341,32 @@ final class VendorOnboardingViewModel {
             saveError = AppError(error)
             return
         }
+        if let vendor = createdVendor, vendor.photoURLs.isEmpty, !photoURLs.isEmpty {
+            await uploadPhotos(to: vendor)
+        }
         if hasProductDraft, savedProduct == nil {
             savedProduct = await product.save()
             productSaveFailed = savedProduct == nil
         }
         step = .done
+    }
+
+    /// Envoie les photos choisies au stockage final et les pose sur le vendeur. Un échec ne bloque pas :
+    /// le producteur pourra les ajouter depuis son profil.
+    private func uploadPhotos(to vendor: Vendor) async {
+        do {
+            var urls: [URL] = []
+            for localURL in photoURLs {
+                guard let data = pendingPhotos[localURL] else { continue }
+                urls.append(try await photoStore.store(data, vendorId: vendor.id))
+            }
+            var updated = vendor
+            updated.photoURLs = urls
+            try await repositories.vendors.saveVendor(updated)
+            createdVendor = updated
+            photosSaveFailed = false
+        } catch {
+            photosSaveFailed = true
+        }
     }
 }

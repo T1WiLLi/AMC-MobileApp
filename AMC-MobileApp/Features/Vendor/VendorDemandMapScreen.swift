@@ -681,6 +681,8 @@ struct DemandPointSheet: View {
                 )
             }
         }
+        // Les trois tuiles prennent la hauteur de la plus haute.
+        .fixedSize(horizontal: false, vertical: true)
     }
 
     /// Envies des familles (S-07) : anonymes, par catégorie et unité.
@@ -828,7 +830,7 @@ private struct DemandStatTile: View {
                 .foregroundStyle(Color.texteSecondaire)
                 .fixedSize(horizontal: false, vertical: true)
         }
-        .frame(maxWidth: .infinity, alignment: .leading)
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
         .padding(12)
         .background(tint.opacity(0.1), in: .rect(cornerRadius: 18))
         .accessibilityElement(children: .combine)

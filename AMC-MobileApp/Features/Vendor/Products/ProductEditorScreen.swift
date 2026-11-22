@@ -152,12 +152,8 @@ struct ProductEditorScreen: View {
                     .scaledToFill()
                     .transition(.opacity)
             } else if let url = model.photoURL {
-                AsyncImage(url: url) { phase in
-                    if let image = phase.image {
-                        image.resizable().scaledToFill()
-                    } else {
-                        photoPlaceholder
-                    }
+                MediaImage(url: url) {
+                    photoPlaceholder
                 }
             } else {
                 photoPlaceholder

@@ -346,7 +346,7 @@ private struct HostArrivalCard: View {
                     .symbolRenderingMode(.hierarchical)
                     .foregroundStyle(Color.grenier)
             }
-            Text("Dès que tu as reçu les produits, marque la livraison comme arrivée : les familles voient « Arrivée ! Viens la chercher » dans leur app et peuvent venir. Le scan et « Récupéré » s'activent à ce moment-là.")
+            Text("Produits reçus ? Marque-la comme arrivée : les familles sont prévenues et le scan s'active.")
                 .font(.subheadline)
                 .foregroundStyle(.texteSecondaire)
                 .fixedSize(horizontal: false, vertical: true)

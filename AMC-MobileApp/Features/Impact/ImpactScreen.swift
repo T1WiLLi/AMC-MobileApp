@@ -334,7 +334,7 @@ private struct ImpactHeroHeader: View {
                     .init(symbol: "storefront.fill", tint: .grenier, photo: "IntroSolution"),
                     .init(symbol: GrenierSymbol.solidarity, tint: .solidarite, photo: "ImpactPartage"),
                     .init(symbol: GrenierSymbol.groups, tint: .grenier, photo: "ImpactBasilic"),
-                    .init(symbol: "figure.walk", tint: .grenier),
+                    .init(symbol: "figure.walk", tint: .grenier, photo: "ImpactFilet"),
                     .init(symbol: "carrot.fill", tint: .economie, photo: "ImpactCarottes")
                 ],
                 centerPhoto: "ImpactSacs"

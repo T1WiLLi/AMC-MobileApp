@@ -286,7 +286,8 @@ nonisolated enum TourStep: String, Sendable, CaseIterable {
         case .vendorShop: "storefront"
         case .vendorCreate: "plus.circle.fill"
         case .vendorTiers: "stairs"
-        case .vendorProducts: "tray.full.fill"
+        // Le bouton « Mes produits » de la barre d'outils (tray.full.fill est « Mes disponibilités », juste à côté).
+        case .vendorProducts: "basket.fill"
         case .vendorDemand: "map.fill"
         case .vendorRevenue: "dollarsign.circle.fill"
         }

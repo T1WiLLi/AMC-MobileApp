@@ -501,7 +501,9 @@ private struct OrderLink: View {
                     myShareQuantity: summary.hasMyShare ? summary.myShareQuantity : 0,
                     isClosed: summary.isClosed,
                     isPaid: summary.isPaid,
-                    orderStatus: summary.groupOrder?.status
+                    orderStatus: summary.groupOrder?.status,
+                    // Accueil plus léger : l'essentiel seulement, le détail est dans la fiche du lot.
+                    compact: true
                 )
                 // La fiche du lot sort de la carte en zoom (T-123).
                 .grenierZoomSource(OfferRoute(offerId: summary.offer.id))

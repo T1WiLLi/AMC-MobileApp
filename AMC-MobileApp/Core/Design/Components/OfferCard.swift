@@ -16,12 +16,15 @@ struct OfferCard: View {
     var isPaid = false
     /// T-196 : statut de la commande du groupe ; fermée, livrée ou annulée, elle remplace « se termine » par son statut.
     var orderStatus: GroupOrder.Status?
+    /// Accueil, « Tes commandes en cours » : carte allégée. Garde le produit, les paliers, l'incitation, le prix et ma
+    /// part ; retire le vendeur, l'échéance (sauf commande fermée ou livrée) et le badge d'économie.
+    var compact = false
 
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
 
     var body: some View {
         let headerLayout = rowLayout(alignment: .top)
-        VStack(alignment: .leading, spacing: 14) {
+        VStack(alignment: .leading, spacing: compact ? 10 : 14) {
             // Le badge d'économie a quitté l'en-tête pour la ligne du prix : le titre garde toute la largeur.
             headerLayout {
                 ProductIcon(product: product)
@@ -29,7 +32,14 @@ struct OfferCard: View {
                     Text("\(product.name) · \(offer.displayShareUnit)")
                         .font(.headline)
                         .foregroundStyle(.texte)
-                    if let title = phase.title {
+                    if compact {
+                        if let title = phase.title {
+                            Label(title, systemImage: phase.symbol)
+                                .font(.subheadline.weight(.semibold))
+                                .foregroundStyle(phase.tint)
+                                .symbolRenderingMode(.hierarchical)
+                        }
+                    } else if let title = phase.title {
                         Text("\(Image(systemName: vendor.isVerified ? "checkmark.seal.fill" : "storefront.fill")) \(vendor.legalName)")
                             .font(.subheadline)
                             .foregroundStyle(.texteSecondaire)
@@ -209,7 +219,7 @@ struct OfferCard: View {
 
     @ViewBuilder
     private var badge: some View {
-        if savingsPercent > 0 {
+        if savingsPercent > 0, !compact {
             SavingsBadge(kind: .percent(savingsPercent), compact: true)
                 .fixedSize()
         }

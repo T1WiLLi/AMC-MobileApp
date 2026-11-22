@@ -59,6 +59,8 @@ struct SolidarityLeaderboardScreen: View {
                         .frame(maxWidth: .infinity)
                         .multilineTextAlignment(.center)
                         .padding(.vertical, 8)
+
+                    LeaderboardUpdatedLabel(date: viewModel.lastUpdated)
                 }
                 .padding(.horizontal, 16)
                 .padding(.bottom, 24)

@@ -259,6 +259,14 @@ private struct FamilyMapCanvas: View {
     let reduceMotion: Bool
     let onCameraChange: (MapCameraUpdateContext) -> Void
 
+    /// Groupe d'épingles touché : sa feuille liste les lieux (T-176).
+    @State private var openCluster: MapCluster<FamilyMapViewModel.Place>?
+    /// Lieu choisi dans la feuille, sélectionné une fois la feuille fermée (un producteur pousse sa page).
+    @State private var pendingPick: FamilyMapViewModel.Place?
+    @State private var mapSize: CGSize = .zero
+    @State private var lastSpan: MKCoordinateSpan?
+    @ScaledMetric(relativeTo: .body) private var pinDiameter: CGFloat = 40
+
     var body: some View {
         Map(position: $camera, interactionModes: [.pan, .zoom, .rotate], scope: scope) {
             if let origin = viewModel.origin {
@@ -273,32 +281,66 @@ private struct FamilyMapCanvas: View {
                 }
             }
 
-            ForEach(viewModel.places) { place in
-                Annotation(place.name, coordinate: place.coordinate.location, anchor: .bottom) {
-                    FamilyMapPin(kind: place.kind, photoURL: place.photoURL, name: place.name,
-                                 isSelected: place.id == viewModel.selectedPlaceID,
-                                 reduceMotion: reduceMotion) {
-                        // T-157 : un producteur ouvre directement sa page (la fiche reste sélectionnée au retour).
-                        if case .producer(let vendor, _, _) = place.detail {
-                            viewModel.selectedPlaceID = place.id
-                            destination = .vendor(vendor.id)
-                            return
+            ForEach(viewModel.annotations) { cluster in
+                if cluster.isSingle, let place = cluster.members.first {
+                    Annotation(place.name, coordinate: place.coordinate.location, anchor: .bottom) {
+                        FamilyMapPin(kind: place.kind, photoURL: place.photoURL, name: place.name,
+                                     isSelected: place.id == viewModel.selectedPlaceID,
+                                     reduceMotion: reduceMotion) {
+                            select(place)
                         }
-                        withAnimation(reduceMotion ? nil : .smooth) {
-                            viewModel.selectedPlaceID = viewModel.selectedPlaceID == place.id ? nil : place.id
-                        }
+                        .accessibilityLabel(place.accessibilityLabel)
+                        .accessibilityHint(place.kind == .producer ? "Ouvre la page du producteur" : "Affiche les détails")
+                        .accessibilityAddTraits(place.id == viewModel.selectedPlaceID ? [.isButton, .isSelected] : .isButton)
                     }
-                    .accessibilityLabel(place.accessibilityLabel)
-                    .accessibilityHint(place.kind == .producer ? "Ouvre la page du producteur" : "Affiche les détails")
-                    .accessibilityAddTraits(place.id == viewModel.selectedPlaceID ? [.isButton, .isSelected] : .isButton)
+                    .annotationTitles(.hidden)
+                } else {
+                    // T-176 : plusieurs lieux au même endroit (ou trop proches à ce zoom) → une épingle pile.
+                    Annotation(FamilyMapClusterText.title(count: cluster.count), coordinate: cluster.coordinate.location,
+                               anchor: .bottom) {
+                        FamilyMapClusterPin(kinds: cluster.members.map(\.kind),
+                                            isSelected: cluster.contains(id: viewModel.selectedPlaceID),
+                                            reduceMotion: reduceMotion) {
+                            openCluster = cluster
+                        }
+                        .accessibilityLabel(FamilyMapClusterText.accessibilityLabel(for: cluster.members))
+                        .accessibilityHint("Affiche la liste pour choisir un lieu")
+                        .accessibilityAddTraits(cluster.contains(id: viewModel.selectedPlaceID) ? [.isButton, .isSelected] : .isButton)
+                    }
+                    .annotationTitles(.hidden)
                 }
-                .annotationTitles(.hidden)
             }
         }
         .mapStyle(.standard(elevation: .realistic, emphasis: .muted, pointsOfInterest: .excludingAll))
         .mapControls {}
         // Continu : la pastille du rayon suit le doigt ; le ViewModel diffère le filtrage.
-        .onMapCameraChange(frequency: .continuous) { context in onCameraChange(context) }
+        .onMapCameraChange(frequency: .continuous) { context in
+            onCameraChange(context)
+            updateClusterViewport(context.region.span)
+        }
+        .onGeometryChange(for: CGSize.self, of: \.size) { size in
+            mapSize = size
+            if let span = lastSpan { updateClusterViewport(span) }
+        }
+        .onChange(of: pinDiameter, initial: true) { _, diameter in
+            // Diamètre de l'épingle + son contour + un peu d'air : au-dessous, elles se chevauchent.
+            viewModel.pinSpacing = Double(min(diameter, 60)) + 12
+        }
+        .sheet(item: $openCluster, onDismiss: performPendingPick) { cluster in
+            FamilyMapClusterSheet(
+                places: cluster.members,
+                selectedPlaceID: viewModel.selectedPlaceID,
+                canZoom: MapClustering.zoomRegion(for: cluster.members.map(\.coordinate)) != nil,
+                onPick: { place in
+                    pendingPick = place
+                    openCluster = nil
+                },
+                onZoom: {
+                    openCluster = nil
+                    zoom(into: cluster)
+                }
+            )
+        }
         .overlay {
             if viewModel.state.isLoading || viewModel.origin == nil, viewModel.state.error == nil {
                 FamilyMapLoadingBadge().transition(.opacity)
@@ -307,6 +349,45 @@ private struct FamilyMapCanvas: View {
         .sensoryFeedback(.selection, trigger: viewModel.selectedPlaceID) { _, new in new != nil }
         .accessibilityElement(children: .contain)
         .accessibilityLabel("Carte des lieux autour de chez toi")
+    }
+}
+
+extension FamilyMapCanvas {
+    /// Toucher un lieu (épingle ou ligne de la feuille) : un producteur ouvre sa page (T-157), les autres
+    /// affichent leur carte en bas (un second toucher la ferme).
+    fileprivate func select(_ place: FamilyMapViewModel.Place) {
+        if case .producer(let vendor, _, _) = place.detail {
+            viewModel.selectedPlaceID = place.id
+            destination = .vendor(vendor.id)
+            return
+        }
+        withAnimation(reduceMotion ? nil : .smooth) {
+            viewModel.selectedPlaceID = viewModel.selectedPlaceID == place.id ? nil : place.id
+        }
+    }
+
+    fileprivate func performPendingPick() {
+        guard let place = pendingPick else { return }
+        pendingPick = nil
+        // Depuis la feuille, on choisit toujours : pas de bascule qui désélectionnerait le lieu déjà choisi.
+        if place.kind != .producer, viewModel.selectedPlaceID == place.id { return }
+        select(place)
+    }
+
+    fileprivate func updateClusterViewport(_ span: MKCoordinateSpan) {
+        lastSpan = span
+        viewModel.mapViewportChanged(MapClustering.Viewport(
+            latitudeDelta: span.latitudeDelta, longitudeDelta: span.longitudeDelta,
+            width: Double(mapSize.width), height: Double(mapSize.height)))
+    }
+
+    /// « Zoomer ici » : cadre les lieux du groupe pour que leurs épingles se séparent.
+    fileprivate func zoom(into cluster: MapCluster<FamilyMapViewModel.Place>) {
+        guard let region = MapClustering.zoomRegion(for: cluster.members.map(\.coordinate)) else { return }
+        let target = MKCoordinateRegion(
+            center: region.center.location,
+            span: MKCoordinateSpan(latitudeDelta: region.latitudeDelta, longitudeDelta: region.longitudeDelta))
+        withAnimation(reduceMotion ? nil : .smooth(duration: 0.6)) { camera = .region(target) }
     }
 }
 

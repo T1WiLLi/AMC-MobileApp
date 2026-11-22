@@ -265,6 +265,27 @@ final class FamilyMapViewModel {
         return String(localized: "\(count) \(noun) dans ce rayon")
     }
 
+    // MARK: Regroupement des épingles (T-176)
+
+    /// Zoom et taille de la carte pour regrouper les épingles proches ; nil avant le premier mouvement de carte
+    /// (seuls les lieux exactement au même endroit sont alors regroupés).
+    private(set) var clusterViewport: MapClustering.Viewport?
+    /// Écart minimal entre deux épingles, en points d'écran (la vue le grossit avec Dynamic Type).
+    var pinSpacing: Double = 46
+
+    /// Les lieux visibles, regroupés quand leurs épingles se chevaucheraient au zoom actuel.
+    var annotations: [MapCluster<Place>] {
+        MapClustering.clusters(places, coordinate: \.coordinate, viewport: clusterViewport, minimumDistance: pinSpacing)
+    }
+
+    /// La carte a zoomé ou changé de taille : refait les groupes si l'écart est notable (un simple
+    /// déplacement ne change rien, l'écart à l'écran entre deux lieux ne dépend que du zoom).
+    func mapViewportChanged(_ viewport: MapClustering.Viewport) {
+        guard viewport.pointsPerDegree != nil else { return }
+        if let current = clusterViewport, !viewport.differsNoticeably(from: current) { return }
+        clusterViewport = viewport
+    }
+
     // MARK: Actions
 
     /// Charge (ou recharge) les lieux et le quartier du ménage. Garde la carte affichée pendant un rechargement.

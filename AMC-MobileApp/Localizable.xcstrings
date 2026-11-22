@@ -21258,6 +21258,26 @@
           }
         }
       }
+    },
+    "La connexion avec Google n'a pas fonctionné. Réessaie dans un instant." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Google sign-in didn't work. Try again in a moment."
+          }
+        }
+      }
+    },
+    "Ce courriel est déjà lié à un compte avec mot de passe. Connecte-toi avec ton courriel et ton mot de passe." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "This email is already linked to an account with a password. Sign in with your email and password."
+          }
+        }
+      }
     }
   },
   "version" : "1.0"

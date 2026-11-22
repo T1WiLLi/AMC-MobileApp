@@ -52,10 +52,8 @@ final class FirebaseAuthService: AuthService {
         let googleResult: GIDSignInResult
         do {
             googleResult = try await GIDSignIn.sharedInstance.signIn(withPresenting: presenter)
-        } catch let error as NSError where error.code == GIDSignInError.canceled.rawValue {
-            throw AuthError.cancelled
         } catch {
-            throw AuthError.failed(error.localizedDescription)
+            throw Self.googleSignInError(from: error)
         }
 
         guard let idToken = googleResult.user.idToken?.tokenString else {
@@ -69,8 +67,38 @@ final class FirebaseAuthService: AuthService {
             let result = try await Auth.auth().signIn(with: credential)
             return AuthUser(firebaseUser: result.user)
         } catch {
-            throw AuthError.failed(error.localizedDescription)
+            throw Self.googleCredentialError(from: error)
         }
+    }
+
+    /// Erreurs du SDK Google Sign-In → `AuthError` en français (jamais le texte brut du SDK).
+    static func googleSignInError(from error: any Error) -> AuthError {
+        let nsError = error as NSError
+        if nsError.domain == kGIDSignInErrorDomain, nsError.code == GIDSignInError.canceled.rawValue {
+            return .cancelled
+        }
+        if nsError.domain == NSURLErrorDomain { return .network }
+        if let underlying = nsError.userInfo[NSUnderlyingErrorKey] as? NSError,
+           underlying.domain == NSURLErrorDomain {
+            return .network
+        }
+        return .failed(String(localized: "La connexion avec Google n'a pas fonctionné. Réessaie dans un instant."))
+    }
+
+    /// Erreurs Firebase lors de la connexion avec un identifiant Google (T-178).
+    static func googleCredentialError(from error: any Error) -> AuthError {
+        let nsError = error as NSError
+        if nsError.domain == AuthErrorDomain, let code = AuthErrorCode(rawValue: nsError.code) {
+            switch code {
+            case .accountExistsWithDifferentCredential, .emailAlreadyInUse, .credentialAlreadyInUse:
+                return .failed(String(localized: "Ce courriel est déjà lié à un compte avec mot de passe. Connecte-toi avec ton courriel et ton mot de passe."))
+            case .invalidCredential, .wrongPassword, .userNotFound, .operationNotAllowed:
+                return .failed(String(localized: "La connexion avec Google n'a pas fonctionné. Réessaie dans un instant."))
+            default:
+                break
+            }
+        }
+        return authError(from: error)
     }
 
 

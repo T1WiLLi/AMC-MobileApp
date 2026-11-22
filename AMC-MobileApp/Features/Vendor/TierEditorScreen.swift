@@ -523,8 +523,8 @@ private struct TierRow: View {
 
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     @ScaledMetric(relativeTo: .headline) private var badgeSize: CGFloat = 32
-    @ScaledMetric(relativeTo: .body) private var priceWidth: CGFloat = 96
-    @ScaledMetric(relativeTo: .body) private var thresholdWidth: CGFloat = 40
+    @ScaledMetric(relativeTo: .headline) private var priceWidth: CGFloat = 76
+    @ScaledMetric(relativeTo: .body) private var thresholdWidth: CGFloat = 30
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
@@ -569,10 +569,12 @@ private struct TierRow: View {
                     }
                 }
                 if !isStacked { Spacer(minLength: 4) }
+                // Largeur fixe calée sur « 999,99 $ » : sans elle, le champ prenait toute la place libre
+                // et le prix flottait à droite d'une grande boîte vide.
                 PriceField(label: String(localized: "Prix du palier \(rank)"), value: $tier.price)
-                    .frame(minWidth: priceWidth)
+                    .frame(width: priceWidth)
                     .focused(focus, equals: .price(tier.id))
-                    .fieldBox(isInvalid: isInvalid)
+                    .fieldBox(isInvalid: isInvalid, compact: true)
             }
             if let error {
                 InlineError(message: error)
@@ -940,14 +942,17 @@ private extension View {
     /// Boîte de saisie de la maquette (fond crème, bordure fine) ; rouge si le champ est fautif.
     func fieldBox(isInvalid: Bool, compact: Bool = false) -> some View {
         padding(.horizontal, compact ? 8 : 12)
-            .padding(.vertical, compact ? 6 : 10)
-            .frame(minHeight: 44)
-            .background(Color.fond, in: .rect(cornerRadius: 12))
+            .padding(.vertical, compact ? 4 : 8)
+            .frame(minHeight: 36)
+            .background(Color.fond, in: .rect(cornerRadius: 10))
             .overlay {
-                RoundedRectangle(cornerRadius: 12)
+                RoundedRectangle(cornerRadius: 10)
                     .strokeBorder(isInvalid ? Color.red : Color.piste, lineWidth: isInvalid ? 2 : 1)
             }
             .animation(.smooth, value: isInvalid)
+            // Boîte visuelle de 36 pt, zone tactile gardée à 44 pt.
+            .padding(.vertical, 4)
+            .contentShape(.rect)
     }
 }
 

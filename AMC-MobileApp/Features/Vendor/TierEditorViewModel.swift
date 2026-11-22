@@ -108,6 +108,9 @@ final class TierEditorViewModel {
     // MARK: Dérivés
 
     var isEditing: Bool { if case .edit = mode { true } else { false } }
+    /// Sécurité : lot publié (ou en pause) : paliers, nombre de parts et contenu d'une part sont figés
+    /// (`Offer.areTermsLocked`, firestore.rules). Seules la date limite et les zones changent encore.
+    var areTermsLocked: Bool { original?.areTermsLocked ?? false }
     var selectedProduct: Product? { products.first { $0.id == productId } }
     /// Prix d'épicerie de référence pour une part ; nil sans produit choisi.
     var referenceGroceryPriceCents: Cents? { selectedProduct?.referenceGroceryPriceCents }
@@ -250,6 +253,15 @@ final class TierEditorViewModel {
 
     /// Construit le lot à enregistrer, ou lève `AppError.invalidInput` avec la première règle non respectée.
     func validatedOffer() throws(AppError) -> Offer {
+        // Lot publié : on renvoie ses conditions telles quelles (même ordre de paliers, même texte de part), sinon
+        // firestore.rules refuse toute l'écriture. Seules la date limite et les zones viennent de l'éditeur.
+        if let original, original.areTermsLocked {
+            guard deadline > now() else { throw .invalidInput(String(localized: "La date limite doit être dans le futur.")) }
+            var offer = original
+            offer.deadline = deadline
+            offer.zones = zones
+            return offer
+        }
         guard let productId else { throw .invalidInput(String(localized: "Choisis un produit pour ce lot.")) }
         guard totalShares > 0 else { throw .invalidInput(String(localized: "Le lot doit contenir au moins une part.")) }
         guard totalShares >= committedShares else {

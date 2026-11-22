@@ -137,8 +137,6 @@ struct VolunteerDeliveryTests {
 
     @Test func fullFlowUsesPickupDeskAndEndsConfirmed() throws {
         let claimed = try claimed()
-        #expect(VolunteerDelivery.pickupCode(for: claimed, viewerHouseholdId: "v1") != nil)
-        #expect(VolunteerDelivery.pickupCode(for: claimed, viewerHouseholdId: "v2") == nil)
         #expect(throws: AppError.self) {
             try VolunteerDelivery.startRoute(claimed, by: "v1", order: order(.open), shares: [share()], now: now)
         }

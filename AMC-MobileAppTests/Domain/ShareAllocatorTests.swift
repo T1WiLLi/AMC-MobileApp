@@ -17,7 +17,8 @@ struct ShareAllocatorTests {
         )
         #expect(allocation.shares.map(\.householdId) == ["h1", "h2"])
         #expect(allocation.shares.map(\.finalPriceCents) == [1_980, 2_970])
-        #expect(allocation.shares.allSatisfy { $0.subsidyCents == 0 && $0.qrCode != nil })
+        // Sécurité : aucun code QR dérivé des ids n'est posé à la clôture.
+        #expect(allocation.shares.allSatisfy { $0.subsidyCents == 0 && $0.qrCode == nil })
         #expect(allocation.unallocatedShares == 35)
         #expect(allocation.totalDueCents == 4_950)
         #expect(allocation.fundUsedCents == 0)
@@ -79,13 +80,12 @@ struct ShareAllocatorTests {
         }
     }
 
-    @Test func qrCodeRoundTripsAndRejectsTampering() {
-        let code = ShareAllocator.qrCode(orderId: "go1", householdId: "household-benali")
-        #expect(ShareAllocator.householdId(fromQRCode: code, orderId: "go1") == "household-benali")
-        #expect(ShareAllocator.householdId(fromQRCode: code, orderId: "go2") == nil)
-        let tampered = code.replacingOccurrences(of: "benali", with: "voisin")
-        #expect(ShareAllocator.householdId(fromQRCode: tampered, orderId: "go1") == nil)
-        #expect(ShareAllocator.householdId(fromQRCode: "n'importe quoi", orderId: "go1") == nil)
+    @Test func pickupCodeCarriesTheHouseholdTokenNotADerivedChecksum() {
+        let token = PickupDesk.newPickupToken()
+        let code = PickupDesk.pickupCode(orderId: "go1", householdId: "household-benali", token: token)
+        #expect(code == "GRENIER:go1:household-benali:\(token)")
+        #expect(PickupDesk.parse(code)?.householdId == "household-benali")
+        #expect(PickupDesk.parse("n'importe quoi") == nil)
     }
 
     @Test func endToEndClosureOfTheDemoOrder() async throws {

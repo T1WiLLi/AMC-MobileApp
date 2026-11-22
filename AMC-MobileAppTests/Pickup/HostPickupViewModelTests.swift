@@ -8,11 +8,18 @@ struct HostPickupViewModelTests {
     private typealias ID = FakeData.ID
 
     private func makeModel(status: GroupOrder.Status = .delivered, userId: String = ID.amina) -> HostPickupViewModel {
+        makeModelAndRepositories(status: status, userId: userId).model
+    }
+
+    private func makeModelAndRepositories(
+        status: GroupOrder.Status = .delivered, userId: String = ID.amina
+    ) -> (model: HostPickupViewModel, repositories: AppRepositories) {
         var data = FakeData.montreal
         data.groupOrders[0].status = status
         let repos = AppRepositories.fake(behavior: .instant, data: data)
-        return HostPickupViewModel(repositories: repos, userId: userId, householdId: ID.aminaHousehold,
-                                   groupId: ID.saintMichel)
+        let model = HostPickupViewModel(repositories: repos, userId: userId, householdId: ID.aminaHousehold,
+                                        groupId: ID.saintMichel)
+        return (model, repos)
     }
 
     @Test func listsSharesOfClosedOrderAtHostPoint() async throws {
@@ -51,8 +58,9 @@ struct HostPickupViewModelTests {
                                         groupId: ID.saintMichel)
         await model.load()
         let household = "household-voisin-1"
-        let typed = "  " + PickupDesk.memberCode(ShareAllocator.qrCode(orderId: FakeData.HostDemoID.deliveredOrder, householdId: household),
-                                                 memberId: "user-voisin-1") + "\n"
+        // La famille ouvre son code (jeton privé créé) ; l'hôte le tape.
+        let familyCode = try await repos.groupOrders.pickupCode(householdId: household, groupOrderId: FakeData.HostDemoID.deliveredOrder)
+        let typed = "  " + PickupDesk.memberCode(familyCode, memberId: "user-voisin-1") + "\n"
         await model.scan(typed)
         #expect(model.outcome?.result.isSuccess == true)
         let stored = try await repos.groupOrders.shares(ofGroupOrder: FakeData.HostDemoID.deliveredOrder).first { $0.householdId == household }
@@ -93,14 +101,87 @@ struct HostPickupViewModelTests {
     }
 
     @Test func scanningFamilyCodeMarksShare() async throws {
-        let model = makeModel()
+        let (model, repositories) = makeModelAndRepositories()
         await model.load()
         let household = try #require(model.checklist?.entries.last).householdId
-        let code = PickupDesk.memberCode(ShareAllocator.qrCode(orderId: ID.potatoOrder, householdId: household),
-                                         memberId: "user-membre")
+        let familyCode = try await repositories.groupOrders.pickupCode(householdId: household, groupOrderId: ID.potatoOrder)
+        let code = PickupDesk.memberCode(familyCode, memberId: "user-membre")
         await model.scan(code)
         #expect(model.outcome?.result.isSuccess == true)
         #expect(model.state.value?.stations.first?.shares.first { $0.householdId == household }?.isPickedUp == true)
+    }
+
+    /// Sécurité (vol de cueillette) : un membre du groupe recalcule l'ancien code d'une autre famille, ou invente
+    /// un jeton : l'hôte le refuse et la part reste à remettre.
+    @Test func forgedOrLegacyCodeOfAnotherFamilyIsRejected() async throws {
+        let (model, repositories) = makeModelAndRepositories()
+        await model.load()
+        let victim = try #require(model.checklist?.entries.last).householdId
+        _ = try await repositories.groupOrders.pickupCode(householdId: victim, groupOrderId: ID.potatoOrder)
+        let forged = PickupDesk.pickupCode(orderId: ID.potatoOrder, householdId: victim, token: PickupDesk.newPickupToken())
+        await model.scan(PickupDesk.memberCode(forged, memberId: "user-intrus"))
+        #expect(model.outcome?.result == .unknownCode)
+        await model.scan("GRENIER:\(ID.potatoOrder):\(victim):0a1b2c3d#user-intrus")
+        #expect(model.outcome?.result == .outdatedCode)
+        #expect(model.rejections == 2)
+        let stored = try await repositories.groupOrders.shares(ofGroupOrder: ID.potatoOrder).first { $0.householdId == victim }
+        #expect(stored?.isPickedUp == false)
+    }
+
+    /// « Récupéré » à la main : l'hôte est noté comme celui qui a remis la part (firestore.rules exige `pickedUpBy`).
+    @Test func tapRecordsTheHostAsConfirmer() async throws {
+        let (model, repositories) = makeModelAndRepositories()
+        await model.load()
+        let household = try #require(model.checklist?.entries.first).householdId
+        await model.markPickedUp(householdId: household, in: ID.potatoOrder)
+        let stored = try await repositories.groupOrders.shares(ofGroupOrder: ID.potatoOrder).first { $0.householdId == household }
+        #expect(stored?.pickedUpBy == ID.amina)
+    }
+
+    /// Un code sans membre (`#uid`) : l'hôte qui scanne est noté.
+    @Test func codeWithoutMemberRecordsTheHost() async throws {
+        let (model, repositories) = makeModelAndRepositories()
+        await model.load()
+        let household = try #require(model.checklist?.entries.first).householdId
+        let code = try await repositories.groupOrders.pickupCode(householdId: household, groupOrderId: ID.potatoOrder)
+        await model.scan(code)
+        #expect(model.outcome?.result.isSuccess == true)
+        let stored = try await repositories.groupOrders.shares(ofGroupOrder: ID.potatoOrder).first { $0.householdId == household }
+        #expect(stored?.pickedUpBy == ID.amina)
+    }
+
+    /// De bout en bout : la famille ouvre son code (jeton privé, jamais l'ancien code dérivé des ids), l'hôte le
+    /// scanne et la part est remise au membre qui le montre.
+    @Test func familyQRCarriesAPrivateTokenThatTheHostAccepts() async throws {
+        var data = FakeData.montreal
+        data.groupOrders[0].status = .closed
+        let orderId = data.groupOrders[0].id
+        if !(data.shares[orderId] ?? []).contains(where: { $0.householdId == ID.aminaHousehold }) {
+            data.shares[orderId, default: []].append(Share(
+                householdId: ID.aminaHousehold, quantity: 1, finalPriceCents: 1_000, isPaid: true,
+                suspendedAmountCents: 0, subsidyCents: 0, qrCode: nil, isPickedUp: false
+            ))
+        }
+        let repos = AppRepositories.fake(behavior: .instant, data: data)
+        let family = PickupViewModel(repositories: repos, householdId: ID.aminaHousehold, groupId: ID.saintMichel,
+                                     userId: ID.amina)
+        await family.load()
+        let payload = try #require(family.state.value?.qrPayload)
+        let parsed = try #require(PickupDesk.parse(payload))
+        #expect(parsed.orderId == orderId)
+        #expect(parsed.householdId == ID.aminaHousehold)
+        #expect(PickupDesk.isPickupToken(parsed.secret))
+        #expect(parsed.memberId == ID.amina)
+        // Rouvrir l'écran garde le même jeton.
+        await family.load()
+        #expect(family.state.value?.qrPayload == payload)
+
+        let host = HostPickupViewModel(repositories: repos, userId: ID.amina, householdId: ID.aminaHousehold,
+                                       groupId: ID.saintMichel)
+        await host.load()
+        await host.scan(payload)
+        #expect(host.outcome?.result.isSuccess == true)
+        #expect(host.outcome?.result.share?.householdId == ID.aminaHousehold)
     }
 
     @Test func garbageCodeIsRejected() async {

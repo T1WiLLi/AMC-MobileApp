@@ -82,76 +82,78 @@ struct OfferLifecycleTests {
 
     // MARK: RQ-036 modifier
 
+    // Règles de modification d'un brouillon jamais publié (les seuls lots dont les conditions changent encore).
+
     @Test func anythingGoesWithoutCommittedShares() throws {
-        var proposed = Self.offer()
+        var proposed = Self.offer(status: .draft)
         proposed.tiers = [PriceTier(minShares: 5, priceCents: 1_500), PriceTier(minShares: 15, priceCents: 1_200)]
         proposed.totalShares = 20
         proposed.minimumSharesToLaunch = 5
         proposed.deadline = Self.now.addingTimeInterval(Self.day)
         proposed.zones = ["z3"]
         proposed.shareUnit = "5 kg"
-        let edited = try OfferLifecycle.edited(Self.offer(), to: proposed, committedShares: 0, now: Self.now)
+        let edited = try OfferLifecycle.edited(Self.offer(status: .draft), to: proposed, committedShares: 0, now: Self.now)
         #expect(edited == proposed)
     }
 
     @Test func editKeepsTheOriginalStatus() throws {
         var proposed = Self.offer(status: .cancelled)
         proposed.totalShares = 45
-        let edited = try OfferLifecycle.edited(Self.offer(), to: proposed, committedShares: 12, now: Self.now)
-        #expect(edited.status == .active)
+        let edited = try OfferLifecycle.edited(Self.offer(status: .draft), to: proposed, committedShares: 12, now: Self.now)
+        #expect(edited.status == .draft)
         #expect(edited.totalShares == 45)
     }
 
     @Test func committedSharesAllowBetterPricesAndLongerDeadline() throws {
-        var proposed = Self.offer()
+        var proposed = Self.offer(status: .draft)
         proposed.tiers = [
             PriceTier(minShares: 10, priceCents: 1_100),
             PriceTier(minShares: 18, priceCents: 990),
             PriceTier(minShares: 30, priceCents: 800),
         ]
-        proposed.deadline = Self.offer().deadline.addingTimeInterval(Self.day)
+        proposed.deadline = Self.offer(status: .draft).deadline.addingTimeInterval(Self.day)
         proposed.zones = ["z1", "z2", "z3"]
         proposed.minimumSharesToLaunch = 8
-        let edited = try OfferLifecycle.edited(Self.offer(), to: proposed, committedShares: 15, now: Self.now)
+        let edited = try OfferLifecycle.edited(Self.offer(status: .draft), to: proposed, committedShares: 15, now: Self.now)
         #expect(edited.tiers == proposed.tiers)
     }
 
     @Test func committedSharesForbidRaisingAPrice() {
-        var proposed = Self.offer()
+        var proposed = Self.offer(status: .draft)
         proposed.tiers[2].priceCents = 900
-        #expect(Self.message { _ = try OfferLifecycle.edited(Self.offer(), to: proposed, committedShares: 1, now: Self.now) }?
+        #expect(Self.message { _ = try OfferLifecycle.edited(Self.offer(status: .draft), to: proposed, committedShares: 1, now: Self.now) }?
             .contains("tu ne peux pas augmenter un prix") == true)
 
         // Déplacer un seuil plus haut rend la part plus chère entre 20 et 24 parts.
-        var moved = Self.offer()
+        var moved = Self.offer(status: .draft)
         moved.tiers[1].minShares = 25
-        #expect(Self.message { _ = try OfferLifecycle.edited(Self.offer(), to: moved, committedShares: 1, now: Self.now) } != nil)
+        #expect(Self.message { _ = try OfferLifecycle.edited(Self.offer(status: .draft), to: moved, committedShares: 1, now: Self.now) } != nil)
     }
 
     @Test func committedSharesForbidShrinkingBelowCommitted() throws {
-        var proposed = Self.offer()
+        var proposed = Self.offer(status: .draft)
         proposed.totalShares = 30
-        _ = try OfferLifecycle.edited(Self.offer(), to: proposed, committedShares: 30, now: Self.now)
-        #expect(Self.message { _ = try OfferLifecycle.edited(Self.offer(), to: proposed, committedShares: 31, now: Self.now) }
+        _ = try OfferLifecycle.edited(Self.offer(status: .draft), to: proposed, committedShares: 30, now: Self.now)
+        #expect(Self.message { _ = try OfferLifecycle.edited(Self.offer(status: .draft), to: proposed, committedShares: 31, now: Self.now) }
             == "Des voisins ont déjà engagé 31 parts : le lot doit en compter au moins autant.")
     }
 
     @Test func committedSharesOnlyAllowExtendingTheDeadline() {
-        var proposed = Self.offer()
-        proposed.deadline = Self.offer().deadline.addingTimeInterval(-3600)
-        #expect(Self.message { _ = try OfferLifecycle.edited(Self.offer(), to: proposed, committedShares: 5, now: Self.now) }
+        var proposed = Self.offer(status: .draft)
+        proposed.deadline = Self.offer(status: .draft).deadline.addingTimeInterval(-3600)
+        #expect(Self.message { _ = try OfferLifecycle.edited(Self.offer(status: .draft), to: proposed, committedShares: 5, now: Self.now) }
             == "Des parts sont déjà engagées : tu peux seulement repousser la date limite.")
     }
 
     @Test func committedSharesForbidOtherBreakingChanges() {
-        var unit = Self.offer()
+        var unit = Self.offer(status: .draft)
         unit.shareUnit = "5 kg"
-        var minimum = Self.offer()
+        var minimum = Self.offer(status: .draft)
         minimum.minimumSharesToLaunch = 12
-        var zones = Self.offer()
+        var zones = Self.offer(status: .draft)
         zones.zones = ["z1"]
         for proposed in [unit, minimum, zones] {
-            #expect(Self.message { _ = try OfferLifecycle.edited(Self.offer(), to: proposed, committedShares: 5, now: Self.now) } != nil)
+            #expect(Self.message { _ = try OfferLifecycle.edited(Self.offer(status: .draft), to: proposed, committedShares: 5, now: Self.now) } != nil)
         }
     }
 
@@ -161,6 +163,69 @@ struct OfferLifecycleTests {
         var other = Self.offer()
         other.productId = "p2"
         #expect(Self.message { _ = try OfferLifecycle.edited(Self.offer(), to: other, committedShares: 0, now: Self.now) } != nil)
+    }
+
+    // MARK: Sécurité : conditions figées d'un lot publié
+
+    @Test func publishedOfferTermsAreLocked() {
+        var cheaper = Self.offer()
+        cheaper.tiers[2].priceCents = 800
+        var pricier = Self.offer()
+        pricier.tiers[0].priceCents = 1_500
+        var fewer = Self.offer()
+        fewer.totalShares = 30
+        var minimum = Self.offer()
+        minimum.minimumSharesToLaunch = 20
+        var unit = Self.offer()
+        unit.shareUnit = "5 kg"
+        for proposed in [cheaper, pricier, fewer, minimum, unit] {
+            #expect(Self.message { _ = try OfferLifecycle.edited(Self.offer(), to: proposed, committedShares: 0, now: Self.now) }?
+                .contains("figés") == true)
+        }
+    }
+
+    @Test func publishedOfferStillAcceptsALaterDeadlineAndNewZones() throws {
+        var proposed = Self.offer()
+        proposed.deadline = Self.offer().deadline.addingTimeInterval(Self.day)
+        proposed.zones = ["z1", "z2", "z3"]
+        let edited = try OfferLifecycle.edited(Self.offer(), to: proposed, committedShares: 12, now: Self.now)
+        #expect(edited.deadline == proposed.deadline)
+        #expect(edited.hasSameTerms(as: Self.offer()))
+    }
+
+    /// La pause (`.active` → `.draft`) garde la marque de publication : le brouillon en pause reste figé,
+    /// sinon pauser, changer les prix et republier contournerait firestore.rules.
+    @Test func pausingKeepsTheTermsLocked() throws {
+        let paused = try OfferLifecycle.pause(Self.offer(), now: Self.now).storedOffer
+        #expect(paused.status == .draft)
+        #expect(paused.wasPublished)
+        #expect(paused.areTermsLocked)
+        var pricier = paused
+        pricier.tiers[0].priceCents = 1_500
+        #expect(Self.message { _ = try OfferLifecycle.edited(paused, to: pricier, committedShares: 0, now: Self.now) } != nil)
+
+        var draft = Self.offer(status: .draft)
+        #expect(!draft.areTermsLocked)
+        draft.status = .active
+        #expect(draft.areTermsLocked)
+    }
+
+    @Test func duplicateStartsAsAnUnlockedDraft() throws {
+        let paused = try OfferLifecycle.pause(Self.offer(), now: Self.now).storedOffer
+        let copy = try OfferLifecycle.duplicate(paused, now: Self.now, makeId: { "o2" })
+        #expect(copy.status == .draft)
+        #expect(!copy.areTermsLocked)
+    }
+
+    @Test func wasPublishedIsEncodedOnlyOncePublishedAndSurvivesDecoding() throws {
+        let draft = try JSONSerialization.jsonObject(with: JSONEncoder().encode(Self.offer(status: .draft))) as? [String: Any]
+        #expect(draft?["wasPublished"] == nil)
+        let paused = try OfferLifecycle.pause(Self.offer(), now: Self.now).storedOffer
+        let data = try JSONEncoder().encode(paused)
+        let json = try JSONSerialization.jsonObject(with: data) as? [String: Any]
+        #expect(json?["wasPublished"] as? Bool == true)
+        let decoded = try JSONDecoder().decode(Offer.self, from: data)
+        #expect(decoded.wasPublished && decoded.status == .draft)
     }
 
     // MARK: RQ-036 pause

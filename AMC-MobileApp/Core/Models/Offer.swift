@@ -124,7 +124,8 @@ nonisolated extension Offer {
         try container.encode(deadline, forKey: .deadline)
         try container.encode(zones, forKey: .zones)
         try container.encode(status, forKey: .status)
-        // Absent pour un brouillon jamais publié (comme les documents d'avant) ; firestore.rules le garde une fois posé.
-        if areTermsLocked { try container.encode(true, forKey: .wasPublished) }
+        // Posé par la pause (`status` didSet) ; absent sinon, comme les documents d'avant. Un lot non brouillon est
+        // déjà figé par son statut. firestore.rules le garde une fois posé.
+        if wasPublished { try container.encode(true, forKey: .wasPublished) }
     }
 }

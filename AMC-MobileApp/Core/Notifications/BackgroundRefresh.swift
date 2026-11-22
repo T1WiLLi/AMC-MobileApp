@@ -50,14 +50,20 @@ final class SystemBackgroundTaskScheduler: BackgroundTaskScheduling {
 /// `BGTask` derrière le protocole. Le système autorise ces appels depuis n'importe quelle file.
 nonisolated private final class SystemBackgroundRefreshTask: BackgroundRefreshTask, @unchecked Sendable {
     private let task: BGTask
+    /// Copie `@Sendable` du gestionnaire confié à `task` : `BGTask.expirationHandler` n'est pas typé `@Sendable`,
+    /// le relire depuis la tâche système demanderait une conversion non sûre.
+    private var sendableExpirationHandler: (@Sendable () -> Void)?
 
     init(_ task: BGTask) {
         self.task = task
     }
 
     var expirationHandler: (@Sendable () -> Void)? {
-        get { task.expirationHandler }
-        set { task.expirationHandler = newValue }
+        get { sendableExpirationHandler }
+        set {
+            sendableExpirationHandler = newValue
+            task.expirationHandler = newValue
+        }
     }
 
     func setTaskCompleted(success: Bool) {

@@ -1533,9 +1533,12 @@ describe('groups/members : retrait d’une famille par le créateur (T-191)', ()
   test('un étranger au groupe ne retire pas une famille', async () => {
     await assertFails(removeBatch(intruder(), 'household-lea'))
   })
-  test('le créateur ne retire pas sa propre famille par ce chemin', async () => {
-    await assertFails(removeBatch(creator(), 'household-createur'))
-    assert.equal(await memberExists('household-createur'), true)
+  // Sa propre famille : ce n'est pas un « retrait » mais la sortie volontaire, déjà permise avant T-191
+  // (inchangée). L'interdiction « jamais sa propre famille » du menu Retirer est portée par l'app
+  // (GroupRules.canRemoveHousehold, testée côté Swift).
+  test('le créateur qui sort sa propre famille passe par la sortie volontaire (inchangée)', async () => {
+    await assertSucceeds(removeBatch(creator(), 'household-createur'))
+    assert.equal(await memberExists('household-createur'), false)
   })
   test('pas de retrait sans le compteur, ni avec un compteur faussé', async () => {
     await assertFails(deleteDoc(doc(creator(), memberOf('household-lea'))))

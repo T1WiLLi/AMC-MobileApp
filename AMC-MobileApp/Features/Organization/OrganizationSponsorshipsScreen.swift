@@ -160,105 +160,46 @@ struct SponsorSheet: View {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var goal = 10
     @State private var confirmsEnd = false
+    /// T-207 : étape de paiement mensuel, ouverte au moment de parrainer ou de changer l'objectif.
+    @State private var checkout: OrganizationCheckoutModel?
 
     private var profile: GroupSolidarityProfile? { model.profile(id: groupId) }
     private var existing: Sponsorship? { model.sponsorship(ofGroup: groupId) }
 
     var body: some View {
         NavigationStack {
-            ScrollView {
-                if let profile {
-                    VStack(alignment: .leading, spacing: 16) {
-                        VStack(alignment: .leading, spacing: 8) {
-                            Text(profile.groupName)
-                                .font(.title2.bold())
-                                .foregroundStyle(Color.texte)
-                            Text("Parrainer, c'est promettre au groupe un nombre de paniers suspendus chaque mois. Ton organisme apparaît comme parrain, les familles aidées restent anonymes.")
-                                .font(.subheadline)
-                                .foregroundStyle(Color.texteSecondaire)
-                                .fixedSize(horizontal: false, vertical: true)
-                            CoverageBar(profile: profile)
-                        }
-                        .grenierCard()
-
-                        VStack(alignment: .leading, spacing: 12) {
-                            Stepper(value: $goal, in: 1...OrganizationLedger.maxBasketsPerDonation) {
-                                VStack(alignment: .leading, spacing: 2) {
-                                    Text("\(FrenchPlural.count(goal, "panier")) par mois")
-                                        .priceStyle(.title2.bold())
-                                        .foregroundStyle(Color.texte)
-                                        .contentTransition(.numericText(value: Double(goal)))
-                                    Text("≈ \(Money.formatRounded(goal * profile.basketPriceCents)) par mois")
-                                        .font(.subheadline)
-                                        .foregroundStyle(Color.texteSecondaire)
-                                        .contentTransition(.numericText(value: Double(goal)))
-                                }
-                            }
-                            HStack(spacing: 8) {
-                                ForEach(OrganizationLedger.sponsorshipGoalPresets, id: \.self) { preset in
-                                    Button("\(preset)") {
-                                        withGrenierAnimation(.snappy, reduceMotion: reduceMotion) { goal = preset }
-                                    }
-                                    .buttonStyle(.glass)
-                                    .tint(goal == preset ? .grenier : nil)
-                                    .frame(maxWidth: .infinity)
-                                    .accessibilityLabel("\(preset) paniers")
-                                    .accessibilityAddTraits(goal == preset ? .isSelected : [])
-                                }
-                            }
-                        }
-                        .grenierCard()
-                        .grenierHaptic(.selection, trigger: goal)
-
-                        if let error = model.actionError {
-                            Label(error.message, systemImage: error.systemImage)
-                                .foregroundStyle(Color.solidarite)
-                                .grenierCard()
-                        }
-
-                        if existing != nil {
-                            Button(role: .destructive) {
-                                confirmsEnd = true
-                            } label: {
-                                Label("Mettre fin au parrainage", systemImage: "xmark.circle")
-                                    .frame(maxWidth: .infinity, minHeight: 44)
-                            }
-                            .buttonStyle(.glass)
-                        }
-                    }
-                    .padding(16)
+            Group {
+                if let checkout {
+                    OrganizationPaymentFlowView(
+                        checkout: checkout,
+                        coverage: [PaymentCoverageLine(
+                            systemImage: "basket.fill", tint: .grenier,
+                            text: String(localized: "\(FrenchPlural.count(goal, "panier suspendu", plural: "paniers suspendus")) par mois pour les familles aidées")
+                        )],
+                        onEdit: backToForm,
+                        onDone: { dismiss() }
+                    )
+                } else {
+                    form
+                        .grenierTransition(.banner)
                 }
             }
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
             .grenierBackground()
-            .navigationTitle(existing == nil ? String(localized: "Parrainer") : String(localized: "Mon parrainage"))
+            .navigationTitle(title)
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button("Annuler", systemImage: "xmark") { dismiss() }
+                    if checkout?.receipt != nil {
+                        Button(String(localized: "Terminé"), systemImage: "checkmark") { dismiss() }
+                    } else if checkout != nil {
+                        Button(String(localized: "Modifier l'objectif"), systemImage: "chevron.backward", action: backToForm)
+                            .disabled(checkout?.isBusy == true)
+                    } else {
+                        Button("Annuler", systemImage: "xmark") { dismiss() }
+                    }
                 }
             }
-            .safeAreaBar(edge: .bottom, spacing: 0) {
-                Button {
-                    Task {
-                        if await model.sponsor(groupId: groupId, monthlyBasketGoal: goal) { dismiss() }
-                    }
-                } label: {
-                    HStack {
-                        if model.isSubmitting { ProgressView().tint(Color.onAccent) }
-                        Label(existing == nil ? String(localized: "Parrainer ce groupe") : String(localized: "Enregistrer l'objectif"),
-                              systemImage: "hands.and.sparkles.fill")
-                    }
-                    .font(.headline)
-                    .foregroundStyle(Color.onAccent)
-                    .frame(maxWidth: .infinity, minHeight: 44)
-                }
-                .buttonStyle(.glassProminent)
-                .tint(.grenier)
-                .disabled(model.isSubmitting || profile == nil)
-                .padding(.horizontal, 16)
-                .padding(.vertical, 12)
-            }
-            .scrollEdgeEffectStyle(.soft, for: .bottom)
             .confirmationDialog("Mettre fin au parrainage ?", isPresented: $confirmsEnd, titleVisibility: .visible) {
                 Button("Mettre fin", role: .destructive) {
                     Task { if await model.endSponsorship(groupId: groupId) { dismiss() } }
@@ -273,6 +214,120 @@ struct SponsorSheet: View {
             model.resetAction()
             if let existing { goal = existing.monthlyBasketGoal }
         }
+    }
+
+    private var title: String {
+        if checkout?.receipt != nil { return String(localized: "Merci !") }
+        if checkout != nil { return String(localized: "Paiement mensuel") }
+        return existing == nil ? String(localized: "Parrainer") : String(localized: "Mon parrainage")
+    }
+
+    private var monthlyAmountCents: Cents? {
+        profile.map { goal * $0.basketPriceCents }
+    }
+
+    private func backToForm() {
+        guard checkout?.isBusy != true, checkout?.receipt == nil else { return }
+        model.resetAction()
+        withGrenierAnimation(.smooth, reduceMotion: reduceMotion) { checkout = nil }
+    }
+
+    private func openCheckout() {
+        guard let profile, let amount = monthlyAmountCents else { return }
+        model.resetAction()
+        let next = OrganizationCheckoutModel(
+            portal: model, purpose: .sponsorship(groupId: groupId, monthlyBasketGoal: goal),
+            amountCents: amount, groupName: profile.groupName
+        )
+        withGrenierAnimation(.smooth, reduceMotion: reduceMotion) { checkout = next }
+    }
+
+    private var form: some View {
+        ScrollView {
+            if let profile {
+                VStack(alignment: .leading, spacing: 16) {
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text(profile.groupName)
+                            .font(.title2.bold())
+                            .foregroundStyle(Color.texte)
+                        Text("Parrainer, c'est promettre au groupe un nombre de paniers suspendus chaque mois. Ton organisme apparaît comme parrain, les familles aidées restent anonymes.")
+                            .font(.subheadline)
+                            .foregroundStyle(Color.texteSecondaire)
+                            .fixedSize(horizontal: false, vertical: true)
+                        CoverageBar(profile: profile)
+                    }
+                    .grenierCard()
+
+                    VStack(alignment: .leading, spacing: 12) {
+                        Stepper(value: $goal, in: 1...OrganizationLedger.maxBasketsPerDonation) {
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text("\(FrenchPlural.count(goal, "panier")) par mois")
+                                    .priceStyle(.title2.bold())
+                                    .foregroundStyle(Color.texte)
+                                    .contentTransition(.numericText(value: Double(goal)))
+                                Text("≈ \(Money.formatRounded(goal * profile.basketPriceCents)) par mois")
+                                    .font(.subheadline)
+                                    .foregroundStyle(Color.texteSecondaire)
+                                    .contentTransition(.numericText(value: Double(goal)))
+                            }
+                        }
+                        HStack(spacing: 8) {
+                            ForEach(OrganizationLedger.sponsorshipGoalPresets, id: \.self) { preset in
+                                Button("\(preset)") {
+                                    withGrenierAnimation(.snappy, reduceMotion: reduceMotion) { goal = preset }
+                                }
+                                .buttonStyle(.glass)
+                                .tint(goal == preset ? .grenier : nil)
+                                .frame(maxWidth: .infinity)
+                                .accessibilityLabel("\(preset) paniers")
+                                .accessibilityAddTraits(goal == preset ? .isSelected : [])
+                            }
+                        }
+                    }
+                    .grenierCard()
+                    .grenierHaptic(.selection, trigger: goal)
+
+                    if let error = model.actionError {
+                        Label(error.message, systemImage: error.systemImage)
+                            .foregroundStyle(Color.solidarite)
+                            .grenierCard()
+                    }
+
+                    if existing != nil {
+                        Button(role: .destructive) {
+                            confirmsEnd = true
+                        } label: {
+                            Label("Mettre fin au parrainage", systemImage: "xmark.circle")
+                                .frame(maxWidth: .infinity, minHeight: 44)
+                        }
+                        .buttonStyle(.glass)
+                    }
+                }
+                .padding(16)
+            }
+        }
+        .safeAreaBar(edge: .bottom, spacing: 0) {
+            Button(action: openCheckout) {
+                Label(continueTitle, systemImage: "creditcard.fill")
+                    .font(.headline)
+                    .foregroundStyle(Color.onAccent)
+                    .contentTransition(.numericText())
+                    .frame(maxWidth: .infinity, minHeight: 44)
+            }
+            .buttonStyle(.glassProminent)
+            .tint(.grenier)
+            .disabled(model.isSubmitting || profile == nil)
+            .padding(.horizontal, 16)
+            .padding(.vertical, 12)
+        }
+        .scrollEdgeEffectStyle(.soft, for: .bottom)
+    }
+
+    private var continueTitle: String {
+        guard let amount = monthlyAmountCents else { return String(localized: "Continuer") }
+        return existing == nil
+            ? String(localized: "Parrainer · \(Money.formatRounded(amount)) par mois")
+            : String(localized: "Enregistrer · \(Money.formatRounded(amount)) par mois")
     }
 }
 

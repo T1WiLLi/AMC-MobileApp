@@ -9,6 +9,7 @@ struct OrganizationDashboardScreen: View {
     var onShowAllGroups: () -> Void = {}
 
     @State private var donationTarget: GroupSolidarityProfile?
+    @State private var receiptTarget: OrganizationPaymentReceipt?
 
     var body: some View {
         NavigationStack {
@@ -55,12 +56,30 @@ struct OrganizationDashboardScreen: View {
                         }
                         .buttonStyle(.glass)
                         .tint(.grenier)
+
+                        // T-207 : chaque don ouvre son reçu.
+                        let donations = model.recentDonations()
+                        if !donations.isEmpty {
+                            OrganizationSectionTitle("Tes derniers dons", systemImage: "doc.text.fill", tint: .economie)
+                            ForEach(donations) { donation in
+                                Button {
+                                    receiptTarget = OrganizationPaymentReceipt.make(donation: donation)
+                                } label: {
+                                    DonationHistoryRow(donation: donation)
+                                }
+                                .buttonStyle(.plain)
+                                .accessibilityHint(String(localized: "Affiche le reçu."))
+                            }
+                        }
                     }
                     .padding(16)
                 }
                 .refreshable { await model.load() }
                 .sheet(item: $donationTarget) { profile in
                     DonationSheet(model: model, groupId: profile.groupId)
+                }
+                .sheet(item: $receiptTarget) { receipt in
+                    OrganizationReceiptSheet(receipt: receipt)
                 }
             }
             .grenierBackground()

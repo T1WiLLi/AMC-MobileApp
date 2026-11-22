@@ -44,6 +44,26 @@
         }
       }
     },
+    "%@ Rien n'a été débité." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ Nothing was charged."
+          }
+        }
+      }
+    },
+    "%@ par mois pour les familles aidées" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ per month for supported families"
+          }
+        }
+      }
+    },
     "%@, coordonnateur du groupe" : {
       "localizations" : {
         "en" : {
@@ -130,12 +150,32 @@
         }
       }
     },
+    "/ mois" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "/ month"
+          }
+        }
+      }
+    },
     "Actions pour %@" : {
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Actions for %@"
+          }
+        }
+      }
+    },
+    "Affiche le reçu." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Shows the receipt."
           }
         }
       }
@@ -270,6 +310,36 @@
         }
       }
     },
+    "Confirmation…" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Confirming…"
+          }
+        }
+      }
+    },
+    "Confirme le paiement pour %@." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Confirm the payment for %@."
+          }
+        }
+      }
+    },
+    "Confirme le parrainage de %@." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Confirm the sponsorship of %@."
+          }
+        }
+      }
+    },
     "Confirmer la commande" : {
       "localizations" : {
         "en" : {
@@ -300,6 +370,26 @@
         }
       }
     },
+    "Confirmé par %@ : personne d'autre ne peut payer avec la carte de l'organisme." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Confirmed with %@: no one else can pay with the organization's card."
+          }
+        }
+      }
+    },
+    "Confirmé par le code de l'appareil : personne d'autre ne peut payer avec la carte de l'organisme." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Confirmed with the device passcode: no one else can pay with the organization's card."
+          }
+        }
+      }
+    },
     "Connexion…" : {
       "localizations" : {
         "en" : {
@@ -310,12 +400,72 @@
         }
       }
     },
+    "Continuer · %@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Continue · %@"
+          }
+        }
+      }
+    },
     "Coordonnateur" : {
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Coordinator"
+          }
+        }
+      }
+    },
+    "Couvre" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Covers"
+          }
+        }
+      }
+    },
+    "Demande %@." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Asks for %@."
+          }
+        }
+      }
+    },
+    "Destination" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Destination"
+          }
+        }
+      }
+    },
+    "Don au fonds · %@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Fund donation · %@"
+          }
+        }
+      }
+    },
+    "Enregistrer · %@ par mois" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Save · %@ per month"
           }
         }
       }
@@ -380,6 +530,16 @@
         }
       }
     },
+    "Fonds de solidarité de %@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ solidarity fund"
+          }
+        }
+      }
+    },
     "Gratuit, sans engagement · aucune carte demandée" : {
       "localizations" : {
         "en" : {
@@ -440,6 +600,16 @@
         }
       }
     },
+    "La banque de l'organisme a refusé le paiement. Rien n'a été débité : réessaie dans un instant." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The organization's bank declined the payment. Nothing was charged: try again in a moment."
+          }
+        }
+      }
+    },
     "La carte montre où les familles commandent et ce qu'elles souhaitent acheter. Touche une bulle pour lire leurs souhaits et « Proposer un lot ici »." : {
       "localizations" : {
         "en" : {
@@ -486,6 +656,26 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "The minimum hasn't been reached: the order will be cancelled and no family will be charged."
+          }
+        }
+      }
+    },
+    "Le montant dépasse le plafond de la carte de l'organisme (%@). Choisis un montant plus petit, ou fais plusieurs dons. Rien n'a été débité." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The amount is over the organization card's limit (%@). Choose a smaller amount, or make several donations. Nothing was charged."
+          }
+        }
+      }
+    },
+    "Le montant est prélevé chaque mois et versé au fonds du groupe. Les familles aidées restent anonymes." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The amount is charged every month and paid into the group's fund. Supported families stay anonymous."
           }
         }
       }
@@ -570,12 +760,62 @@
         }
       }
     },
+    "Merci de soutenir ton quartier !" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Thanks for supporting your neighborhood!"
+          }
+        }
+      }
+    },
     "Mis à jour le %@" : {
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Updated %@"
+          }
+        }
+      }
+    },
+    "Modifier l'objectif" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Change the goal"
+          }
+        }
+      }
+    },
+    "Modifier le montant" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Change the amount"
+          }
+        }
+      }
+    },
+    "Montant du don" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Donation amount"
+          }
+        }
+      }
+    },
+    "Montant mensuel" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Monthly amount"
           }
         }
       }
@@ -620,12 +860,72 @@
         }
       }
     },
+    "Paiement chiffré, confirmé par ce bouton." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Encrypted payment, confirmed with this button."
+          }
+        }
+      }
+    },
+    "Paiement mensuel" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Monthly payment"
+          }
+        }
+      }
+    },
+    "Paiement non enregistré" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Payment not recorded"
+          }
+        }
+      }
+    },
+    "Parrainer · %@ par mois" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sponsor · %@ per month"
+          }
+        }
+      }
+    },
     "Pas de note" : {
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "No rating"
+          }
+        }
+      }
+    },
+    "Payer %@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pay %@"
+          }
+        }
+      }
+    },
+    "Payer %@ par mois" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pay %@ per month"
           }
         }
       }
@@ -656,6 +956,26 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Final price: %@ for your share. The payment was declined: the group coordinator will get in touch."
+          }
+        }
+      }
+    },
+    "Prélevé chaque mois" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Charged every month"
+          }
+        }
+      }
+    },
+    "Prélevé chaque mois sur la carte de l'organisme, tant que le parrainage dure. Tu peux changer l'objectif ou y mettre fin quand tu veux." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Charged every month to the organization's card for as long as the sponsorship lasts. You can change the goal or end it anytime."
           }
         }
       }
@@ -706,6 +1026,26 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Remove from group"
+          }
+        }
+      }
+    },
+    "Reçu d'engagement LeGrenier" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "LeGrenier commitment receipt"
+          }
+        }
+      }
+    },
+    "Reçu de don LeGrenier" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "LeGrenier donation receipt"
           }
         }
       }
@@ -786,6 +1126,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Your open orders and your group's. Tap one to follow the tiers and your share."
+          }
+        }
+      }
+    },
+    "Tes derniers dons" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Your latest donations"
           }
         }
       }
@@ -890,6 +1240,26 @@
         }
       }
     },
+    "Traitement…" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Processing…"
+          }
+        }
+      }
+    },
+    "Tu parraines %@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "You sponsor %@"
+          }
+        }
+      }
+    },
     "Un commentaire ? (facultatif)" : {
       "localizations" : {
         "en" : {
@@ -906,6 +1276,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "A neighborhood family"
+          }
+        }
+      }
+    },
+    "Une partie d'un panier" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Part of a basket"
           }
         }
       }

@@ -96,7 +96,9 @@ struct DonationSheet: View {
             .padding(16)
         }
         .scrollBounceBehavior(.basedOnSize)
-        .safeAreaInset(edge: .bottom, spacing: 0) { confirmBar(profile) }
+        // Barre (et non simple inset) : le contenu s'estompe sous le bouton au lieu de passer dessous.
+        .safeAreaBar(edge: .bottom, spacing: 0) { confirmBar(profile) }
+        .scrollEdgeEffectStyle(.soft, for: .bottom)
     }
 
     private func header(_ profile: GroupSolidarityProfile) -> some View {
@@ -109,7 +111,7 @@ struct DonationSheet: View {
                 Spacer(minLength: 8)
                 NeedBadge(level: profile.needLevel)
             }
-            Label(profile.neighborhood, systemImage: "mappin.and.ellipse")
+            Label(MontrealNeighborhood.displayName(for: profile.neighborhood), systemImage: "mappin.and.ellipse")
                 .font(.subheadline)
                 .foregroundStyle(Color.texteSecondaire)
                 .symbolRenderingMode(.hierarchical)

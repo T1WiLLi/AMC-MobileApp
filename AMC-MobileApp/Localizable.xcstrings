@@ -1778,6 +1778,26 @@
         }
       }
     },
+    "%@ manque" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ short"
+          }
+        }
+      }
+    },
+    "%@ n'a pas assez dans son fonds pour ses familles aidées." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ doesn't have enough in its fund for the families it helps."
+          }
+        }
+      }
+    },
     "%@ manquent" : {
       "localizations" : {
         "en" : {
@@ -11522,7 +11542,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Request"
+            "value" : "Demand"
           }
         }
       }

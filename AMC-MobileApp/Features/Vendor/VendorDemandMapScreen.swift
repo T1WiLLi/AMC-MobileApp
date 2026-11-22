@@ -640,6 +640,8 @@ struct DemandPointSheet: View {
                 Text(point.displayName)
                     .font(.title.bold())
                     .foregroundStyle(Color.texte)
+                    .lineLimit(2)
+                    .minimumScaleFactor(0.7)
                     .fixedSize(horizontal: false, vertical: true)
                     .accessibilityAddTraits(.isHeader)
                 if !dynamicTypeSize.isAccessibilitySize { Spacer(minLength: 0) }
@@ -760,6 +762,10 @@ private struct WishDemandRow: View {
                 .fontDesign(.rounded)
                 .monospacedDigit()
                 .foregroundStyle(Color.texte)
+                // La quantité reste sur une ligne : c'est le nom du produit qui passe à la ligne, pas « parts / voulues ».
+                .lineLimit(dynamicTypeSize.isAccessibilitySize ? nil : 1)
+                .fixedSize(horizontal: !dynamicTypeSize.isAccessibilitySize, vertical: false)
+                .layoutPriority(1)
         }
         .padding(.vertical, 12)
         .accessibilityElement(children: .combine)
@@ -996,7 +1002,12 @@ nonisolated enum DemandFormatting {
 extension DemandMapViewModel.DemandPoint {
     /// Nom affiché : « Zone f25d » pour un geohash, sinon le quartier ou le groupe.
     var displayName: String {
-        grouping == .geohash ? String(localized: "Zone \(label)") : label
+        switch grouping {
+        case .geohash: String(localized: "Zone \(label)")
+        // Le quartier est stocké en identifiant (« parc-extension ») : on affiche « Parc-Extension ».
+        case .neighborhood: MontrealNeighborhood.displayName(for: label)
+        case .group: label
+        }
     }
 
     /// « 24 familles · 26 parts ».

@@ -120,6 +120,7 @@ struct SphereImpactGrid: View {
 struct SphereTile: View {
     let sphere: ImpactSphere
     let metric: SphereMetric
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
 
     var body: some View {
         VStack(alignment: .leading, spacing: 6) {
@@ -127,6 +128,8 @@ struct SphereTile: View {
                 Text(sphere.title)
                     .font(.caption.weight(.semibold))
                     .foregroundStyle(sphere.tint)
+                    // Deux lignes réservées : « Sécurité alimentaire » ne décale plus le chiffre de sa voisine de rangée.
+                    .lineLimit(dynamicTypeSize.isAccessibilitySize ? 4 : 2, reservesSpace: !dynamicTypeSize.isAccessibilitySize)
             } icon: {
                 Image(systemName: sphere.systemImage)
                     .symbolRenderingMode(.hierarchical)

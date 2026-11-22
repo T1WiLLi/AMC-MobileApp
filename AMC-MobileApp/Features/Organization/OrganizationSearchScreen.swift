@@ -34,7 +34,8 @@ struct OrganizationSearchScreen: View {
                 }
                 .searchable(text: $query, prompt: "Groupe ou quartier")
                 .searchSuggestions {
-                    ForEach(model.neighborhoodSuggestions, id: \.self) { name in
+                    ForEach(model.neighborhoodSuggestions, id: \.self) { slug in
+                        let name = MontrealNeighborhood.displayName(for: slug)
                         Label(name, systemImage: "mappin.and.ellipse").searchCompletion(name)
                     }
                 }

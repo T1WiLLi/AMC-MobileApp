@@ -512,7 +512,7 @@ private struct NeighborhoodRow: View {
                     .accessibilityHidden(true)
             }
             VStack(alignment: .leading, spacing: 4) {
-                Text(entry.neighborhood)
+                Text(MontrealNeighborhood.displayName(for: entry.neighborhood))
                     .font(.headline)
                     .foregroundStyle(.texte)
                 Label(groupsText, systemImage: GrenierSymbol.groups)
@@ -539,7 +539,7 @@ private struct NeighborhoodRow: View {
         .padding(.horizontal, 16)
         .padding(.vertical, 12)
         .accessibilityElement(children: .ignore)
-        .accessibilityLabel("\(entry.neighborhood), \(Money.format(entry.revenueCents)). \(groupsText) · \(familiesText)")
+        .accessibilityLabel("\(MontrealNeighborhood.displayName(for: entry.neighborhood)), \(Money.format(entry.revenueCents)). \(groupsText) · \(familiesText)")
     }
 
     private var groupsText: String { entry.groupNames.formatted(.list(type: .and).locale(AppLanguage.formattingLocale)) }

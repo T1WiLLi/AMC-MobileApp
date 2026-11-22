@@ -187,7 +187,7 @@ final class OrganizationPortalModel {
             TimelineEvent(
                 id: "sponsorship-\(sponsorship.id)", date: sponsorship.startedAt, kind: .sponsorship,
                 title: String(localized: "Parrainage de \(sponsorship.groupName)"),
-                detail: String(localized: "Objectif : \(FrenchPlural.count(sponsorship.monthlyBasketGoal, "panier")) par mois · \(sponsorship.neighborhood)")
+                detail: String(localized: "Objectif : \(FrenchPlural.count(sponsorship.monthlyBasketGoal, "panier")) par mois · \(MontrealNeighborhood.displayName(for: sponsorship.neighborhood))")
             )
         }
         return (donations + sponsorships).sorted { $0.date > $1.date }

@@ -92,7 +92,7 @@ struct SponsoredGroupCard: View {
                     Text(profile.groupName)
                         .font(.headline)
                         .foregroundStyle(Color.texte)
-                    Label(profile.neighborhood, systemImage: "mappin.and.ellipse")
+                    Label(MontrealNeighborhood.displayName(for: profile.neighborhood), systemImage: "mappin.and.ellipse")
                         .font(.caption)
                         .foregroundStyle(Color.texteSecondaire)
                         .symbolRenderingMode(.hierarchical)
@@ -240,7 +240,7 @@ struct SponsorSheet: View {
                     Button("Annuler", systemImage: "xmark") { dismiss() }
                 }
             }
-            .safeAreaInset(edge: .bottom, spacing: 0) {
+            .safeAreaBar(edge: .bottom, spacing: 0) {
                 Button {
                     Task {
                         if await model.sponsor(groupId: groupId, monthlyBasketGoal: goal) { dismiss() }
@@ -261,6 +261,7 @@ struct SponsorSheet: View {
                 .padding(.horizontal, 16)
                 .padding(.vertical, 12)
             }
+            .scrollEdgeEffectStyle(.soft, for: .bottom)
             .confirmationDialog("Mettre fin au parrainage ?", isPresented: $confirmsEnd, titleVisibility: .visible) {
                 Button("Mettre fin", role: .destructive) {
                     Task { if await model.endSponsorship(groupId: groupId) { dismiss() } }

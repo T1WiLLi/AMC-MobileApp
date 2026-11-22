@@ -39,7 +39,12 @@ struct OfferCard: View {
                             .foregroundStyle(phase.tint)
                             .symbolRenderingMode(.hierarchical)
                     } else {
-                        Text("\(Image(systemName: vendor.isVerified ? "checkmark.seal.fill" : "storefront.fill")) \(vendor.legalName) · \(Image(systemName: "clock.fill")) se termine \(deadlineText)")
+                        // Deux lignes (comme la branche ci-dessus) : sur une seule, l'icône d'horloge restait seule en fin de ligne.
+                        Text("\(Image(systemName: vendor.isVerified ? "checkmark.seal.fill" : "storefront.fill")) \(vendor.legalName)")
+                            .font(.subheadline)
+                            .foregroundStyle(.texteSecondaire)
+                            .symbolRenderingMode(.hierarchical)
+                        Label("se termine \(deadlineText)", systemImage: "clock.fill")
                             .font(.subheadline)
                             .foregroundStyle(.texteSecondaire)
                             .symbolRenderingMode(.hierarchical)

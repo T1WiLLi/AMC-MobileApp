@@ -165,6 +165,30 @@ struct AppContextResolverTests {
         #expect(store.context.groupId == "group-rosemont")
     }
 
+    /// Rejoindre un 2e groupe le rend actif, même si un autre groupe était le préféré.
+    @Test func reloadPreferringActivatesTheJoinedGroup() async throws {
+        let defaults = UserDefaults(suiteName: "AppContextResolverTests-\(UUID().uuidString)")!
+        let store = SessionContextStore(defaults: defaults)
+        let fixture = Self.fixture()
+        let base = AppContext(repositories: fixture.repositories, userId: "", householdId: "", groupId: nil,
+                              vendorId: "", status: .unresolved)
+        await store.load(for: Self.authUser("user-jean"), base: base)
+        try await fixture.repositories.groups.join(groupId: "group-rosemont", householdId: "household-jean")
+        await store.reload(preferring: "group-rosemont")
+        #expect(store.context.groupId == "group-rosemont")
+
+        // « Voisins de Parc-Ex » passe après « Rosemont » par ordre alphabétique : sans préférence, il ne serait pas choisi.
+        try await fixture.repositories.groups.join(groupId: "group-parc-extension", householdId: "household-jean")
+        await store.reload()
+        #expect(store.context.groupId == "group-rosemont")
+        await store.reload(preferring: "group-parc-extension")
+        #expect(store.context.groupId == "group-parc-extension")
+
+        // Un groupe dont le ménage n'est pas membre est ignoré.
+        await store.reload(preferring: "group-inconnu")
+        #expect(store.context.groupId != "group-inconnu")
+    }
+
     @Test func storeUsesAnAlreadyResolvedBaseAsIs() async {
         let store = SessionContextStore(defaults: UserDefaults(suiteName: "AppContextResolverTests-\(UUID().uuidString)")!)
         await store.load(for: .sample, base: .instant)

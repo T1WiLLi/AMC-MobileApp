@@ -109,7 +109,7 @@ struct GroupsScreen: View {
                                   code: request.code) { group in
                     Task {
                         await viewModel?.didJoin(group)
-                        await contextStore?.reload()
+                        await contextStore?.reload(preferring: group.id)
                     }
                     path.append(GroupRoute(groupId: group.id))
                 }
@@ -119,7 +119,7 @@ struct GroupsScreen: View {
                                  householdId: context.householdId) { group in
                     Task {
                         await viewModel?.didJoin(group)
-                        await contextStore?.reload()
+                        await contextStore?.reload(preferring: group.id)
                     }
                     path.append(GroupRoute(groupId: group.id))
                 }
@@ -202,7 +202,7 @@ private struct GroupList: View {
                 onJoin: {
                     Task {
                         await viewModel.join(groupId: item.id)
-                        await contextStore?.reload()
+                        await contextStore?.reload(preferring: item.id)
                     }
                 }
             )

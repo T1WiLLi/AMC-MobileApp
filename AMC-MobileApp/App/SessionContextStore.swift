@@ -71,6 +71,14 @@ final class SessionContextStore {
         await resolve()
     }
 
+    /// Après avoir rejoint ou créé un groupe : il devient le groupe actif (Accueil, Cueillette).
+    /// Mémorisé comme préféré puis rechargé : s'il n'est pas (ou plus) un groupe du ménage, le résolveur l'ignore.
+    func reload(preferring groupId: String) async {
+        guard user != nil, !base.isResolved else { return }
+        defaults.set(groupId, forKey: Self.preferredGroupKey)
+        await resolve()
+    }
+
     /// Change le groupe actif (mémorisé) ; sans effet si le ménage n'en fait pas partie.
     func selectGroup(_ groupId: String?) {
         defaults.set(groupId, forKey: Self.preferredGroupKey)

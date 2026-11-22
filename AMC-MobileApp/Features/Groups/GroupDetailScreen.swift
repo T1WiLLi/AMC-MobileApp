@@ -267,10 +267,10 @@ private struct GroupDetailContent: View {
             await model.load()
         }
         .sheet(isPresented: $isJoiningWithCode) {
-            JoinWithCodeSheet(repositories: context.repositories, householdId: context.householdId) { _ in
+            JoinWithCodeSheet(repositories: context.repositories, householdId: context.householdId) { joined in
                 Task {
                     await viewModel.load()
-                    await contextStore?.reload()
+                    await contextStore?.reload(preferring: joined.id)
                 }
             }
         }
@@ -281,7 +281,7 @@ private struct GroupDetailContent: View {
                     if group.isPublic {
                         Task {
                             await viewModel.join()
-                            await contextStore?.reload()
+                            await contextStore?.reload(preferring: group.id)
                         }
                     } else {
                         isJoiningWithCode = true

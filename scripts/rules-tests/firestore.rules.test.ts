@@ -1478,3 +1478,75 @@ describe('avis des familles sur un groupe (T-174)', () => {
     await assertFails(getDoc(doc(intruder(), 'groupOrders/order-passee/shares/household-amina')))
   })
 })
+
+// T-191 : le créateur du groupe (et lui seul) retire une famille ; jamais la sienne.
+describe('groups/members : retrait d’une famille par le créateur (T-191)', () => {
+  const groupPath = 'groups/group-retrait'
+  const memberOf = (householdId: string) => `${groupPath}/members/${householdId}`
+  const creator = () => env.authenticatedContext('createur').firestore()
+  const coordinator = () => env.authenticatedContext('coord').firestore()
+  const member = () => env.authenticatedContext('membre').firestore()
+
+  beforeEach(async () => {
+    await env.withSecurityRulesDisabled(async (c) => {
+      const db = c.firestore()
+      for (const [uid, household] of [['createur', 'household-createur'], ['coord', 'household-coord'], ['membre', 'household-membre'], ['lea', 'household-lea']]) {
+        await setDoc(doc(db, `users/${uid}`), { ...aminaUser, id: uid, householdId: household })
+        await setDoc(doc(db, `households/${household}`), { id: household, name: `Famille ${uid}`, size: 2, geohash: 'f25du', userIds: [uid] })
+        await setDoc(doc(db, memberOf(household)), { householdId: household, role: uid === 'lea' || uid === 'membre' ? 'member' : 'coordinator', joinedAt: Timestamp.now() })
+      }
+      await setDoc(doc(db, groupPath), {
+        id: 'group-retrait', name: 'Groupe retrait', isPublic: true, inviteCode: 'ABCDEF',
+        createdBy: 'createur', coordinatorIds: ['createur', 'coord'], householdCount: 4
+      })
+    })
+  })
+
+  // Ce que fait FirestoreGroupRepository.removeHousehold : suppression de l'adhésion + compteur −1.
+  function removeBatch(db: Firestore, householdId: string, delta = -1) {
+    const batch = writeBatch(db)
+    batch.delete(doc(db, memberOf(householdId)))
+    batch.update(doc(db, groupPath), { householdCount: increment(delta), lastMembershipChange: householdId })
+    return batch.commit()
+  }
+  async function memberExists(householdId: string) {
+    let exists = false
+    await env.withSecurityRulesDisabled(async (c) => { exists = (await getDoc(doc(c.firestore(), memberOf(householdId)))).exists() })
+    return exists
+  }
+
+  test('le créateur retire une autre famille : adhésion supprimée et compteur −1', async () => {
+    await assertSucceeds(removeBatch(creator(), 'household-lea'))
+    assert.equal(await memberExists('household-lea'), false)
+    await env.withSecurityRulesDisabled(async (c) => {
+      assert.equal((await getDoc(doc(c.firestore(), groupPath))).data()?.householdCount, 3)
+    })
+  })
+  test('un autre coordonnateur ne retire pas une famille', async () => {
+    await assertFails(removeBatch(coordinator(), 'household-lea'))
+    assert.equal(await memberExists('household-lea'), true)
+  })
+  test('un simple membre ne retire pas une famille', async () => {
+    await assertFails(removeBatch(member(), 'household-lea'))
+    assert.equal(await memberExists('household-lea'), true)
+  })
+  test('un étranger au groupe ne retire pas une famille', async () => {
+    await assertFails(removeBatch(intruder(), 'household-lea'))
+  })
+  test('le créateur ne retire pas sa propre famille par ce chemin', async () => {
+    await assertFails(removeBatch(creator(), 'household-createur'))
+    assert.equal(await memberExists('household-createur'), true)
+  })
+  test('pas de retrait sans le compteur, ni avec un compteur faussé', async () => {
+    await assertFails(deleteDoc(doc(creator(), memberOf('household-lea'))))
+    await assertFails(removeBatch(creator(), 'household-lea', -2))
+    await assertFails(removeBatch(creator(), 'household-lea', 1))
+  })
+  test('la sortie volontaire d’un membre de son propre groupe reste permise', async () => {
+    await assertSucceeds(removeBatch(member(), 'household-membre'))
+    assert.equal(await memberExists('household-membre'), false)
+  })
+  test('un membre ne quitte pas au nom d’un autre ménage', async () => {
+    await assertFails(removeBatch(member(), 'household-coord'))
+  })
+})

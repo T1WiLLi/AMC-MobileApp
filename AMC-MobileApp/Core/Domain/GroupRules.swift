@@ -202,6 +202,18 @@ nonisolated enum GroupRules {
         return group.creatorId == userId
     }
 
+    /// T-191 : le créateur seul retire une famille du groupe, jamais la sienne (ni un autre coordonnateur, ni un membre).
+    static func canRemoveHousehold(_ householdId: String, byUserId userId: String?,
+                                   creatorHouseholdId: String?, from group: NeighborhoodGroup) -> Bool {
+        isCreator(userId, of: group) && householdId != creatorHouseholdId
+    }
+
+    static func requireCanRemoveHousehold(_ householdId: String, byUserId userId: String?,
+                                          creatorHouseholdId: String?, from group: NeighborhoodGroup) throws {
+        guard canRemoveHousehold(householdId, byUserId: userId, creatorHouseholdId: creatorHouseholdId, from: group)
+        else { throw AppError.permissionDenied }
+    }
+
     /// Lève `.permissionDenied` si `userId` n'a pas créé le groupe.
     static func requireCreator(_ userId: String?, of group: NeighborhoodGroup) throws {
         guard isCreator(userId, of: group) else { throw AppError.permissionDenied }

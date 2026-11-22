@@ -492,8 +492,15 @@ service cloud.firestore {
         return onlyChanges(['householdCount', 'lastMembershipChange'])
           && householdId is string && householdId.size() > 0
           && after.householdCount is int && after.householdCount >= 0
-          && isMemberOfHousehold(householdId)
-          && ((delta == 1 && !wasMember && isMember) || (delta == -1 && wasMember && !isMember));
+          && ((isMemberOfHousehold(householdId)
+                && ((delta == 1 && !wasMember && isMember) || (delta == -1 && wasMember && !isMember)))
+              || (delta == -1 && wasMember && !isMember && isCreatorRemoving(householdId)));
+      }
+
+      // T-191 : le créateur du groupe (et lui seul : ni un autre coordonnateur, ni un membre) retire une famille.
+      // Jamais son propre ménage (`isMemberOfHousehold`) : il quitte le groupe par la sortie volontaire.
+      function isCreatorRemoving(householdId) {
+        return isGroupCreator(groupId) && !isMemberOfHousehold(householdId);
       }
 
       match /members/{householdId} {
@@ -522,8 +529,10 @@ service cloud.firestore {
             && group.get('householdCount', 0) == 1;
         }
         allow update: if false;
-        allow delete: if isMemberOfHousehold(householdId)
-          && (!exists(groupPath(groupId)) || isCountChangedBy(groupId, householdId, -1));
+        allow delete: if (isMemberOfHousehold(householdId)
+          && (!exists(groupPath(groupId)) || isCountChangedBy(groupId, householdId, -1)))
+          // T-191 : retrait d'une famille par le créateur, avec le compteur −1 dans le même batch.
+          || (isCreatorRemoving(householdId) && isCountChangedBy(groupId, householdId, -1));
       }
 
       // ---------------------------------------------------------------

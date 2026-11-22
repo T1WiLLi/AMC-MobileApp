@@ -148,6 +148,8 @@ private struct GroupDetailContent: View {
     @State private var ratings: GroupRatingsViewModel?
     /// B-056 : visibilité et invitations, pour le créateur du groupe seulement.
     @State private var invitations: GroupInvitationsViewModel?
+    /// T-191 : familles membres ; le créateur peut en retirer.
+    @State private var families: GroupFamiliesViewModel?
     /// B-056 : feuille « Rejoindre avec un code » (groupe privé).
     @State private var isJoiningWithCode = false
     @Environment(\.appContext) private var context
@@ -187,6 +189,14 @@ private struct GroupDetailContent: View {
                     }
 
                     openOrdersSection
+
+                    // T-191 : familles membres ; « Retirer du groupe » pour le créateur seulement.
+                    if let families {
+                        GroupFamiliesSection(model: families) {
+                            await viewModel.load()
+                            await families.load()
+                        }
+                    }
 
                     // T-174 (FB-20) : avis des familles, « Noter ce groupe » pour les membres et anciens membres.
                     if let ratings {
@@ -287,6 +297,12 @@ private struct GroupDetailContent: View {
                                                          householdId: context.householdId, userId: context.userId)
             ratings = model
             await model.load(isMember: content.isMember, isOwner: viewModel.isCreator)
+        }
+        .task(id: group.id) {
+            let model = families ?? GroupFamiliesViewModel(repositories: context.repositories, groupId: group.id,
+                                                           householdId: context.householdId, userId: context.userId)
+            families = model
+            await model.load()
         }
         .task(id: viewModel.isCreator) {
             guard viewModel.isCreator, invitations == nil else { return }

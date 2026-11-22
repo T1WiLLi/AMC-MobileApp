@@ -33,6 +33,9 @@ final class SolidarityLeaderboardViewModel {
         return SolidarityLeaderboard.ranking(content.stats, metric: metric, homeNeighborhood: content.homeNeighborhood)
     }
 
+    /// Dernier calcul des agrégats (T-197) : le plus récent `updatedAt` ; nil si aucun document n'en porte (anciennes données).
+    var lastUpdated: Date? { state.value?.stats.compactMap(\.updatedAt).max() }
+
     /// Arrondissement du ménage, s'il est classé.
     var home: SolidarityLeaderboard.Entry? { entries.first(where: \.isHome) }
 

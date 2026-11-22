@@ -43,6 +43,7 @@ struct NextTierWidget: Widget {
     var body: some WidgetConfiguration {
         StaticConfiguration(kind: "ca.amc2026.mobileapp.next-tier", provider: NextTierProvider()) { entry in
             NextTierWidgetView(entry: entry)
+                .widgetLanguage()
                 .containerBackground(GrenierPalette.fond, for: .widget)
         }
         .configurationDisplayName(String(localized: "Prochain palier"))

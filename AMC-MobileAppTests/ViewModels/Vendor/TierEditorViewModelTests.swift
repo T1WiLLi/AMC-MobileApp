@@ -57,7 +57,8 @@ struct TierEditorViewModelTests {
         try await Task.sleep(for: .milliseconds(30))
         let second = await model.save()
         #expect(second == nil)
-        #expect(try #require(await first) != nil)
+        let saved = await first
+        #expect(saved != nil)
         let mine = try await repos.offers.offers(ofVendor: ID.fermeRive).filter { $0.productId == ID.potatoes }
         #expect(mine.count == 2) // le lot d'origine + un seul nouveau
     }

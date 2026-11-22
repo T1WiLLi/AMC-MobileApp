@@ -82,6 +82,21 @@ struct OrderActivityControllerTests {
         #expect(controller.state == nil)
     }
 
+    @Test func refreshResendsCurrentStateWithoutAlert() async throws {
+        let client = FakeLiveActivityClient()
+        let controller = OrderActivityController(client: client)
+
+        await controller.refresh()
+        #expect(client.updates.isEmpty)
+
+        try await controller.start(state: .demo(.enRoute))
+        await controller.refresh()
+        #expect(client.updates.count == 1)
+        #expect(client.updates.last?.stage == .enRoute)
+        #expect(client.updates.last?.alertTitle == nil)
+        #expect(controller.state?.stage == .enRoute)
+    }
+
     @Test func demoChainsStagesInOrder() async throws {
         let client = FakeLiveActivityClient()
         let controller = OrderActivityController(client: client)

@@ -10,6 +10,8 @@ import Synchronization
 ///   - la racine est recréée (`.id`) pour que les textes déjà calculés (ViewModels) le soient de nouveau.
 /// - Le choix est aussi écrit dans `AppleLanguages` : au prochain lancement, iOS lui-même (boutons système
 ///   comme « Continuer avec Apple », alertes, formats de date) démarre dans cette langue.
+/// - Et dans l'App Group (`SharedLanguage`) : le widget et la Live Activity suivent la même langue
+///   (`ExtensionLanguageSync` les redessine au changement).
 nonisolated enum AppLanguage: String, CaseIterable, Sendable {
     case system
     case french = "fr"
@@ -86,6 +88,7 @@ nonisolated enum AppLanguage: String, CaseIterable, Sendable {
                     UserDefaults.standard.removeObject(forKey: storageKey)
                     lookupLocale.withLock { $0 = nil }
                     GrenierFormat.setLocale(nil)
+                    SharedLanguage.write(code: nil)
                     return .system
                 }
                 language = fromSettings
@@ -100,6 +103,8 @@ nonisolated enum AppLanguage: String, CaseIterable, Sendable {
     static func apply(_ language: AppLanguage) {
         let defaults = UserDefaults.standard
         GrenierFormat.setLocale(language == .system ? nil : language.locale)
+        // Widget et Live Activity (extension) : même langue, lue dans l'App Group.
+        SharedLanguage.write(code: language == .system ? nil : language.rawValue)
         switch language {
         case .system:
             lookupLocale.withLock { $0 = nil }

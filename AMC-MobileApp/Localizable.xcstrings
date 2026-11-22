@@ -460,6 +460,16 @@
         }
       }
     },
+    "Mis à jour le %@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Updated %@"
+          }
+        }
+      }
+    },
     "Noisette te remontre l'app, étape par étape, en commençant par l'Accueil" : {
       "localizations" : {
         "en" : {

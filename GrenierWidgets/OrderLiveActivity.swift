@@ -10,6 +10,7 @@ struct OrderLiveActivity: Widget {
     var body: some WidgetConfiguration {
         ActivityConfiguration(for: GrenierOrderAttributes.self) { context in
             OrderLockScreenView(presentation: OrderActivityPresentation(context.attributes, context.state))
+                .widgetLanguage()
                 .activityBackgroundTint(GrenierPalette.fond)
                 .activitySystemActionForegroundColor(GrenierPalette.accent)
         } dynamicIsland: { context in
@@ -18,10 +19,12 @@ struct OrderLiveActivity: Widget {
                 DynamicIslandExpandedRegion(.leading) {
                     StageBadge(presentation: presentation, size: 44)
                         .padding(.leading, 4)
+                        .widgetLanguage()
                 }
                 DynamicIslandExpandedRegion(.trailing) {
                     HeroValue(presentation: presentation, onDark: true)
                         .padding(.trailing, 4)
+                        .widgetLanguage()
                 }
                 DynamicIslandExpandedRegion(.center) {
                     VStack(alignment: .leading, spacing: 2) {
@@ -35,6 +38,7 @@ struct OrderLiveActivity: Widget {
                     }
                     .frame(maxWidth: .infinity, alignment: .leading)
                     .padding(.leading, 4)
+                    .widgetLanguage()
                 }
                 DynamicIslandExpandedRegion(.bottom) {
                     VStack(alignment: .leading, spacing: 8) {
@@ -55,6 +59,7 @@ struct OrderLiveActivity: Widget {
                     }
                     .padding(.horizontal, 4)
                     .padding(.top, 4)
+                    .widgetLanguage()
                 }
             } compactLeading: {
                 Image(systemName: presentation.stageSymbol)
@@ -68,6 +73,7 @@ struct OrderLiveActivity: Widget {
                     .monospacedDigit()
                     .foregroundStyle(GrenierPalette.accent)
                     .contentTransition(.numericText())
+                    .widgetLanguage()
             } minimal: {
                 Image(systemName: presentation.stageSymbol)
                     .symbolRenderingMode(.hierarchical)

@@ -13778,12 +13778,12 @@
         }
       }
     },
-    "Glisse pour changer l'ordre, touche l'œil pour masquer une section." : {
+    "Glisse les poignées pour changer l'ordre, touche l'œil pour masquer une section." : {
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Drag to reorder, tap the eye to hide a section."
+            "value" : "Drag the handles to reorder, tap the eye to hide a section."
           }
         }
       }

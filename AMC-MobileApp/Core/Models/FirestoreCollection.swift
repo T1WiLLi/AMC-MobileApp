@@ -28,6 +28,11 @@ nonisolated enum FirestoreCollection {
     /// T-174 : avis des familles sur un groupe (`groups/{id}/ratings/{householdId}`).
     static func ratings(ofGroup groupId: String) -> String { "groups/\(groupId)/ratings" }
     static func shares(ofGroupOrder groupOrderId: String) -> String { "groupOrders/\(groupOrderId)/shares" }
+    /// T-195 : un paiement enregistré par part payée à la clôture (`groupOrders/{id}/payments/{householdId}`).
+    static func payments(ofGroupOrder groupOrderId: String) -> String { "groupOrders/\(groupOrderId)/payments" }
+    /// T-195 : récapitulatif du versement au vendeur (`groupOrders/{id}/payouts/vendor`).
+    static func payouts(ofGroupOrder groupOrderId: String) -> String { "groupOrders/\(groupOrderId)/payouts" }
+    static let vendorPayoutDocumentId = "vendor"
 
     /// Id du seul document de `households/{id}/private`.
     static let householdPrivateDocumentId = "profile"

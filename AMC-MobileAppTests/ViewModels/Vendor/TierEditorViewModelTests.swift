@@ -333,4 +333,28 @@ struct TierEditorViewModelTests {
         model.addTier()
         #expect(model.tiers.count == 1)
     }
+
+    // MARK: Plafonds de firestore.rules
+
+    @Test func totalSharesIsCappedAtTenThousand() {
+        let model = validEditor()
+        model.totalShares = 10_000
+        #expect(model.validationError == nil)
+        model.totalShares = 10_001
+        expectInvalid(model, "Le lot ne peut pas dépasser 10 000 parts.")
+    }
+
+    @Test func tiersAreCappedAtTen() {
+        let model = validEditor()
+        model.tiers = (1...10).map { Draft(minShares: $0, priceCents: 2_000 - $0 * 100) }
+        #expect(model.validationError == nil)
+        model.tiers = (1...11).map { Draft(minShares: $0, priceCents: 2_000 - $0 * 100) }
+        expectInvalid(model, "Un lot ne peut pas avoir plus de 10 paliers de prix.")
+    }
+
+    @Test func addTierStopsAtTen() {
+        let model = validEditor()
+        for _ in 0..<20 { model.addTier() }
+        #expect(model.tiers.count == OfferLifecycle.maxTiers)
+    }
 }

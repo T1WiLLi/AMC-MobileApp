@@ -415,7 +415,7 @@ private struct GroupBanner: View {
                     Text(group.name)
                         .font(.headline)
                         .foregroundStyle(Color.texte)
-                    Label(group.neighborhood, systemImage: "mappin.and.ellipse")
+                    Label(MontrealNeighborhood.displayName(for: group.neighborhood), systemImage: "mappin.and.ellipse")
                         .font(.subheadline)
                         .foregroundStyle(Color.texteSecondaire)
                         .symbolRenderingMode(.hierarchical)

@@ -282,6 +282,12 @@ nonisolated protocol GroupOrderRepository: Sendable {
     /// T-174 : part du ménage dans la commande, nil s'il n'en a pas. Lisible par le ménage lui-même, même
     /// après avoir quitté le groupe (preuve d'ancienne adhésion pour noter le groupe).
     func share(ofHousehold householdId: String, inGroupOrder groupOrderId: String) async throws -> Share?
+    /// T-195 : paiements enregistrés à la clôture, un par part payée. Lisibles par la coordination et le vendeur du lot
+    /// (un ménage ne lit que le sien). Vide tant que la commande n'est pas fermée.
+    func payments(ofGroupOrder groupOrderId: String) async throws -> [PaymentRecord]
+    /// T-195 : récapitulatif du versement au vendeur (brut, commission, net, acompte, retenu) ; nil si la commande
+    /// n'est pas fermée avec des paiements.
+    func vendorPayout(ofGroupOrder groupOrderId: String) async throws -> VendorPayoutRecord?
     /// E21-2 (RQ-053, RQ-058) : ferme la commande et, si elle est confirmée, paie chaque part au prix figé du
     /// palier final (paiement simulé, `PaymentSimulator` du dépôt), en une seule écriture (transaction Firestore).
     /// Sous le minimum : commande annulée, personne ne paie. Voir `GroupOrderClosing.close`.
@@ -298,6 +304,11 @@ nonisolated protocol GroupOrderRepository: Sendable {
 
 /// Doublures de test d'avant T-159 : pas de remise de part.
 extension GroupOrderRepository {
+    /// T-195 : rien d'enregistré pour les doublures d'avant.
+    func payments(ofGroupOrder groupOrderId: String) async throws -> [PaymentRecord] { [] }
+
+    func vendorPayout(ofGroupOrder groupOrderId: String) async throws -> VendorPayoutRecord? { nil }
+
     /// Par défaut : cherchée dans toutes les parts de la commande.
     func share(ofHousehold householdId: String, inGroupOrder groupOrderId: String) async throws -> Share? {
         try await shares(ofGroupOrder: groupOrderId).first { $0.householdId == householdId }

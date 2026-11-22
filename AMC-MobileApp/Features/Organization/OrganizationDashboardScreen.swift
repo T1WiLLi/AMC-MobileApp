@@ -113,7 +113,7 @@ struct OrganizationHeroCard: View {
                         .font(.title3.bold())
                         .foregroundStyle(Color.texte)
                         .fixedSize(horizontal: false, vertical: true)
-                    Label("\(organization.kind.label) · \(organization.neighborhood)", systemImage: "mappin.and.ellipse")
+                    Label("\(organization.kind.label) · \(MontrealNeighborhood.displayName(for: organization.neighborhood))", systemImage: "mappin.and.ellipse")
                         .font(.subheadline)
                         .foregroundStyle(Color.texteSecondaire)
                         .symbolRenderingMode(.hierarchical)

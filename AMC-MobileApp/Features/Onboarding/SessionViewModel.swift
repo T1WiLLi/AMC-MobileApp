@@ -219,15 +219,20 @@ final class SessionViewModel {
 
     // MARK: Déconnexion
 
-    func signOut() {
+    /// - Returns: true si la déconnexion a réussi ; l'écran qui l'a lancée (feuille Profil) doit alors se fermer
+    ///   pour laisser `RootView` montrer l'écran de connexion.
+    @discardableResult
+    func signOut() -> Bool {
         do {
             try auth.signOut()
             state = .signedOut
             emailAuthError = nil
             verificationMessage = nil
             verificationSentAt = nil
+            return true
         } catch {
             errorMessage = error.localizedDescription
+            return false
         }
     }
 }

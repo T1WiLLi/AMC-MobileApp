@@ -64,7 +64,7 @@ private struct InterestRow: View {
                         .symbolRenderingMode(.hierarchical)
                         .foregroundStyle(Color.grenier)
                 }
-                Label("\(interest.group.neighborhood) · \(GroupWishesViewModel.householdsText(interest.match.householdCount))",
+                Label("\(MontrealNeighborhood.displayName(for: interest.group.neighborhood)) · \(GroupWishesViewModel.householdsText(interest.match.householdCount))",
                       systemImage: "mappin.and.ellipse")
                     .font(.subheadline)
                     .foregroundStyle(.texteSecondaire)

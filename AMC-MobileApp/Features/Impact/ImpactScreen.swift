@@ -72,7 +72,7 @@ struct ImpactScreen: View {
             firstName = user.displayName.split(separator: " ").first.map(String.init) ?? user.displayName
         }
         if let group = await group {
-            neighborhoodName = group.neighborhood
+            neighborhoodName = MontrealNeighborhood.displayName(for: group.neighborhood)
         }
     }
 }
@@ -493,6 +493,8 @@ private struct ProductSavingsRow: View {
 
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var isShown = false
+    /// Largeur commune des icônes de produit : sans elle, panier, couteau et caisse décalent les noms.
+    @ScaledMetric(relativeTo: .subheadline) private var iconWidth: CGFloat = 22
 
     var body: some View {
         VStack(alignment: .leading, spacing: 6) {
@@ -505,6 +507,7 @@ private struct ProductSavingsRow: View {
                     Image(systemName: symbol)
                         .symbolRenderingMode(.hierarchical)
                         .foregroundStyle(Color.grenier)
+                        .frame(width: iconWidth)
                 }
                 .font(.subheadline)
                 Spacer(minLength: 8)

@@ -145,6 +145,10 @@ final class VendorRevenueModel {
 
     private(set) var pickupPoints: [String: PickupPoint] = [:]
 
+    /// T-195 : encaissé réel des commandes fermées (paiements et versements enregistrés à la clôture).
+    /// `.empty` tant qu'aucune commande fermée n'a de versement ; son échec ne cache pas le revenu prévu.
+    private(set) var settlement: LoadState<VendorSettlement> = .idle
+
     private let repositories: AppRepositories
 
     init(
@@ -172,16 +176,68 @@ final class VendorRevenueModel {
 
     /// Premier chargement (passe par `.loading`).
     func load() async {
+        settlement = .loading
         async let points: Void = loadPickupPoints()
+        async let settled: Void = loadSettlement()
         await dashboard.load()
         await points
+        await settled
     }
 
     /// Recharge sans repasser par `.loading` (pour `.refreshable`).
     func refresh() async {
         async let points: Void = loadPickupPoints()
+        async let settled: Void = loadSettlement()
         await dashboard.refresh()
         await points
+        await settled
+    }
+
+    /// Relance seulement l'encaissé réel (bouton « Réessayer » de la section).
+    func retrySettlement() async {
+        settlement = .loading
+        await loadSettlement()
+    }
+
+    /// Commandes fermées ou livrées du vendeur, avec leurs parts, paiements enregistrés et versement
+    /// (`VendorRevenue.report` pour les totaux, `VendorSettlement` pour commission, net, acompte et reste dû).
+    private func loadSettlement() async {
+        let vendorId = dashboard.vendorId
+        let repositories = repositories
+        do {
+            let offers = try await repositories.offers.offers(ofVendor: vendorId)
+            let linked = try await VendorRepositoryQueries.linkedGroupOrders(
+                ofOffers: offers.map(\.id), in: repositories, statuses: [.closed, .delivered]
+            )
+            let orders = linked.map(\.order)
+            guard !orders.isEmpty else { settlement = .empty; return }
+
+            var sharesByOrder: [String: [Share]] = [:]
+            var payments: [PaymentRecord] = []
+            var payouts: [VendorPayoutRecord] = []
+            try await withThrowingTaskGroup(of: (String, [Share], [PaymentRecord], VendorPayoutRecord?).self) { group in
+                for order in orders {
+                    group.addTask {
+                        async let shares = repositories.groupOrders.shares(ofGroupOrder: order.id)
+                        async let paid = repositories.groupOrders.payments(ofGroupOrder: order.id)
+                        async let payout = repositories.groupOrders.vendorPayout(ofGroupOrder: order.id)
+                        return try await (order.id, shares, paid, payout)
+                    }
+                }
+                for try await (orderId, shares, paid, payout) in group {
+                    sharesByOrder[orderId] = shares
+                    payments += paid
+                    if let payout { payouts.append(payout) }
+                }
+            }
+            let report = VendorRevenue.report(
+                vendorId: vendorId, offers: offers, orders: orders, sharesByOrder: sharesByOrder, payments: payments
+            )
+            let result = VendorSettlement(report: report, payouts: payouts)
+            settlement = result.isEmpty ? .empty : .loaded(result)
+        } catch {
+            settlement = .failed(AppError(error))
+        }
     }
 
     /// Les points de cueillette sont un bonus : en cas d'erreur, les livraisons s'affichent sans le lieu.

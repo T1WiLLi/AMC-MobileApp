@@ -176,6 +176,8 @@ struct VendorOffersScreen: View {
                             Label("Créer un autre lot", systemImage: "plus.square.on.square")
                         }
                     }
+                    // Plus d'air entre deux lots (12 + 8) qu'entre un lot et son bouton (8) : le bouton se lit avec sa carte.
+                    .padding(.bottom, 8)
                     .grenierTransition(.cardAppear)
                     .grenierAppear(index: index)
                 }

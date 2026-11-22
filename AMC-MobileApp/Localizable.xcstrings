@@ -1808,6 +1808,26 @@
         }
       }
     },
+    "%@ manque" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ short"
+          }
+        }
+      }
+    },
+    "%@ n'a pas assez dans son fonds pour ses familles aidées." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ doesn't have enough in its fund for the families it helps."
+          }
+        }
+      }
+    },
     "%@ manquent" : {
       "localizations" : {
         "en" : {
@@ -11552,7 +11572,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Request"
+            "value" : "Demand"
           }
         }
       }
@@ -16202,6 +16222,16 @@
                 }
               }
             }
+          }
+        }
+      }
+    },
+    "Le quartier de ton groupe doit faire %lld caractères au maximum." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Your group’s neighbourhood can be at most %lld characters."
           }
         }
       }
@@ -30381,6 +30411,196 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Orders below the minimum (%lld) will be cancelled, with no charge."
+          }
+        }
+      }
+    },
+    "Commandes fermées" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Closed orders"
+          }
+        }
+      }
+    },
+    "Chargement des versements…" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Loading payouts…"
+          }
+        }
+      }
+    },
+    "Aucune commande fermée pour l'instant" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No closed orders yet"
+          }
+        }
+      }
+    },
+    "Quand une commande sera fermée, tu verras ici l'encaissé, la commission et le net. Le revenu prévu ci-dessus ne concerne que les commandes ouvertes." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Once an order is closed, you'll see what was collected, the commission and the net here. The expected revenue above only covers open orders."
+          }
+        }
+      }
+    },
+    "Impossible de charger les versements" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Couldn't load payouts"
+          }
+        }
+      }
+    },
+    "Le revenu prévu reste affiché. Vérifie ta connexion et réessaie." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Expected revenue is still shown. Check your connection and try again."
+          }
+        }
+      }
+    },
+    "Encaissé" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Collected"
+          }
+        }
+      }
+    },
+    "dont fonds de solidarité" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "of which solidarity fund"
+          }
+        }
+      }
+    },
+    "Commission de Grenier" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Grenier commission"
+          }
+        }
+      }
+    },
+    "Net" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Net"
+          }
+        }
+      }
+    },
+    "Acompte versé" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Deposit paid"
+          }
+        }
+      }
+    },
+    "Reste dû à la cueillette" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Balance due at pickup"
+          }
+        }
+      }
+    },
+    "Paiements encore à encaisser" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Payments still to collect"
+          }
+        }
+      }
+    },
+    "Paiements simulés : aucun vrai versement n'a lieu." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Simulated payments: no real payout takes place."
+          }
+        }
+      }
+    },
+    "Le lot ne peut pas dépasser 10 000 parts." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "A bundle cannot exceed 10,000 shares."
+          }
+        }
+      }
+    },
+    "Un lot ne peut pas avoir plus de 10 paliers de prix." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "A bundle cannot have more than 10 price tiers."
+          }
+        }
+      }
+    },
+    "Le prix en épicerie ne peut pas dépasser 100 000 $." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The grocery price cannot exceed $100,000."
+          }
+        }
+      }
+    },
+    "La provenance doit faire 120 caractères ou moins." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The origin must be 120 characters or less."
+          }
+        }
+      }
+    },
+    "L'unité de vente doit faire 60 caractères ou moins." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The sales unit must be 60 characters or less."
           }
         }
       }

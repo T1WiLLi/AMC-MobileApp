@@ -167,3 +167,22 @@ test('rejects inconsistent memberships and shares before returning a seed plan',
   })
   await assert.rejects(readDemoSeed(fixtures, 0, { rich: false }), /heure invalide/)
 })
+
+// T-199 : les règles Firestore (`isGroupCoordinator`) lisent `coordinatorIds`, mais l'app et les écrans de
+// coordination s'appuient aussi sur le rôle de l'adhésion : les deux doivent désigner le même ménage.
+test('gives the coordinator role to the household of every user listed in coordinatorIds', async () => {
+  const seed = await readDemoSeed(new URL('./fixtures/', import.meta.url), Date.UTC(2026, 10, 21), { rich: false })
+  const householdOf = new Map(seed.users.map((user: any) => [user.id, user.householdId]))
+  const roleOf = new Map(seed.members.map((member: any) => [`${member.groupId}/${member.householdId}`, member.role]))
+  let checked = 0
+  for (const group of seed.groups as any[]) {
+    for (const userId of group.coordinatorIds) {
+      const role = roleOf.get(`${group.id}/${householdOf.get(userId)}`)
+      if (role === undefined) continue // coordonnateur d'un groupe dont son ménage n'est pas membre
+      assert.equal(role, 'coordinator', `${userId} dans ${group.id}`)
+      checked += 1
+    }
+  }
+  assert.ok(checked > 0)
+  assert.equal(roleOf.get('group-parc-extension/household-jean'), 'coordinator')
+})

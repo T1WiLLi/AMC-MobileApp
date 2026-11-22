@@ -36,7 +36,11 @@ struct VendorRevenueScreen: View {
         case .failed, .loaded:
             StateView(state: model.state, retry: { await model.load() }) { revenue in
                 ScrollView {
-                    VendorRevenueContent(revenue: revenue)
+                    VendorRevenueContent(
+                        revenue: revenue,
+                        settlement: model.settlement,
+                        retrySettlement: { await model.retrySettlement() }
+                    )
                 }
                 .guidedTourScroll(.racoonette)
                 .refreshable { await model.refresh() }
@@ -49,6 +53,9 @@ struct VendorRevenueScreen: View {
 
 struct VendorRevenueContent: View {
     let revenue: VendorRevenueSummary
+    /// T-195 : encaissé réel des commandes fermées ; le revenu prévu plus haut ne concerne que les commandes ouvertes.
+    var settlement: LoadState<VendorSettlement> = .empty
+    var retrySettlement: (() async -> Void)?
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
@@ -58,6 +65,9 @@ struct VendorRevenueContent: View {
             }
             .guidedTourAnchor(.vendorRevenue, padding: 4)
             ProductStatsLink() // T-119 : statistiques de ventes par produit
+
+            SectionTitle("Commandes fermées", systemImage: "checkmark.seal.fill", tint: .economie)
+            ClosedOrdersSettlementCard(state: settlement, retry: retrySettlement)
 
             SectionTitle("Par lot", systemImage: "chart.bar.xaxis", tint: .grenier)
             OfferRevenueChart(offers: revenue.offers)
@@ -99,6 +109,112 @@ private struct SectionTitle: View {
         .foregroundStyle(.texte)
         .padding(.top, 12)
         .accessibilityAddTraits(.isHeader)
+    }
+}
+
+/// T-195 : ce que le vendeur a vraiment encaissé sur ses commandes fermées (états chargement, vide et erreur).
+private struct ClosedOrdersSettlementCard: View {
+    let state: LoadState<VendorSettlement>
+    var retry: (() async -> Void)?
+
+    @State private var isRetrying = false
+
+    var body: some View {
+        Group {
+            switch state {
+            case .idle, .loading:
+                Label {
+                    Text("Chargement des versements…")
+                } icon: {
+                    ProgressView()
+                }
+                .font(.subheadline)
+                .foregroundStyle(.texteSecondaire)
+            case .empty:
+                VStack(alignment: .leading, spacing: 6) {
+                    Label("Aucune commande fermée pour l'instant", systemImage: "tray")
+                        .font(.headline)
+                        .foregroundStyle(.texte)
+                    Text("Quand une commande sera fermée, tu verras ici l'encaissé, la commission et le net. Le revenu prévu ci-dessus ne concerne que les commandes ouvertes.")
+                        .font(.subheadline)
+                        .foregroundStyle(.texteSecondaire)
+                }
+            case .failed:
+                VStack(alignment: .leading, spacing: 10) {
+                    Label("Impossible de charger les versements", systemImage: "exclamationmark.triangle.fill")
+                        .font(.headline)
+                        .foregroundStyle(.texte)
+                    Text("Le revenu prévu reste affiché. Vérifie ta connexion et réessaie.")
+                        .font(.subheadline)
+                        .foregroundStyle(.texteSecondaire)
+                    if let retry {
+                        Button {
+                            Task {
+                                isRetrying = true
+                                await retry()
+                                isRetrying = false
+                            }
+                        } label: {
+                            Label("Réessayer", systemImage: "arrow.clockwise")
+                        }
+                        .buttonStyle(.bordered)
+                        .disabled(isRetrying)
+                    }
+                }
+            case .loaded(let settlement):
+                ClosedOrdersSettlementRows(settlement: settlement)
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .grenierCard()
+    }
+}
+
+private struct ClosedOrdersSettlementRows: View {
+    let settlement: VendorSettlement
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            row(String(localized: "Encaissé"), settlement.grossCents, systemImage: "banknote.fill", emphasized: true)
+            if settlement.solidarityCents > 0 {
+                row(String(localized: "dont fonds de solidarité"), settlement.solidarityCents, systemImage: "heart.fill", indented: true)
+            }
+            row(String(localized: "Commission de Grenier"), -settlement.commissionCents, systemImage: "percent")
+            Divider()
+            row(String(localized: "Net"), settlement.netCents, systemImage: "equal.circle.fill", emphasized: true)
+            row(String(localized: "Acompte versé"), settlement.releasedCents, systemImage: "arrow.down.circle.fill")
+            row(String(localized: "Reste dû à la cueillette"), settlement.heldCents, systemImage: "clock.fill")
+            if settlement.outstandingCents > 0 {
+                row(String(localized: "Paiements encore à encaisser"), settlement.outstandingCents, systemImage: "exclamationmark.circle.fill")
+            }
+            Text("Paiements simulés : aucun vrai versement n'a lieu.")
+                .font(.caption)
+                .foregroundStyle(.texteSecondaire)
+        }
+    }
+
+    private func row(
+        _ title: String, _ cents: Cents, systemImage: String, emphasized: Bool = false, indented: Bool = false
+    ) -> some View {
+        HStack(alignment: .firstTextBaseline, spacing: 8) {
+            Label {
+                Text(title)
+            } icon: {
+                Image(systemName: systemImage)
+                    .symbolRenderingMode(.hierarchical)
+                    .foregroundStyle(Color.economie)
+            }
+            .font(emphasized ? .body.weight(.semibold) : .subheadline)
+            .foregroundStyle(indented ? Color.texteSecondaire : Color.texte)
+            .padding(.leading, indented ? 24 : 0)
+            Spacer(minLength: 8)
+            Text(Money.format(cents))
+                .font(emphasized ? .body.weight(.semibold) : .subheadline)
+                .fontDesign(.rounded)
+                .monospacedDigit()
+                .foregroundStyle(.texte)
+        }
+        .accessibilityElement(children: .combine)
     }
 }
 
@@ -396,7 +512,7 @@ private struct NeighborhoodRow: View {
                     .accessibilityHidden(true)
             }
             VStack(alignment: .leading, spacing: 4) {
-                Text(entry.neighborhood)
+                Text(MontrealNeighborhood.displayName(for: entry.neighborhood))
                     .font(.headline)
                     .foregroundStyle(.texte)
                 Label(groupsText, systemImage: GrenierSymbol.groups)
@@ -423,7 +539,7 @@ private struct NeighborhoodRow: View {
         .padding(.horizontal, 16)
         .padding(.vertical, 12)
         .accessibilityElement(children: .ignore)
-        .accessibilityLabel("\(entry.neighborhood), \(Money.format(entry.revenueCents)). \(groupsText) · \(familiesText)")
+        .accessibilityLabel("\(MontrealNeighborhood.displayName(for: entry.neighborhood)), \(Money.format(entry.revenueCents)). \(groupsText) · \(familiesText)")
     }
 
     private var groupsText: String { entry.groupNames.formatted(.list(type: .and).locale(AppLanguage.formattingLocale)) }

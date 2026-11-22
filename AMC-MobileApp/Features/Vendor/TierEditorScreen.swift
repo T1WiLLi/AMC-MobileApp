@@ -176,7 +176,7 @@ struct TierEditorScreen: View {
 
             LabeledContent {
                 HStack(spacing: 6) {
-                    IntegerField(label: String(localized: "Nombre de parts"), value: $model.totalShares)
+                    IntegerField(label: String(localized: "Nombre de parts"), value: $model.totalShares, maximum: OfferLifecycle.maxTotalShares)
                         .frame(width: countFieldWidth)
                         .focused($focus, equals: .totalShares)
                         .fieldBox(isInvalid: isInvalid(.quantity), compact: true)
@@ -309,6 +309,7 @@ struct TierEditorScreen: View {
                         .font(.headline)
                         .frame(minHeight: 44)
                 }
+                .disabled(model.tiers.count >= OfferLifecycle.maxTiers)
                 .id(ErrorAnchor.tiers)
             }
         } header: {
@@ -838,6 +839,8 @@ private struct InlineError: View {
 private struct IntegerField: View {
     let label: String
     @Binding var value: Int
+    /// Plafond de la valeur (999 999 par défaut) : la saisie au-delà est ramenée à ce plafond.
+    var maximum = 999_999
     @State private var text = ""
 
     var body: some View {
@@ -850,7 +853,9 @@ private struct IntegerField: View {
             .onChange(of: text) { _, newText in
                 let digits = newText.filter(\.isNumber)
                 if digits != newText { text = digits }
-                value = Int(digits.prefix(6)) ?? 0
+                let clamped = min(Int(digits.prefix(6)) ?? 0, maximum)
+                if (Int(digits) ?? 0) > maximum { text = String(clamped) }
+                value = clamped
             }
             .onChange(of: value) { _, newValue in
                 if (Int(text) ?? 0) != newValue { text = newValue == 0 ? "" : String(newValue) }

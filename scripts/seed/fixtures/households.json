@@ -34,7 +34,7 @@
     "geohash": "f25eh",
     "userIds": [],
     "groupId": "group-parc-extension",
-    "memberRole": "coordinator",
+    "memberRole": "member",
     "private": {
       "isSubsidized": false
     }

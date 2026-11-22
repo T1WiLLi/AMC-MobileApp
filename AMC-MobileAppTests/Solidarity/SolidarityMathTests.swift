@@ -34,6 +34,12 @@ struct SolidarityParseAmountTests {
         #expect(error.message.contains("deux chiffres"))
     }
 
+    @Test func invalidTextNeverKeepsAStaleAmount() {
+        #expect(SolidarityMath.amountOrZero("3,50") == 350)
+        #expect(SolidarityMath.amountOrZero("abc") == 0)
+        #expect(SolidarityMath.amountOrZero("101") == 0)
+    }
+
     private func failure(_ text: String) -> AppError? {
         if case .failure(let error) = SolidarityMath.parseAmount(text) { error } else { nil }
     }

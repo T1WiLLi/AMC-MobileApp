@@ -563,7 +563,8 @@ private struct GroupDetailContent: View {
                             product: summary.product,
                             vendor: summary.vendor,
                             committedShares: summary.committedShares,
-                            committedHouseholds: summary.committedHouseholds
+                            committedHouseholds: summary.committedHouseholds,
+                            orderStatus: summary.groupOrder?.status
                         )
                     }
                     .buttonStyle(.plain)

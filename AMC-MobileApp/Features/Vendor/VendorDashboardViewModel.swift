@@ -36,6 +36,13 @@ final class VendorDashboardViewModel {
             revenueByOrder[linked.order.id] ?? VendorRepositoryQueries.projectedRevenue(of: linked.order, offer: offer)
         }
 
+        /// T-196 : commandes encore ouvertes (`open` ou `reached`), celles que « Fermer la commande » ferme.
+        var liveOrders: [LinkedGroupOrder] { linkedOrders.filter { TierEngine.isOpen($0.order) } }
+        /// T-196 : ouvert, fermé en préparation ou livré, d'après toutes les commandes du lot.
+        var phase: OrderPhase { .aggregate(offer: offer.status, orders: linkedOrders.map(\.order.status)) }
+        /// T-196 : ce que la fermeture va faire, pour la confirmation.
+        var closureImpact: ClosureImpact { ClosureImpact(offer: offer, liveOrders: liveOrders.map(\.order)) }
+
         var id: String { offer.id }
         var totalShares: Int { offer.totalShares }
         /// Remplissage du lot, de 0 à 1.
@@ -48,6 +55,60 @@ final class VendorDashboardViewModel {
         var bestTierNumber: Int? { bestTierIndex.map { $0 + 1 } }
         /// Nom du produit, ou l'unité de part à défaut.
         var title: String { product?.name ?? offer.shareUnit }
+    }
+
+    /// T-196 : effet de la fermeture d'un lot, groupe par groupe (chaque commande ferme à son propre palier,
+    /// `TierEngine.closureOutcome`) : prix figés, familles débitées au pot, commandes annulées sous le minimum.
+    nonisolated struct ClosureImpact: Sendable, Equatable {
+        /// Commandes confirmées (prix figé au palier atteint).
+        var confirmedOrders = 0
+        /// Commandes sous le minimum de lancement : annulées, personne n'est débité.
+        var cancelledOrders = 0
+        /// Familles qui paient leur part au pot (commandes confirmées).
+        var payingHouseholds = 0
+        /// Familles dont la commande est annulée.
+        var cancelledHouseholds = 0
+        var lowestPriceCents: Cents?
+        var highestPriceCents: Cents?
+
+        init(offer: Offer, liveOrders: [GroupOrder]) {
+            for order in liveOrders {
+                switch TierEngine.closureOutcome(offer: offer, committedShares: order.committedShares) {
+                case .confirmed(_, let price):
+                    confirmedOrders += 1
+                    payingHouseholds += order.committedHouseholds
+                    lowestPriceCents = min(lowestPriceCents ?? price, price)
+                    highestPriceCents = max(highestPriceCents ?? price, price)
+                case .cancelled:
+                    cancelledOrders += 1
+                    cancelledHouseholds += order.committedHouseholds
+                }
+            }
+        }
+
+        /// Message de la confirmation : prix figé, paiement au pot, familles concernées.
+        @MainActor func message(shareUnit: String) -> String {
+            guard confirmedOrders > 0, let low = lowestPriceCents, let high = highestPriceCents else {
+                return String(localized: "Le minimum n'est pas atteint : la commande sera annulée et aucune famille ne sera débitée.")
+            }
+            let families = FrenchPlural.count(payingHouseholds, "famille")
+            var text: String
+            if low == high {
+                text = String(localized: "Le prix est figé à \(Money.format(low)) par \(shareUnit), le palier atteint. Les parts de \(families) seront payées au pot du groupe. Elles ne pourront plus changer.")
+            } else {
+                text = String(localized: "Le prix est figé au palier atteint par chaque groupe, de \(Money.format(low)) à \(Money.format(high)) par \(shareUnit). Les parts de \(families) seront payées au pot du groupe. Elles ne pourront plus changer.")
+            }
+            if cancelledOrders > 0 {
+                text += " " + String(localized: "Les commandes sous le minimum (\(cancelledOrders)) seront annulées, sans débit.")
+            }
+            return text
+        }
+
+        /// Titre du bouton de confirmation.
+        var confirmTitle: String {
+            if confirmedOrders > 0 { return String(localized: "Fermer et débiter les familles") }
+            return String(localized: "Fermer et annuler")
+        }
     }
 
     /// Contenu du tableau de bord.
@@ -90,6 +151,15 @@ final class VendorDashboardViewModel {
     private(set) var state: LoadState<Dashboard> = .idle
 
     let vendorId: String
+    /// T-196 : compte du vendeur connecté, pour « Fermer la commande » (vide : le bouton reste caché).
+    let userId: String
+    /// T-196 : lot en cours de fermeture (indicateur sur le bouton).
+    private(set) var closingOfferId: String?
+    /// T-196 : dernière fermeture refusée ou échouée ; remise à nil au début de chaque fermeture.
+    var closeError: AppError?
+    /// T-196 : incrémenté à chaque fermeture réussie (déclencheur de l'haptique de succès).
+    private(set) var closeSuccessCount = 0
+    private var vendorUser: AppUser?
     /// Fenêtre « ferme bientôt » (72 h par défaut).
     let closingSoonInterval: TimeInterval
 
@@ -99,11 +169,13 @@ final class VendorDashboardViewModel {
     init(
         repositories: AppRepositories,
         vendorId: String,
+        userId: String = "",
         closingSoonInterval: TimeInterval = 72 * 3_600,
         now: @escaping @Sendable () -> Date = { .now }
     ) {
         self.repositories = repositories
         self.vendorId = vendorId
+        self.userId = userId
         self.closingSoonInterval = closingSoonInterval
         self.now = now
     }
@@ -116,11 +188,60 @@ final class VendorDashboardViewModel {
 
     /// Recharge sans repasser par `.loading` (pour `.refreshable`).
     func refresh() async {
+        await loadVendorUser()
         do {
             let dashboard = try await fetchDashboard()
             state = dashboard.offers.isEmpty ? .empty : .loaded(dashboard)
         } catch {
             state = .failed(AppError(error))
+        }
+    }
+
+    // MARK: Fermer la commande (T-196)
+
+    /// Profil du vendeur connecté ; une lecture ratée cache simplement le bouton.
+    private func loadVendorUser() async {
+        guard vendorUser == nil, !userId.isEmpty else { return }
+        vendorUser = try? await repositories.users.user(id: userId)
+    }
+
+    /// Le bouton « Fermer la commande » est visible : au moins une commande du lot est ouverte et
+    /// `ClosurePolicy.canClose` autorise ce vendeur (le lot est le sien).
+    func canClose(_ summary: OfferSummary) -> Bool {
+        guard let vendorUser else { return false }
+        return summary.liveOrders.contains {
+            ClosurePolicy.canClose(user: vendorUser, membership: nil, offer: summary.offer, order: $0.order)
+        }
+    }
+
+    func isClosing(_ summary: OfferSummary) -> Bool { closingOfferId == summary.id }
+
+    /// Ferme toutes les commandes ouvertes du lot (même appel que la fermeture côté famille :
+    /// `closeGroupOrder(trigger: .manual)`), puis relit la liste. Une commande déjà fermée ailleurs est ignorée.
+    func closeOffer(offerId: String) async {
+        guard closingOfferId == nil, let summary = state.value?.offers.first(where: { $0.id == offerId }),
+              canClose(summary), let vendorUser else { return }
+        closeError = nil
+        closingOfferId = offerId
+        defer { closingOfferId = nil }
+        var failure: AppError?
+        for linked in summary.liveOrders {
+            do {
+                try await repositories.groupOrders.closeGroupOrder(
+                    id: linked.order.id, trigger: .manual(user: vendorUser, membership: nil)
+                )
+            } catch AppError.orderClosed {
+                continue
+            } catch {
+                failure = AppError(error)
+                break
+            }
+        }
+        await refresh()
+        if let failure {
+            closeError = failure
+        } else {
+            closeSuccessCount += 1
         }
     }
 

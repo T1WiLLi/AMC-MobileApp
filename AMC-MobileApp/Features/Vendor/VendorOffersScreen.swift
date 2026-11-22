@@ -27,10 +27,13 @@ struct VendorOffersScreen: View {
     @Namespace private var transition
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
-    init(repositories: AppRepositories, vendorId: String) {
+    /// T-196 : lot dont le vendeur confirme la fermeture.
+    @State private var offerToClose: VendorDashboardViewModel.OfferSummary?
+
+    init(repositories: AppRepositories, vendorId: String, userId: String = "") {
         self.repositories = repositories
         self.vendorId = vendorId
-        _model = State(initialValue: VendorDashboardViewModel(repositories: repositories, vendorId: vendorId))
+        _model = State(initialValue: VendorDashboardViewModel(repositories: repositories, vendorId: vendorId, userId: userId))
     }
 
     var body: some View {
@@ -69,6 +72,28 @@ struct VendorOffersScreen: View {
                 // FB-19 : l'étape « paliers » de Racoonette ouvre l'éditeur d'un nouveau lot, puis le referme.
                 .onChange(of: GuidedTour.racoonette.currentStep, initial: true) { syncTourNavigation() }
                 .sensoryFeedback(.success, trigger: publishedTrigger)
+                .sensoryFeedback(.success, trigger: model.closeSuccessCount)
+                .confirmationDialog(
+                    String(localized: "Fermer la commande ?"),
+                    isPresented: Binding(get: { offerToClose != nil }, set: { if !$0 { offerToClose = nil } }),
+                    titleVisibility: .visible,
+                    presenting: offerToClose
+                ) { summary in
+                    Button(summary.closureImpact.confirmTitle) {
+                        Task { await model.closeOffer(offerId: summary.id) }
+                    }
+                    Button("Annuler", role: .cancel) {}
+                } message: { summary in
+                    Text(summary.closureImpact.message(shareUnit: summary.offer.displayShareUnit))
+                }
+                .alert(model.closeError?.title ?? "", isPresented: Binding(
+                    get: { model.closeError != nil },
+                    set: { if !$0 { model.closeError = nil } }
+                ), presenting: model.closeError) { _ in
+                    Button("OK", role: .cancel) {}
+                } message: { error in
+                    Text(error.message)
+                }
         }
     }
 
@@ -121,17 +146,29 @@ struct VendorOffersScreen: View {
                 .accessibilityAddTraits(.isHeader)
 
                 ForEach(Array(dashboard.offers.enumerated()), id: \.element.id) { index, summary in
-                    NavigationLink(value: Route.edit(offerId: summary.id)) {
-                        VendorOfferCard(summary: summary)
-                            .matchedTransitionSource(id: summary.id, in: transition)
+                    VStack(spacing: 8) {
+                        NavigationLink(value: Route.edit(offerId: summary.id)) {
+                            VendorOfferCard(summary: summary)
+                                .matchedTransitionSource(id: summary.id, in: transition)
+                        }
+                        .buttonStyle(.plain)
+                        .accessibilityHint("Ouvre l'éditeur de paliers de ce lot.")
+                        if model.canClose(summary) {
+                            closeButton(summary)
+                        }
                     }
-                    .buttonStyle(.plain)
-                    .accessibilityHint("Ouvre l'éditeur de paliers de ce lot.")
                     .contextMenu {
                         Button {
                             path.append(.edit(offerId: summary.id))
                         } label: {
                             Label("Modifier les paliers", systemImage: "slider.horizontal.3")
+                        }
+                        if model.canClose(summary) {
+                            Button {
+                                offerToClose = summary
+                            } label: {
+                                Label("Fermer la commande", systemImage: "lock.fill")
+                            }
                         }
                         Button {
                             path.append(.create)
@@ -149,6 +186,28 @@ struct VendorOffersScreen: View {
         .scrollContentBackground(.hidden)
         .guidedTourScroll(.racoonette)
         .refreshable { await model.refresh() }
+    }
+
+    /// T-196 : « Fermer la commande » sous la carte du lot ; la confirmation dit le prix figé, le paiement au pot
+    /// et le nombre de familles. Chargement sur le bouton, erreur en alerte, succès en haptique.
+    private func closeButton(_ summary: VendorDashboardViewModel.OfferSummary) -> some View {
+        Button {
+            offerToClose = summary
+        } label: {
+            Group {
+                if model.isClosing(summary) {
+                    ProgressView()
+                } else {
+                    Label("Fermer la commande", systemImage: "lock.fill")
+                }
+            }
+            .frame(maxWidth: .infinity, minHeight: 32)
+        }
+        .buttonStyle(.glass)
+        .tint(Color.grenier)
+        .disabled(model.closingOfferId != nil)
+        .accessibilityLabel(Text("Fermer la commande, \(summary.title)"))
+        .accessibilityHint("Demande confirmation, puis fige le prix et fait payer les familles.")
     }
 
     /// Bandeau de succès après publication ou modification d'un lot.
@@ -383,18 +442,42 @@ private struct VendorOfferCard: View {
 
     // MARK: Statut et échéance
 
+    @ViewBuilder
     private var statusBadge: some View {
-        Label("Actif", systemImage: "dot.radiowaves.left.and.right")
-            .font(.caption.bold())
-            .symbolRenderingMode(.hierarchical)
-            .foregroundStyle(Color.economie)
-            .padding(.horizontal, 10)
-            .padding(.vertical, 5)
-            .background(Color.economie.opacity(0.12), in: .capsule)
-            .accessibilityLabel("Statut : actif")
+        if let title = summary.phase.title {
+            Label(title, systemImage: summary.phase.symbol)
+                .font(.caption.bold())
+                .symbolRenderingMode(.hierarchical)
+                .foregroundStyle(summary.phase.tint)
+                .padding(.horizontal, 10)
+                .padding(.vertical, 5)
+                .background(summary.phase.tint.opacity(0.12), in: .capsule)
+                .accessibilityLabel(summary.phase.spokenText ?? title)
+        } else {
+            Label("Actif", systemImage: "dot.radiowaves.left.and.right")
+                .font(.caption.bold())
+                .symbolRenderingMode(.hierarchical)
+                .foregroundStyle(Color.economie)
+                .padding(.horizontal, 10)
+                .padding(.vertical, 5)
+                .background(Color.economie.opacity(0.12), in: .capsule)
+                .accessibilityLabel("Statut : actif")
+        }
     }
 
+    @ViewBuilder
     private var deadlineLabel: some View {
+        if let detail = summary.phase.detail {
+            Label(detail, systemImage: summary.phase.detailSymbol)
+                .symbolRenderingMode(.hierarchical)
+                .font(.subheadline)
+                .foregroundStyle(Color.texteSecondaire)
+        } else {
+            openDeadlineLabel
+        }
+    }
+
+    private var openDeadlineLabel: some View {
         Label {
             Text(summary.isClosingSoon ? String(localized: "ferme bientôt · \(deadlineText)") : String(localized: "ferme \(deadlineText)"))
         } icon: {

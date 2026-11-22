@@ -209,7 +209,7 @@ private struct FamilyHomeContent: View {
                     view(for: section)
                         .id(section)
                         .cascadeAppear(index)
-                        .isoLayoutEditing(isActive: isEditingLayout, isDimmed: layout.hidden.contains(section.rawValue))
+                        .isoLayoutEditing(isActive: isEditingLayout, isDimmed: layout.hidden.contains(section.rawValue), index: index)
                         .transition(.opacity.combined(with: .scale(scale: 0.96)))
                 }
             }

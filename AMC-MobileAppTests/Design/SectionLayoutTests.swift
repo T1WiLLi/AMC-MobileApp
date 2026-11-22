@@ -99,14 +99,23 @@ struct IsoLayoutStyleTests {
         #expect(IsoLayoutStyle.opacity(isActive: false, isDimmed: true) == 1)
     }
 
-    @Test @MainActor func panelWidthIsNarrowerOnIPad() {
-        #expect(LayoutEditorPanel.width(in: 393, isRegular: false) == 393 * 0.72)
-        #expect(LayoutEditorPanel.width(in: 1024, isRegular: true) <= 400)
+    @Test @MainActor func staggerAlternatesAroundTheStack() {
+        #expect(IsoLayoutStyle.staggerOffset(index: 0) == -IsoLayoutStyle.stagger)
+        #expect(IsoLayoutStyle.staggerOffset(index: 1) == IsoLayoutStyle.stagger)
+        #expect(IsoLayoutStyle.staggerOffset(index: 2) == IsoLayoutStyle.staggerOffset(index: 0))
+    }
+
+    @Test @MainActor func dragTargetFollowsTheFingerAndStaysInRange() {
+        #expect(LayoutRailMath.targetIndex(start: 2, translation: 0, pitch: 52, count: 5) == 2)
+        #expect(LayoutRailMath.targetIndex(start: 2, translation: 60, pitch: 52, count: 5) == 3)
+        #expect(LayoutRailMath.targetIndex(start: 2, translation: -110, pitch: 52, count: 5) == 0)
+        #expect(LayoutRailMath.targetIndex(start: 2, translation: 900, pitch: 52, count: 5) == 4)
+        #expect(LayoutRailMath.targetIndex(start: 0, translation: 10, pitch: 0, count: 5) == 0)
     }
 
     @Test @MainActor func swipeLeftBeyondTheThresholdCloses() {
-        #expect(LayoutEditorPanel.shouldClose(translation: -90, predictedEnd: -120))
-        #expect(!LayoutEditorPanel.shouldClose(translation: -10, predictedEnd: -20))
-        #expect(!LayoutEditorPanel.shouldClose(translation: 80, predictedEnd: 200))
+        #expect(LayoutRailMath.shouldClose(translation: -90, predictedEnd: -120))
+        #expect(!LayoutRailMath.shouldClose(translation: -10, predictedEnd: -20))
+        #expect(!LayoutRailMath.shouldClose(translation: 80, predictedEnd: 200))
     }
 }

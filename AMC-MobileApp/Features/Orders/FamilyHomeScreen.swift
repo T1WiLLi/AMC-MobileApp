@@ -543,20 +543,12 @@ private struct OrderLink: View {
                     product: summary.product,
                     vendor: summary.vendor,
                     committedShares: summary.committedShares,
-                    committedHouseholds: summary.committedHouseholds
+                    committedHouseholds: summary.committedHouseholds,
+                    // Ma part vit dans la carte, en pastille courte « ✓ 1 part ».
+                    myShareQuantity: summary.hasMyShare ? summary.myShareQuantity : 0
                 )
                 // La fiche du lot sort de la carte en zoom (T-123).
                 .grenierZoomSource(OfferRoute(offerId: summary.offer.id))
-                if summary.hasMyShare {
-                    Label(
-                        String(localized: "Ta part : \(FrenchPlural.count(summary.myShareQuantity, "part"))"),
-                        systemImage: "checkmark.circle.fill"
-                    )
-                    .font(.subheadline.weight(.semibold))
-                    .foregroundStyle(Color.economie)
-                    .symbolRenderingMode(.hierarchical)
-                    .padding(.horizontal, 16)
-                }
             }
         }
         .pressable()

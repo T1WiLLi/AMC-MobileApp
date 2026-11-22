@@ -8,6 +8,8 @@ struct OfferCard: View {
     /// Parts déjà engagées par le groupe (0 si aucune commande groupée n'est ouverte).
     var committedShares = 0
     var committedHouseholds = 0
+    /// Parts déjà réservées par ma famille : une pastille « ✓ 1 part » sur la ligne du prix (0 = pas de pastille).
+    var myShareQuantity = 0
 
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
 
@@ -80,8 +82,14 @@ struct OfferCard: View {
         var parts = ["\(product.name), \(offer.shareUnit)", vendor.legalName, String(localized: "se termine \(deadlineText)"), Money.spoken(currentPriceCents, per: product.unit)]
         if savingsPercent > 0 { parts.append(String(localized: "\(savingsPercent) pour cent moins cher qu'en épicerie")) }
         parts.append(progressText)
+        if myShareQuantity > 0 { parts.append(myShareText) }
         if let nudge = progressBar.shortNudge { parts.append(Self.spokenPercent(nudge)) }
         return parts.joined(separator: ", ")
+    }
+
+    /// « Ta part : 2 parts », lu par VoiceOver ; la pastille n'affiche que « 2 parts ».
+    var myShareText: String {
+        String(localized: "Ta part : \(FrenchPlural.count(myShareQuantity, "part"))")
     }
 
     /// « −19 % » se lit « tiret 19 pour cent » : on écrit le mot.
@@ -114,14 +122,49 @@ struct OfferCard: View {
             HStack(alignment: .center, spacing: 12) {
                 price.fixedSize()
                 Spacer(minLength: 0)
-                badge
+                HStack(spacing: 6) {
+                    shareChip
+                    badge
+                }
             }
             VStack(alignment: .leading, spacing: 8) {
                 price
                     .frame(maxWidth: .infinity, alignment: .leading)
                     .fixedSize(horizontal: false, vertical: true)
-                badge
+                ViewThatFits(in: .horizontal) {
+                    HStack(spacing: 6) {
+                        shareChip
+                        badge
+                    }
+                    VStack(alignment: .leading, spacing: 6) {
+                        shareChip
+                        badge
+                    }
+                }
             }
+        }
+    }
+
+    /// Ma part réservée, dans la carte : pilule verte pleine « ✓ 1 part » (distincte du badge d'économie, plus léger).
+    @ViewBuilder
+    private var shareChip: some View {
+        if myShareQuantity > 0 {
+            HStack(alignment: .firstTextBaseline, spacing: 3) {
+                Image(systemName: "checkmark.circle.fill")
+                    .imageScale(.small)
+                    .accessibilityHidden(true)
+                Text(FrenchPlural.count(myShareQuantity, "part"))
+                    .contentTransition(.numericText(value: Double(myShareQuantity)))
+            }
+            .font(.caption.bold())
+            .fontDesign(.rounded)
+            .monospacedDigit()
+            .padding(.horizontal, 8)
+            .padding(.vertical, 4)
+            .foregroundStyle(Color.onAccent)
+            .background(Color.economie, in: .capsule)
+            .fixedSize()
+            .accessibilityLabel(myShareText)
         }
     }
 

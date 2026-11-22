@@ -43,6 +43,11 @@ nonisolated struct CachedGroupOrderRepository: GroupOrderRepository {
         }
     }
 
+    /// T-174 : lecture directe (un ancien membre ne peut lire que sa propre part, pas toute la liste en cache).
+    func share(ofHousehold householdId: String, inGroupOrder groupOrderId: String) async throws -> Share? {
+        try await base.share(ofHousehold: householdId, inGroupOrder: groupOrderId)
+    }
+
     @discardableResult
     func setShare(quantity: Int, householdId: String, groupOrderId: String) async throws -> GroupOrder {
         let order = try await base.setShare(quantity: quantity, householdId: householdId, groupOrderId: groupOrderId)
@@ -239,6 +244,24 @@ nonisolated struct CachedGroupRepository: GroupRepository {
     func createGroup(_ draft: GroupRules.Draft, byUserId userId: String, householdId: String) async throws -> NeighborhoodGroup {
         let group = try await base.createGroup(draft, byUserId: userId, householdId: householdId)
         await Self.invalidateMembership(groupId: group.id, householdId: householdId, in: cache)
+        return group
+    }
+
+    /// T-174 : avis lus sans cache (rares, et toujours frais après une note).
+    func ratings(ofGroup groupId: String) async throws -> [GroupRating] {
+        try await base.ratings(ofGroup: groupId)
+    }
+
+    /// T-174 : la note moyenne change sur la fiche et sur les cartes des listes.
+    func saveRating(_ rating: GroupRating) async throws -> NeighborhoodGroup {
+        let group = try await base.saveRating(rating)
+        await cache.store(group, for: .group(group.id))
+        await cache.replaceInLists(group) { key in
+            switch key {
+            case .groupsInNeighborhood, .groupsOfHousehold: true
+            default: false
+            }
+        }
         return group
     }
 

@@ -131,13 +131,52 @@ actor FakeGroupRepository: GroupRepository {
     /// B-056 : invitations à usage unique, par code.
     private var invitations: [String: GroupInvitation]
     private var broadcaster = FakeBroadcaster<NeighborhoodGroup>()
+    /// T-174 : avis des familles, par groupe puis par ménage.
+    private var ratings: [String: [String: GroupRating]] = [:]
 
+    /// `ratings` : avis de départ ; les agrégats `ratingSum` / `ratingCount` des groupes concernés en sont recalculés.
     init(behavior: FakeBehavior = .instant, groups: [NeighborhoodGroup] = [], members: [String: [GroupMember]] = [:],
-         invitations: [GroupInvitation] = []) {
+         invitations: [GroupInvitation] = [], ratings: [GroupRating] = []) {
         self.behavior = behavior
-        self.groups = Dictionary(uniqueKeysWithValues: groups.map { ($0.id, $0) })
+        var groupsById = Dictionary(uniqueKeysWithValues: groups.map { ($0.id, $0) })
+        for (groupId, groupRatings) in Dictionary(grouping: ratings, by: \.groupId) {
+            self.ratings[groupId] = Dictionary(groupRatings.map { ($0.householdId, $0) }, uniquingKeysWith: { _, last in last })
+            groupsById[groupId]?.ratingSum = self.ratings[groupId]?.values.reduce(0) { $0 + $1.rating }
+            groupsById[groupId]?.ratingCount = self.ratings[groupId]?.count
+        }
+        self.groups = groupsById
         self.members = members
         self.invitations = Dictionary(invitations.map { ($0.code, $0) }, uniquingKeysWith: { first, _ in first })
+    }
+
+    // MARK: T-174 Avis des familles
+
+    func ratings(ofGroup groupId: String) async throws -> [GroupRating] {
+        try await behavior.simulate()
+        guard groups[groupId] != nil else { throw AppError.notFound }
+        return ratings[groupId, default: [:]].values.sorted { $0.updatedAt > $1.updatedAt }
+    }
+
+    /// Mêmes règles que firestore.rules : membre actuel (ou ancien, avec une commande du groupe en preuve) à la
+    /// création ; l'auteur seul modifie, sans changer la date de création ni la preuve. Agrégats tenus ensemble.
+    func saveRating(_ rating: GroupRating) async throws -> NeighborhoodGroup {
+        try await behavior.simulate()
+        guard let group = groups[rating.groupId] else { throw AppError.notFound }
+        try GroupRatingRules.validate(rating)
+        let previous = ratings[rating.groupId]?[rating.householdId]
+        if let previous {
+            guard previous.createdAt == rating.createdAt, previous.groupOrderId == rating.groupOrderId else {
+                throw AppError.permissionDenied
+            }
+        } else {
+            guard isMember(rating.householdId, of: rating.groupId) || rating.groupOrderId != nil else {
+                throw AppError.permissionDenied
+            }
+        }
+        ratings[rating.groupId, default: [:]][rating.householdId] = rating
+        let updated = GroupRatingRules.applying(rating, replacing: previous, to: group)
+        update(updated)
+        return updated
     }
 
     func groups(inNeighborhood neighborhood: String?) async throws -> [NeighborhoodGroup] {

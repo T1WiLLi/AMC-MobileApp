@@ -40,10 +40,13 @@ struct GroupCard: View {
                     .font(.subheadline)
                     .foregroundStyle(.texteSecondaire)
                     .symbolRenderingMode(.hierarchical)
+                // T-174 : note moyenne des familles, tirée des agrégats du groupe (aucune lecture de plus).
+                RatingSummaryView(summary: group.ratingSummary, font: .footnote)
+                    .padding(.top, 2)
             }
             .fixedSize(horizontal: false, vertical: true)
             .accessibilityElement(children: .ignore)
-            .accessibilityLabel("\(group.name), \(detailText)")
+            .accessibilityLabel(accessibilityText)
             .accessibilityAddTraits(.isHeader)
             if !dynamicTypeSize.isAccessibilitySize { Spacer(minLength: 8) }
             if isMember {
@@ -78,6 +81,13 @@ struct GroupCard: View {
         dynamicTypeSize.isAccessibilitySize
             ? AnyLayout(VStackLayout(alignment: .leading, spacing: 10))
             : AnyLayout(HStackLayout(spacing: 12))
+    }
+
+    /// Nom, détail et note (si le groupe a des avis).
+    private var accessibilityText: String {
+        let summary = group.ratingSummary
+        guard summary.average != nil else { return "\(group.name), \(detailText)" }
+        return "\(group.name), \(detailText). \(RatingSummaryView.accessibilityText(summary))"
     }
 
     /// « 24 familles · cueillette rue Ogilvy · 450 m »

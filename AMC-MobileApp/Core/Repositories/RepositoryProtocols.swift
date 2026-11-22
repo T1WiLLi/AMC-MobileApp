@@ -91,9 +91,27 @@ nonisolated protocol GroupRepository: Sendable {
     /// Groupe, adhésion et compteur dans une seule écriture. Refusé (`.invalidInput`) si le brouillon est invalide
     /// ou si le ménage fait déjà partie de 3 groupes (RQ-030).
     func createGroup(_ draft: GroupRules.Draft, byUserId userId: String, householdId: String) async throws -> NeighborhoodGroup
+
+    // T-174 (FB-20) : notes des familles sur le groupe (`groups/{id}/ratings/{householdId}`).
+
+    /// Avis du groupe, les plus récents d'abord. Lisibles par tout connecté (fiche et vue publique du groupe).
+    func ratings(ofGroup groupId: String) async throws -> [GroupRating]
+    /// Crée ou remplace l'avis du ménage (id = ménage) et tient `ratingSum` / `ratingCount` du groupe dans la
+    /// même transaction. Renvoie le groupe à jour. `.invalidInput` si la note est hors 1…5, `.permissionDenied`
+    /// si le ménage n'est pas (ou n'a jamais été) membre, `.notFound` si le groupe n'existe pas.
+    @discardableResult
+    func saveRating(_ rating: GroupRating) async throws -> NeighborhoodGroup
 }
 
 extension GroupRepository {
+    /// Doublures de test d'avant T-174 : aucun avis.
+    func ratings(ofGroup groupId: String) async throws -> [GroupRating] { [] }
+
+    /// Par défaut (dépôt qui ne l'implémente pas encore) : refus explicite plutôt qu'un succès silencieux.
+    func saveRating(_ rating: GroupRating) async throws -> NeighborhoodGroup {
+        throw AppError.unknown("saveRating n'est pas encore branché sur ce dépôt.")
+    }
+
     /// Par défaut (dépôt qui ne l'implémente pas encore) : refus explicite plutôt qu'un succès silencieux.
     func updateBranding(_ branding: GroupBranding, ofGroup groupId: String, byUserId userId: String) async throws {
         throw AppError.unknown("updateBranding n'est pas encore branché sur ce dépôt.")
@@ -178,10 +196,18 @@ nonisolated protocol GroupOrderRepository: Sendable {
     /// Une part par ménage, remise une seule fois : un deuxième scan renvoie `.alreadyPickedUp` sans rien écrire.
     @discardableResult
     func confirmPickup(code: String, groupOrderId: String, at date: Date) async throws -> PickupDesk.ScanResult
+    /// T-174 : part du ménage dans la commande, nil s'il n'en a pas. Lisible par le ménage lui-même, même
+    /// après avoir quitté le groupe (preuve d'ancienne adhésion pour noter le groupe).
+    func share(ofHousehold householdId: String, inGroupOrder groupOrderId: String) async throws -> Share?
 }
 
 /// Doublures de test d'avant T-159 : pas de remise de part.
 extension GroupOrderRepository {
+    /// Par défaut : cherchée dans toutes les parts de la commande.
+    func share(ofHousehold householdId: String, inGroupOrder groupOrderId: String) async throws -> Share? {
+        try await shares(ofGroupOrder: groupOrderId).first { $0.householdId == householdId }
+    }
+
     func confirmPickup(code: String, groupOrderId: String, at date: Date) async throws -> PickupDesk.ScanResult {
         throw AppError.permissionDenied
     }
@@ -309,7 +335,7 @@ nonisolated struct AppRepositories: Sendable {
             users: FakeUserRepository(behavior: behavior, users: data.users, households: data.households,
                                       joinRequests: data.joinRequests),
             groups: FakeGroupRepository(behavior: behavior, groups: data.groups, members: data.members,
-                                        invitations: data.invitations),
+                                        invitations: data.invitations, ratings: FakeData.demoGroupRatings),
             vendors: FakeVendorRepository(behavior: behavior, vendors: data.vendors, products: data.products),
             offers: FakeOfferRepository(behavior: behavior, offers: data.offers),
             groupOrders: FakeGroupOrderRepository(

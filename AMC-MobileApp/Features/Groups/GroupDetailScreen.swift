@@ -139,6 +139,8 @@ private struct GroupDetailContent: View {
     let imageEditor: GroupImageEditorViewModel?
 
     @State private var isConfirmingLeave = false
+    /// T-174 : avis des familles sur le groupe.
+    @State private var ratings: GroupRatingsViewModel?
     /// B-056 : visibilité et invitations, pour le créateur du groupe seulement.
     @State private var invitations: GroupInvitationsViewModel?
     /// B-056 : feuille « Rejoindre avec un code » (groupe privé).
@@ -180,6 +182,13 @@ private struct GroupDetailContent: View {
                     }
 
                     openOrdersSection
+
+                    // T-174 (FB-20) : avis des familles, « Noter ce groupe » pour les membres et anciens membres.
+                    if let ratings {
+                        GroupRatingsSection(model: ratings, groupName: theme.displayName ?? group.name) { updated in
+                            viewModel.replaceGroup(updated)
+                        }
+                    }
 
                     // S-07 (T-108) : envies des familles, réservées aux membres.
                     if content.isMember {
@@ -268,6 +277,12 @@ private struct GroupDetailContent: View {
                     .accessibilityHidden(!showsNavigationTitle)
             }
         }
+        .task(id: content.isMember) {
+            let model = ratings ?? GroupRatingsViewModel(repositories: context.repositories, groupId: group.id,
+                                                         householdId: context.householdId, userId: context.userId)
+            ratings = model
+            await model.load(isMember: content.isMember)
+        }
         .task(id: viewModel.isCreator) {
             guard viewModel.isCreator, invitations == nil else { return }
             let userId = context.userId
@@ -340,6 +355,9 @@ private struct GroupDetailContent: View {
                     .accessibilityHidden(true)
             }
             .accessibilityAddTraits(.isHeader)
+            // T-174 : note moyenne des familles (agrégats du groupe).
+            RatingSummaryView(summary: group.ratingSummary, style: .stars)
+                .grenierAnimation(.smooth, value: group.ratingSummary)
             if let welcome = theme.welcomeMessage {
                 Text(welcome)
                     .font(.body)

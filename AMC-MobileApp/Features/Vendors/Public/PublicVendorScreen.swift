@@ -256,7 +256,8 @@ private struct VendorIdentity: View {
 
     /// « Mirabel · comptoir à Saint-Michel ».
     private var placeText: String? {
-        switch (profile.city, profile.neighborhood) {
+        // T-203 : quartier lisible (« Saint-Michel »), même s'il est enregistré en slug.
+        switch (profile.city, profile.neighborhood.map(MontrealNeighborhood.displayName(for:))) {
         case let (city?, neighborhood?) where city != neighborhood:
             String(localized: "\(city) · comptoir à \(neighborhood)")
         case let (city?, _): city

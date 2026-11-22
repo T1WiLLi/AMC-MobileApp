@@ -330,7 +330,8 @@ struct TierEditorScreen: View {
             if let message = errorMessage(for: .tiers) {
                 InlineError(message: message)
             } else if model.areTermsLocked {
-                Label("Paliers figés : des familles ont réservé à ces prix.", systemImage: "lock.fill")
+                // T-203 : figés dès la publication, même sans réservation (« des familles ont réservé » était faux à 0 part).
+                Label("Paliers figés : le lot est publié, les familles voient ces prix.", systemImage: "lock.fill")
                     .font(.footnote)
                     .foregroundStyle(.texteSecondaire)
             } else {

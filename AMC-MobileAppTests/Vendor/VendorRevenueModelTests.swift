@@ -75,4 +75,20 @@ struct VendorRevenueModelTests {
         await model.load()
         #expect(model.state.error == .offline)
     }
+
+    // MARK: T-203 : encaissé et « encore à encaisser »
+
+    /// Une commande fermée sans versement enregistré (d'avant T-195, comme l'historique du seed) ne compte plus
+    /// dans « Paiements encore à encaisser » : seules les commandes avec `payouts/vendor` y entrent.
+    @Test func settledOrdersKeepOnlyOrdersWithAPayout() throws {
+        let orders = FakeData.montreal.groupOrders
+        #expect(orders.count >= 2)
+        let payout = VendorPayoutRecord(
+            orderId: orders[0].id, vendorId: ID.fermeRive,
+            payout: VendorPayout(order: orders[0], shares: [], vendorIsVerified: false),
+            subsidyTotalCents: 0, solidarityContributedCents: 0, paidShareCount: 0, date: .now
+        )
+        #expect(VendorSettlement.settledOrders(orders, payouts: [payout]).map(\.id) == [orders[0].id])
+        #expect(VendorSettlement.settledOrders(orders, payouts: []).isEmpty)
+    }
 }

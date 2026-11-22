@@ -231,7 +231,9 @@ final class VendorRevenueModel {
                 }
             }
             let report = VendorRevenue.report(
-                vendorId: vendorId, offers: offers, orders: orders, sharesByOrder: sharesByOrder, payments: payments
+                vendorId: vendorId, offers: offers,
+                orders: VendorSettlement.settledOrders(orders, payouts: payouts),
+                sharesByOrder: sharesByOrder, payments: payments
             )
             let result = VendorSettlement(report: report, payouts: payouts)
             settlement = result.isEmpty ? .empty : .loaded(result)

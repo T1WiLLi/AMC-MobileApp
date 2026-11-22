@@ -19,6 +19,15 @@ enum OnboardingKeys {
     /// Argument de lancement (mode `.fake` seulement) : la démo sans vendeur, pour montrer l'onboarding producteur (T-158).
     static let demoVendorOnboardingArgument = "-demoVendorOnboarding"
 
+    /// T-203 : à la déconnexion, oublie le portail choisi par le compte précédent. Sinon un compte vendeur seul qui se
+    /// connecte après une famille arrive sur « Crée ton ménage », sans profil ni moyen d'aller au portail Vendeurs.
+    /// Le compte suivant repasse par le choix du portail, comme à une première connexion.
+    static func resetPortalChoice(in defaults: UserDefaults = .standard) {
+        for key in [hasChosenPortal, portalChoice, Portal.storageKey] {
+            defaults.removeObject(forKey: key)
+        }
+    }
+
     /// Applique les arguments de démo (Scheme > Arguments). Sans argument, rien ne change.
     static func applyLaunchArguments(_ arguments: [String], to defaults: UserDefaults = .standard) {
         if arguments.contains(resetArgument) {

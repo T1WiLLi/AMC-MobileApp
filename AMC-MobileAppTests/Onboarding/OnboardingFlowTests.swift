@@ -192,3 +192,31 @@ struct OnboardingLaunchArgumentsTests {
         #expect(defaults.bool(forKey: OnboardingKeys.hasSeenIntro))
     }
 }
+
+// MARK: T-203 : déconnexion
+
+@MainActor
+struct PortalChoiceResetTests {
+    /// Le compte suivant ne reprend pas le portail du précédent : un vendeur seul arrivait sur « Crée ton ménage ».
+    @Test func signOutForgetsThePortalOfThePreviousAccount() {
+        let name = "portal-reset-tests-\(UUID().uuidString)"
+        let defaults = UserDefaults(suiteName: name)!
+        defer { defaults.removePersistentDomain(forName: name) }
+        defaults.set(true, forKey: OnboardingKeys.hasSeenIntro)
+        let model = PortalChoiceViewModel(selection: [.family])
+        #expect(model.confirm(in: defaults))
+        #expect(defaults.bool(forKey: OnboardingKeys.hasChosenPortal))
+
+        OnboardingKeys.resetPortalChoice(in: defaults)
+
+        #expect(!defaults.bool(forKey: OnboardingKeys.hasChosenPortal))
+        #expect(defaults.string(forKey: OnboardingKeys.portalChoice) == nil)
+        #expect(defaults.string(forKey: Portal.storageKey) == nil)
+        // La présentation, déjà vue sur cet appareil, ne revient pas.
+        #expect(defaults.bool(forKey: OnboardingKeys.hasSeenIntro))
+        let step = AppFlowStep.resolve(
+            hasSeenIntro: true, isSignedIn: true, hasChosenPortal: defaults.bool(forKey: OnboardingKeys.hasChosenPortal)
+        )
+        #expect(step == .portalChoice)
+    }
+}

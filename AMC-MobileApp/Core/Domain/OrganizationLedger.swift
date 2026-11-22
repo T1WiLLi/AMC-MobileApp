@@ -28,6 +28,13 @@ nonisolated enum OrganizationLedger {
         var amountCents: Cents
         var basketCount: Int
         var householdsReached: Int
+
+        /// Ligne « Ce que ça change » de la feuille Financer. T-203 : sous le prix d'un panier (don de 5 $),
+        /// « Ton don couvre une partie d'un panier » plutôt que « 0 panier entier dans le fonds ».
+        var basketSummary: String {
+            guard basketCount > 0 else { return String(localized: "Ton don couvre une partie d'un panier") }
+            return String(localized: "\(FrenchPlural.count(basketCount, "panier entier", plural: "paniers entiers")) dans le fonds")
+        }
     }
 
     /// Valide la demande et calcule le montant, les paniers entiers et les ménages couverts pour ce groupe.

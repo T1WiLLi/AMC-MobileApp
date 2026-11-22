@@ -39,6 +39,15 @@ nonisolated struct VendorSettlement: Sendable, Equatable {
         outstandingCents = max(0, report.total.outstandingCents)
     }
 
+    /// T-203 : commandes à compter dans l'encaissé et dans « encore à encaisser » : celles qui ont un versement
+    /// enregistré. Une commande fermée sans `payouts/vendor` (d'avant T-195) n'a aucun paiement enregistré : la
+    /// compter faisait passer tout son montant pour « encore à encaisser » (4 551 $ sur la démo), à côté d'un
+    /// encaissé qui l'ignorait.
+    static func settledOrders(_ orders: [GroupOrder], payouts: [VendorPayoutRecord]) -> [GroupOrder] {
+        let settled = Set(payouts.map(\.groupOrderId))
+        return orders.filter { settled.contains($0.id) }
+    }
+
     /// Faux tant qu'aucune commande fermée n'a de versement enregistré (commandes d'avant T-195 comprises).
     var isEmpty: Bool { closedOrderCount == 0 }
 }

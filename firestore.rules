@@ -1829,6 +1829,11 @@ service cloud.firestore {
 
     match /groups/{groupId}/solidarity/{fundId} {
       allow read: if fundId == 'fund' && (isGroupMember(groupId) || isOrganizationAccount());
+      // T-203 : la clôture par le vendeur du lot (T-196) relit le fonds dans sa transaction pour plafonner les
+      // subventions au solde (SolidarityLedger.apply) ; sans cette lecture, « Fermer la commande » côté vendeur
+      // échouait toujours (« Action non permise »). Lecture d'un seul document (pas de liste) ; le fonds n'a aucun
+      // identifiant de ménage, seulement des montants, comme pour les comptes d'organisme.
+      allow get: if fundId == 'fund' && isAnyVendor();
       allow create, update: if fundId == 'fund'
         && exists(/databases/$(database)/documents/groups/$(groupId))
         && (isFundCredit(groupId) || isFundSponsorChange(groupId) || isFundDebit(groupId));

@@ -270,7 +270,8 @@ struct SponsorSheet: View {
                 Text("Les paniers déjà financés restent dans le fonds du groupe.")
             }
         }
-        .presentationDetents([.medium, .large])
+        // T-203 : en détente moyenne, la rangée 5/10/20/40 passait sous le bouton « Parrainer ce groupe ».
+        .presentationDetents([.large])
         .onAppear {
             model.resetAction()
             if let existing { goal = existing.monthlyBasketGoal }

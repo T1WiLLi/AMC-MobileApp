@@ -255,4 +255,47 @@ struct HostPickupViewModelTests {
         #expect(model.outcome?.result == .unknownCode)
         #expect(model.rejections == 1)
     }
+
+    // MARK: T-203 : hôte qui n'est pas membre du groupe
+
+    /// Un compte « hôte » seul (sans ménage ni groupe, comme les hôtes du seed) voit les commandes fermées de son point :
+    /// le groupe du point (`PickupPoint.groupId`) est ajouté. Avant, il voyait « Rien à remettre ».
+    @Test func hostWhoIsNotAMemberSeesTheClosedOrderOfTheirPoint() async throws {
+        var data = FakeData.montreal
+        data.groupOrders[0].status = .closed
+        data.pickupPoints[0].hostUserId = "user-hote-seul"
+        data.pickupPoints[0].groupId = ID.saintMichel
+        let repos = AppRepositories.fake(behavior: .instant, data: data)
+        let stations = try await HostPickupViewModel.stations(
+            repositories: repos, userId: "user-hote-seul", householdId: "", groupId: nil
+        )
+        #expect(stations.map(\.order.id) == [ID.potatoOrder])
+        let model = HostPickupViewModel(repositories: repos, userId: "user-hote-seul", householdId: "", groupId: nil)
+        await model.load()
+        #expect(model.selectedStation?.order.id == ID.potatoOrder)
+        #expect(model.checklist?.totalCount == 11)
+    }
+
+    /// Point sans groupe : rien de plus qu'avant (pas de commande d'un groupe au hasard).
+    @Test func hostOfAPointWithoutGroupSeesNothingNew() async throws {
+        var data = FakeData.montreal
+        data.groupOrders[0].status = .closed
+        data.pickupPoints[0].hostUserId = "user-hote-seul"
+        data.pickupPoints[0].groupId = nil
+        let stations = try await HostPickupViewModel.stations(
+            repositories: .fake(behavior: .instant, data: data), userId: "user-hote-seul", householdId: "", groupId: nil
+        )
+        #expect(stations.isEmpty)
+    }
+
+    /// Un autre compte, ni hôte ni coordonnateur, ne voit toujours rien.
+    @Test func strangerStillSeesNothing() async throws {
+        var data = FakeData.montreal
+        data.groupOrders[0].status = .closed
+        data.pickupPoints[0].groupId = ID.saintMichel
+        let stations = try await HostPickupViewModel.stations(
+            repositories: .fake(behavior: .instant, data: data), userId: "user-inconnu", householdId: "", groupId: nil
+        )
+        #expect(stations.isEmpty)
+    }
 }

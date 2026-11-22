@@ -117,7 +117,19 @@ test('loads groups, pickup points, users, households and group orders in the app
   const profile = seed.documents.find(({ path }) => path === 'households/household-amina/private/profile')!
   assert.deepEqual(profile.data, { isSubsidized: false })
   const share = seed.documents.find(({ path }) => path.startsWith(`groupOrders/${order.id}/shares/`))!
-  assert.deepEqual(share.data, rawOrders[0].shares[0])
+  // T-203 : la part porte le nom du ménage (pour l'hôte) et, si la commande est ouverte et le ménage subventionné,
+  // `solidarityEligible` (pour la clôture), comme les écritures de l'app.
+  const { name: jeanName } = seed.households.find(({ id }) => id === rawOrders[0].shares[0].householdId)!
+  assert.deepEqual(share.data, { ...rawOrders[0].shares[0], householdName: jeanName })
+  const subsidized = new Set(seed.householdProfiles.filter(({ isSubsidized }) => isSubsidized === true).map(({ householdId }) => householdId))
+  const statusOf = new Map(seed.groupOrders.map(({ id, status }) => [id, status]))
+  const eligible = seed.shares.filter((s) => s.solidarityEligible === true)
+  assert.ok(eligible.length > 0)
+  for (const s of seed.shares) {
+    const isOpen = ['open', 'reached'].includes(String(statusOf.get(s.groupOrderId)))
+    assert.equal(s.solidarityEligible === true, isOpen && subsidized.has(s.householdId), `${s.groupOrderId}/${s.householdId}`)
+    assert.equal(typeof s.householdName, 'string', `${s.groupOrderId}/${s.householdId}`)
+  }
   assert.equal(seed.documents.length, 6 + 40 + 25 + 9 + 9 + rawUsers.length + 60 * 3 + rawOrders.length + rawShares.length)
 })
 

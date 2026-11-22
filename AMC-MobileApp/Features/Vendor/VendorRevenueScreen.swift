@@ -373,11 +373,13 @@ private struct OfferRevenueChart: View {
 
     var body: some View {
         Chart(offers) { offer in
+            // T-203 : une rangée par lot (`offer.id`) ; par titre, deux lots du même produit (« Ail du Québec »)
+            // se superposaient sur la même rangée. Le titre est dans l'annotation, l'axe est caché.
             // Piste derrière chaque barre, comme les paliers.
             BarMark(
                 xStart: .value(String(localized: "Début"), 0),
                 xEnd: .value(String(localized: "Maximum"), maxDollars),
-                y: .value(String(localized: "Lot"), offer.title),
+                y: .value(String(localized: "Lot"), offer.id),
                 height: .fixed(barThickness)
             )
             .foregroundStyle(Color.piste)
@@ -386,7 +388,7 @@ private struct OfferRevenueChart: View {
             BarMark(
                 xStart: .value(String(localized: "Début"), 0),
                 xEnd: .value(String(localized: "Revenu prévu"), Double(offer.revenueCents) / 100),
-                y: .value(String(localized: "Lot"), offer.title),
+                y: .value(String(localized: "Lot"), offer.id),
                 height: .fixed(barThickness)
             )
             .foregroundStyle(Color.grenier)

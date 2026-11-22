@@ -236,7 +236,11 @@ final class HostPickupViewModel {
     ) async throws -> [Station] {
         let points = try await repositories.pickupPoints.pickupPoints()
         var groups = (try? await repositories.groups.groups(ofHousehold: householdId)) ?? []
-        for extra in [groupId, focusGroupId].compactMap({ $0 }) where !groups.contains(where: { $0.id == extra }) {
+        // T-203 : un hôte n'est pas forcément membre du groupe qui livre à son point (compte « hôte » seul) :
+        // on ajoute les groupes des points qu'il accueille, sinon il voyait « Rien à remettre ».
+        let hostedGroupIds = points.filter { $0.hostUserId == userId }.compactMap(\.groupId)
+        for extra in [groupId, focusGroupId].compactMap({ $0 }) + hostedGroupIds
+        where !groups.contains(where: { $0.id == extra }) {
             if let group = try? await repositories.groups.group(id: extra) { groups.append(group) }
         }
         if let focusGroupId { groups = groups.filter { $0.id == focusGroupId } }

@@ -11,8 +11,8 @@ import Foundation
 
 /// Qui déclenche la clôture.
 nonisolated enum GroupOrderClosureTrigger: Sendable, Equatable {
-    /// Bouton « Fermer la commande » : coordonnateur du groupe (`membership`) ou vendeur du lot.
-    case manual(user: AppUser, membership: GroupMember?)
+    /// Bouton « Fermer la commande » : coordonnateur du groupe (`groupCoordinatorIds`) ou vendeur du lot.
+    case manual(user: AppUser, groupCoordinatorIds: [String])
     /// Premier appareil qui ouvre la commande après la date limite (RQ-053 a).
     case automatic
 }
@@ -54,8 +54,8 @@ nonisolated enum GroupOrderClosing {
         let closed: GroupOrder
         let outcome: TierEngine.ClosureOutcome
         switch trigger {
-        case .manual(let user, let membership):
-            (closed, outcome) = try ClosurePolicy.close(user: user, membership: membership, offer: offer, order: order)
+        case .manual(let user, let groupCoordinatorIds):
+            (closed, outcome) = try ClosurePolicy.close(user: user, groupCoordinatorIds: groupCoordinatorIds, offer: offer, order: order)
         case .automatic:
             switch ClosurePolicy.automaticClosure(order: order, offer: offer, now: now) {
             case .notDue:

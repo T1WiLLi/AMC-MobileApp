@@ -113,8 +113,8 @@ final class OfferDetailViewModel {
     private let groupId: String?
     /// E21-2 : compte connecté, pour savoir s'il peut fermer la commande (coordonnateur ou vendeur du lot).
     private let userId: String
-    /// Profil et adhésion lus au chargement : ce que `ClosurePolicy` vérifie au moment de fermer.
-    private var closer: (user: AppUser, membership: GroupMember?)?
+    /// Profil et coordonnateurs du groupe lus au chargement : ce que `ClosurePolicy` vérifie au moment de fermer.
+    private var closer: (user: AppUser, groupCoordinatorIds: [String])?
     private let now: @Sendable () -> Date
     /// T-187 : consultation du lot d'un groupe dont le ménage n'est pas membre (fiche publique du groupe).
     /// On montre la commande de CE groupe (produit, paliers, avancement) sans lire de part (réservées aux membres
@@ -245,7 +245,8 @@ final class OfferDetailViewModel {
     private func fetch() async {
         let repositories = repositories, offerId = offerId, householdId = householdId, groupId = groupId
         let isReadOnly = isReadOnly
-        state = await .run {
+        let previous = state.value
+        let result: LoadState<Content> = await .run {
             let offer = try await repositories.offers.offer(id: offerId)
             let product = try await repositories.vendors.product(id: offer.productId)
             let vendor = try await repositories.vendors.vendor(id: offer.vendorId)
@@ -268,11 +269,19 @@ final class OfferDetailViewModel {
             }
             let canStartOrder = !isReadOnly && order == nil && groupId != nil && offer.status == .active
                 && offer.deadline > .now
-            return Content(
+            var content = Content(
                 offer: offer, product: product, vendor: vendor, groupOrder: order, myShareQuantity: myQuantity,
                 mySuspendedCents: mySuspended, canStartOrder: canStartOrder, myShare: myShare
             )
+            // Le bouton « Fermer la commande » (barre du bas) ne disparaît pas le temps de la relecture : `loadCloser`
+            // le recalcule juste après, sans faire sauter la mise en page.
+            content.canClose = previous?.canClose ?? false
+            return content
         }
+        // T-199 (R-c) : un rechargement qui échoue ou est annulé (retour d'un autre écran) garde le contenu affiché ;
+        // passer à `.failed` ou `.loading` recréerait le `ScrollView` et le ramènerait en haut.
+        if previous != nil, case .failed = result { return }
+        state = result
         await loadCloser()
         if let content = state.value, content.myShareQuantity > 0 {
             // E21-3 : une part existante veut dire que la carte a déjà été enregistrée à la réservation.
@@ -282,18 +291,17 @@ final class OfferDetailViewModel {
         }
     }
 
-    /// E21-2 : profil et adhésion du compte, puis `canClose`. Une lecture ratée cache le bouton, sans erreur.
+    /// E21-2 : profil du compte et coordonnateurs de son groupe, puis `canClose`. Une lecture ratée cache le bouton, sans erreur.
     private func loadCloser() async {
         guard var content = state.value, let order = content.groupOrder, !isReadOnly, !userId.isEmpty else { return }
         if closer == nil {
             guard let user = try? await repositories.users.user(id: userId) else { return }
-            let membership = try? await repositories.groups.members(ofGroup: order.groupId)
-                .first { $0.householdId == user.householdId }
-            closer = (user, membership)
+            guard let group = try? await repositories.groups.group(id: order.groupId) else { return }
+            closer = (user, group.coordinatorIds)
         }
         guard let closer else { return }
         content.canClose = ClosurePolicy.canClose(
-            user: closer.user, membership: closer.membership, offer: content.offer, order: order
+            user: closer.user, groupCoordinatorIds: closer.groupCoordinatorIds, offer: content.offer, order: order
         )
         state = .loaded(content)
     }
@@ -324,7 +332,7 @@ final class OfferDetailViewModel {
         defer { isClosing = false }
         do {
             lastClosure = try await repositories.groupOrders.closeGroupOrder(
-                id: order.id, trigger: .manual(user: closer.user, membership: closer.membership)
+                id: order.id, trigger: .manual(user: closer.user, groupCoordinatorIds: closer.groupCoordinatorIds)
             )
             ShareActivity.shared.shareDidChange()
         } catch AppError.orderClosed {

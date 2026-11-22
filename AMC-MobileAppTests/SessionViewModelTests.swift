@@ -49,7 +49,9 @@ struct SessionViewModelTests {
 
     @Test func signOutReturnsToSignIn() async {
         let session = SessionViewModel(auth: FakeAuthService(signedInUser: .sample))
-        session.signOut()
+        // Le résultat dit à la feuille Profil qu'elle peut se fermer (R-b, T-199).
+        let didSignOut = session.signOut()
+        #expect(didSignOut)
         #expect(session.state == .signedOut)
     }
 }

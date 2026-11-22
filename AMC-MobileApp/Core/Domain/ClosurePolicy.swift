@@ -37,11 +37,13 @@ nonisolated enum ClosurePolicy {
     // MARK: RQ-053 (b) bouton « Fermer »
 
     /// Le bouton « Fermer » est visible : la commande est ouverte et l'utilisateur est
-    /// coordonnateur du groupe (via `membership`, le membre de son ménage dans le groupe de la commande)
-    /// ou le vendeur du lot.
-    /// - Parameter membership: document `groups/{order.groupId}/members/{user.householdId}`, nil si pas membre.
-    static func canClose(user: AppUser, membership: GroupMember?, offer: Offer, order: GroupOrder) -> Bool {
-        TierEngine.isOpen(order) && order.offerId == offer.id && isAllowed(user: user, membership: membership, offer: offer)
+    /// coordonnateur du groupe ou le vendeur du lot.
+    /// - Parameter groupCoordinatorIds: `coordinatorIds` du groupe de la commande. C'est la définition des règles
+    ///   Firestore (`isGroupCoordinator` : `request.auth.uid in coordinatorIds`), la seule qui autorise la clôture ;
+    ///   le rôle de l'adhésion ne compte pas, sinon l'app montrerait un bouton que les règles refusent.
+    static func canClose(user: AppUser, groupCoordinatorIds: [String], offer: Offer, order: GroupOrder) -> Bool {
+        TierEngine.isOpen(order) && order.offerId == offer.id
+            && isAllowed(user: user, groupCoordinatorIds: groupCoordinatorIds, offer: offer)
     }
 
     /// Fermeture manuelle, avant ou après la date limite. Mêmes règles d'issue que la clôture automatique :
@@ -49,23 +51,21 @@ nonisolated enum ClosurePolicy {
     /// - Throws: `.orderClosed` si la commande est déjà fermée, `.invalidInput` si le lot ne correspond pas,
     ///   `.invalidInput(notAllowedMessage)` si l'utilisateur n'est ni coordonnateur ni vendeur.
     static func close(
-        user: AppUser, membership: GroupMember?, offer: Offer, order: GroupOrder
+        user: AppUser, groupCoordinatorIds: [String], offer: Offer, order: GroupOrder
     ) throws -> (GroupOrder, TierEngine.ClosureOutcome) {
         guard TierEngine.isOpen(order) else { throw AppError.orderClosed }
         guard order.offerId == offer.id else {
             throw AppError.invalidInput(String(localized: "Ce lot ne correspond pas à cette commande."))
         }
-        guard isAllowed(user: user, membership: membership, offer: offer) else {
+        guard isAllowed(user: user, groupCoordinatorIds: groupCoordinatorIds, offer: offer) else {
             throw AppError.invalidInput(notAllowedMessage)
         }
         let result = try TierEngine.closed(order, offer: offer)
         return (result.order, result.outcome)
     }
 
-    private static func isAllowed(user: AppUser, membership: GroupMember?, offer: Offer) -> Bool {
+    private static func isAllowed(user: AppUser, groupCoordinatorIds: [String], offer: Offer) -> Bool {
         if let vendorId = user.vendorId, vendorId == offer.vendorId { return true }
-        guard let membership, membership.role == .coordinator,
-              let householdId = user.householdId else { return false }
-        return membership.householdId == householdId
+        return groupCoordinatorIds.contains(user.id)
     }
 }

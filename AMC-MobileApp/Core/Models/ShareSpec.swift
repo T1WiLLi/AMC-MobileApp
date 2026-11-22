@@ -45,9 +45,39 @@ nonisolated struct ShareSpec: Codable, Sendable, Hashable {
             }
         }
 
+        /// Nom localisé (langue de l'app) : « sac » / "bag". `name` reste le français stable (données, tests).
+        var displayName: String {
+            switch self {
+            case .bag: String(localized: "sac")
+            case .crate: String(localized: "caisse")
+            case .box: String(localized: "boîte")
+            case .pallet: String(localized: "palette")
+            case .bunch: String(localized: "botte")
+            case .bottle: String(localized: "bouteille")
+            case .net: String(localized: "filet")
+            case .tray: String(localized: "plateau")
+            case .bulk: String(localized: "vrac")
+            }
+        }
+
+        /// Pluriel localisé : « sacs » / "bags".
+        var displayPluralName: String {
+            switch self {
+            case .bag: String(localized: "sacs")
+            case .crate: String(localized: "caisses")
+            case .box: String(localized: "boîtes")
+            case .pallet: String(localized: "palettes")
+            case .bunch: String(localized: "bottes")
+            case .bottle: String(localized: "bouteilles")
+            case .net: String(localized: "filets")
+            case .tray: String(localized: "plateaux")
+            case .bulk: String(localized: "vrac")
+            }
+        }
+
         /// Nom affiché dans un menu : « Sac », « En vrac ».
         var menuTitle: String {
-            self == .bulk ? "En vrac" : name.prefix(1).uppercased() + name.dropFirst()
+            self == .bulk ? String(localized: "En vrac") : displayName.prefix(1).uppercased() + displayName.dropFirst()
         }
 
         var systemImage: String {
@@ -104,6 +134,13 @@ nonisolated struct ShareSpec: Codable, Sendable, Hashable {
             guard unit == .piece else { return "\(number) \(unit.rawValue)" }
             return value > 1 ? "\(number) unités" : "\(number) unité"
         }
+
+        /// `label` dans la langue de l'app : « 10 kg », « 12 unités » / "12 units".
+        var displayLabel: String {
+            let number = ShareSpec.displayFormat(value)
+            guard unit == .piece else { return "\(number) \(unit.rawValue)" }
+            return value > 1 ? String(localized: "\(number) unités") : String(localized: "\(number) unité")
+        }
     }
 
     var container: Container
@@ -129,6 +166,19 @@ nonisolated struct ShareSpec: Codable, Sendable, Hashable {
         if weight == Weight(1, .piece) { return "\(count) \(count > 1 ? container.pluralName : container.name)" }
         let name = count > 1 ? "\(count) \(container.pluralName)" : container.name
         return "\(name) de \(weight.label)"
+    }
+
+    /// `label` dans la langue de l'app : « sac de 10 kg » / "bag of 10 kg". Pour l'affichage seulement :
+    /// `label` (français) reste la valeur stockée et relue par `init(parsing:)`.
+    var displayLabel: String {
+        guard container != .bulk else {
+            return count > 1 ? "\(count) × \(weight.displayLabel)" : weight.displayLabel
+        }
+        if weight == Weight(1, .piece) {
+            return "\(count) \(count > 1 ? container.displayPluralName : container.displayName)"
+        }
+        let name = count > 1 ? "\(count) \(container.displayPluralName)" : container.displayName
+        return String(localized: "\(name) de \(weight.displayLabel)")
     }
 
     /// Contenu total d'une part, pour les économies et le planificateur (`ShareMeasure`).
@@ -207,5 +257,10 @@ nonisolated extension ShareSpec {
     /// « 10 », « 2,5 », « 0,45 » : virgule décimale, deux décimales au plus, sans zéros inutiles.
     static func format(_ value: Double) -> String {
         value.formatted(.number.precision(.fractionLength(0...2)).grouping(.never).locale(Locale(identifier: "fr_CA")))
+    }
+
+    /// Même nombre dans la langue de l'app (« 2,5 » / "2.5"), pour l'affichage.
+    static func displayFormat(_ value: Double) -> String {
+        value.formatted(.number.precision(.fractionLength(0...2)).grouping(.never).locale(AppLanguage.formattingLocale))
     }
 }

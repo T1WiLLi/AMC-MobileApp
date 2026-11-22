@@ -81,14 +81,14 @@ nonisolated enum MinimumRisk {
 
         let lead = String(localized: "Encore \(FrenchPlural.count(missing, "part")) \(durationPhrase(remaining))")
         let advice = level == .high ? String(localized: "partage la commande") : String(localized: "invite tes voisins")
-        return result(level, projected: projected, message: "\(lead) : \(advice)")
+        return result(level, projected: projected, message: String(localized: "\(lead) : \(advice)"))
     }
 
     /// « en 2 jours », « en 5 heures », « en moins d'une heure ».
     static func durationPhrase(_ interval: TimeInterval) -> String {
         let hours = Int(interval / 3600)
-        if hours >= 24 { return "en " + FrenchPlural.count(hours / 24, "jour") }
-        if hours >= 1 { return "en " + FrenchPlural.count(hours, "heure") }
+        if hours >= 24 { return String(localized: "en \(FrenchPlural.count(hours / 24, "jour"))") }
+        if hours >= 1 { return String(localized: "en \(FrenchPlural.count(hours, "heure"))") }
         return String(localized: "en moins d'une heure")
     }
 }

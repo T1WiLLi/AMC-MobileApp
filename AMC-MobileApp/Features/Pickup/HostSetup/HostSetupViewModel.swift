@@ -138,7 +138,7 @@ nonisolated struct LocalHostPhotoStore: HostPhotoStore {
             try data.write(to: url, options: .atomic)
             return url
         } catch {
-            throw AppError.unknown("Photo non enregistrée : \(error.localizedDescription)")
+            throw AppError.unknown(String(localized: "Photo non enregistrée : \(error.localizedDescription)"))
         }
     }
 }

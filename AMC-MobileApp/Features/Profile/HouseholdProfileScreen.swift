@@ -314,7 +314,7 @@ private struct HouseholdForm: View {
     }
 
     private var summaryLine: String {
-        let people = viewModel.size == 1 ? String(localized: "1 personne") : "\(viewModel.size) personnes"
+        let people = FrenchPlural.count(viewModel.size, "personne")
         guard let neighborhood = viewModel.neighborhood else { return people }
         return "\(people) · \(neighborhood.name)"
     }
@@ -337,7 +337,7 @@ private struct HouseholdForm: View {
             }
             Stepper(value: $viewModel.size, in: HouseholdProfileViewModel.sizeRange) {
                 Label {
-                    Text(viewModel.size == 1 ? String(localized: "1 personne") : "\(viewModel.size) personnes")
+                    Text(FrenchPlural.count(viewModel.size, "personne"))
                         .contentTransition(.numericText())
                         .monospacedDigit()
                 } icon: {

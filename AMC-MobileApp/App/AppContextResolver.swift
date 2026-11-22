@@ -167,7 +167,7 @@ nonisolated struct AppContextResolver: Sendable {
     static func newHousehold(for user: AuthUser) -> Household {
         Household(
             id: householdId(forUserId: user.id),
-            name: "Ménage de \(displayName(for: user))",
+            name: String(localized: "Ménage de \(displayName(for: user))"),
             size: 1,
             geohash: "",
             userIds: [user.id],
@@ -181,6 +181,6 @@ nonisolated struct AppContextResolver: Sendable {
         let name = user.displayName.trimmingCharacters(in: .whitespacesAndNewlines)
         if !name.isEmpty { return String(name.prefix(80)) }
         let local = user.email.split(separator: "@").first.map(String.init) ?? ""
-        return local.isEmpty ? "Voisin" : String(local.prefix(80))
+        return local.isEmpty ? String(localized: "Voisin") : String(local.prefix(80))
     }
 }

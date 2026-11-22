@@ -10,6 +10,12 @@ struct SolidarityLeaderboardScreen: View {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var focusedId: String?
 
+    private func shareText(for home: SolidarityLeaderboard.Entry) -> String {
+        home.rank == 1
+            ? String(localized: "\(home.stats.shortName) est \(home.rank)er au classement solidaire de Montréal sur LeGrenier !")
+            : String(localized: "\(home.stats.shortName) est \(home.rank)e au classement solidaire de Montréal sur LeGrenier !")
+    }
+
     var body: some View {
         let entries = viewModel.entries
         ScrollViewReader { proxy in
@@ -68,7 +74,7 @@ struct SolidarityLeaderboardScreen: View {
         .toolbar {
             if let home = viewModel.home {
                 ToolbarItem(placement: .topBarTrailing) {
-                    ShareLink(item: "\(home.stats.shortName) est \(home.rank)\(home.rank == 1 ? "er" : "e") au classement solidaire de Montréal sur LeGrenier !") {
+                    ShareLink(item: shareText(for: home)) {
                         Label("Partager", systemImage: "square.and.arrow.up")
                     }
                 }
@@ -275,15 +281,15 @@ private struct LeaderboardRow: View {
         let groups = "\(entry.stats.groupCount) \(FrenchPlural.word(entry.stats.groupCount, "groupe", plural: "groupes"))"
         let text: String = switch shown {
         case .baskets:
-            "\((value * 100).formatted(.number.precision(.fractionLength(0)).locale(locale))) paniers offerts pour 100 ménages"
+            String(localized: "\((value * 100).formatted(.number.precision(.fractionLength(0)).locale(locale))) paniers offerts pour 100 ménages")
         case .familiesHelped:
-            "\((value * 100).formatted(.number.precision(.fractionLength(0)).locale(locale))) familles aidées pour 100 ménages"
+            String(localized: "\((value * 100).formatted(.number.precision(.fractionLength(0)).locale(locale))) familles aidées pour 100 ménages")
         case .savings:
-            "\(Money.formatRounded(Cents(value.rounded()))) économisés par ménage"
+            String(localized: "\(Money.formatRounded(Cents(value.rounded()))) économisés par ménage")
         case .participation:
-            "\(value.formatted(.percent.precision(.fractionLength(0)).locale(locale))) des ménages participent"
+            String(localized: "\(value.formatted(.percent.precision(.fractionLength(0)).locale(locale))) des ménages participent")
         }
-        return metric == nil ? "\(text) · \(groups)" : text
+        return metric == nil ? String(localized: "\(text) · \(groups)") : text
     }
 }
 

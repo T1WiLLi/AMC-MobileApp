@@ -25,11 +25,11 @@ nonisolated enum VolunteerDelivery {
 
         var title: String {
             switch self {
-            case .requested: "Demandée"
-            case .claimed: "Prise en charge"
-            case .onTheWay: "En route"
-            case .delivered: "Livrée"
-            case .cancelled: "Annulée"
+            case .requested: String(localized: "Demandée")
+            case .claimed: String(localized: "Prise en charge")
+            case .onTheWay: String(localized: "En route")
+            case .delivered: String(localized: "Livrée")
+            case .cancelled: String(localized: "Annulée")
             }
         }
 
@@ -57,8 +57,8 @@ nonisolated enum VolunteerDelivery {
 
         var title: String {
             switch self {
-            case .senior: "Aîné"
-            case .reducedMobility: "Mobilité réduite"
+            case .senior: String(localized: "Aîné")
+            case .reducedMobility: String(localized: "Mobilité réduite")
             }
         }
 
@@ -143,20 +143,20 @@ nonisolated enum VolunteerDelivery {
 
     static func validatedWindow(_ window: Window, now: Date) throws -> Window {
         guard window.end > window.start else {
-            throw AppError.invalidInput("Le créneau doit finir après son début.")
+            throw AppError.invalidInput(String(localized: "Le créneau doit finir après son début."))
         }
         let length = window.end.timeIntervalSince(window.start)
         guard length >= minWindow else {
-            throw AppError.invalidInput("Laisse au moins 30 minutes au bénévole.")
+            throw AppError.invalidInput(String(localized: "Laisse au moins 30 minutes au bénévole."))
         }
         guard length <= maxWindow else {
-            throw AppError.invalidInput("Le créneau dure au plus 4 heures.")
+            throw AppError.invalidInput(String(localized: "Le créneau dure au plus 4 heures."))
         }
         guard window.end > now else {
-            throw AppError.invalidInput("Ce créneau est déjà passé : choisis-en un autre.")
+            throw AppError.invalidInput(String(localized: "Ce créneau est déjà passé : choisis-en un autre."))
         }
         guard window.start <= now.addingTimeInterval(maxAdvance) else {
-            throw AppError.invalidInput("Choisis un créneau dans les 14 prochains jours.")
+            throw AppError.invalidInput(String(localized: "Choisis un créneau dans les 14 prochains jours."))
         }
         return window
     }
@@ -184,34 +184,32 @@ nonisolated enum VolunteerDelivery {
         _ input: NewRequest, existing: [Request], now: Date
     ) throws -> (request: Request, address: PrivateAddress) {
         guard let reason = eligibility(seniorMode: input.seniorMode, reducedMobility: input.reducedMobility) else {
-            throw AppError.invalidInput(
-                "La livraison est réservée au mode aîné et aux personnes à mobilité réduite."
-            )
+            throw AppError.invalidInput(String(localized: "La livraison est réservée au mode aîné et aux personnes à mobilité réduite."))
         }
         guard input.order.status != .cancelled else { throw AppError.orderClosed }
         guard let share = input.share, share.quantity > 0 else {
-            throw AppError.invalidInput("Réserve d'abord ta part dans ce lot.")
+            throw AppError.invalidInput(String(localized: "Réserve d'abord ta part dans ce lot."))
         }
         guard !share.isPickedUp else {
-            throw AppError.invalidInput("Ta part a déjà été récupérée.")
+            throw AppError.invalidInput(String(localized: "Ta part a déjà été récupérée."))
         }
         let householdId = share.householdId
         if existing.contains(where: {
             $0.householdId == householdId && $0.groupOrderId == input.order.id && !$0.status.isFinished
         }) {
-            throw AppError.invalidInput("Tu as déjà une demande de livraison pour cette commande.")
+            throw AppError.invalidInput(String(localized: "Tu as déjà une demande de livraison pour cette commande."))
         }
         let window = try validatedWindow(input.window, now: now)
         let address = input.address.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !address.isEmpty else {
-            throw AppError.invalidInput("Indique ton adresse : seul ton bénévole la verra.")
+            throw AppError.invalidInput(String(localized: "Indique ton adresse : seul ton bénévole la verra."))
         }
         guard address.count <= addressLimit else {
-            throw AppError.invalidInput("L'adresse fait au plus \(addressLimit) caractères.")
+            throw AppError.invalidInput(String(localized: "L'adresse fait au plus \(addressLimit) caractères."))
         }
         let note = trimmed(input.note)
         if let note, note.count > noteLimit {
-            throw AppError.invalidInput("Le mot au bénévole fait au plus \(noteLimit) caractères.")
+            throw AppError.invalidInput(String(localized: "Le mot au bénévole fait au plus \(noteLimit) caractères."))
         }
         let request = Request(
             id: input.id, groupId: input.groupId, groupOrderId: input.order.id, householdId: householdId,
@@ -245,23 +243,21 @@ nonisolated enum VolunteerDelivery {
         volunteerGroupIds: Set<String>, all: [Request], now: Date
     ) throws -> Request {
         guard request.status == .requested else {
-            throw AppError.invalidInput("Un autre voisin a déjà pris cette livraison.")
+            throw AppError.invalidInput(String(localized: "Un autre voisin a déjà pris cette livraison."))
         }
         guard volunteerHouseholdId != request.householdId else {
-            throw AppError.invalidInput("Tu ne peux pas livrer ta propre part.")
+            throw AppError.invalidInput(String(localized: "Tu ne peux pas livrer ta propre part."))
         }
         guard volunteerGroupIds.contains(request.groupId) else { throw AppError.permissionDenied }
         guard request.window.end > now else {
-            throw AppError.invalidInput("Le créneau de cette livraison est passé.")
+            throw AppError.invalidInput(String(localized: "Le créneau de cette livraison est passé."))
         }
         let mine = all.filter { $0.volunteerHouseholdId == volunteerHouseholdId && $0.status.isActive }
         guard mine.count < maxActivePerVolunteer else {
-            throw AppError.invalidInput(
-                "Tu as déjà \(maxActivePerVolunteer) livraisons en cours : termine-en une avant d'en prendre une autre."
-            )
+            throw AppError.invalidInput(String(localized: "Tu as déjà \(maxActivePerVolunteer) livraisons en cours : termine-en une avant d'en prendre une autre."))
         }
         guard !mine.contains(where: { $0.window.overlaps(request.window) }) else {
-            throw AppError.invalidInput("Ce créneau chevauche une autre de tes livraisons.")
+            throw AppError.invalidInput(String(localized: "Ce créneau chevauche une autre de tes livraisons."))
         }
         var claimed = request
         claimed.status = .claimed
@@ -275,7 +271,7 @@ nonisolated enum VolunteerDelivery {
     static func release(_ request: Request, by volunteerHouseholdId: String) throws -> Request {
         guard request.volunteerHouseholdId == volunteerHouseholdId else { throw AppError.permissionDenied }
         guard request.status == .claimed else {
-            throw AppError.invalidInput("Tu as déjà récupéré la part : livre-la ou contacte l'hôte.")
+            throw AppError.invalidInput(String(localized: "Tu as déjà récupéré la part : livre-la ou contacte l'hôte."))
         }
         var released = request
         released.status = .requested
@@ -298,7 +294,7 @@ nonisolated enum VolunteerDelivery {
     ) throws -> (request: Request, share: Share) {
         guard request.volunteerHouseholdId == volunteerHouseholdId else { throw AppError.permissionDenied }
         guard request.status == .claimed else {
-            throw AppError.invalidInput("Cette livraison n'est pas prête à partir.")
+            throw AppError.invalidInput(String(localized: "Cette livraison n'est pas prête à partir."))
         }
         let code = ShareAllocator.qrCode(orderId: request.groupOrderId, householdId: request.householdId)
         let result = PickupDesk.scan(code, order: order, shares: shares)
@@ -315,7 +311,7 @@ nonisolated enum VolunteerDelivery {
     static func deliver(_ request: Request, by volunteerHouseholdId: String, now: Date) throws -> Request {
         guard request.volunteerHouseholdId == volunteerHouseholdId else { throw AppError.permissionDenied }
         guard request.status == .onTheWay else {
-            throw AppError.invalidInput("Récupère d'abord la part chez l'hôte.")
+            throw AppError.invalidInput(String(localized: "Récupère d'abord la part chez l'hôte."))
         }
         var delivered = request
         delivered.status = .delivered
@@ -329,7 +325,7 @@ nonisolated enum VolunteerDelivery {
     static func confirmReceipt(_ request: Request, by householdId: String, now: Date) throws -> Request {
         guard request.householdId == householdId else { throw AppError.permissionDenied }
         guard request.status == .delivered else {
-            throw AppError.invalidInput("Ta part n'est pas encore arrivée.")
+            throw AppError.invalidInput(String(localized: "Ta part n'est pas encore arrivée."))
         }
         guard request.receiptConfirmedAt == nil else { return request }
         var confirmed = request
@@ -343,8 +339,8 @@ nonisolated enum VolunteerDelivery {
         guard request.status == .requested || request.status == .claimed else {
             throw AppError.invalidInput(
                 request.status == .onTheWay
-                    ? "Ton bénévole est déjà en route : il arrive bientôt."
-                    : "Cette livraison est terminée."
+                    ? String(localized: "Ton bénévole est déjà en route : il arrive bientôt.")
+                    : String(localized: "Cette livraison est terminée.")
             )
         }
         var cancelled = request

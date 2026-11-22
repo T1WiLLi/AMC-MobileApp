@@ -108,11 +108,11 @@ struct MatchingOffersScreen: View {
                     ProgressView("Recherche des offres…")
                 case .empty:
                     ContentUnavailableView(
-                        model.hasNoWish ? "Dis ce que tu veux" : "Pas encore d'offre",
+                        model.hasNoWish ? String(localized: "Dis ce que tu veux") : String(localized: "Pas encore d'offre"),
                         systemImage: model.hasNoWish ? "basket" : "sparkle.magnifyingglass",
                         description: Text(model.hasNoWish
-                            ? "Ajoute une envie dans « Ce que le groupe veut » : les offres qui y répondent apparaîtront ici."
-                            : "Aucun lot du quartier ne répond encore à tes envies. Les producteurs voient la demande du groupe.")
+                            ? String(localized: "Ajoute une envie dans « Ce que le groupe veut » : les offres qui y répondent apparaîtront ici.")
+                            : String(localized: "Aucun lot du quartier ne répond encore à tes envies. Les producteurs voient la demande du groupe."))
                     )
                 case .failed, .loaded:
                     StateView(state: model.state, retry: { await model.load() }) { items in

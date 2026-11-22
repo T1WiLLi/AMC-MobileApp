@@ -167,9 +167,9 @@ struct DemoResetScreen: View {
 private extension BackendMode {
     var title: String {
         switch self {
-        case .fake: "Données de démo en mémoire"
-        case .emulator: "Émulateur Firebase local"
-        case .demoProject: "Projet Firebase de démo"
+        case .fake: String(localized: "Données de démo en mémoire")
+        case .emulator: String(localized: "Émulateur Firebase local")
+        case .demoProject: String(localized: "Projet Firebase de démo")
         }
     }
 

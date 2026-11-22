@@ -226,7 +226,7 @@ nonisolated enum PickupSchedule {
         let parts = calendar.dateComponents([.hour, .minute], from: date)
         let hour = parts.hour ?? 0
         let minute = parts.minute ?? 0
-        return minute == 0 ? "\(hour) h" : "\(hour) h \(twoDigits(minute))"
+        return AppLanguage.clockText(hour: hour, minute: minute)
     }
 
     /// Trajet à pied dans Plans vers l'adresse du point de cueillette.

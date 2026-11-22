@@ -62,7 +62,7 @@ struct GroupDetailScreen: View {
         .animation(reduceMotion ? nil : .smooth(duration: 0.45), value: theme)
         // Rejoindre : la fiche publique laisse place à la fiche complète en fondu.
         .animation(reduceMotion ? nil : .smooth, value: viewModel?.state.value?.isMember)
-        .navigationTitle(theme.displayName ?? "Groupe")
+        .navigationTitle(theme.displayName ?? String(localized: "Groupe"))
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             if let group = viewModel?.state.value?.group, viewModel?.isCoordinator == true {
@@ -408,12 +408,18 @@ private struct GroupDetailContent: View {
                        systemImage: "circle.dashed", tint: .economie)
     }
 
+    /// « Lot ouvert » / « Lots ouverts » (« Open bundle(s) » en anglais), première lettre en capitale.
+    private static func openOrdersTitle(_ count: Int) -> String {
+        let word = FrenchPlural.word(count, "lot ouvert", plural: "lots ouverts")
+        return word.prefix(1).uppercased() + word.dropFirst()
+    }
+
     @ViewBuilder
     private var openOrdersSection: some View {
         let orders = content.openOrders
         VStack(alignment: .leading, spacing: 12) {
             GroupsSectionHeader(
-                title: FrenchPlural.word(orders.count, "Lot ouvert", plural: "Lots ouverts"),
+                title: Self.openOrdersTitle(orders.count),
                 systemImage: GrenierSymbol.offers,
                 tint: theme.accent,
                 count: orders.count
@@ -556,13 +562,13 @@ private struct PickupCard: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 14) {
             row(symbol: pickupPoint == nil ? "mappin.slash" : "mappin.and.ellipse", tint: .economie,
-                title: pickupPoint?.name ?? "Point de cueillette à venir",
-                subtitle: pickupPoint.map { "Point de cueillette · \($0.address)" }
-                    ?? "L'hôte sera choisi à la prochaine commande")
+                title: pickupPoint?.name ?? String(localized: "Point de cueillette à venir"),
+                subtitle: pickupPoint.map { String(localized: "Point de cueillette · \($0.address)") }
+                    ?? String(localized: "L'hôte sera choisi à la prochaine commande"))
             Divider().overlay(Color.piste)
             row(symbol: slot == nil ? "clock.badge.questionmark" : "clock.fill", tint: theme.accent,
-                title: slot.map(PickupTime.text(for:)) ?? "Horaire à venir",
-                subtitle: slot == nil ? "Annoncé dès qu'une commande est lancée" : "Prochaine cueillette")
+                title: slot.map(PickupTime.text(for:)) ?? String(localized: "Horaire à venir"),
+                subtitle: slot == nil ? String(localized: "Annoncé dès qu'une commande est lancée") : String(localized: "Prochaine cueillette"))
         }
         .grenierCard()
     }
@@ -639,7 +645,7 @@ private struct InvitationCard: View {
 
 private enum GroupInvite {
     static func message(for group: NeighborhoodGroup) -> String {
-        "Rejoins « \(group.name) » sur LeGrenier pour acheter en gros avec tes voisins de \(group.neighborhood). Code : \(group.inviteCode)"
+        String(localized: "Rejoins « \(group.name) » sur LeGrenier pour acheter en gros avec tes voisins de \(group.neighborhood). Code : \(group.inviteCode)")
     }
 }
 
@@ -658,6 +664,9 @@ enum PickupTime {
         let rounded = Date(timeIntervalSinceReferenceDate: (date.timeIntervalSinceReferenceDate / quarter).rounded() * quarter)
         let parts = Calendar.current.dateComponents([.hour, .minute], from: rounded)
         let hour = parts.hour ?? 0, minute = parts.minute ?? 0
+        if locale.language.languageCode?.identifier == "en" {
+            return rounded.formatted(.dateTime.hour().minute().locale(locale))
+        }
         return minute == 0 ? "\(hour) h" : String(format: "%d h %02d", hour, minute)
     }
 }

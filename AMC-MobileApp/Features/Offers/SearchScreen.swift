@@ -142,7 +142,7 @@ struct SearchScreen: View {
                     async let vendor = try? repositories.vendors.vendor(id: offer.vendorId)
                     guard let product = await product, let vendor = await vendor else { return (index, nil) }
                     return (index, Suggestion(
-                        name: product.name, vendor: vendor.legalName, region: offer.shareUnit,
+                        name: product.name, vendor: vendor.legalName, region: offer.displayShareUnit,
                         category: product.category, offerId: offer.id
                     ))
                 }

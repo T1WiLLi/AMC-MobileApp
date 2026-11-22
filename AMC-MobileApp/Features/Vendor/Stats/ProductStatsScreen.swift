@@ -232,22 +232,22 @@ private struct SummaryGrid: View {
             : [GridItem(.flexible(), spacing: 12), GridItem(.flexible(), spacing: 12)]
         LazyVGrid(columns: columns, spacing: 12) {
             StatTile(
-                title: "Revenus", value: Money.format(report.totalRevenueCents),
+                title: String(localized: "Revenus"), value: Money.format(report.totalRevenueCents),
                 numeric: Double(report.totalRevenueCents), detail: report.period.spokenTitle,
                 systemImage: "banknote.fill", tint: .grenier
             )
             StatTile(
-                title: "Parts vendues", value: report.totalUnits.formatted(),
+                title: String(localized: "Parts vendues"), value: report.totalUnits.formatted(),
                 numeric: Double(report.totalUnits), detail: productsDetail,
                 systemImage: GrenierSymbol.offers, tint: .grenier
             )
             StatTile(
-                title: "Économies offertes", value: Money.format(report.totalSavingsCents),
-                numeric: Double(report.totalSavingsCents), detail: "vs l'épicerie",
+                title: String(localized: "Économies offertes"), value: Money.format(report.totalSavingsCents),
+                numeric: Double(report.totalSavingsCents), detail: String(localized: "vs l'épicerie"),
                 systemImage: GrenierSymbol.savings, tint: .economie
             )
             StatTile(
-                title: "Familles", value: report.householdCount.formatted(),
+                title: String(localized: "Familles"), value: report.householdCount.formatted(),
                 numeric: Double(report.householdCount), detail: groupsDetail,
                 systemImage: GrenierSymbol.groups, tint: .solidarite
             )
@@ -256,11 +256,11 @@ private struct SummaryGrid: View {
 
     private var productsDetail: String {
         let count = report.products.filter { $0.unitsSold > 0 }.count
-        return count == 1 ? "1 produit" : "\(count) produits"
+        return count == 1 ? String(localized: "1 produit") : String(localized: "\(count) produits")
     }
 
     private var groupsDetail: String {
-        report.groupCount == 1 ? "dans 1 groupe" : "dans \(report.groupCount) groupes"
+        report.groupCount == 1 ? String(localized: "dans 1 groupe") : String(localized: "dans \(report.groupCount) groupes")
     }
 }
 
@@ -323,13 +323,13 @@ private struct TrendCard: View {
             ProductFilterChips(products: report.products, selection: $model.selectedProductId)
 
             HStack(alignment: .firstTextBaseline) {
-                Text(model.selectedProduct?.name ?? "Tous les produits")
+                Text(model.selectedProduct?.name ?? String(localized: "Tous les produits"))
                     .font(.headline)
                     .foregroundStyle(.texte)
                     .contentTransition(.opacity)
                 Spacer()
-                LegendSwatch(title: "Parts", color: .grenier, isLine: false)
-                LegendSwatch(title: "Moy. 3 sem.", color: .economie, isLine: true)
+                LegendSwatch(title: String(localized: "Parts"), color: .grenier, isLine: false)
+                LegendSwatch(title: String(localized: "Moy. 3 sem."), color: .economie, isLine: true)
             }
 
             Chart {
@@ -367,7 +367,7 @@ private struct TrendCard: View {
             .chartXAxis {
                 AxisMarks(values: .stride(by: .weekOfYear, count: weeks.count > 8 ? 2 : 1)) { _ in
                     AxisGridLine().foregroundStyle(Color.piste)
-                    AxisValueLabel(format: .dateTime.day().month(.abbreviated), centered: true)
+                    AxisValueLabel(format: .dateTime.day().month(.abbreviated).locale(AppLanguage.formattingLocale), centered: true)
                 }
             }
             .chartYAxis {
@@ -378,7 +378,7 @@ private struct TrendCard: View {
             }
             .frame(height: chartHeight)
             .accessibilityChartDescriptor(TrendChartDescriptor(
-                title: model.selectedProduct?.name ?? "Tous les produits", weeks: weeks
+                title: model.selectedProduct?.name ?? String(localized: "Tous les produits"), weeks: weeks
             ))
 
             TrendFootnote(product: model.selectedProduct, report: report)
@@ -435,10 +435,10 @@ private struct WeekCallout: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 2) {
-            Text("Sem. du \(week.weekStart.formatted(.dateTime.day().month(.abbreviated)))")
+            Text("Sem. du \(week.weekStart.formatted(.dateTime.day().month(.abbreviated).locale(AppLanguage.formattingLocale)))")
                 .font(.caption)
                 .foregroundStyle(.texteSecondaire)
-            Text(week.units == 1 ? "1 part" : "\(week.units) parts")
+            Text(week.units == 1 ? String(localized: "1 part") : String(localized: "\(week.units) parts"))
                 .font(.subheadline.bold())
                 .foregroundStyle(.texte)
             Text(Money.format(week.revenueCents))
@@ -505,10 +505,10 @@ private struct TrendFootnote: View {
 
     private func text(for trend: ProductSalesTrend) -> String {
         switch trend {
-        case .up(let percent): "En hausse de \(percent) % par rapport à la semaine de ventes précédente"
-        case .down(let percent): "En baisse de \(percent) % par rapport à la semaine de ventes précédente"
-        case .flat: "Stable d'une semaine de ventes à l'autre"
-        case .new: "Pas encore assez de semaines pour une tendance"
+        case .up(let percent): String(localized: "En hausse de \(percent) % par rapport à la semaine de ventes précédente")
+        case .down(let percent): String(localized: "En baisse de \(percent) % par rapport à la semaine de ventes précédente")
+        case .flat: String(localized: "Stable d'une semaine de ventes à l'autre")
+        case .new: String(localized: "Pas encore assez de semaines pour une tendance")
         }
     }
 }
@@ -548,22 +548,22 @@ private struct TrendChartDescriptor: AXChartDescriptorRepresentable {
     let weeks: [ProductWeekPoint]
 
     func makeChartDescriptor() -> AXChartDescriptor {
-        let labels = weeks.map { "Semaine du \($0.weekStart.formatted(.dateTime.day().month(.wide)))" }
+        let labels = weeks.map { String(localized: "Semaine du \($0.weekStart.formatted(.dateTime.day().month(.wide).locale(AppLanguage.formattingLocale)))") }
         let maxUnits = Double(max(weeks.map(\.units).max() ?? 0, 1))
-        let xAxis = AXCategoricalDataAxisDescriptor(title: "Semaine", categoryOrder: labels)
-        let yAxis = AXNumericDataAxisDescriptor(title: "Parts vendues", range: 0...maxUnits, gridlinePositions: []) {
-            "\(Int($0)) parts"
+        let xAxis = AXCategoricalDataAxisDescriptor(title: String(localized: "Semaine"), categoryOrder: labels)
+        let yAxis = AXNumericDataAxisDescriptor(title: String(localized: "Parts vendues"), range: 0...maxUnits, gridlinePositions: []) {
+            String(localized: "\(Int($0)) parts")
         }
         let series = AXDataSeriesDescriptor(
-            name: "Parts vendues par semaine",
+            name: String(localized: "Parts vendues par semaine"),
             isContinuous: false,
             dataPoints: zip(labels, weeks).map { label, week in
                 AXDataPoint(x: label, y: Double(week.units), label: Money.format(week.revenueCents))
             }
         )
         return AXChartDescriptor(
-            title: "Tendance : \(title)",
-            summary: "\(weeks.reduce(0) { $0 + $1.units }) parts sur \(weeks.count) semaines.",
+            title: String(localized: "Tendance : \(title)"),
+            summary: String(localized: "\(weeks.reduce(0) { $0 + $1.units }) parts sur \(weeks.count) semaines."),
             xAxis: xAxis,
             yAxis: yAxis,
             additionalAxes: [],
@@ -622,7 +622,7 @@ private struct PodiumRow: View {
                         .font(.headline)
                         .foregroundStyle(.texte)
                     Spacer(minLength: 8)
-                    Text(product.unitsSold == 1 ? "1 part" : "\(product.unitsSold) parts")
+                    Text(product.unitsSold == 1 ? String(localized: "1 part") : String(localized: "\(product.unitsSold) parts"))
                         .font(.subheadline.weight(.semibold))
                         .monospacedDigit()
                         .foregroundStyle(Color.grenier)
@@ -763,29 +763,28 @@ private struct ProductStatsCard: View {
             : [GridItem(.flexible(), alignment: .leading), GridItem(.flexible(), alignment: .leading)]
         return LazyVGrid(columns: columns, alignment: .leading, spacing: 8) {
             Metric(systemImage: GrenierSymbol.offers, tint: .grenier, text: unitsText)
-            Metric(systemImage: GrenierSymbol.savings, tint: .economie, text: "\(Money.format(product.savingsCents)) économisés")
+            Metric(systemImage: GrenierSymbol.savings, tint: .economie, text: String(localized: "\(Money.format(product.savingsCents)) économisés"))
             Metric(systemImage: GrenierSymbol.groups, tint: .solidarite, text: groupsText)
             Metric(systemImage: "checkmark.seal.fill", tint: .grenier, text: tierText)
         }
     }
 
-    private var unitsText: String { product.unitsSold == 1 ? "1 part vendue" : "\(product.unitsSold) parts vendues" }
+    private var unitsText: String { product.unitsSold == 1 ? String(localized: "1 part vendue") : String(localized: "\(product.unitsSold) parts vendues") }
 
     private var groupsText: String {
-        let groups = product.groupCount == 1 ? "1 groupe" : "\(product.groupCount) groupes"
-        let families = product.householdCount == 1 ? "1 famille" : "\(product.householdCount) familles"
-        return "\(groups) · \(families)"
+        let groups = product.groupCount == 1 ? String(localized: "1 groupe") : String(localized: "\(product.groupCount) groupes")
+        let families = product.householdCount == 1 ? String(localized: "1 famille") : String(localized: "\(product.householdCount) familles")
+        return String(localized: "\(groups) · \(families)")
     }
 
     private var tierText: String {
-        guard let average = product.averageTier else { return "Aucun palier" }
-        let formatted = average.formatted(.number.precision(.fractionLength(0...1)))
-        return product.tierCount > 0 ? "Palier moyen \(formatted) / \(product.tierCount)" : "Palier moyen \(formatted)"
+        guard let average = product.averageTier else { return String(localized: "Aucun palier") }
+        let formatted = average.formatted(.number.precision(.fractionLength(0...1)).locale(AppLanguage.formattingLocale))
+        return product.tierCount > 0 ? String(localized: "Palier moyen \(formatted) / \(product.tierCount)") : String(localized: "Palier moyen \(formatted)")
     }
 
     private var accessibilityText: String {
-        "\(product.name) : \(Money.format(product.revenueCents)), \(unitsText), \(groupsText), \(tierText), "
-            + "\(Money.format(product.savingsCents)) d'économies offertes"
+        String(localized: "\(product.name) : \(Money.format(product.revenueCents)), \(unitsText), \(groupsText), \(tierText), \(Money.format(product.savingsCents)) d'économies offertes")
     }
 }
 

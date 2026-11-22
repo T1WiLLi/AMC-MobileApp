@@ -12,7 +12,8 @@ struct DeliveryRequestSheet: View {
     private enum Field { case address, instructions, note }
 
     private static let durations: [(label: String, seconds: TimeInterval)] = [
-        ("30 min", 30 * 60), ("1 h", 3_600), ("2 h", 2 * 3_600), ("3 h", 3 * 3_600), ("4 h", 4 * 3_600),
+        (String(localized: "30 min"), 30 * 60), (String(localized: "1 h"), 3_600), (String(localized: "2 h"), 2 * 3_600),
+        (String(localized: "3 h"), 3 * 3_600), (String(localized: "4 h"), 4 * 3_600),
     ]
 
     init(viewModel: VolunteerDeliveryViewModel, draft: VolunteerDeliveryViewModel.Draft) {

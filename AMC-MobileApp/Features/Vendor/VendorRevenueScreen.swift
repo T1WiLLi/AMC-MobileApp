@@ -444,10 +444,10 @@ private struct NeighborhoodRow: View {
         .accessibilityLabel("\(entry.neighborhood), \(Money.format(entry.revenueCents)). \(groupsText) · \(familiesText)")
     }
 
-    private var groupsText: String { entry.groupNames.formatted(.list(type: .and)) }
+    private var groupsText: String { entry.groupNames.formatted(.list(type: .and).locale(AppLanguage.formattingLocale)) }
 
     private var familiesText: String {
-        entry.households == 1 ? String(localized: "1 famille") : "\(entry.households) familles"
+        entry.households == 1 ? String(localized: "1 famille") : String(localized: "\(entry.households) familles")
     }
 }
 
@@ -546,7 +546,7 @@ private struct DeliveryCard: View {
                     .foregroundStyle(delivery.pickupPointName == nil ? .texteSecondaire : .texte)
                     .font(.subheadline)
                 if let start = delivery.pickupStart {
-                    Label("Cueillette \(start.formatted(.dateTime.weekday(.wide).day().month().hour().minute()))",
+                    Label("Cueillette \(start.formatted(.dateTime.weekday(.wide).day().month().hour().minute().locale(AppLanguage.formattingLocale)))",
                           systemImage: "calendar.badge.clock")
                         .foregroundStyle(.texteSecondaire)
                         .font(.subheadline)
@@ -562,7 +562,7 @@ private struct DeliveryCard: View {
     @ViewBuilder
     private var orderLabel: some View {
         if let group = delivery.groupName {
-            let shares = delivery.shares == 1 ? String(localized: "1 part") : "\(delivery.shares) parts"
+            let shares = FrenchPlural.count(delivery.shares, "part")
             Label("\(group) · \(shares) · \(Money.format(delivery.revenueCents))", systemImage: GrenierSymbol.groups)
                 .font(.subheadline)
                 .foregroundStyle(.texteSecondaire)
@@ -581,7 +581,7 @@ private struct DeliveryCard: View {
     }
 
     private var closesText: String {
-        String(localized: "Ferme \(delivery.deadline.formatted(.relative(presentation: .named)))")
+        String(localized: "Ferme \(delivery.deadline.formatted(.relative(presentation: .named).locale(AppLanguage.formattingLocale)))")
     }
 
     private var pickupText: String {

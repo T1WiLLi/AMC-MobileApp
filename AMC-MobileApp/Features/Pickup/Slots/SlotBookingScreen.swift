@@ -236,7 +236,7 @@ private struct SlotCard: View {
         if isPast { return String(localized: "Passé") }
         if availability.isFull { return String(localized: "Complet") }
         guard let remaining = availability.remaining else { return String(localized: "Places libres") }
-        return remaining == 1 ? String(localized: "1 place") : "\(remaining) places"
+        return remaining == 1 ? String(localized: "1 place") : String(localized: "\(remaining) places")
     }
 
     private var statusSymbol: String {
@@ -262,7 +262,7 @@ enum SlotFormat {
     static func hour(_ date: Date) -> String {
         let parts = Calendar.current.dateComponents([.hour, .minute], from: date)
         let hour = parts.hour ?? 0, minute = parts.minute ?? 0
-        return minute == 0 ? "\(hour) h" : String(format: "%d h %02d", hour, minute)
+        return AppLanguage.clockText(hour: hour, minute: minute)
     }
 
     static func range(_ slot: PickupSlot) -> String { "\(hour(slot.start)) – \(hour(slot.end))" }
@@ -270,8 +270,8 @@ enum SlotFormat {
     /// « 30 min », « 1 h », « 1 h 30 ».
     static func duration(minutes: Int) -> String {
         let hours = minutes / 60, rest = minutes % 60
-        if hours == 0 { return "\(rest) min" }
-        return rest == 0 ? "\(hours) h" : String(format: "%d h %02d", hours, rest)
+        if hours == 0 { return String(localized: "\(rest) min") }
+        return rest == 0 ? String(localized: "\(hours) h") : String(localized: "\(hours) h \(String(format: "%02d", rest))")
     }
 }
 

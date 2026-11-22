@@ -36,9 +36,9 @@ nonisolated enum OrganizationLedger {
         let price = profile.basketPriceCents
         switch request {
         case .fund(let amountCents):
-            guard amountCents > 0 else { throw AppError.invalidInput("Choisis un montant plus grand que 0 $.") }
+            guard amountCents > 0 else { throw AppError.invalidInput(String(localized: "Choisis un montant plus grand que 0 $.")) }
             guard amountCents <= maxDonationCents else {
-                throw AppError.invalidInput("Un financement simulé est limité à 5 000 $ à la fois.")
+                throw AppError.invalidInput(String(localized: "Un financement simulé est limité à 5 000 $ à la fois."))
             }
             let baskets = SolidarityLedger.baskets(in: amountCents, unitPriceCents: price)
             return Plan(
@@ -46,14 +46,14 @@ nonisolated enum OrganizationLedger {
                 householdsReached: reached(baskets: baskets, in: profile)
             )
         case .suspendedBaskets(let count):
-            guard count > 0 else { throw AppError.invalidInput("Choisis au moins 1 panier.") }
+            guard count > 0 else { throw AppError.invalidInput(String(localized: "Choisis au moins 1 panier.")) }
             guard count <= maxBasketsPerDonation else {
-                throw AppError.invalidInput("Tu peux financer jusqu'à \(maxBasketsPerDonation) paniers à la fois.")
+                throw AppError.invalidInput(String(localized: "Tu peux financer jusqu'à \(maxBasketsPerDonation) paniers à la fois."))
             }
-            guard price > 0 else { throw AppError.invalidInput("Ce groupe n'a pas encore de prix de panier.") }
+            guard price > 0 else { throw AppError.invalidInput(String(localized: "Ce groupe n'a pas encore de prix de panier.")) }
             let amount = count * price
             guard amount <= maxDonationCents else {
-                throw AppError.invalidInput("Un financement simulé est limité à 5 000 $ à la fois.")
+                throw AppError.invalidInput(String(localized: "Un financement simulé est limité à 5 000 $ à la fois."))
             }
             return Plan(
                 kind: .suspendedBaskets, amountCents: amount, basketCount: count,
@@ -97,9 +97,9 @@ nonisolated enum OrganizationLedger {
 
         var label: String {
             switch self {
-            case .covered: "Couvert"
-            case .moderate: "Besoin modéré"
-            case .urgent: "Besoin urgent"
+            case .covered: String(localized: "Couvert")
+            case .moderate: String(localized: "Besoin modéré")
+            case .urgent: String(localized: "Besoin urgent")
             }
         }
 

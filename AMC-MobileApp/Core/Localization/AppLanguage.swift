@@ -53,6 +53,21 @@ nonisolated enum AppLanguage: String, CaseIterable, Sendable {
         lookupLocale.withLock { $0 } ?? AppLanguage.system.locale
     }
 
+    /// Vrai quand la langue en cours est l'anglais.
+    static var isEnglish: Bool {
+        formattingLocale.language.languageCode?.identifier == "en"
+    }
+
+    /// Heure « à la québécoise » en français (« 17 h », « 17 h 30 »), « 5 PM » / « 5:30 PM » en anglais.
+    static func clockText(hour: Int, minute: Int) -> String {
+        guard isEnglish else {
+            return minute == 0 ? "\(hour) h" : String(format: "%d h %02d", hour, minute)
+        }
+        let suffix = hour % 24 < 12 ? "AM" : "PM"
+        let twelve = hour % 12 == 0 ? 12 : hour % 12
+        return minute == 0 ? "\(twelve) \(suffix)" : String(format: "%d:%02d %@", twelve, minute, suffix)
+    }
+
     /// Au lancement : si la langue de l'app a été changée dans les Réglages iOS depuis le dernier choix
     /// fait dans l'app, les Réglages gagnent. Applique ensuite la langue retenue.
     @discardableResult
@@ -67,6 +82,7 @@ nonisolated enum AppLanguage: String, CaseIterable, Sendable {
                     // Langue non traduite choisie dans les Réglages : on la laisse à iOS (repli : français).
                     UserDefaults.standard.removeObject(forKey: storageKey)
                     lookupLocale.withLock { $0 = nil }
+                    GrenierFormat.setLocale(nil)
                     return .system
                 }
                 language = fromSettings
@@ -80,6 +96,7 @@ nonisolated enum AppLanguage: String, CaseIterable, Sendable {
     /// et l'écrit dans `AppleLanguages` pour le prochain lancement.
     static func apply(_ language: AppLanguage) {
         let defaults = UserDefaults.standard
+        GrenierFormat.setLocale(language == .system ? nil : language.locale)
         switch language {
         case .system:
             lookupLocale.withLock { $0 = nil }

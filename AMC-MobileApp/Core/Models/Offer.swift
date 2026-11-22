@@ -50,6 +50,9 @@ nonisolated extension Offer {
         set { share = ShareSpec(parsing: newValue) }
     }
 
+    /// `shareUnit` dans la langue de l'app, pour l'affichage (« sac de 5 kg » / "bag of 5 kg").
+    var displayShareUnit: String { share.displayLabel }
+
     /// Création à partir d'un texte de part (aperçus, tests, anciennes données).
     init(
         id: String, vendorId: String, productId: String, totalShares: Int, shareUnit: String,

@@ -340,7 +340,7 @@ private struct PickupCodeCard: View {
     }
 
     private var articles: String {
-        content.items.count == 1 ? String(localized: "1 article") : "\(content.items.count) articles"
+        content.items.count == 1 ? String(localized: "1 article") : String(localized: "\(content.items.count) articles")
     }
 }
 
@@ -411,7 +411,7 @@ private struct PickupItemsCard: View {
 
     /// Nom, « 1 × sac de 4 kg · 14,79 $ », puis le statut en couleur.
     private func details(_ item: PickupViewModel.Item) -> some View {
-        let format = String(localized: "\(item.quantity) × \(item.offer.shareUnit)")
+        let format = String(localized: "\(item.quantity) × \(item.offer.displayShareUnit)")
         return VStack(alignment: .leading, spacing: 2) {
             Text(item.product.name)
                 .font(.body.weight(.semibold))
@@ -716,7 +716,7 @@ private enum PickupFormat {
     static func hour(_ date: Date) -> String {
         let parts = Calendar.current.dateComponents([.hour, .minute], from: date)
         let hour = parts.hour ?? 0, minute = parts.minute ?? 0
-        return minute == 0 ? "\(hour) h" : "\(hour) h \(String(format: "%02d", minute))"
+        return AppLanguage.clockText(hour: hour, minute: minute)
     }
 
     static func mapsURL(for point: PickupPoint) -> URL? {

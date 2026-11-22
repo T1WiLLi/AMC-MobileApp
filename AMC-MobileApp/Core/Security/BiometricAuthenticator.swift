@@ -76,7 +76,7 @@ struct DeviceBiometricAuthenticator: BiometricAuthenticator {
         case .biometryLockout:
             .permissionDenied
         case .passcodeNotSet, .biometryNotAvailable, .biometryNotEnrolled:
-            .unknown("Aucune méthode de déverrouillage sur cet appareil.")
+            .unknown(String(localized: "Aucune méthode de déverrouillage sur cet appareil."))
         default:
             .permissionDenied
         }

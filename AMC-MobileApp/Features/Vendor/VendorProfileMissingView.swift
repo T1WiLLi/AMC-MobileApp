@@ -22,10 +22,10 @@ struct VendorProfileMissingView: View {
         var components = URLComponents()
         components.scheme = "mailto"
         components.queryItems = [
-            URLQueryItem(name: "subject", value: "Créer mon profil producteur LeGrenier"),
+            URLQueryItem(name: "subject", value: String(localized: "Créer mon profil producteur LeGrenier")),
             URLQueryItem(
                 name: "body",
-                value: "Bonjour,\n\nJe souhaite vendre aux groupes de quartier sur LeGrenier.\n\nRaison sociale :\nType (ferme, coopérative, grossiste, boulangerie…) :\nQuartiers desservis :\n\nMerci !"
+                value: String(localized: "Bonjour,\n\nJe souhaite vendre aux groupes de quartier sur LeGrenier.\n\nRaison sociale :\nType (ferme, coopérative, grossiste, boulangerie…) :\nQuartiers desservis :\n\nMerci !")
             ),
         ]
         return components.url

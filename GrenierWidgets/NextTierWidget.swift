@@ -203,8 +203,7 @@ struct NextTierWidgetView: View {
         guard presentation.familiesMissing > 0 else {
             return String(localized: "\(presentation.attributes.groupName) : meilleur prix atteint, \(presentation.priceText) le \(presentation.attributes.unit).")
         }
-        return String(localized: "\(presentation.attributes.groupName) : encore \(OrderActivityPresentation.families(presentation.familiesMissing)) ")
-            + String(localized: "pour le prochain palier. \(priceLine).")
+        return String(localized: "\(presentation.attributes.groupName) : encore \(OrderActivityPresentation.families(presentation.familiesMissing)) pour le prochain palier. \(priceLine).")
     }
 }
 

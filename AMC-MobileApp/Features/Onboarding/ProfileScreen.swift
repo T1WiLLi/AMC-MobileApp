@@ -134,7 +134,7 @@ struct ProfileScreen: View {
                         }
                     }
                 } header: {
-                    ProfileSectionHeader("Apparence", systemImage: "paintbrush.pointed.fill")
+                    ProfileSectionHeader(String(localized: "Apparence"), systemImage: "paintbrush.pointed.fill")
                 }
 
                 Section {

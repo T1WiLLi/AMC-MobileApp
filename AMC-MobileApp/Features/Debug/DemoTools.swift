@@ -37,12 +37,12 @@ nonisolated enum DemoResetPlan: Equatable, Sendable {
         case .emulator:
             .runSeed(
                 command: emulatorSeedCommand,
-                explanation: "Vide l'émulateur demo-grenier (Firestore et comptes Auth) puis recrée la démo."
+                explanation: String(localized: "Vide l'émulateur demo-grenier (Firestore et comptes Auth) puis recrée la démo.")
             )
         case .demoProject:
             .runSeed(
                 command: demoProjectSeedCommand,
-                explanation: "Réécrit les fixtures du projet de démo à leurs ids stables, sans rien supprimer. Demande une session firebase login."
+                explanation: String(localized: "Réécrit les fixtures du projet de démo à leurs ids stables, sans rien supprimer. Demande une session firebase login.")
             )
         }
     }

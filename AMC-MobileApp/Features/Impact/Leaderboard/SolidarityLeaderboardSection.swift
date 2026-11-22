@@ -35,8 +35,8 @@ struct SolidarityLeaderboardSection: View {
         case .empty:
             LeaderboardMessageCard(
                 systemImage: "trophy",
-                title: "Le classement arrive bientôt",
-                message: "Dès que les arrondissements auront leurs premiers paniers, on verra qui se serre le plus les coudes."
+                title: String(localized: "Le classement arrive bientôt"),
+                message: String(localized: "Dès que les arrondissements auront leurs premiers paniers, on verra qui se serre le plus les coudes.")
             )
         case .failed(let error):
             LeaderboardMessageCard(systemImage: error.systemImage, title: error.title, message: error.message) {
@@ -170,6 +170,17 @@ struct LeaderboardPodium: View {
         return min(tallest, 160) * ratio
     }
 
+    private func podiumAccessibilityLabel(for entry: SolidarityLeaderboard.Entry) -> String {
+        let name = entry.stats.name
+        let points = Int(entry.score.rounded())
+        switch (entry.rank == 1, entry.isHome) {
+        case (true, true): return String(localized: "\(entry.rank)er : \(name), \(points) points, ton arrondissement")
+        case (true, false): return String(localized: "\(entry.rank)er : \(name), \(points) points")
+        case (false, true): return String(localized: "\(entry.rank)e : \(name), \(points) points, ton arrondissement")
+        case (false, false): return String(localized: "\(entry.rank)e : \(name), \(points) points")
+        }
+    }
+
     private func step(_ entry: SolidarityLeaderboard.Entry) -> some View {
         VStack(spacing: 6) {
             MedalView(rank: entry.rank, celebrate: grown)
@@ -204,7 +215,7 @@ struct LeaderboardPodium: View {
         }
         .frame(maxWidth: .infinity)
         .accessibilityElement(children: .ignore)
-        .accessibilityLabel("\(entry.rank)\(entry.rank == 1 ? "er" : "e") : \(entry.stats.name), \(Int(entry.score.rounded())) points\(entry.isHome ? ", ton arrondissement" : "")")
+        .accessibilityLabel(podiumAccessibilityLabel(for: entry))
     }
 }
 

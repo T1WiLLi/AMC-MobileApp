@@ -437,10 +437,10 @@ private struct VendorIdentityHeader: View {
                 .foregroundStyle(Color.economie)
         }
         if let rating = vendor.averageRating {
-            Label(rating.formatted(.number.precision(.fractionLength(1))) + " / 5", systemImage: "star.fill")
+            Label(rating.formatted(.number.precision(.fractionLength(1)).locale(AppLanguage.formattingLocale)) + " / 5", systemImage: "star.fill")
                 .font(.subheadline)
                 .foregroundStyle(.secondary)
-                .accessibilityLabel("Note moyenne \(rating.formatted(.number.precision(.fractionLength(1)))) sur 5")
+                .accessibilityLabel("Note moyenne \(rating.formatted(.number.precision(.fractionLength(1)).locale(AppLanguage.formattingLocale))) sur 5")
         }
     }
 

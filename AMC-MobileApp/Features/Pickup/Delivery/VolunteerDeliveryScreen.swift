@@ -61,8 +61,8 @@ struct VolunteerDeliveryScreen: View {
         .overlay {
             if let delivered = viewModel.justDelivered {
                 NeighbourSuccessScene(
-                    title: "Livré !",
-                    message: "Merci ! \(delivered.householdName) a reçu \(FrenchPlural.count(delivered.quantity, "part")) grâce à toi."
+                    title: String(localized: "Livré !"),
+                    message: String(localized: "Merci ! \(delivered.householdName) a reçu \(FrenchPlural.count(delivered.quantity, "part")) grâce à toi.")
                 ) {
                     viewModel.justDelivered = nil
                 }
@@ -100,9 +100,9 @@ private struct DeliveryFamilyView: View {
             } else if content.orderOptions.isEmpty {
                 DeliveryEmptyCard(
                     symbol: "basket.fill", satellites: ["house.fill", "figure.walk.motion"],
-                    title: "Rien à te faire livrer",
-                    message: "Réserve ta part d'un lot : tu pourras ensuite demander qu'un voisin te l'apporte.",
-                    actionTitle: "Je livre plutôt un voisin", actionSymbol: "figure.walk"
+                    title: String(localized: "Rien à te faire livrer"),
+                    message: String(localized: "Réserve ta part d'un lot : tu pourras ensuite demander qu'un voisin te l'apporte."),
+                    actionTitle: String(localized: "Je livre plutôt un voisin"), actionSymbol: "figure.walk"
                 ) {
                     viewModel.mode = .volunteer
                 }
@@ -115,7 +115,7 @@ private struct DeliveryFamilyView: View {
                 .buttonStyle(.glassProminent)
                 .tint(.grenier)
                 .disabled(viewModel.isBusy)
-                NeighbourInfoLabel(text: "Ton adresse n'est montrée qu'au voisin qui te livre.",
+                NeighbourInfoLabel(text: String(localized: "Ton adresse n'est montrée qu'au voisin qui te livre."),
                                    systemImage: "lock.fill", font: .footnote)
             }
 
@@ -209,11 +209,11 @@ private struct DeliveryTrackingCard: View {
 
     private var volunteerLine: String {
         switch request.status {
-        case .requested: "On cherche un voisin pour toi…"
-        case .claimed: "\(request.volunteerName ?? "Un voisin") va chercher ta part"
-        case .onTheWay: "\(request.volunteerName ?? "Ton voisin") est en route"
-        case .delivered: "Livrée par \(request.volunteerName ?? "un voisin")"
-        case .cancelled: "Livraison annulée"
+        case .requested: String(localized: "On cherche un voisin pour toi…")
+        case .claimed: String(localized: "\(request.volunteerName ?? String(localized: "Un voisin")) va chercher ta part")
+        case .onTheWay: String(localized: "\(request.volunteerName ?? String(localized: "Ton voisin")) est en route")
+        case .delivered: String(localized: "Livrée par \(request.volunteerName ?? String(localized: "un voisin"))")
+        case .cancelled: String(localized: "Livraison annulée")
         }
     }
 
@@ -272,7 +272,7 @@ private struct DeliverySteps: View {
                     .padding(.top, 4)
                 }
                 .accessibilityElement(children: .combine)
-                .accessibilityValue(step.isDone ? "Fait" : "À venir")
+                .accessibilityValue(step.isDone ? String(localized: "Fait") : String(localized: "À venir"))
             }
         }
     }
@@ -333,16 +333,16 @@ private struct DeliveryVolunteerView: View {
             if content.openItems.isEmpty {
                 DeliveryEmptyCard(
                     symbol: "checkmark.circle.fill", satellites: ["house.fill", "heart.fill"],
-                    title: "Personne n'attend",
-                    message: "Aucun voisin n'a besoin d'une livraison pour l'instant. Merci d'être là !",
-                    actionTitle: "Actualiser", actionSymbol: "arrow.clockwise"
+                    title: String(localized: "Personne n'attend"),
+                    message: String(localized: "Aucun voisin n'a besoin d'une livraison pour l'instant. Merci d'être là !"),
+                    actionTitle: String(localized: "Actualiser"), actionSymbol: "arrow.clockwise"
                 ) {
                     Task { await viewModel.load() }
                 }
             } else {
                 if !content.canTakeMore {
                     NeighbourInfoLabel(
-                        text: "Tu as déjà \(VolunteerDelivery.maxActivePerVolunteer) livraisons en cours : termine-en une d'abord.",
+                        text: String(localized: "Tu as déjà \(VolunteerDelivery.maxActivePerVolunteer) livraisons en cours : termine-en une d'abord."),
                         systemImage: "exclamationmark.circle.fill", font: .footnote
                     )
                 }
@@ -365,9 +365,9 @@ private struct DeliveryVolunteerStats: View {
 
     var body: some View {
         HStack(spacing: 12) {
-            tile(value: content.openItems.count, label: "à livrer", symbol: "hand.raised.fill", tint: .grenier)
-            tile(value: content.activeDeliveries.count, label: "en cours", symbol: "figure.walk.motion", tint: .solidarite)
-            tile(value: content.completedDeliveries.count, label: "livrées", symbol: "heart.fill", tint: .economie)
+            tile(value: content.openItems.count, label: String(localized: "à livrer"), symbol: "hand.raised.fill", tint: .grenier)
+            tile(value: content.activeDeliveries.count, label: String(localized: "en cours"), symbol: "figure.walk.motion", tint: .solidarite)
+            tile(value: content.completedDeliveries.count, label: String(localized: "livrées"), symbol: "heart.fill", tint: .economie)
         }
     }
 
@@ -417,7 +417,7 @@ private struct DeliveryOpenCard: View {
             }
             NeighbourInfoLabel(text: NeighbourHelpFormat.window(start: request.window.start, end: request.window.end),
                                systemImage: "calendar.badge.clock")
-            NeighbourInfoLabel(text: FrenchPlural.count(request.quantity, "part") + " à récupérer chez l'hôte",
+            NeighbourInfoLabel(text: String(localized: "\(FrenchPlural.count(request.quantity, "part")) à récupérer chez l'hôte"),
                                systemImage: "square.stack.3d.up.fill")
             if let note = request.note {
                 Label {
@@ -442,7 +442,7 @@ private struct DeliveryOpenCard: View {
             .buttonStyle(.glass)
             .tint(.grenier)
             .disabled(!canClaim)
-            .accessibilityHint("Tu t'engages à apporter la part de \(request.householdName) pendant son créneau.")
+            .accessibilityHint(String(localized: "Tu t'engages à apporter la part de \(request.householdName) pendant son créneau."))
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .grenierCard()
@@ -514,7 +514,7 @@ private struct DeliveryRouteCard: View {
         Button(action: request.status == .claimed ? startRoute : deliver) {
             HStack {
                 if isPending { ProgressView() }
-                Label(request.status == .claimed ? "Part récupérée" : "Livrée !",
+                Label(request.status == .claimed ? String(localized: "Part récupérée") : String(localized: "Livrée !"),
                       systemImage: request.status == .claimed ? "shippingbox.and.arrow.backward.fill" : "checkmark.circle.fill")
             }
             .font(.headline)
@@ -524,8 +524,8 @@ private struct DeliveryRouteCard: View {
         .tint(request.status == .claimed ? .grenier : .economie)
         .disabled(isPending)
         .accessibilityHint(request.status == .claimed
-            ? "À toucher quand l'hôte t'a remis la part."
-            : "À toucher quand la part est remise au voisin.")
+            ? String(localized: "À toucher quand l'hôte t'a remis la part.")
+            : String(localized: "À toucher quand la part est remise au voisin."))
     }
 }
 

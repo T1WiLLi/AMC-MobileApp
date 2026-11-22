@@ -190,13 +190,13 @@ struct GroupsIllustratedState<Actions: View>: View {
         ContentUnavailableView {
             VStack(spacing: 12) {
                 scene
-                Text(title)
+                Text(LocalizedStringKey(title))
                     .font(.title2.bold())
                     .foregroundStyle(.texte)
                     .accessibilityAddTraits(.isHeader)
             }
         } description: {
-            Text(message)
+            Text(LocalizedStringKey(message))
         } actions: {
             actions()
         }
@@ -272,7 +272,7 @@ struct GroupsLoadingScene: View {
                 isAnimating: true
             )
             Label {
-                Text(title)
+                Text(LocalizedStringKey(title))
             } icon: {
                 ProgressView()
             }
@@ -281,7 +281,7 @@ struct GroupsLoadingScene: View {
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .accessibilityElement(children: .ignore)
-        .accessibilityLabel(title)
+        .accessibilityLabel(LocalizedStringKey(title))
     }
 }
 

@@ -20,7 +20,7 @@ struct OfferCard: View {
             headerLayout {
                 ProductIcon(product: product)
                 VStack(alignment: .leading, spacing: 2) {
-                    Text("\(product.name) · \(offer.shareUnit)")
+                    Text("\(product.name) · \(offer.displayShareUnit)")
                         .font(.headline)
                         .foregroundStyle(.texte)
                     Text("\(Image(systemName: vendor.isVerified ? "checkmark.seal.fill" : "storefront.fill")) \(vendor.legalName) · \(Image(systemName: "clock.fill")) se termine \(deadlineText)")
@@ -79,7 +79,7 @@ struct OfferCard: View {
 
     /// Lecture VoiceOver courte : « Riz basmati, Ferme Lafleur, 2 dollars 60 le kilo, 37 pour cent moins cher… ».
     var accessibilityText: String {
-        var parts = ["\(product.name), \(offer.shareUnit)", vendor.legalName, String(localized: "se termine \(deadlineText)"), Money.spoken(currentPriceCents, per: product.unit)]
+        var parts = ["\(product.name), \(offer.displayShareUnit)", vendor.legalName, String(localized: "se termine \(deadlineText)"), Money.spoken(currentPriceCents, per: product.unit)]
         if savingsPercent > 0 { parts.append(String(localized: "\(savingsPercent) pour cent moins cher qu'en épicerie")) }
         parts.append(progressText)
         if myShareQuantity > 0 { parts.append(myShareText) }

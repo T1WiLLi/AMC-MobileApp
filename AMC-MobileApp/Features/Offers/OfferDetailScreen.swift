@@ -379,7 +379,7 @@ private struct OfferDetailContent: View {
                 VStack(alignment: .leading, spacing: 4) {
                     PriceTag(priceCents: pricing.currentPriceCents, referenceCents: pricing.groceryPriceCents)
                         .contentTransition(.numericText(value: Double(pricing.currentPriceCents)))
-                    Label("prix par \(content.offer.shareUnit)", systemImage: OfferDetailSymbol.shareUnit)
+                    Label("prix par \(content.offer.displayShareUnit)", systemImage: OfferDetailSymbol.shareUnit)
                         .font(.caption)
                         .symbolRenderingMode(.hierarchical)
                         .foregroundStyle(.texteSecondaire)
@@ -443,7 +443,7 @@ private struct OfferDetailContent: View {
                 // B-050 : contenant, poids et valeur d'une part, lus dans `Offer.share`.
                 infoRow(String(localized: "Une part"), systemImage: content.offer.share.container.systemImage) {
                     VStack(alignment: .leading, spacing: 2) {
-                        Text(content.offer.shareUnit)
+                        Text(content.offer.displayShareUnit)
                         if let valueCents = content.offer.share.valueCents {
                             Text("Valeur \(Money.format(valueCents))")
                                 .font(.subheadline)
@@ -592,20 +592,21 @@ private struct OfferDetailContent: View {
     private func tierHint(_ content: OfferDetailViewModel.Content) -> some View {
         let pricing = content.pricing
         if content.groupOrder == nil {
-            hintLabel("Ton groupe n'a pas encore lancé de commande sur ce lot.", systemImage: "person.badge.plus")
+            hintLabel(String(localized: "Ton groupe n'a pas encore lancé de commande sur ce lot."), systemImage: "person.badge.plus")
         } else if !content.isOpen {
-            hintLabel("La commande est fermée : les parts ne bougent plus.", systemImage: OfferDetailSymbol.deadlineClosed)
+            hintLabel(String(localized: "La commande est fermée : les parts ne bougent plus."), systemImage: OfferDetailSymbol.deadlineClosed)
         } else if let missing = pricing.sharesToNextTier {
             let discount = pricing.nextTierDiscountPercent ?? 0
             hintLabel(
-                String(localized: "Encore \(missing) \(FrenchPlural.word(missing, "part", plural: "parts")) pour le palier suivant")
-                    + (discount > 0 ? " (−\(discount) %)" : "") + ".",
+                discount > 0
+                    ? String(localized: "Encore \(missing) \(FrenchPlural.word(missing, "part", plural: "parts")) pour le palier suivant (−\(discount) %).")
+                    : String(localized: "Encore \(missing) \(FrenchPlural.word(missing, "part", plural: "parts")) pour le palier suivant."),
                 systemImage: OfferDetailSymbol.nextTier,
                 tint: .economie,
                 numericValue: missing
             )
         } else {
-            hintLabel("Meilleur prix atteint pour tout le groupe !", systemImage: OfferDetailSymbol.bestTier)
+            hintLabel(String(localized: "Meilleur prix atteint pour tout le groupe !"), systemImage: OfferDetailSymbol.bestTier)
         }
     }
 
@@ -710,7 +711,7 @@ private struct OfferDetailContent: View {
     private func sharePicker(_ content: OfferDetailViewModel.Content) -> some View {
         let picker = Picker("Ta part", selection: $viewModel.selectedQuantity) {
             ForEach(viewModel.quantityOptions, id: \.self) { quantity in
-                Text(Self.quantityLabel(quantity, shareUnit: content.offer.shareUnit)).tag(quantity)
+                Text(Self.quantityLabel(quantity, shareUnit: content.offer.displayShareUnit)).tag(quantity)
             }
         }
         if dynamicTypeSize.isAccessibilitySize {
@@ -730,7 +731,7 @@ private struct OfferDetailContent: View {
         let layout = dynamicTypeSize.isAccessibilitySize
             ? AnyLayout(VStackLayout(alignment: .leading, spacing: 12))
             : AnyLayout(HStackLayout(alignment: .center, spacing: 16))
-        let quantity = Self.quantityLabel(viewModel.selectedQuantity, shareUnit: content.offer.shareUnit)
+        let quantity = Self.quantityLabel(viewModel.selectedQuantity, shareUnit: content.offer.displayShareUnit)
         return layout {
             VStack(alignment: .leading, spacing: 2) {
                 Text(Money.format(viewModel.selectedTotalWithBasketCents))
@@ -745,7 +746,9 @@ private struct OfferDetailContent: View {
                     .foregroundStyle(.texteSecondaire)
             }
             .accessibilityElement(children: .combine)
-            .accessibilityLabel("Total \(Money.format(viewModel.selectedTotalWithBasketCents)) pour \(quantity)\(viewModel.suspendedCents > 0 ? ", dont \(Money.formatRounded(viewModel.suspendedCents)) de panier suspendu" : ""), payé à la cueillette")
+            .accessibilityLabel(viewModel.suspendedCents > 0
+                ? String(localized: "Total \(Money.format(viewModel.selectedTotalWithBasketCents)) pour \(quantity), dont \(Money.formatRounded(viewModel.suspendedCents)) de panier suspendu, payé à la cueillette")
+                : String(localized: "Total \(Money.format(viewModel.selectedTotalWithBasketCents)) pour \(quantity), payé à la cueillette"))
 
             if !dynamicTypeSize.isAccessibilitySize { Spacer(minLength: 0) }
 
@@ -791,7 +794,7 @@ private struct OfferDetailContent: View {
 
     /// Confirmation sous « Part réservée ! » : mentionne le panier suspendu enregistré avec la part.
     private func reservedMessage(_ content: OfferDetailViewModel.Content) -> String {
-        let share = Self.quantityLabel(content.myShareQuantity, shareUnit: content.offer.shareUnit)
+        let share = Self.quantityLabel(content.myShareQuantity, shareUnit: content.offer.displayShareUnit)
         if content.mySuspendedCents > 0 {
             return String(localized: "Tu as réservé \(share) et offert un panier suspendu de \(Money.formatRounded(content.mySuspendedCents)). Merci ! Tu paies à la cueillette.")
         }
@@ -813,7 +816,7 @@ private struct OfferDetailContent: View {
     }
 
     private func shareText(_ content: OfferDetailViewModel.Content) -> String {
-        String(localized: "\(content.product.name) (\(content.offer.shareUnit)) à \(Money.format(content.pricing.currentPriceCents)) avec \(content.vendor.legalName) sur LeGrenier. Plus on est de familles, plus le prix baisse !")
+        String(localized: "\(content.product.name) (\(content.offer.displayShareUnit)) à \(Money.format(content.pricing.currentPriceCents)) avec \(content.vendor.legalName) sur LeGrenier. Plus on est de familles, plus le prix baisse !")
     }
 
     // MARK: Formatage
@@ -828,7 +831,7 @@ private struct OfferDetailContent: View {
             let day = slot.start.formatted(.dateTime.weekday(.wide).day().month(.wide).locale(AppLanguage.formattingLocale))
             let start = slot.start.formatted(.dateTime.hour().minute().locale(AppLanguage.formattingLocale))
             let end = slot.end.formatted(.dateTime.hour().minute().locale(AppLanguage.formattingLocale))
-            return "\(day), \(start) à \(end)"
+            return String(localized: "\(day), \(start) à \(end)")
         }
         if order?.pickupPointId != nil { return String(localized: "Lieu choisi par ton groupe, horaire à venir") }
         return String(localized: "Choisi par ton groupe à la fermeture")

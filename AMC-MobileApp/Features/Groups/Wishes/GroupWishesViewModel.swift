@@ -144,6 +144,6 @@ final class GroupWishesViewModel {
 
     /// « 4 familles », « 1 famille ».
     nonisolated static func householdsText(_ count: Int) -> String {
-        "\(count) \(count > 1 ? "familles" : "famille")"
+        "\(count) \(FrenchPlural.word(count, "famille", plural: "familles"))"
     }
 }

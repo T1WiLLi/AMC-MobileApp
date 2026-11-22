@@ -21278,6 +21278,46 @@
           }
         }
       }
+    },
+    "à %lld m" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld m away"
+          }
+        }
+      }
+    },
+    "Le quartier" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The neighbourhood"
+          }
+        }
+      }
+    },
+    "Groupe de quartier · %@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Neighbourhood group · %@"
+          }
+        }
+      }
+    },
+    "sur %@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "of %@"
+          }
+        }
+      }
     }
   },
   "version" : "1.0"

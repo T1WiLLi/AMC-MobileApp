@@ -150,7 +150,7 @@ final class NearbyGroupsViewModel {
     nonisolated static func distanceText(meters: Double) -> String {
         let meters = max(0, meters)
         let roundedMeters = Int((meters / 10).rounded()) * 10
-        if roundedMeters < 1_000 { return "à \(max(10, roundedMeters)) m" }
+        if roundedMeters < 1_000 { return String(localized: "à \(max(10, roundedMeters)) m") }
         let tenths = Int((meters / 100).rounded())
         if tenths < 100 { return String(localized: "à \(tenths / 10),\(tenths % 10) km") }
         return String(localized: "à \(Int((meters / 1_000).rounded())) km")

@@ -272,7 +272,7 @@ private struct LeaderboardRow: View {
         let shown = metric ?? entry.strength
         let value = entry.perHousehold[shown] ?? 0
         let locale = AppLanguage.formattingLocale
-        let groups = "\(entry.stats.groupCount) \(entry.stats.groupCount > 1 ? "groupes" : "groupe")"
+        let groups = "\(entry.stats.groupCount) \(FrenchPlural.word(entry.stats.groupCount, "groupe", plural: "groupes"))"
         let text: String = switch shown {
         case .baskets:
             "\((value * 100).formatted(.number.precision(.fractionLength(0)).locale(locale))) paniers offerts pour 100 ménages"

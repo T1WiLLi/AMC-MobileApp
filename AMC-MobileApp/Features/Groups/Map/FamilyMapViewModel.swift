@@ -261,8 +261,7 @@ final class FamilyMapViewModel {
     var summaryText: String {
         let count = places.count
         if count == 0 { return String(localized: "Aucun lieu dans ce rayon") }
-        let noun = count > 1 ? "lieux" : "lieu"
-        return String(localized: "\(count) \(noun) dans ce rayon")
+        return String(localized: "\(count) \(FrenchPlural.word(count, "lieu", plural: "lieux")) dans ce rayon")
     }
 
     // MARK: Regroupement des épingles (T-176)
@@ -481,7 +480,8 @@ final class FamilyMapViewModel {
         if meters < 950 { return "\(max(50, Int((meters / 50).rounded()) * 50)) m" }
         let tenths = Int((meters / 100).rounded())
         if tenths < 100 {
-            return tenths % 10 == 0 ? "\(tenths / 10) km" : "\(tenths / 10),\(tenths % 10) km"
+            let separator = AppLanguage.formattingLocale.decimalSeparator ?? ","
+            return tenths % 10 == 0 ? "\(tenths / 10) km" : "\(tenths / 10)\(separator)\(tenths % 10) km"
         }
         return "\(Int((meters / 1_000).rounded())) km"
     }

@@ -154,7 +154,7 @@ struct TierEditorScreen: View {
                         .frame(width: countFieldWidth)
                         .focused($focus, equals: .totalShares)
                         .fieldBox(isInvalid: isInvalid(.quantity), compact: true)
-                    Text(model.totalShares > 1 ? "parts" : "part")
+                    Text(FrenchPlural.word(model.totalShares, "part", plural: "parts"))
                         .foregroundStyle(.texteSecondaire)
                         .lineLimit(1)
                         .fixedSize()
@@ -374,7 +374,7 @@ struct TierEditorScreen: View {
                 ? Text(Money.formatRounded(range.lowerBound)).bold()
                 : Text("\(Text(Money.formatRounded(range.lowerBound)).bold()) à \(Text(Money.formatRounded(range.upperBound)).bold())")
             Label {
-                Text("Revenu estimé : \(amount) pour \(model.totalShares) \(model.totalShares > 1 ? "parts" : "part")")
+                Text("Revenu estimé : \(amount) pour \(model.totalShares) \(FrenchPlural.word(model.totalShares, "part", plural: "parts"))")
             } icon: {
                 Image(systemName: "dollarsign.circle.fill")
                     .foregroundStyle(Color.economie)
@@ -566,7 +566,7 @@ private struct TierRow: View {
                                 .focused(focus, equals: .threshold(tier.id))
                                 .fieldBox(isInvalid: isInvalid, compact: true)
                             // « part / parts » ne se coupe jamais sur deux lignes.
-                            Text(tier.minShares > 1 ? "parts" : "part")
+                            Text(FrenchPlural.word(tier.minShares, "part", plural: "parts"))
                                 .font(.subheadline)
                                 .foregroundStyle(.texteSecondaire)
                                 .lineLimit(1)

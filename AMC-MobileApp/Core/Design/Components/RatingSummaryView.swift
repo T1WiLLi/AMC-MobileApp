@@ -53,7 +53,7 @@ struct RatingSummaryView: View {
 
     /// « 1 avis », « 12 avis ».
     static func countText(_ count: Int) -> String {
-        FrenchPlural.count(count, String(localized: "avis"), plural: String(localized: "avis"))
+        FrenchPlural.count(count, "avis", plural: "avis")
     }
 
     /// « Note moyenne 4,6 sur 5, 12 avis ».

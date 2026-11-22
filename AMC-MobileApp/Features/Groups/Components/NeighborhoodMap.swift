@@ -176,7 +176,7 @@ nonisolated enum NeighborhoodMapLayout {
     }
 
     static func familiesText(_ count: Int) -> String {
-        "\(count) \(count > 1 ? "familles" : "famille")"
+        "\(count) \(FrenchPlural.word(count, "famille", plural: "familles"))"
     }
 
     /// « 450 m », « 1,5 km ».

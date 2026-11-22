@@ -121,7 +121,7 @@ private struct SupplyRow: View {
                           systemImage: isPast ? "calendar.badge.exclamationmark" : "calendar")
                         .font(.subheadline)
                         .foregroundStyle(isPast ? Color.red : .texteSecondaire)
-                    Label("\(supply.servedZones.count) \(supply.servedZones.count > 1 ? "zones" : "zone")",
+                    Label("\(supply.servedZones.count) \(FrenchPlural.word(supply.servedZones.count, "zone", plural: "zones"))",
                           systemImage: "mappin.and.ellipse")
                         .font(.subheadline)
                         .foregroundStyle(.texteSecondaire)

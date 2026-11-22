@@ -92,7 +92,7 @@ struct GroupsSectionHeader: View {
     var body: some View {
         HStack(alignment: .firstTextBaseline, spacing: 8) {
             Label {
-                Text(title)
+                Text(LocalizedStringKey(title))
                     .font(.title3.bold())
                     .foregroundStyle(.texte)
             } icon: {
@@ -144,7 +144,7 @@ struct GroupsStatTile: View {
                 .foregroundStyle(.texte)
                 .lineLimit(1)
                 .minimumScaleFactor(0.7)
-            Text(caption)
+            Text(LocalizedStringKey(caption))
                 .font(.caption)
                 .foregroundStyle(.texteSecondaire)
         }

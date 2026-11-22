@@ -354,7 +354,7 @@ private struct DashboardHeader: View {
     private var subtitle: String {
         let kind = vendor.map { VendorKindText.title(for: $0.kind) } ?? String(localized: "Vendeur")
         guard let openOffers else { return kind }
-        return "\(kind) · \(openOffers) \(openOffers > 1 ? "lots ouverts" : "lot ouvert")"
+        return "\(kind) · \(openOffers) \(FrenchPlural.word(openOffers, "lot ouvert", plural: "lots ouverts"))"
     }
 }
 
@@ -546,7 +546,7 @@ private struct StatTiles: View {
             systemImage: "square.stack.3d.up.fill",
             value: "\(dashboard.totalCommittedShares)",
             numericValue: Double(dashboard.totalCommittedShares),
-            caption: "sur \(FrenchPlural.count(dashboard.totalShares, "part"))",
+            caption: String(localized: "sur \(FrenchPlural.count(dashboard.totalShares, "part"))"),
             progress: dashboard.totalShares > 0
                 ? min(Double(dashboard.totalCommittedShares) / Double(dashboard.totalShares), 1)
                 : nil,
@@ -689,7 +689,7 @@ private struct HighlightBanner: View {
     private var detail: String {
         var text = "\(highlight.offer.title)"
         if let priceText { text += " à \(priceText)" }
-        text += String(localized: " pour \(households) \(households > 1 ? "familles" : "famille").")
+        text += String(localized: " pour \(households) \(FrenchPlural.word(households, "famille", plural: "familles")).")
         return text
     }
 
@@ -740,7 +740,7 @@ private struct ClosingSoonRow: View {
                 Text(summary.title)
                     .font(.headline)
                     .foregroundStyle(.texte)
-                MetaLabel("Ferme \(VendorDeadline.relative(summary.offer.deadline))", systemImage: "calendar.badge.clock")
+                MetaLabel(String(localized: "Ferme \(VendorDeadline.relative(summary.offer.deadline))"), systemImage: "calendar.badge.clock")
                 MetaLabel(remainingText, systemImage: isFull ? "checkmark.circle.fill" : "person.badge.plus")
             }
             Spacer(minLength: 0)
@@ -754,7 +754,7 @@ private struct ClosingSoonRow: View {
     private var remainingText: String {
         let remaining = max(summary.totalShares - summary.committedShares, 0)
         if remaining == 0 { return "complet" }
-        return "encore \(remaining) \(remaining > 1 ? "parts" : "part")"
+        return "encore \(remaining) \(FrenchPlural.word(remaining, "part", plural: "parts"))"
     }
 }
 
@@ -857,7 +857,7 @@ private struct VendorOfferCard: View {
                 .font(.headline)
                 .foregroundStyle(.texte)
             MetaLabel(placeText, systemImage: summary.linkedOrders.isEmpty ? "person.2.slash" : "person.3.fill")
-            MetaLabel("Ferme \(VendorDeadline.weekday(summary.offer.deadline))", systemImage: "calendar.badge.clock")
+            MetaLabel(String(localized: "Ferme \(VendorDeadline.weekday(summary.offer.deadline))"), systemImage: "calendar.badge.clock")
         }
         .layoutPriority(1)
     }
@@ -925,7 +925,7 @@ private struct VendorOfferCard: View {
     private var progressText: String {
         let households = summary.committedHouseholds
         if households == 0 { return String(localized: "Aucune famille encore · \(summary.totalShares) parts") }
-        return String(localized: "\(households) \(households > 1 ? "familles" : "famille") · \(summary.committedShares) parts sur \(summary.totalShares)")
+        return String(localized: "\(households) \(FrenchPlural.word(households, "famille", plural: "familles")) · \(summary.committedShares) parts sur \(summary.totalShares)")
     }
 
     /// Pire risque parmi les commandes du lot (niveau, puis parts manquantes) ; nil sans commande.

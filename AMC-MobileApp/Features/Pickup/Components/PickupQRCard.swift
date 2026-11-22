@@ -203,7 +203,7 @@ nonisolated enum PickupSchedule {
                 return rest == 0 ? String(localized: "Cueillette dans \(minutes / 60) h") : String(localized: "Cueillette dans \(minutes / 60) h \(twoDigits(rest))")
             default:
                 let days = minutes / (24 * 60)
-                return String(localized: "Cueillette dans \(days) \(days > 1 ? "jours" : "jour")")
+                return String(localized: "Cueillette dans \(days) \(FrenchPlural.word(days, "jour", plural: "jours"))")
             }
         }
     }

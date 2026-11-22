@@ -660,7 +660,7 @@ private struct SavingsCard: View {
 
     private var detail: String {
         if orderCount == 0 { return String(localized: "vs l'épicerie du coin") }
-        return String(localized: "sur \(orderCount) \(orderCount > 1 ? "commandes" : "commande"), vs l'épicerie du coin")
+        return String(localized: "sur \(orderCount) \(FrenchPlural.word(orderCount, "commande", plural: "commandes")), vs l'épicerie du coin")
     }
 }
 

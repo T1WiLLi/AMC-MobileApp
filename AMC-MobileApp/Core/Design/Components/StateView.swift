@@ -12,6 +12,8 @@ struct StateView<Value: Sendable, Content: View>: View {
         var title: LocalizedStringKey
         var systemImage: String
         var message: LocalizedStringKey
+        /// L'action suivante proposée sous le message (FB-18). Sans elle, « Actualiser » relance le chargement.
+        var action: EmptyStateAction?
     }
 
     let state: LoadState<Value>
@@ -45,7 +47,7 @@ struct StateView<Value: Sendable, Content: View>: View {
                     Task { await retry() }
                 }
         case .empty:
-            EmptyStateView(title: empty.title, systemImage: empty.systemImage, message: empty.message)
+            EmptyStateView(title: empty.title, systemImage: empty.systemImage, message: empty.message, action: emptyAction)
                 .modifier(StateBackground())
         case .failed(let error):
             ErrorStateView(error: error, retry: retry)
@@ -58,6 +60,12 @@ struct StateView<Value: Sendable, Content: View>: View {
 }
 
 extension StateView {
+    private var emptyAction: EmptyStateAction? {
+        if let action = empty.action { return action }
+        guard let retry else { return nil }
+        return EmptyStateAction(title: "Actualiser", systemImage: "arrow.clockwise", perform: retry)
+    }
+
     private var loadingView: some View {
         LoadingStateView()
             .modifier(StateBackground())
@@ -120,14 +128,24 @@ struct LoadingStateView: View {
     }
 }
 
+/// Action d'un état vide : le bouton « et maintenant ? » sous l'explication (FB-18).
+struct EmptyStateAction {
+    var title: LocalizedStringKey
+    var systemImage: String
+    var perform: () async -> Void
+}
+
 /// État vide illustré : symbole dans une pastille Grenier, qui rebondit à l'apparition.
+/// Le message dit à quoi sert l'écran ; `action` propose la suite.
 struct EmptyStateView: View {
     let title: LocalizedStringKey
     let systemImage: String
     let message: LocalizedStringKey
+    var action: EmptyStateAction?
 
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var appeared = false
+    @State private var isRunning = false
 
     var body: some View {
         ContentUnavailableView {
@@ -142,6 +160,22 @@ struct EmptyStateView: View {
             }
         } description: {
             Text(message)
+        } actions: {
+            if let action {
+                Button {
+                    Task {
+                        isRunning = true
+                        await action.perform()
+                        isRunning = false
+                    }
+                } label: {
+                    Label(action.title, systemImage: action.systemImage)
+                        .symbolRenderingMode(.hierarchical)
+                }
+                .buttonStyle(.glass)
+                .tint(.grenier)
+                .disabled(isRunning)
+            }
         }
         .onAppear { appeared = true }
     }

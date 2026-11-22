@@ -139,7 +139,7 @@ private struct OfferDetailContent: View {
             empty: .init(
                 title: "Lot introuvable",
                 systemImage: "shippingbox.and.arrow.backward",
-                message: "Ce lot n'est plus disponible. D'autres lots t'attendent dans l'onglet Lots."
+                message: "Ce lot est fermé ou a été retiré par le producteur. D'autres lots t'attendent sur l'Accueil : chaque semaine, de nouveaux arrivent près de chez toi."
             ),
             retry: { await viewModel.load() }
         ) { content in
@@ -348,18 +348,22 @@ private struct OfferDetailContent: View {
     }
 
     /// Titre de section avec son symbole (jamais de titre en texte seul).
-    private func sectionHeader(_ title: String, systemImage: String, tint: Color = .grenier) -> some View {
-        Label {
-            Text(title)
-                .font(.title3.bold())
-                .foregroundStyle(.texte)
-        } icon: {
-            Image(systemName: systemImage)
-                .font(.title3)
-                .symbolRenderingMode(.hierarchical)
-                .foregroundStyle(tint)
+    /// `info` ajoute le bouton « i » qui explique le concept (FB-08).
+    private func sectionHeader(_ title: String, systemImage: String, tint: Color = .grenier, info: InfoTopic? = nil) -> some View {
+        HStack(spacing: 2) {
+            Label {
+                Text(title)
+                    .font(.title3.bold())
+                    .foregroundStyle(.texte)
+            } icon: {
+                Image(systemName: systemImage)
+                    .font(.title3)
+                    .symbolRenderingMode(.hierarchical)
+                    .foregroundStyle(tint)
+            }
+            .accessibilityAddTraits(.isHeader)
+            if let info { InfoButton(topic: info) }
         }
-        .accessibilityAddTraits(.isHeader)
     }
 
     // MARK: Prix
@@ -526,7 +530,7 @@ private struct OfferDetailContent: View {
         let pricing = content.pricing
         let households = content.groupOrder?.committedHouseholds ?? 0
         return VStack(alignment: .leading, spacing: 10) {
-            sectionHeader(String(localized: "Ton groupe"), systemImage: OfferDetailSymbol.groupSection)
+            sectionHeader(String(localized: "Ton groupe"), systemImage: OfferDetailSymbol.groupSection, info: .tiers)
             VStack(alignment: .leading, spacing: 14) {
                 ViewThatFits(in: .horizontal) {
                     HStack(alignment: .firstTextBaseline) {
@@ -624,7 +628,7 @@ private struct OfferDetailContent: View {
     @ViewBuilder
     private func shareSection(_ content: OfferDetailViewModel.Content) -> some View {
         VStack(alignment: .leading, spacing: 14) {
-            sectionHeader(String(localized: "Ta part"), systemImage: OfferDetailSymbol.shareSection)
+            sectionHeader(String(localized: "Ta part"), systemImage: OfferDetailSymbol.shareSection, info: .share)
 
             if content.groupOrder != nil && !content.isOpen {
                 OfferSymbolScene(

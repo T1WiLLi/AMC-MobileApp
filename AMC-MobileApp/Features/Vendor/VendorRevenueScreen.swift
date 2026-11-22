@@ -671,7 +671,7 @@ private struct VendorRevenueEmptyState: View {
                 Text("Aucun revenu prévu")
             }
         } description: {
-            Text("Publie un lot depuis l'onglet Lots : tes revenus s'afficheront ici dès que des familles s'engagent.")
+            Text("Cet écran suit l'argent de tes lots : ce que les familles ont réservé et ce qui te sera payé. Publie un lot depuis l'onglet Lots pour voir tes premiers revenus.")
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .grenierBackground()

@@ -958,9 +958,9 @@ extension DemandMapViewModel.Grouping {
     /// « groupe », « quartier », « zone ».
     fileprivate var unitName: String {
         switch self {
-        case .group: "groupe"
-        case .neighborhood: "quartier"
-        case .geohash: "zone"
+        case .group: String(localized: "groupe")
+        case .neighborhood: String(localized: "quartier")
+        case .geohash: String(localized: "zone")
         }
     }
 
@@ -995,14 +995,14 @@ nonisolated enum DemandFormatting {
     static func wantedQuantity(of product: DemandMapViewModel.ProductDemand) -> String {
         if let kilograms = kilogramsPerShare(in: product.shareUnit) {
             let total = kilograms * Double(product.committedShares)
-            return String(localized: "\(total.formatted(.number.precision(.fractionLength(0...1)))) kg voulus")
+            return String(localized: "\(total.formatted(.number.precision(.fractionLength(0...1)).locale(AppLanguage.formattingLocale))) kg voulus")
         }
         return "\(shares(product.committedShares)) \(FrenchPlural.word(product.committedShares, "voulue", plural: "voulues"))"
     }
 
     /// « 30 kg », « 4 douzaines », « 2,5 L » : total voulu d'une envie agrégée.
     static func wishQuantity(of demand: GroupDemand) -> String {
-        let number = demand.totalQuantity.formatted(.number.precision(.fractionLength(0...1)))
+        let number = demand.totalQuantity.formatted(.number.precision(.fractionLength(0...1)).locale(AppLanguage.formattingLocale))
         let unit = switch demand.unit {
         case .dozen: FrenchPlural.word(Int(demand.totalQuantity.rounded(.up)), "douzaine", plural: "douzaines")
         case .unit: FrenchPlural.word(Int(demand.totalQuantity.rounded(.up)), "unité", plural: "unités")

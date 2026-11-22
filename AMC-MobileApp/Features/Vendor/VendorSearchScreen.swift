@@ -88,7 +88,9 @@ struct VendorSearchScreen: View {
                         row(.offer(item.offer.id), hint: "Modifie les paliers de ce lot") {
                             ResultRow(
                                 title: item.title,
-                                subtitle: "\(item.offer.shareUnit) · \(item.offer.status == .draft ? "brouillon" : "ferme \(item.offer.deadline.formatted(.relative(presentation: .named)))")",
+                                subtitle: item.offer.status == .draft
+                                    ? String(localized: "\(item.offer.shareUnit) · brouillon")
+                                    : String(localized: "\(item.offer.shareUnit) · ferme \(item.offer.deadline.formatted(.relative(presentation: .named).locale(AppLanguage.formattingLocale)))"),
                                 subtitleSymbol: item.offer.status == .draft ? "pencil.circle.fill" : "clock.fill"
                             ) {
                                 if let category = item.product?.category {

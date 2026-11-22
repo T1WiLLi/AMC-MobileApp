@@ -25,18 +25,18 @@ nonisolated enum ProductStatsPeriod: String, CaseIterable, Identifiable, Sendabl
     /// Libellé court du sélecteur.
     var title: String {
         switch self {
-        case .fourWeeks: "4 sem."
-        case .twelveWeeks: "12 sem."
-        case .all: "Tout"
+        case .fourWeeks: String(localized: "4 sem.")
+        case .twelveWeeks: String(localized: "12 sem.")
+        case .all: String(localized: "Tout")
         }
     }
 
     /// Libellé lu par VoiceOver et affiché en sous-titre.
     var spokenTitle: String {
         switch self {
-        case .fourWeeks: "4 dernières semaines"
-        case .twelveWeeks: "12 dernières semaines"
-        case .all: "Depuis le début"
+        case .fourWeeks: String(localized: "4 dernières semaines")
+        case .twelveWeeks: String(localized: "12 dernières semaines")
+        case .all: String(localized: "Depuis le début")
         }
     }
 

@@ -105,7 +105,7 @@ struct VendorCatalogSheet: View {
     }
 
     private func countText(_ count: Int) -> String {
-        count > 1 ? "\(count) produits" : "\(count) produit"
+        count > 1 ? String(localized: "\(count) produits") : String(localized: "\(count) produit")
     }
 
     // MARK: Éditeur

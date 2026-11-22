@@ -188,13 +188,13 @@ struct TierEditorScreen: View {
 
             LabeledContent {
                 HStack(spacing: 6) {
-                    WeightField(label: "Poids", value: $model.share.weight.value)
+                    WeightField(label: String(localized: "Poids"), value: $model.share.weight.value)
                         .frame(width: weightFieldWidth)
                         .focused($focus, equals: .shareWeight)
                         .fieldBox(isInvalid: isInvalid(.quantity) && !model.share.isValid, compact: true)
                     Picker("Unité", selection: $model.share.weight.unit) {
                         ForEach(ShareSpec.Unit.allCases) { unit in
-                            Text(unit == .piece ? "unités" : unit.rawValue).tag(unit)
+                            Text(unit == .piece ? String(localized: "unités") : unit.rawValue).tag(unit)
                         }
                     }
                     .pickerStyle(.menu)
@@ -206,7 +206,7 @@ struct TierEditorScreen: View {
             }
 
             LabeledContent {
-                PriceField(label: "Valeur d'une part", value: shareValue)
+                PriceField(label: String(localized: "Valeur d'une part"), value: shareValue)
                     .frame(width: valueFieldWidth)
                     .focused($focus, equals: .shareValue)
                     .fieldBox(isInvalid: false, compact: true)
@@ -636,10 +636,10 @@ private struct TierRow: View {
 
     private var rangeText: String {
         guard let preview else { return "" }
-        let unit = (preview.maxShares ?? preview.minShares) > 1 ? "parts" : "part"
+        let unit = (preview.maxShares ?? preview.minShares) > 1 ? String(localized: "parts") : String(localized: "part")
         guard let max = preview.maxShares else { return String(localized: "\(preview.minShares) \(unit) et +") }
-        if max <= preview.minShares { return "\(preview.minShares) \(unit)" }
-        return "\(preview.minShares) à \(max) \(unit)"
+        if max <= preview.minShares { return String(localized: "\(preview.minShares) \(unit)") }
+        return String(localized: "\(preview.minShares) à \(max) \(unit)")
     }
 }
 

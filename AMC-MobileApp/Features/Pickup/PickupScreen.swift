@@ -27,7 +27,7 @@ struct PickupScreen: View {
                         )
                     } else {
                         StateView(state: viewModel.state, retry: { await viewModel.load() }) { content in
-                            PickupContentView(content: content)
+                            PickupContentView(content: content, refreshPickups: { await viewModel.refreshPickups() })
                                 .refreshable { await viewModel.load() }
                         }
                     }
@@ -114,17 +114,21 @@ private struct PickupIllustratedEmptyView: View {
 /// lieux, ses articles, son créneau et son total).
 private struct PickupContentView: View {
     let allContent: PickupViewModel.Content
+    /// Relit les parts à code affichées (scan de l'hôte), sans écouteur Firestore.
+    let refreshPickups: () async -> Void
 
-    init(content: PickupViewModel.Content) {
+    init(content: PickupViewModel.Content, refreshPickups: @escaping () async -> Void = {}) {
         allContent = content
+        self.refreshPickups = refreshPickups
     }
 
-    @Environment(\.openURL) private var openURL
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var brightness = MaxBrightness()
-    @State private var directionsTaps = 0
     /// Groupe choisi dans le sélecteur ; le premier (groupe actif) par défaut.
     @State private var selectedGroupId: String?
+    /// Commandes déjà remerciées après la cueillette (le remerciement ne s'affiche qu'une fois par commande).
+    @AppStorage("pickup.thankedOrderIds") private var thankedOrderIdsRaw = ""
+    @State private var thanks: PickupThanks?
 
     /// Le contenu du groupe choisi.
     private var content: PickupViewModel.Content { allContent.scoped(to: selectedGroupId) }
@@ -167,6 +171,45 @@ private struct PickupContentView: View {
         .grenierScrollEdge()
         .onAppear { brightness.raise() }
         .onDisappear { brightness.restore() }
+        // Tant qu'un QR est à l'écran, on regarde toutes les 5 s si l'hôte l'a scanné.
+        .task(id: scannableOrderIds) {
+            guard !scannableOrderIds.isEmpty else { return }
+            while !Task.isCancelled {
+                try? await Task.sleep(for: .seconds(5))
+                guard !Task.isCancelled else { return }
+                await refreshPickups()
+            }
+        }
+        .onChange(of: pickedUpOrderIds, initial: true) { presentThanksIfNeeded() }
+        .sheet(item: $thanks) { thanks in
+            PickupThanksSheet(groupId: thanks.groupId, groupName: thanks.groupName,
+                              vendorId: thanks.vendorId, productName: thanks.productName)
+        }
+    }
+
+    /// Commandes dont le QR est affiché et pas encore scanné.
+    private var scannableOrderIds: [String] {
+        allContent.items.filter { !$0.isPickedUp && $0.pickupCode != nil }.map(\.groupOrderId).sorted()
+    }
+
+    private var pickedUpOrderIds: [String] {
+        allContent.items.filter(\.isPickedUp).map(\.groupOrderId).sorted()
+    }
+
+    /// Une commande récupérée pas encore remerciée : « Bon appétit ! » et les notes facultatives, une seule fois.
+    private func presentThanksIfNeeded() {
+        guard thanks == nil else { return }
+        var thanked = Set(thankedOrderIdsRaw.split(separator: ",").map(String.init))
+        let fresh = allContent.items.filter { $0.isPickedUp && !thanked.contains($0.groupOrderId) }
+        guard let first = fresh.first else { return }
+        thanked.formUnion(fresh.map(\.groupOrderId))
+        thankedOrderIdsRaw = thanked.sorted().joined(separator: ",")
+        let group = allContent.groups.first { $0.items.contains { $0.groupOrderId == first.groupOrderId } }
+        thanks = PickupThanks(groupOrderId: first.groupOrderId,
+                              groupId: group.flatMap { $0.groupId.isEmpty ? nil : $0.groupId },
+                              groupName: group?.title ?? String(localized: "Mon groupe"),
+                              vendorId: first.offer.vendorId.isEmpty ? nil : first.offer.vendorId,
+                              productName: first.product.name)
     }
 
     @ViewBuilder
@@ -178,33 +221,24 @@ private struct PickupContentView: View {
         }
         PickupItemsCard(items: place.items)
         if let point = place.pickupPoint {
-            PickupPointSummaryCard(point: point, totalCents: place.totalCents)
-            directionsButton(to: point)
+            // Le lieu, une seule fois : nom (sauf s'il titre déjà la section), adresse, montant et itinéraire.
+            PickupPointSummaryCard(point: point, totalCents: place.totalCents, showsName: count == 1)
         } else {
             // Lot réservé, mais le groupe n'a pas encore choisi où cueillir.
             PickupPointPendingCard(totalCents: place.totalCents)
         }
     }
+}
 
-    private func directionsButton(to point: PickupPoint) -> some View {
-        Button {
-            directionsTaps += 1
-            if let url = PickupFormat.mapsURL(for: point) { openURL(url) }
-        } label: {
-            Label {
-                Text("Itinéraire à pied")
-            } icon: {
-                Image(systemName: "figure.walk.circle.fill")
-                    .symbolRenderingMode(.hierarchical)
-                    .symbolEffect(.bounce, value: reduceMotion ? 0 : directionsTaps)
-            }
-            .font(.headline)
-            .frame(maxWidth: .infinity, minHeight: 44)
-        }
-        .buttonStyle(.glass)
-        .tint(.grenier)
-        .accessibilityHint("Ouvre Plans avec l'itinéraire vers \(point.name)")
-    }
+/// Remerciement à présenter après le scan d'une commande.
+private struct PickupThanks: Identifiable {
+    var groupOrderId: String
+    var groupId: String?
+    var groupName: String
+    var vendorId: String?
+    var productName: String?
+
+    var id: String { groupOrderId }
 }
 
 /// En-tête façon Live Activity : « Cueillette dans 3 jours » sur toute la largeur, puis le lieu et le créneau
@@ -241,8 +275,12 @@ private struct PickupHeroCard: View {
                         .contentTransition(.numericText())
                         .frame(maxWidth: .infinity, alignment: .leading)
                 }
-                Divider().overlay(Color.piste)
-                heroRow(hostLine, systemImage: "house.fill")
+                if hostLine != nil || content.slot != nil {
+                    Divider().overlay(Color.piste)
+                }
+                if let hostLine {
+                    heroRow(hostLine, systemImage: "house.fill")
+                }
                 if let slot = content.slot {
                     heroRow(PickupFormat.slot(slot), systemImage: "calendar.badge.clock")
                 }
@@ -278,16 +316,14 @@ private struct PickupHeroCard: View {
         .frame(maxWidth: .infinity, alignment: .leading)
     }
 
-    private var hostLine: String {
+    /// L'adresse n'est montrée qu'une fois, dans la carte du point plus bas : ici, seulement l'hôte.
+    private var hostLine: String? {
         // Plusieurs lieux : chacun a sa section plus bas.
         if content.places.count > 1 {
             return String(localized: "\(content.places.count) lieux de cueillette, détaillés plus bas")
         }
-        guard let point = content.pickupPoint else { return String(localized: "Lieu à confirmer par ton groupe") }
-        if let host = content.hostFirstName {
-            return String(localized: "Chez \(host) · \(point.address)")
-        }
-        return point.address
+        guard content.pickupPoint != nil else { return String(localized: "Lieu à confirmer par ton groupe") }
+        return content.hostFirstName.map { String(localized: "Chez \($0)") }
     }
 }
 
@@ -355,8 +391,8 @@ private struct PickupArrivalBanner: View {
         case .onTheWay:
             return [String(localized: "On te prévient dès l'arrivée chez l'hôte.")]
         case .arrived(let place):
+            // Le lieu et son adresse sont dans la carte du point : pas de doublon ici.
             var lines: [String] = []
-            if let point = place.pickupPoint { lines.append("\(point.name) · \(point.address)") }
             if let slot = place.slot { lines.append(PickupFormat.slot(slot)) }
             lines.append(String(localized: "Montre ton code QR à l'hôte."))
             return lines
@@ -434,29 +470,22 @@ private struct PickupGroupPicker: View {
 }
 
 /// Carte du code du groupe choisi (T-198) : UN QR pour toutes ses commandes fermées (l'hôte le scanne une fois et
-/// remet toutes les parts qu'il garde), avec la liste de ce qu'il couvre. Sans commande fermée, pas de faux QR :
-/// « Ton code apparaîtra à la clôture ».
+/// remet toutes les parts qu'il garde). Sans commande fermée, pas de faux QR : « Ton code apparaîtra à la clôture ».
+/// Retour samuel : peu de texte sur la carte, les explications sont dans le bouton « i » du titre.
 private struct PickupCodeCard: View {
     let group: PickupViewModel.GroupPickup
     @ScaledMetric(relativeTo: .largeTitle) private var qrSize: CGFloat = 220
 
     var body: some View {
         VStack(spacing: 14) {
-            PickupSectionHeader(title: "Ton code de cueillette", systemImage: "qrcode.viewfinder", info: .pickup)
+            PickupSectionHeader(title: "Ton code de cueillette", systemImage: "qrcode.viewfinder", info: infoTopic)
                 .frame(maxWidth: .infinity, alignment: .leading)
             switch group.codeState {
-            case .codes(let items, let waiting):
-                Label {
-                    Text(hostInstruction)
-                        .font(.title3.bold())
-                        .foregroundStyle(.texte)
-                        .multilineTextAlignment(.center)
-                } icon: {
-                    Image(systemName: "person.crop.circle.badge.checkmark")
-                        .font(.title3)
-                        .symbolRenderingMode(.hierarchical)
-                        .foregroundStyle(Color.grenier)
-                }
+            case .codes:
+                Text(hostInstruction)
+                    .font(.headline)
+                    .foregroundStyle(.texte)
+                    .multilineTextAlignment(.center)
                 if let payload = group.qrPayload {
                     PickupQRImage(payload: payload)
                         .frame(width: min(qrSize, 300), height: min(qrSize, 300))
@@ -466,56 +495,25 @@ private struct PickupCodeCard: View {
                         .overlay(RoundedRectangle(cornerRadius: 20).stroke(Color.piste))
                         .accessibilityLabel("Code QR de cueillette du groupe \(group.title)")
                 }
-                PickupInfoLabel(text: group.title, systemImage: "person.3.fill")
-                    .fontWeight(.semibold)
-                VStack(alignment: .leading, spacing: 6) {
-                    ForEach(items) { item in
-                        PickupInfoLabel(text: String(localized: "\(item.product.name) · \(item.quantity) × \(item.offer.displayShareUnit)"),
-                                        systemImage: "basket.fill", font: .caption)
-                    }
-                }
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .accessibilityElement(children: .combine)
-                .accessibilityLabel(items.count > 1 ? "Ce code couvre \(items.count) articles" : "Ce code couvre 1 article")
-                if waiting > 0 {
-                    PickupInfoLabel(text: waiting == 1 ? String(localized: "L'autre article s'ajoutera au code à sa clôture")
-                                        : String(localized: "Les \(waiting) autres articles s'ajouteront au code à leur clôture"),
-                                    systemImage: "clock.fill", font: .caption)
-                }
-                PickupInfoLabel(text: String(localized: "Luminosité au maximum pour le scan"), systemImage: "sun.max.fill", font: .caption)
             case .awaitingClosure:
-                PickupCodePendingState()
+                PickupInfoLabel(text: String(localized: "Ton code apparaîtra à la clôture"), systemImage: "lock.fill")
+                    .frame(maxWidth: .infinity, alignment: .leading)
             case .allPickedUp:
-                PickupInfoLabel(text: String(localized: "Tout est récupéré pour ce groupe : plus de code à montrer."),
-                                systemImage: "checkmark.seal.fill")
+                PickupInfoLabel(text: String(localized: "Tout est récupéré"), systemImage: "checkmark.seal.fill")
+                    .frame(maxWidth: .infinity, alignment: .leading)
             }
         }
         .frame(maxWidth: .infinity)
         .grenierCard(padding: 20)
     }
 
+    private var infoTopic: InfoTopic {
+        if case .awaitingClosure = group.codeState { return .pickupCodePending }
+        return .pickupCode
+    }
+
     private var hostInstruction: String {
         group.hostFirstName.map { String(localized: "Montre ce code à \($0)") } ?? String(localized: "Montre ce code à l'hôte")
-    }
-}
-
-/// Commande encore ouverte : le code n'existe pas encore.
-private struct PickupCodePendingState: View {
-    var body: some View {
-        VStack(spacing: 10) {
-            PickupSymbolScene(main: "qrcode", satellites: ["lock.fill", "clock.fill"], diameter: 72)
-            Text("Ton code apparaîtra à la clôture")
-                .font(.headline)
-                .foregroundStyle(.texte)
-                .multilineTextAlignment(.center)
-            Text("Quand la commande ferme, ton code de cueillette s'affiche ici. On te prévient ensuite dès que la livraison arrive.")
-                .font(.subheadline)
-                .foregroundStyle(.texteSecondaire)
-                .multilineTextAlignment(.center)
-                .fixedSize(horizontal: false, vertical: true)
-        }
-        .frame(maxWidth: .infinity)
-        .accessibilityElement(children: .combine)
     }
 }
 
@@ -663,41 +661,54 @@ private struct PickupPlaceHeading: View {
     }
 }
 
-/// Point de cueillette : nom, adresse, accessibilité et montant à payer à ce lieu.
+/// Point de cueillette, une seule fois et à l'essentiel : nom, adresse, pastilles d'accessibilité (si elles tiennent
+/// sur une ligne), montant à payer à ce lieu et « Itinéraire à pied » dans la carte.
 private struct PickupPointSummaryCard: View {
     let point: PickupPoint
     let totalCents: Cents
+    /// Avec plusieurs lieux, le nom titre déjà la section : la carte ne le répète pas.
+    var showsName = true
+    @Environment(\.openURL) private var openURL
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @State private var directionsTaps = 0
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
             PickupSectionHeader(title: "Point de cueillette", systemImage: "mappin.and.ellipse")
-            Label {
-                VStack(alignment: .leading, spacing: 2) {
+            VStack(alignment: .leading, spacing: 2) {
+                if showsName {
                     Text(point.name).font(.headline).foregroundStyle(.texte)
-                    Text(point.address).font(.subheadline).foregroundStyle(.texteSecondaire)
                 }
-            } icon: {
-                Image(systemName: "house.fill")
-                    .symbolRenderingMode(.hierarchical)
-                    .foregroundStyle(Color.grenier)
+                Text(point.address).font(.subheadline).foregroundStyle(.texteSecondaire)
+                    .fixedSize(horizontal: false, vertical: true)
             }
             if !point.accessibility.isEmpty {
                 PickupAccessibilityTags(items: point.accessibility)
             }
-            Divider().overlay(Color.piste)
             HStack {
-                Label {
-                    Text("À payer à la cueillette").font(.subheadline).foregroundStyle(.texteSecondaire)
-                } icon: {
-                    Image(systemName: "banknote.fill")
-                        .symbolRenderingMode(.hierarchical)
-                        .foregroundStyle(Color.grenier)
-                }
+                Text("À payer à la cueillette").font(.subheadline).foregroundStyle(.texteSecondaire)
                 Spacer(minLength: 8)
                 Text(Money.format(totalCents)).priceStyle(.priceCompact).foregroundStyle(.texte)
                     .contentTransition(.numericText())
             }
             .accessibilityElement(children: .combine)
+            Button {
+                directionsTaps += 1
+                if let url = PickupFormat.mapsURL(for: point) { openURL(url) }
+            } label: {
+                Label {
+                    Text("Itinéraire à pied")
+                } icon: {
+                    Image(systemName: "figure.walk.circle.fill")
+                        .symbolRenderingMode(.hierarchical)
+                        .symbolEffect(.bounce, value: reduceMotion ? 0 : directionsTaps)
+                }
+                .font(.subheadline.weight(.semibold))
+                .frame(maxWidth: .infinity, minHeight: 36)
+            }
+            .buttonStyle(.glass)
+            .tint(.grenier)
+            .accessibilityHint("Ouvre Plans avec l'itinéraire vers \(point.name)")
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .grenierCard()
@@ -744,13 +755,14 @@ private struct PickupPointPendingCard: View {
 }
 
 /// Pastilles d'accessibilité du point (« Accessible en fauteuil », « Près du métro »…), chacune avec son symbole.
+/// Sur une seule ligne ; si elles n'y tiennent pas, on ne les montre pas (carte à l'essentiel).
 private struct PickupAccessibilityTags: View {
     let items: [PickupPoint.Accessibility]
 
     var body: some View {
         ViewThatFits(in: .horizontal) {
             HStack(spacing: 6) { tags }
-            VStack(alignment: .leading, spacing: 6) { tags }
+            Color.clear.frame(width: 0, height: 0)
         }
     }
 
@@ -758,6 +770,8 @@ private struct PickupAccessibilityTags: View {
         ForEach(items, id: \.self) { item in
             Label(PickupFormat.title(for: item), systemImage: PickupFormat.symbol(for: item))
                 .font(.caption.weight(.medium))
+                .lineLimit(1)
+                .fixedSize()
                 .symbolRenderingMode(.hierarchical)
                 .foregroundStyle(.texteSecondaire)
                 .padding(.horizontal, 8)

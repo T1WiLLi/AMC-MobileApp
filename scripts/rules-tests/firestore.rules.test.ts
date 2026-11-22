@@ -24,6 +24,7 @@ import {
   Bytes,
   updateDoc,
   increment,
+  arrayUnion,
   writeBatch,
   type Firestore
 } from 'firebase/firestore'
@@ -1836,5 +1837,204 @@ describe('groups : passation du créateur qui quitte (T-193)', () => {
     batch.update(doc(db, groupPath), { householdCount: increment(-1), lastMembershipChange: 'household-createur' })
     await assertSucceeds(batch.commit())
     assert.equal((await groupData())?.createdBy, 'createur')
+  })
+})
+
+describe('clôture : paiements enregistrés, versement vendeur et débit du fonds (T-195)', () => {
+  const GROUP = 'group-parc-extension'
+  const ORDER = 'order-cloture'
+  const orderPath = `groupOrders/${ORDER}`
+  const sharePath = `${orderPath}/shares/household-amina`
+  const paymentPath = `${orderPath}/payments/household-amina`
+  const payoutPath = `${orderPath}/payouts/vendor`
+  const fundPath = `groups/${GROUP}/solidarity/fund`
+  const closed = { status: 'closed', currentTierIndex: 0 }
+
+  // Swift : FNV-1a 32 bits de "orderId|householdId" (ShareAllocator.qrCode).
+  const qr = (householdId: string) => {
+    let hash = 2166136261
+    for (const byte of new TextEncoder().encode(`${ORDER}|${householdId}`)) {
+      hash ^= byte
+      hash = Math.imul(hash, 16777619) >>> 0
+    }
+    return `GRENIER:${ORDER}:${householdId}:${hash.toString(16).padStart(8, '0')}`
+  }
+
+  // 10 parts à 7 $ : 70 $, dont 50 $ payés par le fonds. La famille paie 20 $.
+  const payment = {
+    id: `PAY-${ORDER}-household-amina-1`, householdId: 'household-amina', groupOrderId: ORDER,
+    finalPriceCents: 7000, subsidyCents: 5000, donationCents: 0, amountDueCents: 2000,
+    status: 'succeeded', date: Timestamp.now(), methodLabel: 'Apple Pay (démo)'
+  }
+  const payout = {
+    id: 'vendor', groupOrderId: ORDER, vendorId: 'vendor-lafleur', mode: 'deposit', grossCents: 7000,
+    commissionCents: 420, netCents: 6580, releasedCents: 3290, heldCents: 3290, subsidyTotalCents: 5000,
+    solidarityContributedCents: 0, paidShareCount: 1, date: Timestamp.now()
+  }
+  const debit = { kind: 'application', orderId: ORDER, amountCents: 5000, basketCount: 0, date: Timestamp.now() }
+
+  type Parts = { payment?: object | null; payout?: object | null; debit?: object | null; balance?: number; subsidy?: number }
+
+  // Ce que fait `closeGroupOrder` : la part figée et payée, le paiement, le versement, le fonds, puis la commande.
+  const closeBatch = (db: Firestore, parts: Parts = {}) => {
+    const batch = writeBatch(db)
+    batch.update(doc(db, sharePath), {
+      finalPriceCents: 7000, subsidyCents: parts.subsidy ?? 5000, qrCode: qr('household-amina'), isPaid: true
+    })
+    if (parts.payment !== null) batch.set(doc(db, paymentPath), parts.payment ?? payment)
+    if (parts.payout !== null) batch.set(doc(db, payoutPath), parts.payout ?? payout)
+    if (parts.debit !== null) {
+      batch.update(doc(db, fundPath), { entries: arrayUnion(parts.debit ?? debit), balanceCents: parts.balance ?? 3000 })
+    }
+    batch.update(doc(db, orderPath), closed)
+    return batch.commit()
+  }
+
+  beforeEach(async () => {
+    await env.withSecurityRulesDisabled(async (c) => {
+      const db = c.firestore()
+      await setDoc(doc(db, 'households/household-amina/private/profile'), { isSubsidized: true, referralCode: 'ORG-PE-00035' })
+      await setDoc(doc(db, `groups/${GROUP}/members/household-amina`), { householdId: 'household-amina', role: 'member', joinedAt: Timestamp.now() })
+      await setDoc(doc(db, orderPath), {
+        id: ORDER, groupId: GROUP, offerId: 'offer-carottes', status: 'open', committedShares: 10, committedHouseholds: 1, pickupSlots: []
+      })
+      await setDoc(doc(db, sharePath), { ...share, quantity: 10 })
+      await setDoc(doc(db, fundPath), {
+        entries: [{ kind: 'contribution', amountCents: 8000, basketCount: 0, date: Timestamp.now() }],
+        balanceCents: 8000, subsidizedHouseholds: 1, basketPriceCents: 2600, sponsorOrganizationIds: []
+      })
+    })
+  })
+
+  const seedClosed = async () => {
+    await env.withSecurityRulesDisabled(async (c) => {
+      const db = c.firestore()
+      await updateDoc(doc(db, orderPath), closed)
+      await updateDoc(doc(db, sharePath), { finalPriceCents: 7000, subsidyCents: 5000, qrCode: qr('household-amina'), isPaid: true })
+      await setDoc(doc(db, paymentPath), payment)
+      await setDoc(doc(db, payoutPath), payout)
+    })
+  }
+
+  const makeCoordinator = () => env.withSecurityRulesDisabled(async (c) => {
+    await updateDoc(doc(c.firestore(), `groups/${GROUP}`), { coordinatorIds: ['intrus'] })
+  })
+
+  test('le vendeur du lot clôture : parts, paiement, versement et débit du fonds dans la même écriture', async () => {
+    await assertSucceeds(closeBatch(lafleur()))
+  })
+  test('la coordination du groupe clôture aussi', async () => {
+    await makeCoordinator()
+    await assertSucceeds(closeBatch(intruder()))
+  })
+  test('un ménage ne crée ni paiement, ni versement, ni débit', async () => {
+    await assertFails(closeBatch(amina()))
+    await assertFails(setDoc(doc(amina(), paymentPath), payment))
+    await assertFails(setDoc(doc(amina(), payoutPath), payout))
+    await assertFails(updateDoc(doc(amina(), fundPath), { entries: arrayUnion(debit), balanceCents: 3000 }))
+  })
+  test('un paiement hors de l’écriture de clôture est refusé (commande ouverte ou déjà fermée)', async () => {
+    await assertFails(setDoc(doc(lafleur(), paymentPath), payment))
+    await assertFails(setDoc(doc(lafleur(), payoutPath), payout))
+    await seedClosed()
+    await assertFails(setDoc(doc(lafleur(), `${orderPath}/payments/household-autre`), { ...payment, householdId: 'household-autre' }))
+    await assertFails(setDoc(doc(lafleur(), `${orderPath}/payouts/autre`), payout))
+  })
+  test('un paiement et un versement ne se modifient ni ne se suppriment jamais', async () => {
+    await seedClosed()
+    for (const db of [lafleur(), amina()]) {
+      await assertFails(updateDoc(doc(db, paymentPath), { amountDueCents: 0 }))
+      await assertFails(deleteDoc(doc(db, paymentPath)))
+      await assertFails(updateDoc(doc(db, payoutPath), { heldCents: 0 }))
+      await assertFails(deleteDoc(doc(db, payoutPath)))
+    }
+  })
+  test('un paiement incohérent est refusé', async () => {
+    await assertFails(closeBatch(lafleur(), { payment: { ...payment, amountDueCents: 100 } }))
+    await assertFails(closeBatch(lafleur(), { payment: { ...payment, status: 'declined' } }))
+    await assertFails(closeBatch(lafleur(), { payment: { ...payment, subsidyCents: 8000, amountDueCents: -1000 } }))
+    await assertFails(closeBatch(lafleur(), { payment: { ...payment, householdId: 'household-autre' } }))
+    await assertFails(closeBatch(lafleur(), { payment: { ...payment, extra: true } }))
+  })
+  test('un versement incohérent est refusé (net, retenu, commission, vendeur)', async () => {
+    await assertFails(closeBatch(lafleur(), { payout: { ...payout, netCents: 7000 } }))
+    await assertFails(closeBatch(lafleur(), { payout: { ...payout, heldCents: 0 } }))
+    await assertFails(closeBatch(lafleur(), { payout: { ...payout, commissionCents: 0, netCents: 7000, releasedCents: 3500, heldCents: 3500 } }))
+    await assertFails(closeBatch(lafleur(), { payout: { ...payout, vendorId: 'vendor-autre' } }))
+    await assertFails(closeBatch(lafleur(), { payout: { ...payout, mode: 'cash' } }))
+  })
+  test('lecture : la famille lit son paiement ; le vendeur et la coordination lisent ceux de la commande', async () => {
+    await seedClosed()
+    await assertSucceeds(getDoc(doc(amina(), paymentPath)))
+    await assertSucceeds(getDoc(doc(lafleur(), paymentPath)))
+    await assertSucceeds(getDocs(collection(lafleur(), `${orderPath}/payments`)))
+    await assertSucceeds(getDoc(doc(lafleur(), payoutPath)))
+    await assertFails(getDoc(doc(intruder(), paymentPath)))
+    await assertFails(getDocs(collection(amina(), `${orderPath}/payments`)))
+    await assertFails(getDoc(doc(amina(), payoutPath)))
+    await assertFails(getDoc(doc(intruder(), payoutPath)))
+    await makeCoordinator()
+    await assertSucceeds(getDocs(collection(intruder(), `${orderPath}/payments`)))
+    await assertSucceeds(getDoc(doc(intruder(), payoutPath)))
+  })
+  test('fonds : jamais sous zéro (subvention de 90 $ avec 80 $ dans le fonds)', async () => {
+    const overdraw = { ...debit, amountCents: 9000 }
+    const overdrawPayout = { ...payout, subsidyTotalCents: 9000 }
+    await assertFails(closeBatch(lafleur(), { subsidy: 7000, debit: overdraw, balance: -1000, payout: overdrawPayout }))
+    // Solde annoncé à 0 alors que 8 000 - 9 000 < 0 : refusé aussi.
+    await assertFails(closeBatch(lafleur(), { debit: overdraw, balance: 0, payout: overdrawPayout }))
+  })
+  test('fonds : le débit est exactement celui des subventions déclarées, et le solde suit', async () => {
+    await assertFails(closeBatch(lafleur(), { debit: { ...debit, amountCents: 1000 }, balance: 7000 }))
+    await assertFails(closeBatch(lafleur(), { balance: 4000 }))
+    await assertFails(closeBatch(lafleur(), { debit: { ...debit, kind: 'contribution' } }))
+    await assertFails(closeBatch(lafleur(), { debit: { ...debit, orderId: 'order-1' } }))
+  })
+  test('fonds vide ou sans subvention : la clôture ne touche pas au fonds', async () => {
+    await assertSucceeds(closeBatch(lafleur(), {
+      subsidy: 0, debit: null,
+      payment: { ...payment, subsidyCents: 0, amountDueCents: 7000 },
+      payout: { ...payout, subsidyTotalCents: 0 }
+    }))
+  })
+  test('fonds : pas de débit hors clôture, ni de crédit, ni de réécriture de l’historique', async () => {
+    await assertFails(updateDoc(doc(lafleur(), fundPath), { entries: arrayUnion(debit), balanceCents: 3000 }))
+    await seedClosed()
+    await assertFails(updateDoc(doc(lafleur(), fundPath), { entries: arrayUnion(debit), balanceCents: 3000 }))
+    await assertFails(updateDoc(doc(lafleur(), fundPath), { balanceCents: 99999 }))
+    await assertFails(updateDoc(doc(lafleur(), fundPath), { entries: [], balanceCents: 0 }))
+    await assertFails(deleteDoc(doc(lafleur(), fundPath)))
+  })
+  test('fonds : lisible par les membres du groupe seulement', async () => {
+    await assertSucceeds(getDoc(doc(amina(), fundPath)))
+    await assertFails(getDoc(doc(intruder(), fundPath)))
+    await assertFails(getDoc(doc(anonymous(), fundPath)))
+  })
+  // Comme setShare : une nouvelle part avec son drapeau d'admissibilité, et la commande ouverte mise à jour.
+  const reserve = (db: Firestore, householdId: string, value: boolean) => {
+    const batch = writeBatch(db)
+    batch.set(doc(db, `groupOrders/order-1/shares/${householdId}`), {
+      ...share, householdId, quantity: 2, solidarityEligible: value, updatedAt: Timestamp.now()
+    })
+    batch.update(doc(db, 'groupOrders/order-1'), { committedShares: 2, committedHouseholds: 1 })
+    return batch.commit()
+  }
+  test('admissibilité : un ménage subventionné se déclare admissible, puis change sa quantité', async () => {
+    await assertSucceeds(reserve(amina(), 'household-amina', true))
+    // Seuls les champs qui changent sont écrits (updateData).
+    const db = amina()
+    const change = writeBatch(db)
+    change.update(doc(db, 'groupOrders/order-1/shares/household-amina'), { quantity: 3, solidarityEligible: false, updatedAt: Timestamp.now() })
+    change.update(doc(db, 'groupOrders/order-1'), { committedShares: 3 })
+    await assertSucceeds(change.commit())
+  })
+  test('admissibilité : un ménage sans statut subventionné ne peut pas se déclarer admissible', async () => {
+    await env.withSecurityRulesDisabled(async (c) => {
+      const db = c.firestore()
+      await setDoc(doc(db, `groups/${GROUP}/members/household-intrus`), { householdId: 'household-intrus', role: 'member', joinedAt: Timestamp.now() })
+      await setDoc(doc(db, 'users/intrus'), { ...aminaUser, id: 'intrus', householdId: 'household-intrus' })
+    })
+    await assertFails(reserve(intruder(), 'household-intrus', true))
+    await assertSucceeds(reserve(intruder(), 'household-intrus', false))
   })
 })

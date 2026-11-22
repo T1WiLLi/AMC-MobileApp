@@ -675,6 +675,52 @@ service cloud.firestore {
           && isRatingAggregateChange(householdId, 0, request.resource.data.rating - resource.data.rating);
         allow delete: if false;
       }
+
+      // -------------------------------------------------------------
+      // groups/{groupId}/solidarity/fund — fonds de solidarité du groupe (T-195)
+      // -------------------------------------------------------------
+      // Champs : entries (liste d'écritures SolidarityFund.Entry, sans identifiant de ménage), balanceCents (solde =
+      // contributions moins applications, tenu à jour avec entries), subsidizedHouseholds, basketPriceCents,
+      // sponsorOrganizationIds. Lecture : les membres du groupe. Débit : seulement dans l'écriture de clôture d'une
+      // commande du groupe (isClosureDebit). Le crédit par les organismes (T-194) s'ajoute à ce bloc.
+      //
+      // isClosureDebit : la coordination ou le vendeur du lot ferme la commande (open|reached -> closed) et ajoute UNE
+      // écriture « application » au fonds, du montant des subventions déclaré dans payouts/vendor
+      // (subsidyTotalCents moins les paniers suspendus déjà versés dans le fonds), sans toucher aux écritures
+      // précédentes. Le solde ne devient jamais négatif. Limite : la somme des subventions des parts n'est pas
+      // recoupée par les règles (pas de boucle) ; chaque subvention de part reste bornée par son prix et réservée aux
+      // ménages subventionnés (isClosingAllocation).
+      function isClosureDebit(groupId) {
+        let before = resource.data;
+        let after = request.resource.data;
+        let n = before.get('entries', []).size();
+        let entry = after.entries[n];
+        let orderPath = /databases/$(database)/documents/groupOrders/$(entry.orderId);
+        let payoutPath = /databases/$(database)/documents/groupOrders/$(entry.orderId)/payouts/vendor;
+        return after.diff(before).affectedKeys().hasOnly(['entries', 'balanceCents'])
+          && after.entries.size() == n + 1
+          && after.entries[0:n] == before.get('entries', [])
+          && entry.keys().hasOnly(['kind', 'orderId', 'amountCents', 'basketCount', 'date'])
+          && entry.kind == 'application'
+          && entry.orderId is string && entry.orderId.size() > 0
+          && entry.amountCents is int && entry.amountCents > 0
+          && entry.basketCount is int && entry.basketCount >= 0
+          && entry.date is timestamp
+          && get(orderPath).data.groupId == groupId
+          && isOpenStatus(get(orderPath).data.status)
+          && getAfter(orderPath).data.status == 'closed'
+          && (isGroupCoordinator(groupId) || isOfferVendor(offerOf(get(orderPath).data)))
+          && entry.amountCents == getAfter(payoutPath).data.subsidyTotalCents
+                                  - getAfter(payoutPath).data.solidarityContributedCents
+          && after.balanceCents is int && after.balanceCents >= 0
+          && after.balanceCents == before.get('balanceCents', after.balanceCents + entry.amountCents) - entry.amountCents;
+      }
+
+      match /solidarity/{docId} {
+        allow read: if isGroupMember(groupId);
+        allow update: if docId == 'fund' && isClosureDebit(groupId);
+        allow create, delete: if false;
+      }
     }
 
     // ---------------------------------------------------------------
@@ -1145,7 +1191,8 @@ service cloud.firestore {
       function isValidShare(data, householdId) {
         return data.keys().hasOnly(['householdId', 'quantity', 'finalPriceCents', 'isPaid',
                                     'suspendedAmountCents', 'subsidyCents', 'qrCode', 'isPickedUp', 'updatedAt',
-                                    'pickupSlotStart', 'pickedUpBy', 'pickedUpAt', 'householdName'])
+                                    'pickupSlotStart', 'pickedUpBy', 'pickedUpAt', 'householdName',
+                                    'solidarityEligible'])
           && data.keys().hasAll(['householdId', 'quantity', 'isPaid', 'suspendedAmountCents',
                                  'subsidyCents', 'isPickedUp'])
           && data.householdId == householdId
@@ -1160,7 +1207,10 @@ service cloud.firestore {
           && data.isPickedUp is bool
           && (!('updatedAt' in data) || data.updatedAt == null || data.updatedAt is timestamp)
           && (!('pickupSlotStart' in data) || data.pickupSlotStart == null || data.pickupSlotStart is timestamp)
-          && (!('householdName' in data) || isShortString(data.householdName, 1, 80));
+          && (!('householdName' in data) || isShortString(data.householdName, 1, 80))
+          // T-195 : un ménage ne se déclare admissible à la solidarité que s'il l'est vraiment (profil privé).
+          && (!('solidarityEligible' in data) || data.solidarityEligible == null || data.solidarityEligible == false
+              || (data.solidarityEligible == true && isSubsidizedHousehold(householdId)));
       }
 
       // RQ-064 (T-077) : un ménage choisit ou annule SON créneau, commande ni annulée ni livrée
@@ -1295,7 +1345,7 @@ service cloud.firestore {
               // le seed reste telle quelle, un null du seed peut devenir absent).
               (request.resource.data.diff(resource.data).affectedKeys()
                    .hasOnly(['quantity', 'suspendedAmountCents', 'updatedAt', 'finalPriceCents', 'qrCode',
-                             'householdName'])
+                             'householdName', 'solidarityEligible'])
                 && isSameOptional(request.resource.data, resource.data, 'finalPriceCents')
                 && isSameOptional(request.resource.data, resource.data, 'qrCode')
                 && canChangeMyShare(householdId))
@@ -1324,6 +1374,82 @@ service cloud.firestore {
             && (!('createdAt' in request.resource.data) || request.resource.data.createdAt is timestamp);
           allow update, delete: if false;
         }
+      }
+
+      // -------------------------------------------------------------
+      // groupOrders/{orderId}/payments/{householdId} — paiement enregistré à la clôture (T-195)
+      // -------------------------------------------------------------
+      // Un document par part payée (PaymentRecord). Créé seulement dans l'écriture de clôture (commande ouverte ->
+      // fermée, par la coordination du groupe ou le vendeur du lot), jamais modifiable ni supprimable.
+      // Lecture : la famille lit le sien ; le vendeur du lot et la coordination lisent ceux de la commande.
+      // Limite : le montant n'est pas recoupé avec la part (budget d'accès aux documents d'une clôture).
+      function isClosureWrite() {
+        return orderAfter().status == 'closed'
+          && isOpenStatus(orderDoc().status)
+          && (isGroupCoordinator(orderDoc().groupId) || isOfferVendor(offerOf(orderDoc())));
+      }
+
+      function isClosurePayment(data, householdId) {
+        return data.keys().hasOnly(['id', 'householdId', 'groupOrderId', 'finalPriceCents', 'subsidyCents',
+                                    'donationCents', 'amountDueCents', 'status', 'date', 'methodLabel'])
+          && data.keys().hasAll(['id', 'householdId', 'groupOrderId', 'finalPriceCents', 'subsidyCents',
+                                 'donationCents', 'amountDueCents', 'status', 'date', 'methodLabel'])
+          && data.householdId == householdId
+          && data.groupOrderId == orderId
+          && data.status == 'succeeded'
+          && data.finalPriceCents is int && data.subsidyCents is int
+          && data.donationCents is int && data.amountDueCents is int
+          && data.subsidyCents >= 0 && data.subsidyCents <= data.finalPriceCents
+          && data.donationCents >= 0 && data.donationCents <= 20000
+          && data.amountDueCents == data.finalPriceCents - data.subsidyCents + data.donationCents
+          && data.date is timestamp
+          && isShortString(data.id, 1, 200) && isShortString(data.methodLabel, 1, 80);
+      }
+
+      match /payments/{householdId} {
+        allow get: if isMemberOfHousehold(householdId)
+          || isGroupCoordinator(orderDoc().groupId) || isOfferVendor(offerOf(orderDoc()));
+        allow list: if isGroupCoordinator(orderDoc().groupId) || isOfferVendor(offerOf(orderDoc()));
+        allow create: if isClosureWrite() && isClosurePayment(request.resource.data, householdId);
+        allow update, delete: if false;
+      }
+
+      // -------------------------------------------------------------
+      // groupOrders/{orderId}/payouts/vendor — versement au vendeur, écrit à la clôture (T-195)
+      // -------------------------------------------------------------
+      // Brut, commission (6 %), net, acompte versé, retenu (VendorPayout). Même écriture de clôture, jamais modifiable.
+      // Lecture : le vendeur du lot et la coordination du groupe.
+      function isClosurePayout(data) {
+        return data.keys().hasOnly(['id', 'groupOrderId', 'vendorId', 'mode', 'grossCents', 'commissionCents',
+                                    'netCents', 'releasedCents', 'heldCents', 'subsidyTotalCents',
+                                    'solidarityContributedCents', 'paidShareCount', 'date'])
+          && data.keys().hasAll(['id', 'groupOrderId', 'vendorId', 'mode', 'grossCents', 'commissionCents',
+                                 'netCents', 'releasedCents', 'heldCents', 'subsidyTotalCents',
+                                 'solidarityContributedCents', 'paidShareCount', 'date'])
+          && data.id == 'vendor'
+          && data.groupOrderId == orderId
+          && data.vendorId == offerOf(orderDoc()).vendorId
+          && data.mode in ['deposit', 'atPickup']
+          && data.grossCents is int && data.commissionCents is int && data.netCents is int
+          && data.releasedCents is int && data.heldCents is int && data.subsidyTotalCents is int
+          && data.solidarityContributedCents is int && data.paidShareCount is int
+          && data.grossCents >= 0 && data.commissionCents >= 0 && data.commissionCents <= data.grossCents
+          && data.netCents == data.grossCents - data.commissionCents
+          && data.releasedCents >= 0 && data.releasedCents <= data.netCents
+          && data.heldCents == data.netCents - data.releasedCents
+          && data.subsidyTotalCents >= 0 && data.subsidyTotalCents <= data.grossCents
+          && data.solidarityContributedCents >= 0
+          && data.paidShareCount >= 0
+          // 6 % arrondi au cent part par part : l'écart au 6 % exact reste sous un demi-cent par part payée.
+          && data.commissionCents * 10000 >= data.grossCents * 600 - data.paidShareCount * 5000
+          && data.commissionCents * 10000 <= data.grossCents * 600 + data.paidShareCount * 5000
+          && data.date is timestamp;
+      }
+
+      match /payouts/{docId} {
+        allow read: if isGroupCoordinator(orderDoc().groupId) || isOfferVendor(offerOf(orderDoc()));
+        allow create: if docId == 'vendor' && isClosureWrite() && isClosurePayout(request.resource.data);
+        allow update, delete: if false;
       }
     }
 

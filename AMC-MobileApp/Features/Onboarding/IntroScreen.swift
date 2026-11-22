@@ -348,7 +348,6 @@ private struct IntroChipView: View {
     let chip: IntroChip
     let accent: Color
     let isActive: Bool
-    @State private var floating = false
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     var body: some View {
@@ -375,9 +374,14 @@ private struct IntroChipView: View {
         .background(Color.surface, in: .capsule)
         .shadow(color: .black.opacity(0.14), radius: 16, y: 8)
         .dynamicTypeSize(...DynamicTypeSize.xxLarge)
-        .offset(y: floating ? -4 : 4)
-        .animation(reduceMotion ? nil : .easeInOut(duration: 2.4).repeatForever(autoreverses: true), value: floating)
-        .onAppear { if !reduceMotion { floating = true } }
+        // Un seul calque (fond, ombre et texte) qui flotte ensemble : l'ancienne animation implicite
+        // ne déplaçait que le texte dans le paging, la capsule restait sur place.
+        .compositingGroup()
+        .phaseAnimator(reduceMotion ? [false] : [false, true]) { content, up in
+            content.offset(y: up ? -4 : 4)
+        } animation: { _ in
+            .easeInOut(duration: 2.4)
+        }
         .accessibilityElement(children: .combine)
     }
 }

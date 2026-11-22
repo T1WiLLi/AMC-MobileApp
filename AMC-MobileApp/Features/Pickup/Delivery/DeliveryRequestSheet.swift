@@ -70,7 +70,7 @@ struct DeliveryRequestSheet: View {
     private var reasonSection: some View {
         Section {
             if content?.seniorMode == true {
-                Label("Mode aîné activé : tu as droit à la livraison.", systemImage: "figure.walk.cane")
+                Label("Mode aîné activé : tu as droit à la livraison.", systemImage: "figure.walk.motion")
                     .symbolRenderingMode(.hierarchical)
                     .foregroundStyle(Color.economie)
             } else {

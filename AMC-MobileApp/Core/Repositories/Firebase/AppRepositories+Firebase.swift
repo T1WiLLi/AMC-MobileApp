@@ -50,7 +50,7 @@ extension AppRepositories {
     /// les écrans relus souvent ne refont pas la requête, et les snapshots temps réel tiennent le cache à jour.
     nonisolated static func live(mode: BackendMode, cache: RepositoryCache = RepositoryCache()) -> AppRepositories {
         let repositories: AppRepositories = switch mode {
-        case .fake: .fake()
+        case .fake: .fake(data: .demo)
         case .emulator, .demoProject: .firebase()
         }
         return repositories.cached(by: cache)

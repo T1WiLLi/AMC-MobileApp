@@ -24,7 +24,7 @@ struct PickupNeighbourHelpCard: View {
                     NeighbourHelpRow(
                         title: "Livraison par un voisin",
                         subtitle: "Aîné ou mobilité réduite ? Un voisin t'apporte ta part. Ou deviens bénévole.",
-                        systemImage: "figure.walk.cane"
+                        systemImage: "figure.walk.motion"
                     )
                 }
                 .buttonStyle(.pressable)

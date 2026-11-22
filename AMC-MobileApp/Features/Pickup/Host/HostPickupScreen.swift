@@ -274,6 +274,74 @@ private struct HostOutcomeBanner: View {
 
 // MARK: - Scanner
 
+/// Repli sans caméra (simulateur, appareil non compatible, permission refusée) : le code se tape ou se colle.
+/// Même chemin que le scan (`HostPickupViewModel.scan`) : le contenu attendu est celui du QR de la famille.
+private struct HostManualCodeEntry: View {
+    let viewModel: HostPickupViewModel
+    @State private var code = ""
+    @FocusState private var isFocused: Bool
+
+    private var trimmed: String { code.trimmingCharacters(in: .whitespacesAndNewlines) }
+
+    var body: some View {
+        Form {
+            Section {
+                Label {
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("Caméra indisponible").font(.headline)
+                        Text("Colle le code de la famille, ou touche « Récupéré » dans la liste.")
+                            .font(.subheadline)
+                            .foregroundStyle(.texteSecondaire)
+                    }
+                } icon: {
+                    Image(systemName: "camera.badge.ellipsis")
+                        .symbolRenderingMode(.hierarchical)
+                        .foregroundStyle(Color.grenier)
+                }
+                Button("Ouvrir les Réglages", systemImage: "gearshape.fill") {
+                    if let url = URL(string: UIApplication.openSettingsURLString) { UIApplication.shared.open(url) }
+                }
+            }
+            .listRowBackground(Color.surface)
+
+            Section {
+                TextField("Entrer le code", text: $code, prompt: Text("GRENIER:…"), axis: .vertical)
+                    .textInputAutocapitalization(.never)
+                    .autocorrectionDisabled()
+                    .font(.body.monospaced())
+                    .focused($isFocused)
+                    .submitLabel(.done)
+                    .onSubmit(submit)
+                Button("Valider le code", systemImage: "checkmark.circle.fill", action: submit)
+                    .disabled(trimmed.isEmpty)
+            } header: {
+                Label("Entrer le code", systemImage: "number.square.fill")
+            }
+            .listRowBackground(Color.surface)
+
+            if let outcome = viewModel.outcome {
+                Section {
+                    HostOutcomeBanner(outcome: outcome) { viewModel.dismissOutcome() }
+                }
+                .listRowInsets(EdgeInsets())
+                .listRowBackground(Color.clear)
+            }
+        }
+        .scrollContentBackground(.hidden)
+        .grenierBackground()
+        .onAppear { isFocused = true }
+    }
+
+    private func submit() {
+        guard !trimmed.isEmpty else { return }
+        let value = trimmed
+        Task {
+            await viewModel.scan(value)
+            if viewModel.outcome?.result.isSuccess == true { code = "" }
+        }
+    }
+}
+
 private struct HostScannerSheet: View {
     let viewModel: HostPickupViewModel
     @Environment(\.dismiss) private var dismiss
@@ -286,15 +354,7 @@ private struct HostScannerSheet: View {
                         .ignoresSafeArea(edges: .bottom)
                         .overlay(alignment: .bottom) { resultOverlay }
                 } else {
-                    ContentUnavailableView {
-                        Label("Caméra indisponible", systemImage: "camera.fill")
-                    } description: {
-                        Text("Autorise la caméra dans Réglages, ou touche « Récupéré » dans la liste.")
-                    } actions: {
-                        Button("Ouvrir les Réglages") {
-                            if let url = URL(string: UIApplication.openSettingsURLString) { UIApplication.shared.open(url) }
-                        }
-                    }
+                    HostManualCodeEntry(viewModel: viewModel)
                 }
             }
             .navigationTitle("Scanner un code")

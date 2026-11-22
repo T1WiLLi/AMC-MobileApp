@@ -89,6 +89,8 @@ final class TierEditorViewModel {
     private var original: Offer?
     /// Catégorie de la disponibilité d'origine (S-08) : choisit un produit de cette catégorie au chargement.
     private var preferredCategory: Product.Category?
+    /// Parts déjà réservées par les familles sur ce lot (modification seulement) : le total ne peut pas descendre en dessous.
+    private(set) var committedShares = 0
 
     init(
         repositories: AppRepositories,
@@ -169,6 +171,9 @@ final class TierEditorViewModel {
                 let offer = try await repositories.offers.offer(id: offerId)
                 guard offer.vendorId == vendorId else { throw AppError.permissionDenied }
                 apply(offer)
+                // Un détail : sans lui, on ne bloque pas l'édition (le dépôt reste juge).
+                let orders = (try? await repositories.groupOrders.groupOrders(ofOffer: offerId)) ?? []
+                committedShares = orders.filter { $0.status != .cancelled }.reduce(0) { $0 + $1.committedShares }
             }
             loadState = .loaded(())
         } catch {
@@ -221,6 +226,8 @@ final class TierEditorViewModel {
     /// Après une création réussie, l'éditeur passe en mode modification de ce lot.
     @discardableResult
     func save() async -> Offer? {
+        // Double tap : une sauvegarde déjà en cours ne doit pas créer un deuxième lot (l'id est généré à la création).
+        guard !isSaving else { return nil }
         let offer: Offer
         do {
             offer = try validatedOffer()
@@ -245,6 +252,9 @@ final class TierEditorViewModel {
     func validatedOffer() throws(AppError) -> Offer {
         guard let productId else { throw .invalidInput(String(localized: "Choisis un produit pour ce lot.")) }
         guard totalShares > 0 else { throw .invalidInput(String(localized: "Le lot doit contenir au moins une part.")) }
+        guard totalShares >= committedShares else {
+            throw .invalidInput(String(localized: "Des familles ont déjà réservé \(committedShares) parts : le lot ne peut pas en contenir moins."))
+        }
         guard share.isValid else {
             throw .invalidInput(String(localized: "Indique ce que contient une part : un poids plus grand que 0 (par exemple « sac de 10 kg »)."))
         }

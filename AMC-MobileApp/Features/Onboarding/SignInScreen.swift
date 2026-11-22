@@ -1,131 +1,94 @@
 import SwiftUI
 
-/// Écran de connexion (T-124, maquette Claude Design « Grenier — Connexion et inscription ») :
-/// bandeau orange avec l'accroche en haut, puis une feuille blanche qui monte dessus avec
-/// Google et le formulaire courriel. Le passage connexion ↔ inscription se fait par le lien du bas.
+/// Écran de connexion et d'inscription (T-124, revu en FB-01) : une seule colonne sur le fond crème,
+/// dans l'ordre de lecture — marque LeGrenier, titre, champs, action principale, « ou », Google —
+/// et le lien qui bascule connexion ↔ inscription posé en bas, au-dessus de la zone sûre.
 struct SignInScreen: View {
     let session: SessionViewModel
     @State private var mode: EmailAuthForm.Mode = .signIn
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
-    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
-    /// Hauteur visible de l'écran (hors zones sûres), pour choisir la taille du bandeau.
-    @State private var viewportHeight: CGFloat = 0
 
     private var isSigningIn: Bool { session.state == .signingIn }
 
-    /// Taille du bandeau : il cède la place pour que la connexion tienne sans défiler.
-    /// Le défilement reste possible en très grand texte (Dynamic Type accessibilité).
-    private var heroStyle: SignInHero.Style {
-        if mode == .signUp || dynamicTypeSize >= .xxLarge { return .minimal }
-        return viewportHeight >= 700 ? .full : .compact
-    }
-
     var body: some View {
         ScrollView {
-            VStack(spacing: 0) {
-                SignInHero(style: heroStyle)
-                sheet
-                    .padding(.top, -28)
-                    .frame(maxHeight: .infinity, alignment: .top)
+            VStack(spacing: 28) {
+                SignInBrandHeader(isCompact: mode == .signUp)
+
+                VStack(spacing: 16) {
+                    title
+
+                    if let message = session.errorMessage {
+                        SignInErrorBanner(message: message)
+                            .transition(.opacity.combined(with: .scale(scale: 0.95)))
+                    }
+
+                    EmailAuthForm(session: session, mode: $mode)
+                }
+
+                OrSeparator(title: "ou")
+
+                googleButton
             }
-            // La feuille blanche descend jusqu'en bas même quand le contenu est court.
-            .frame(minHeight: viewportHeight, alignment: .top)
+            .padding(.horizontal, 24)
+            .padding(.top, 16)
+            .padding(.bottom, 24)
+            .frame(maxWidth: 520)
+            .frame(maxWidth: .infinity)
         }
-        .onGeometryChange(for: CGFloat.self) { $0.size.height } action: { viewportHeight = $0 }
         .scrollDismissesKeyboard(.interactively)
         .scrollBounceBehavior(.basedOnSize)
-        .scrollEdgeEffectHidden(true, for: .bottom)
-        .background {
-            // Orange en haut (débordement du scroll), Surface en bas sous la feuille.
-            VStack(spacing: 0) {
-                SignInHero.gradient
-                Color.surface
-            }
-            .ignoresSafeArea()
+        .safeAreaInset(edge: .bottom, spacing: 0) {
+            modeSwitch
+                .frame(maxWidth: .infinity)
+                .padding(.horizontal, 24)
+                .padding(.bottom, 4)
         }
+        .grenierBackground()
         .tint(.grenier)
         .animation(reduceMotion ? nil : .smooth, value: session.errorMessage)
         .animation(reduceMotion ? nil : .smooth, value: mode)
         .sensoryFeedback(.error, trigger: session.errorMessage) { _, new in new != nil }
     }
 
-    private var sheet: some View {
-        VStack(spacing: 12) {
-            HStack(alignment: .firstTextBaseline) {
-                Text(mode == .signIn ? "Connecte-toi" : String(localized: "Crée ton compte"))
-                    .font(.title2.bold())
-                    .fontDesign(.rounded)
-                    .foregroundStyle(Color.texte)
-                    .contentTransition(.opacity)
-                    .accessibilityAddTraits(.isHeader)
-                Spacer(minLength: 8)
-                Text("Gratuit, sans engagement")
-                    .font(.caption)
-                    .foregroundStyle(Color.texteSecondaire)
-            }
-
-            if let message = session.errorMessage {
-                SignInErrorBanner(message: message)
-                    .transition(.opacity.combined(with: .scale(scale: 0.95)))
-            }
-
-            if mode == .signIn {
-                socialButtons
-                OrSeparator(title: "ou avec ton courriel")
-            }
-
-            EmailAuthForm(session: session, mode: $mode)
-
-            if mode == .signUp {
-                OrSeparator(title: "ou")
-                socialButtons
-            }
-
-            Spacer(minLength: 0)
-
-            modeSwitch
+    private var title: some View {
+        VStack(spacing: 4) {
+            Text(mode == .signIn ? String(localized: "Connecte-toi") : String(localized: "Crée ton compte"))
+                .font(.title2.bold())
+                .fontDesign(.rounded)
+                .foregroundStyle(Color.texte)
+                .contentTransition(.opacity)
+                .accessibilityAddTraits(.isHeader)
+            Label("Gratuit, sans engagement", systemImage: "gift.fill")
+                .font(.subheadline)
+                .foregroundStyle(Color.texteSecondaire)
+                .symbolRenderingMode(.hierarchical)
         }
-        .padding(.horizontal, 20)
-        .padding(.top, 22)
-        .padding(.bottom, 8)
-        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
-        .background {
-            UnevenRoundedRectangle(topLeadingRadius: 28, topTrailingRadius: 28, style: .continuous)
-                .fill(Color.surface)
-                .shadow(color: .black.opacity(0.08), radius: 12, y: -4)
-        }
+        .multilineTextAlignment(.center)
+        .frame(maxWidth: .infinity)
     }
 
-    @ViewBuilder private var socialButtons: some View {
-        VStack(spacing: 10) {
-            Button {
-                Task { await session.signInWithGoogle() }
-            } label: {
-                HStack(spacing: 10) {
-                    if isSigningIn {
-                        ProgressView()
-                    } else {
-                        Image(systemName: "g.circle.fill")
-                            .font(.title3)
-                            .symbolRenderingMode(.hierarchical)
-                            .foregroundStyle(Color.grenier)
-                    }
-                    Text(mode == .signIn ? String(localized: "Continuer avec Google") : String(localized: "S'inscrire avec Google"))
-                        .font(.headline)
-                        .foregroundStyle(Color.texte)
+    private var googleButton: some View {
+        Button {
+            Task { await session.signInWithGoogle() }
+        } label: {
+            HStack(spacing: 12) {
+                if session.isSigningIn(with: .google) {
+                    ProgressView()
+                } else {
+                    GoogleLogo()
                 }
-                .frame(maxWidth: .infinity, minHeight: 48)
-                .background(Color.surface, in: .rect(cornerRadius: 16))
-                .overlay {
-                    RoundedRectangle(cornerRadius: 16)
-                        .strokeBorder(Color.texteSecondaire.opacity(0.25), lineWidth: 1.5)
-                }
-                .contentShape(.rect(cornerRadius: 16))
+                Text(mode == .signIn ? String(localized: "Continuer avec Google") : String(localized: "S'inscrire avec Google"))
+                    .font(.headline)
+                    // Couleur de texte explicite : dans un bouton en verre, `.primary` prendrait la teinte.
+                    .foregroundStyle(Color.texte)
+                    .contentTransition(.opacity)
             }
-            .buttonStyle(.plain)
-            .disabled(isSigningIn)
-            .accessibilityHint("Ouvre la connexion Google")
+            .frame(maxWidth: .infinity, minHeight: 44)
         }
+        .buttonStyle(.glass)
+        .disabled(isSigningIn)
+        .accessibilityHint("Ouvre la connexion Google")
     }
 
     private var modeSwitch: some View {
@@ -142,125 +105,110 @@ struct SignInScreen: View {
             .font(.subheadline)
             .frame(minHeight: 44)
             .contentTransition(.opacity)
+            .contentShape(.rect)
         }
         .buttonStyle(.plain)
         .sensoryFeedback(.selection, trigger: mode)
     }
 }
 
-/// Bandeau du haut : marque, accroche et illustration en symboles.
-/// Trois tailles : complet (grand écran), compact (accroche seule), minimal (marque seule, inscription).
-private struct SignInHero: View {
-    enum Style { case full, compact, minimal }
-
-    let style: Style
+/// En-tête de marque : emblème LeGrenier dans un carré au dégradé, nom et accroche.
+/// À l'inscription, l'accroche cède sa place pour garder le formulaire visible.
+private struct SignInBrandHeader: View {
+    let isCompact: Bool
     /// Nom, emblème et accroche de la marque (B-032, `Core/Design/Brand/brand.json`).
     @Environment(\.brand) private var brand
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @ScaledMetric(relativeTo: .largeTitle) private var emblemSide: CGFloat = 72
     @State private var appeared = false
 
-    /// Dégradé fixe (Grenier clair vers brun) : le texte blanc garde son contraste en clair comme en sombre.
-    static let gradient = LinearGradient(
+    /// Dégradé fixe (Grenier clair vers brun) : l'emblème blanc garde son contraste en clair comme en sombre.
+    private static let gradient = LinearGradient(
         colors: [
-            Color(red: 0xA8 / 255, green: 0x4D / 255, blue: 0x18 / 255),
-            Color(red: 0x6E / 255, green: 0x30 / 255, blue: 0x0E / 255)
+            Color(red: 0xC2 / 255, green: 0x5E / 255, blue: 0x22 / 255),
+            Color(red: 0x7A / 255, green: 0x35 / 255, blue: 0x10 / 255)
         ],
         startPoint: .topLeading,
         endPoint: .bottomTrailing
     )
 
+    private var side: CGFloat { min(emblemSide, 104) * (isCompact ? 0.78 : 1) }
+
     var body: some View {
-        VStack(alignment: .leading, spacing: 0) {
-            HStack(spacing: 8) {
-                Image(systemName: "house.fill")
-                    .font(.subheadline.weight(.bold))
-                    .frame(width: 32, height: 32)
-                    .background(.white.opacity(0.18), in: .rect(cornerRadius: 10))
-                Text(brand.name)
-                    .font(.headline.weight(.heavy))
-                    .fontDesign(.rounded)
-            }
-            .accessibilityElement(children: .combine)
-
-            if style != .minimal {
-                HStack(alignment: .center, spacing: 8) {
-                    VStack(alignment: .leading, spacing: 8) {
-                        Text("Le gros, à petit prix, entre voisins.")
-                            .font(style == .full ? .title.weight(.heavy) : .title2.weight(.heavy))
-                            .fontDesign(.rounded)
-                            .fixedSize(horizontal: false, vertical: true)
-                        if style == .full {
-                            Text(brand.texts.tagline)
-                                .font(.subheadline)
-                                .foregroundStyle(.white.opacity(0.85))
-                                .lineLimit(3)
-                                .fixedSize(horizontal: false, vertical: true)
-                                .transition(.opacity)
-                        }
-                    }
-                    .frame(maxWidth: .infinity, alignment: .leading)
-
-                    if style == .full {
-                        ProduceIllustration(symbol: brand.logo.symbol, appeared: appeared && !reduceMotion)
-                            .transition(.scale.combined(with: .opacity))
-                    }
+        VStack(spacing: 12) {
+            Image(systemName: brand.logo.symbol)
+                .font(.system(size: side * 0.46, weight: .semibold))
+                .foregroundStyle(.white)
+                .symbolEffect(.bounce, options: .nonRepeating, value: appeared && !reduceMotion)
+                .frame(width: side, height: side)
+                .background(Self.gradient, in: .rect(cornerRadius: side * 0.28, style: .continuous))
+                .overlay(alignment: .topTrailing) {
+                    Image(systemName: "leaf.fill")
+                        .font(.system(size: side * 0.18, weight: .bold))
+                        .foregroundStyle(Color.economie)
+                        .frame(width: side * 0.36, height: side * 0.36)
+                        .background(Color.surface, in: .circle)
+                        .shadow(color: .black.opacity(0.12), radius: 3, y: 1)
+                        .offset(x: side * 0.12, y: -side * 0.12)
                 }
-                .padding(.top, 14)
-                .transition(.opacity)
+                .shadow(color: Color.grenier.opacity(0.3), radius: 12, y: 6)
+                .accessibilityHidden(true)
+
+            VStack(spacing: 4) {
+                Text(brand.name)
+                    .font(.largeTitle.weight(.heavy))
+                    .fontDesign(.rounded)
+                    .foregroundStyle(Color.texte)
+                if !isCompact {
+                    Text("Le gros, à petit prix, entre voisins.")
+                        .font(.subheadline)
+                        .foregroundStyle(Color.texteSecondaire)
+                        .fixedSize(horizontal: false, vertical: true)
+                        .transition(.opacity)
+                }
             }
+            .multilineTextAlignment(.center)
         }
-        .foregroundStyle(.white)
-        .padding(.horizontal, 24)
+        .frame(maxWidth: .infinity)
         .padding(.top, 8)
-        .padding(.bottom, 40)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .background(alignment: .topTrailing) {
-            ZStack(alignment: .topTrailing) {
-                Self.gradient
-                Circle()
-                    .fill(.white.opacity(0.07))
-                    .frame(width: 260, height: 260)
-                    .offset(x: 90, y: -90)
-            }
-            .ignoresSafeArea(edges: .top)
-            .accessibilityHidden(true)
-        }
+        .accessibilityElement(children: .combine)
         .onAppear { appeared = true }
     }
 }
 
-/// Caisse de produits en symboles SF : panier au centre, légumes et feuille autour.
-private struct ProduceIllustration: View {
-    let symbol: String
-    let appeared: Bool
+/// Logo « G » de Google dessiné en SwiftUI (quatre arcs aux couleurs de la marque et la barre bleue),
+/// pour ne pas embarquer d'image téléchargée. Couleurs de la marque Google, fixes en clair comme en sombre.
+struct GoogleLogo: View {
+    @ScaledMetric(relativeTo: .headline) private var side: CGFloat = 20
+
+    private static let blue = Color(red: 0x42 / 255, green: 0x85 / 255, blue: 0xF4 / 255)
+    private static let green = Color(red: 0x34 / 255, green: 0xA8 / 255, blue: 0x53 / 255)
+    private static let yellow = Color(red: 0xFB / 255, green: 0xBC / 255, blue: 0x05 / 255)
+    private static let red = Color(red: 0xEA / 255, green: 0x43 / 255, blue: 0x35 / 255)
 
     var body: some View {
+        let stroke = side * 0.22
         ZStack {
-            Circle()
-                .fill(.white.opacity(0.14))
-                .frame(width: 88, height: 88)
-            Image(systemName: symbol)
-                .font(.system(size: 38, weight: .semibold))
-                .foregroundStyle(.white)
-                .symbolEffect(.bounce, options: .nonRepeating, value: appeared)
-            badge("carrot.fill", tint: Color(red: 0xE0 / 255, green: 0x6A / 255, blue: 0x2B / 255))
-                .offset(x: -38, y: -30)
-            badge("leaf.fill", tint: Color(red: 0x2F / 255, green: 0x8A / 255, blue: 0x55 / 255))
-                .offset(x: 40, y: -26)
-            badge(GrenierSymbol.solidarity, tint: Color(red: 0x6B / 255, green: 0x4F / 255, blue: 0xB3 / 255))
-                .offset(x: 34, y: 36)
+            // `trim` part de 3 h et tourne dans le sens horaire : bleu en bas à droite, puis vert, jaune, rouge.
+            arc(from: 0, to: 0.13, color: Self.blue, width: stroke)
+            arc(from: 0.13, to: 0.38, color: Self.green, width: stroke)
+            arc(from: 0.38, to: 0.62, color: Self.yellow, width: stroke)
+            arc(from: 0.62, to: 0.88, color: Self.red, width: stroke)
+            // Barre horizontale du G, du centre jusqu'au bord droit.
+            Rectangle()
+                .fill(Self.blue)
+                .frame(width: side / 2, height: stroke)
+                .offset(x: side / 4)
         }
-        .frame(width: 108, height: 108)
+        .padding(stroke / 2)
+        .frame(width: side, height: side)
         .accessibilityHidden(true)
     }
 
-    private func badge(_ symbol: String, tint: Color) -> some View {
-        Image(systemName: symbol)
-            .font(.system(size: 13, weight: .bold))
-            .foregroundStyle(tint)
-            .frame(width: 30, height: 30)
-            .background(Color(red: 0xFB / 255, green: 0xF7 / 255, blue: 0xF0 / 255), in: .circle)
-            .shadow(color: .black.opacity(0.15), radius: 4, y: 2)
+    private func arc(from start: CGFloat, to end: CGFloat, color: Color, width: CGFloat) -> some View {
+        Circle()
+            .trim(from: start, to: end)
+            .stroke(color, style: StrokeStyle(lineWidth: width, lineCap: .butt))
     }
 }
 
@@ -293,7 +241,7 @@ private struct SignInErrorBanner: View {
     }
 }
 
-/// Séparateur à libellé entre les boutons sociaux et le formulaire.
+/// Séparateur « ou » entre le formulaire courriel et Google.
 private struct OrSeparator: View {
     let title: LocalizedStringKey
 
@@ -301,7 +249,7 @@ private struct OrSeparator: View {
         HStack(spacing: 12) {
             line
             Text(title)
-                .font(.caption.weight(.medium))
+                .font(.subheadline.weight(.medium))
                 .foregroundStyle(Color.texteSecondaire)
                 .fixedSize()
             line
@@ -310,7 +258,7 @@ private struct OrSeparator: View {
     }
 
     private var line: some View {
-        Rectangle()
+        Capsule()
             .fill(Color.texteSecondaire.opacity(0.25))
             .frame(height: 1)
     }

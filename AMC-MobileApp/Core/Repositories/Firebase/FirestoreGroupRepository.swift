@@ -11,6 +11,7 @@
 
 #if canImport(FirebaseFirestore)
 import Foundation
+import FirebaseAuth
 import FirebaseFirestore
 
 /// Transporte un `ListenerRegistration` (non Sendable) dans `onTermination`.
@@ -21,10 +22,19 @@ private nonisolated struct GroupListenerBox: @unchecked Sendable {
 
 nonisolated final class FirestoreGroupRepository: GroupRepository, @unchecked Sendable {
     private let db: Firestore
+    /// T-193 : uid du compte connecté, écrit dans `userId` de chaque adhésion (les règles exigent `== request.auth.uid`).
+    private let currentUserId: @Sendable () -> String?
 
     /// À créer APRÈS `FirebaseApp.configure()` (voir docs/firebase.md, § 3).
-    init(db: Firestore = Firestore.firestore()) {
+    init(db: Firestore = Firestore.firestore(),
+         currentUserId: @escaping @Sendable () -> String? = { Auth.auth().currentUser?.uid }) {
         self.db = db
+        self.currentUserId = currentUserId
+    }
+
+    private func requireUserId() throws -> String {
+        guard let uid = currentUserId(), !uid.isEmpty else { throw AppError.permissionDenied }
+        return uid
     }
 
     // MARK: - Références
@@ -135,6 +145,47 @@ nonisolated final class FirestoreGroupRepository: GroupRepository, @unchecked Se
     /// Retire le ménage du groupe et décrémente `householdCount` ; sans effet s'il n'en fait pas partie.
     func leave(groupId: String, householdId: String) async throws {
         try await changeMembership(groupId: groupId, householdId: householdId, joining: false)
+    }
+
+    /// T-193 : le créateur quitte et confie le groupe. Une transaction relit le groupe et les deux adhésions, puis
+    /// écrit ensemble : adhésion supprimée, `householdCount` −1 (`lastMembershipChange` = le partant), `createdBy` = le
+    /// compte héritier, `coordinatorIds` mis à jour, `handoverHouseholdId` = le ménage héritier (c'est lui que
+    /// `isCreatorHandover` contrôle) et adhésion de l'héritier passée `coordinator` (members/update).
+    func leave(groupId: String, householdId: String, byUserId userId: String,
+               handingOverTo heir: GroupRules.Handover?) async throws {
+        let current = try await group(id: groupId)
+        try GroupRules.requireCreator(userId, of: current)
+        guard let heir else {
+            try await changeMembership(groupId: groupId, householdId: householdId, joining: false)
+            return
+        }
+        guard heir.householdId != householdId else { throw AppError.notFound }
+        let groupRef = groupRef(groupId)
+        let leaverRef = membersRef(groupId).document(householdId)
+        let heirRef = membersRef(groupId).document(heir.householdId)
+        _ = try await FirestoreTransactions.run(db) { transaction -> Bool in
+            let groupSnapshot = try transaction.getDocument(groupRef)
+            guard groupSnapshot.exists else { throw AppError.notFound }
+            let group = try FirestoreTransactions.decode(NeighborhoodGroup.self, groupSnapshot)
+            try GroupRules.requireCreator(userId, of: group)
+            // Déjà sorti (autre téléphone) : rien à faire.
+            guard try transaction.getDocument(leaverRef).exists else { return false }
+            let heirSnapshot = try transaction.getDocument(heirRef)
+            guard heirSnapshot.exists else { throw AppError.notFound }
+            let handedOver = GroupRules.handingOver(group, from: userId, to: heir.userId)
+            transaction.deleteDocument(leaverRef)
+            if (heirSnapshot.data()?["role"] as? String) != GroupMember.Role.coordinator.rawValue {
+                transaction.updateData(["role": GroupMember.Role.coordinator.rawValue], forDocument: heirRef)
+            }
+            transaction.updateData([
+                "householdCount": FieldValue.increment(Int64(-1)),
+                "lastMembershipChange": householdId,
+                "createdBy": heir.userId,
+                "coordinatorIds": handedOver.coordinatorIds,
+                "handoverHouseholdId": heir.householdId,
+            ], forDocument: groupRef)
+            return true
+        }
     }
 
     /// T-191 : retrait par le créateur. Même batch que `leave` (adhésion supprimée, `householdCount` −1,
@@ -276,6 +327,7 @@ nonisolated final class FirestoreGroupRepository: GroupRepository, @unchecked Se
         let invitationRef = invitationRef(code)
         let memberRef = membersRef(groupId).document(householdId)
         let groupRef = groupRef(groupId)
+        let uid = try requireUserId()
         _ = try await FirestoreTransactions.run(db) { transaction -> Bool in
             let invitation = try FirestoreTransactions.decode(
                 GroupInvitation.self, try transaction.getDocument(invitationRef), idKey: "code"
@@ -287,6 +339,7 @@ nonisolated final class FirestoreGroupRepository: GroupRepository, @unchecked Se
                 "householdId": householdId,
                 "role": GroupMember.Role.member.rawValue,
                 "joinedAt": FieldValue.serverTimestamp(),
+                "userId": uid,
                 "invitationCode": code,
             ], forDocument: memberRef)
             transaction.updateData([
@@ -380,6 +433,7 @@ nonisolated final class FirestoreGroupRepository: GroupRepository, @unchecked Se
             "householdId": householdId,
             "role": GroupMember.Role.coordinator.rawValue,
             "joinedAt": FieldValue.serverTimestamp(),
+            "userId": userId,
         ], forDocument: membersRef(group.id).document(householdId))
         do {
             try await batch.commit()
@@ -403,6 +457,7 @@ nonisolated final class FirestoreGroupRepository: GroupRepository, @unchecked Se
                     "householdId": householdId,
                     "role": GroupMember.Role.member.rawValue,
                     "joinedAt": FieldValue.serverTimestamp(),
+                    "userId": try requireUserId(),
                 ], forDocument: memberRef)
             } else {
                 batch.deleteDocument(memberRef)

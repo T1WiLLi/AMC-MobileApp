@@ -201,6 +201,14 @@ nonisolated struct CachedGroupRepository: GroupRepository {
         await Self.invalidateMembership(groupId: groupId, householdId: householdId, in: cache)
     }
 
+    /// T-193 : le groupe (nouveau créateur), ses membres (rôle de l'héritier) et les listes sont relus.
+    func leave(groupId: String, householdId: String, byUserId userId: String,
+               handingOverTo heir: GroupRules.Handover?) async throws {
+        try await base.leave(groupId: groupId, householdId: householdId, byUserId: userId, handingOverTo: heir)
+        await Self.invalidateMembership(groupId: groupId, householdId: householdId, in: cache)
+        if let heir { await cache.invalidate(.groupsOfHousehold(heir.householdId)) }
+    }
+
     func removeHousehold(_ householdId: String, fromGroup groupId: String, byUserId userId: String,
                          creatorHouseholdId: String?) async throws {
         try await base.removeHousehold(householdId, fromGroup: groupId, byUserId: userId,

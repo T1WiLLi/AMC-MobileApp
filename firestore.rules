@@ -13,8 +13,9 @@ rules_version = '2';
 //                                        par le propriétaire du ménage (ownerId)
 //   householdAddresses/{sha256}          ménage inscrit à une adresse (T-159) ; lecture par id exact seulement
 //   groups/{id}                          groupe de quartier ; lecture par tout utilisateur connecté ;
-//                                        seul householdCount bouge, avec l'adhésion (T-099)
-//   groups/{id}/members/{householdId}    adhésion ; un ménage s'ajoute ou se retire lui-même
+//                                        seul householdCount bouge, avec l'adhésion (T-099) ; le créateur qui
+//                                        part confie le groupe à une famille membre (T-193)
+//   groups/{id}/members/{householdId}    adhésion ; un ménage s'ajoute ou se retire lui-même ; porte `userId` (T-193)
 //   groups/{id}/ratings/{householdId}    avis d'une famille sur le groupe (T-174) ; lecture connectée, écrit par un
 //                                        ménage membre ou ancien membre, avec ratingSum / ratingCount du groupe
 //   vendors/{id}                         vendeur ; lecture connectée, le vendeur modifie sa vitrine
@@ -412,7 +413,7 @@ service cloud.firestore {
       allow create: if isGroupCreation();
       allow delete: if false;
       allow update: if isMembershipCountUpdate() || isMediaStampUpdate() || isBrandingUpdate() || isVisibilityUpdate()
-        || isRatingAggregateUpdate();
+        || isRatingAggregateUpdate() || isCreatorHandover();
 
       // B-059 : une personne crée un groupe depuis l'app. Elle en est la créatrice et la seule coordonnatrice,
       // son ménage (`lastMembershipChange`) en est le premier membre, coordonnateur, écrit dans le même batch.
@@ -497,6 +498,37 @@ service cloud.firestore {
               || (delta == -1 && wasMember && !isMember && isCreatorRemoving(householdId)));
       }
 
+      // T-193 : le créateur quitte son groupe et le confie à une famille encore membre. Même écriture (batch ou
+      // transaction) que la sortie : suppression de SON adhésion, compteur −1, `createdBy` = un compte du ménage
+      // héritier (`handoverHouseholdId`, dont l'adhésion reste et passe `coordinator`, voir members/update), et
+      // `coordinatorIds` = l'ancien créateur retiré, le nouveau ajouté. Rien d'autre ne bouge ; personne d'autre
+      // ne change `createdBy` (aucune autre règle de groupe ne l'autorise).
+      function isCreatorHandover() {
+        let before = resource.data;
+        let after = request.resource.data;
+        let leaver = after.get('lastMembershipChange', '');
+        let heir = after.get('handoverHouseholdId', '');
+        return isAuthenticated()
+          && groupCreatorId(before) == request.auth.uid
+          && onlyChanges(['householdCount', 'lastMembershipChange', 'createdBy', 'coordinatorIds', 'handoverHouseholdId'])
+          && leaver is string && leaver.size() > 0 && isMemberOfHousehold(leaver)
+          && exists(memberPath(groupId, leaver)) && !existsAfter(memberPath(groupId, leaver))
+          && after.householdCount is int && after.householdCount == before.get('householdCount', 0) - 1
+          && after.householdCount >= 0
+          && heir is string && heir.size() > 0 && heir != leaver
+          && exists(memberPath(groupId, heir)) && existsAfter(memberPath(groupId, heir))
+          && getAfter(memberPath(groupId, heir)).data.role == 'coordinator'
+          && exists(/databases/$(database)/documents/households/$(heir))
+          && after.createdBy is string && after.createdBy != request.auth.uid
+          && after.createdBy == get(memberPath(groupId, heir)).data.get('userId', '')
+          && after.createdBy in get(/databases/$(database)/documents/households/$(heir)).data.userIds
+          && after.coordinatorIds is list
+          && after.coordinatorIds.size() == after.coordinatorIds.toSet().size()
+          && after.coordinatorIds.toSet()
+             == before.get('coordinatorIds', []).toSet().difference([request.auth.uid].toSet())
+                  .union([after.createdBy].toSet());
+      }
+
       // T-191 : le créateur du groupe (et lui seul : ni un autre coordonnateur, ni un membre) retire une famille.
       // Jamais son propre ménage (`isMemberOfHousehold`) : il quitte le groupe par la sortie volontaire.
       function isCreatorRemoving(householdId) {
@@ -512,23 +544,45 @@ service cloud.firestore {
 
         function isJoining() {
           return exists(groupPath(groupId))
-            && request.resource.data.keys().hasOnly(['householdId', 'role', 'joinedAt', 'invitationCode'])
+            && request.resource.data.keys().hasOnly(['householdId', 'role', 'joinedAt', 'invitationCode', 'userId'])
+            && hasOwnUserId()
             && request.resource.data.role == 'member'
             && isCountChangedBy(groupId, householdId, 1)
             && (isPublicGroupData(get(groupPath(groupId)).data) || isConsumingInvitation(groupId, householdId));
+        }
+
+        // T-193 : l'adhésion porte `userId`, le compte qui adhère (membre du ménage, voir `isMemberOfHousehold` sur
+        // create). Les ménages ne sont lisibles que par leurs membres : c'est ici que le groupe retrouve l'uid de
+        // l'héritier. Jamais modifiable ensuite (update ne touche que `role`) ; le rattrapage passe par l'Admin SDK.
+        function hasOwnUserId() {
+          return request.resource.data.userId is string && request.resource.data.userId == request.auth.uid;
         }
 
         // B-059 : premier membre, coordonnateur, écrit avec le groupe qu'il crée (`isGroupCreation`).
         function isCreatorMembership() {
           let group = getAfter(groupPath(groupId)).data;
           return !exists(groupPath(groupId))
-            && request.resource.data.keys().hasOnly(['householdId', 'role', 'joinedAt'])
+            && request.resource.data.keys().hasOnly(['householdId', 'role', 'joinedAt', 'userId'])
+            && hasOwnUserId()
             && request.resource.data.role == 'coordinator'
             && group.get('createdBy', '') == request.auth.uid
             && group.get('lastMembershipChange', '') == householdId
             && group.get('householdCount', 0) == 1;
         }
-        allow update: if false;
+        // T-193 : seule la passation du créateur (`isCreatorHandover`, même écriture) fait passer l'héritier de
+        // `member` à `coordinator` ; aucun autre champ, aucun autre cas.
+        allow update: if isHandoverPromotion();
+        function isHandoverPromotion() {
+          let groupBefore = get(groupPath(groupId)).data;
+          let groupAfter = getAfter(groupPath(groupId)).data;
+          return isAuthenticated() && exists(groupPath(groupId))
+            && groupCreatorId(groupBefore) == request.auth.uid
+            && groupAfter.get('handoverHouseholdId', '') == householdId
+            && groupCreatorId(groupAfter) != groupCreatorId(groupBefore)
+            && resource.data.role == 'member'
+            && request.resource.data.role == 'coordinator'
+            && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['role']);
+        }
         allow delete: if (isMemberOfHousehold(householdId)
           && (!exists(groupPath(groupId)) || isCountChangedBy(groupId, householdId, -1)))
           // T-191 : retrait d'une famille par le créateur, avec le compteur −1 dans le même batch.

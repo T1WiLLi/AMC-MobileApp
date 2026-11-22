@@ -254,7 +254,11 @@ private struct GroupDetailContent: View {
 
                     if content.isMember {
                         Button(role: .destructive) {
-                            isConfirmingLeave = true
+                            // T-193 : le créateur voit d'abord à qui le groupe sera confié.
+                            Task {
+                                await viewModel.prepareLeave()
+                                isConfirmingLeave = true
+                            }
                         } label: {
                             Label("Quitter le groupe", systemImage: "rectangle.portrait.and.arrow.right")
                                 .frame(maxWidth: .infinity)
@@ -271,7 +275,11 @@ private struct GroupDetailContent: View {
                             }
                             Button("Annuler", role: .cancel) {}
                         } message: {
-                            Text("Tes parts déjà réservées restent valides. Tu pourras revenir quand tu veux.")
+                            if let successionMessage = viewModel.successionMessage {
+                                Text(successionMessage)
+                            } else {
+                                Text("Tes parts déjà réservées restent valides. Tu pourras revenir quand tu veux.")
+                            }
                         }
                     }
                 }

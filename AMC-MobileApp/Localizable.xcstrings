@@ -28639,6 +28639,26 @@
           }
         }
       }
+    },
+    "Ici : tes préférences, la langue et « Revoir le tutoriel avec Noisette » pour me retrouver. Bonne cueillette !" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Here: your preferences, the language and “Replay the tutorial with Noisette” to find me again. Happy pickup!"
+          }
+        }
+      }
+    },
+    "Ici : tes préférences, la langue et « Revoir le tutoriel avec Racoonette » pour me retrouver. Bonne vente !" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Here: your preferences, the language and “Replay the tutorial with Racoonette” to find me again. Happy selling!"
+          }
+        }
+      }
     }
   },
   "version" : "1.0"

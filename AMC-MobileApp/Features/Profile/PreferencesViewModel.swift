@@ -107,10 +107,6 @@ final class PreferencesViewModel {
         await update { $0.language = language }
     }
 
-    func setSeniorMode(_ isOn: Bool) async {
-        await update { $0.seniorMode = isOn }
-    }
-
     /// T-171 : libellé d'un choix de langue de l'interface. « Langue de l'appareil » montre la langue résolue.
     nonisolated static func title(of language: AppLanguage) -> String {
         switch language {

@@ -134,9 +134,15 @@ final class VendorOffersViewModel {
         let products = try await repositories.vendors.products(ofVendor: vendorId)
         let productsById = Dictionary(products.map { ($0.id, $0) }, uniquingKeysWith: { first, _ in first })
 
-        let linked = try await VendorRepositoryQueries.linkedGroupOrders(
+        var linked = try await VendorRepositoryQueries.linkedGroupOrders(
             ofOffers: offers.map(\.id), in: repositories, statuses: Set(GroupOrder.Status.allCases)
         )
+        // E21-2 (RQ-053 a) : les commandes encore ouvertes après la date limite sont fermées à l'ouverture de l'écran.
+        if await closeDueOrders(linked.map(\.order), offers: offers) {
+            linked = try await VendorRepositoryQueries.linkedGroupOrders(
+                ofOffers: offers.map(\.id), in: repositories, statuses: Set(GroupOrder.Status.allCases)
+            )
+        }
         let ordersByOffer = Dictionary(grouping: linked.map(\.order), by: \.offerId)
 
         let rows: [OfferRow] = offers.map { offer in
@@ -161,6 +167,27 @@ final class VendorOffersViewModel {
             }
             return OfferSection(kind: kind, rows: sectionRows)
         }
+    }
+
+    /// Tente la clôture automatique de chaque commande échue ; une course perdue (`.orderClosed`) ou un refus
+    /// est ignoré. Vrai si au moins une commande a changé (à relire).
+    private func closeDueOrders(_ orders: [GroupOrder], offers: [Offer]) async -> Bool {
+        let offersById = Dictionary(offers.map { ($0.id, $0) }, uniquingKeysWith: { first, _ in first })
+        let date = now()
+        var changed = false
+        for order in orders {
+            guard let offer = offersById[order.offerId],
+                  ClosurePolicy.shouldAttemptAutomaticClosure(order: order, offer: offer, now: date) else { continue }
+            do {
+                try await repositories.groupOrders.closeGroupOrder(id: order.id, trigger: .automatic)
+                changed = true
+            } catch AppError.orderClosed {
+                changed = true
+            } catch {
+                continue
+            }
+        }
+        return changed
     }
 
     // MARK: Actions

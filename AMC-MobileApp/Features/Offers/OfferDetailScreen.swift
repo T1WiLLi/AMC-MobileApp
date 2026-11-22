@@ -30,7 +30,8 @@ struct OfferDetailScreen: View {
                     offerId: offerId,
                     householdId: context.householdId,
                     groupId: consultation?.groupId ?? context.groupId,
-                    isReadOnly: isConsulting
+                    isReadOnly: isConsulting,
+                    userId: context.userId
                 )
             }
         }
@@ -79,6 +80,8 @@ enum OfferDetailSymbol {
     static let verified = "checkmark.seal.fill"
     static let share = "square.and.arrow.up"
     static let cancel = "xmark.circle"
+    static let closeOrder = "lock.fill"
+    static let paid = "checkmark.seal.fill"
 
     /// Symbole du type de vendeur.
     static func vendor(_ kind: Vendor.Kind) -> String {
@@ -140,6 +143,8 @@ private struct OfferDetailContent: View {
     @ScaledMetric(relativeTo: .body) private var rowIconWidth: CGFloat = 30
     /// Dernière célébration montrée, gardée pendant l'animation de fermeture de la feuille.
     @State private var shownCelebration: OfferDetailViewModel.TierCelebration?
+    /// E21-2 : confirmation de « Fermer la commande ».
+    @State private var isConfirmingClose = false
 
     var body: some View {
         StateView(
@@ -184,6 +189,7 @@ private struct OfferDetailContent: View {
         .onChange(of: viewModel.celebration) { _, newValue in
             if let newValue { shownCelebration = newValue }
         }
+        .sensoryFeedback(.success, trigger: viewModel.lastClosure) { _, new in new != nil }
         .sensoryFeedback(.impact(weight: .medium), trigger: myShareQuantity) { (old: Int?, new: Int?) -> Bool in
             guard let old, let new else { return false }
             return old != new
@@ -571,11 +577,67 @@ private struct OfferDetailContent: View {
                     MinimumRiskBadge(assessment: MinimumRisk.assess(offer: content.offer, order: order))
                 }
                 tierHint(content)
+                if content.canClose {
+                    closeButton(content)
+                }
             }
             .grenierCard()
             .guidedTourAnchor(.offerTiers)
             .grenierAnimation(.smooth, value: content.committedShares)
+            .grenierAnimation(.smooth, value: content.groupOrder?.status)
         }
+    }
+
+    // MARK: Fermer la commande (E21-2)
+
+    /// Coordination du groupe ou vendeur du lot : ferme la commande et débite les familles au prix final.
+    private func closeButton(_ content: OfferDetailViewModel.Content) -> some View {
+        Button {
+            isConfirmingClose = true
+        } label: {
+            Group {
+                if viewModel.isClosing {
+                    ProgressView()
+                } else {
+                    Label("Fermer la commande", systemImage: OfferDetailSymbol.closeOrder)
+                }
+            }
+            .frame(maxWidth: .infinity, minHeight: 32)
+        }
+        .buttonStyle(.glass)
+        .tint(Color.grenier)
+        .disabled(viewModel.isClosing)
+        .confirmationDialog(
+            String(localized: "Fermer la commande ?"),
+            isPresented: $isConfirmingClose,
+            titleVisibility: .visible
+        ) {
+            Button(closeConfirmTitle(content)) {
+                Task { await viewModel.closeOrder() }
+            }
+            Button("Annuler", role: .cancel) {}
+        } message: {
+            Text(closeConfirmMessage(content))
+        }
+    }
+
+    private func closeConfirmTitle(_ content: OfferDetailViewModel.Content) -> String {
+        isBelowMinimum(content) ? String(localized: "Fermer et annuler") : String(localized: "Fermer et débiter les familles")
+    }
+
+    private func closeConfirmMessage(_ content: OfferDetailViewModel.Content) -> String {
+        if isBelowMinimum(content) {
+            return String(localized: "Le minimum n'est pas atteint : la commande sera annulée et aucune famille ne sera débitée.")
+        }
+        let price = Money.format(content.pricing.currentPriceCents)
+        return String(localized: "Les familles seront débitées au prix final de \(price) par \(content.offer.displayShareUnit). Les parts ne pourront plus changer.")
+    }
+
+    private func isBelowMinimum(_ content: OfferDetailViewModel.Content) -> Bool {
+        if case .cancelled = TierEngine.closureOutcome(offer: content.offer, committedShares: content.committedShares) {
+            return true
+        }
+        return false
     }
 
     private func progressTitle(households: Int, content: OfferDetailViewModel.Content) -> some View {
@@ -653,12 +715,20 @@ private struct OfferDetailContent: View {
         VStack(alignment: .leading, spacing: 14) {
             sectionHeader(String(localized: "Ta part"), systemImage: OfferDetailSymbol.shareSection, info: .share)
 
-            if content.groupOrder != nil && !content.isOpen {
+            if content.groupOrder?.status == .cancelled {
+                OfferSymbolScene(
+                    symbol: GrenierSymbol.offers,
+                    badge: "xmark.circle.fill",
+                    tint: .texteSecondaire,
+                    title: String(localized: "Commande annulée"),
+                    message: String(localized: "Le minimum n'a pas été atteint : aucune famille n'est débitée.")
+                )
+            } else if content.groupOrder != nil && !content.isOpen {
                 OfferSymbolScene(
                     symbol: GrenierSymbol.offers,
                     badge: "lock.circle.fill",
                     title: String(localized: "Commande fermée"),
-                    message: String(localized: "Les parts sont figées. Rendez-vous à la cueillette avec ton code QR.")
+                    message: closedMessage(content)
                 )
             }
 
@@ -816,6 +886,18 @@ private struct OfferDetailContent: View {
         .padding(.top, 12)
         .padding(.bottom, 8)
         .grenierAnimation(.smooth, value: viewModel.selectedQuantity)
+    }
+
+    /// E21-2 : après la clôture, prix final de la part et paiement au pot du groupe.
+    private func closedMessage(_ content: OfferDetailViewModel.Content) -> String {
+        guard let share = content.myShare, let finalPrice = share.finalPriceCents else {
+            return String(localized: "Les parts sont figées. Rendez-vous à la cueillette avec ton code QR.")
+        }
+        let total = Money.format(finalPrice - share.subsidyCents + share.suspendedAmountCents)
+        if share.isPaid {
+            return String(localized: "Prix final : \(total) pour ta part, payé au pot du groupe. Rendez-vous à la cueillette avec ton code QR.")
+        }
+        return String(localized: "Prix final : \(total) pour ta part. Le paiement a été refusé : la coordination du groupe te recontactera.")
     }
 
     /// Confirmation sous « Part réservée ! » : mentionne le panier suspendu enregistré avec la part.

@@ -577,6 +577,8 @@ actor FakeGroupOrderRepository: GroupOrderRepository {
     private var shares: [String: [Share]]
     private let offers: [String: Offer]
     private let now: @Sendable () -> Date
+    /// E21-2 : faux terminal de paiement utilisé à la clôture.
+    private let payments: PaymentSimulator
     private var broadcaster = FakeBroadcaster<GroupOrder>()
 
     init(
@@ -584,10 +586,12 @@ actor FakeGroupOrderRepository: GroupOrderRepository {
         groupOrders: [GroupOrder] = [],
         shares: [String: [Share]] = [:],
         offers: [Offer] = [],
-        now: @escaping @Sendable () -> Date = { .now }
+        now: @escaping @Sendable () -> Date = { .now },
+        payments: PaymentSimulator = PaymentSimulator()
     ) {
         self.behavior = behavior
         self.now = now
+        self.payments = payments
         self.groupOrders = Dictionary(uniqueKeysWithValues: groupOrders.map { ($0.id, $0) })
         self.shares = shares
         self.offers = Dictionary(uniqueKeysWithValues: offers.map { ($0.id, $0) })
@@ -729,6 +733,34 @@ actor FakeGroupOrderRepository: GroupOrderRepository {
             shares[groupOrderId] = orderShares
         }
         return result
+    }
+
+    @discardableResult
+    func closeGroupOrder(
+        id groupOrderId: String,
+        trigger: GroupOrderClosureTrigger,
+        eligibleHouseholdIds: Set<String>,
+        solidarityFundCents: Cents
+    ) async throws -> GroupOrderClosure {
+        try await behavior.simulate()
+        guard let order = groupOrders[groupOrderId], let offer = offers[order.offerId] else { throw AppError.notFound }
+        let closure = try GroupOrderClosing.close(
+            order: order, offer: offer, shares: shares[groupOrderId, default: []], trigger: trigger, now: now(),
+            eligibleHouseholdIds: eligibleHouseholdIds, solidarityFundCents: solidarityFundCents, payments: payments
+        )
+        // Même écriture que la transaction Firestore : parts figées (et payées), puis la commande.
+        if closure.isConfirmed {
+            var orderShares = shares[groupOrderId, default: []]
+            for share in closure.shares {
+                if let index = orderShares.firstIndex(where: { $0.householdId == share.householdId }) {
+                    orderShares[index] = share
+                }
+            }
+            shares[groupOrderId] = orderShares
+        }
+        groupOrders[groupOrderId] = closure.order
+        broadcaster.send(closure.order, for: groupOrderId)
+        return closure
     }
 
     func observeGroupOrder(id: String) async -> AsyncThrowingStream<GroupOrder, any Error> {

@@ -84,6 +84,33 @@ nonisolated struct CachedGroupOrderRepository: GroupOrderRepository {
         return result
     }
 
+    @discardableResult
+    func closeGroupOrder(
+        id groupOrderId: String,
+        trigger: GroupOrderClosureTrigger,
+        eligibleHouseholdIds: Set<String>,
+        solidarityFundCents: Cents
+    ) async throws -> GroupOrderClosure {
+        do {
+            let closure = try await base.closeGroupOrder(
+                id: groupOrderId, trigger: trigger,
+                eligibleHouseholdIds: eligibleHouseholdIds, solidarityFundCents: solidarityFundCents
+            )
+            await Self.apply(closure.order, to: cache)
+            return closure
+        } catch AppError.orderClosed {
+            // Fermée ailleurs entre-temps : l'entrée en cache est périmée, la prochaine lecture la relit.
+            await cache.invalidate(.groupOrder(groupOrderId))
+            await cache.invalidate(.shares(ofGroupOrder: groupOrderId))
+            await cache.invalidate { key in
+                if case .groupOrdersOfGroup = key { return true }
+                if case .groupOrdersOfOffer = key { return true }
+                return false
+            }
+            throw AppError.orderClosed
+        }
+    }
+
     func observeGroupOrder(id: String) async -> AsyncThrowingStream<GroupOrder, any Error> {
         let cache = cache
         return relayingSnapshots(

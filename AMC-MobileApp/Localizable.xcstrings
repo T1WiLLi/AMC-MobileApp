@@ -180,6 +180,56 @@
         }
       }
     },
+    "Commande annulée" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Order cancelled"
+          }
+        }
+      }
+    },
+    "Fermer et annuler" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Close and cancel"
+          }
+        }
+      }
+    },
+    "Fermer et débiter les familles" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Close and charge families"
+          }
+        }
+      }
+    },
+    "Fermer la commande" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Close the order"
+          }
+        }
+      }
+    },
+    "Fermer la commande ?" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Close the order?"
+          }
+        }
+      }
+    },
     "Ici : tes préférences, la langue, le mode aîné (plus gros et plus simple) et « Revoir le tutoriel avec Noisette » pour me retrouver. Bonne cueillette !" : {
       "localizations" : {
         "en" : {
@@ -240,6 +290,26 @@
         }
       }
     },
+    "Le minimum n'a pas été atteint : aucune famille n'est débitée." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The minimum wasn't reached: no family is charged."
+          }
+        }
+      }
+    },
+    "Le minimum n'est pas atteint : la commande sera annulée et aucune famille ne sera débitée." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The minimum hasn't been reached: the order will be cancelled and no family will be charged."
+          }
+        }
+      }
+    },
     "Le prix baisse avec les familles" : {
       "localizations" : {
         "en" : {
@@ -256,6 +326,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "LeGrenier is neighbours buying in bulk together: local producers sell by the bundle, and the more shares your group reserves, the more the price drops for everyone. Let me show you around!"
+          }
+        }
+      }
+    },
+    "Les familles seront débitées au prix final de %@ par %@. Les parts ne pourront plus changer." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Families will be charged the final price of %@ per %@. Shares can no longer change."
           }
         }
       }
@@ -296,6 +376,26 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Where the demand is"
+          }
+        }
+      }
+    },
+    "Prix final : %@ pour ta part, payé au pot du groupe. Rendez-vous à la cueillette avec ton code QR." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Final price: %@ for your share, paid into the group pot. See you at pickup with your QR code."
+          }
+        }
+      }
+    },
+    "Prix final : %@ pour ta part. Le paiement a été refusé : la coordination du groupe te recontactera." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Final price: %@ for your share. The payment was declined: the group coordinator will get in touch."
           }
         }
       }

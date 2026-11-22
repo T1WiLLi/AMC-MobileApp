@@ -343,7 +343,7 @@ struct FirestoreGroupOrderRepositoryTests {
         }
 
         let closure = try await coordinator.repository.closeGroupOrder(
-            id: orderId, eligibleHouseholdIds: ["household-voisin"], solidarityFundCents: 1_000
+            id: orderId, trigger: .automatic, eligibleHouseholdIds: ["household-voisin"], solidarityFundCents: 1_000
         )
         #expect(closure.order.status == .closed)
         #expect(closure.outcome == .confirmed(tierIndex: 1, unitPriceCents: 800))
@@ -353,6 +353,8 @@ struct FirestoreGroupOrderRepositoryTests {
         #expect(byHousehold["household-voisin"]?.finalPriceCents == 4_000)
         #expect(byHousehold["household-voisin"]?.subsidyCents == 1_000)
         #expect(shares.allSatisfy { $0.qrCode != nil })
+        // E21-2 : chaque part payée au pot dans la même transaction (paiement simulé réussi).
+        #expect(shares.allSatisfy { $0.isPaid })
         #expect(try await coordinator.repository.groupOrder(id: orderId).status == .closed)
 
         // Fermée : plus de changement possible.

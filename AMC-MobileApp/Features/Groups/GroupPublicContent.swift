@@ -3,24 +3,22 @@ import SwiftUI
 /// T-172 (FB-13) : fiche publique d'un groupe, pour un ménage qui n'en fait pas partie.
 /// Avant, toucher un groupe dont on n'était pas membre affichait « Action non permise » (lecture des parts
 /// refusée par les règles). Le visiteur voit maintenant ce qui donne envie d'entrer : bannière et photo,
-/// quartier, familles, lots ouverts en aperçu, coordination, visibilité, puis une seule action principale :
+/// quartier, familles, lots ouverts, coordination, visibilité, puis une seule action principale :
 /// « Rejoindre le groupe » (public) ou « Demander une invitation » (privé). Une fois membre, `GroupDetailScreen`
 /// bascule tout seul sur la fiche complète.
+/// T-187 : le visiteur lit aussi les avis des familles (sans noter) et voit tous les lots ouverts ; chaque lot
+/// s'ouvre en consultation (`GroupOfferRoute`) : produit, paliers, avancement, sans réserver.
 struct GroupPublicContent: View {
     @Environment(\.groupTheme) private var theme
     @Environment(\.appContext) private var context
-    @Environment(SessionContextStore.self) private var contextStore: SessionContextStore?
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     let content: GroupDetailViewModel.Content
     let viewModel: GroupDetailViewModel
 
-    /// Groupe privé : feuille « Rejoindre avec un code ».
-    @State private var isJoiningWithCode = false
     @State private var showsNavigationTitle = false
-
-    /// Aperçu : les premiers lots seulement, le reste se découvre une fois membre.
-    static let previewLimit = 3
+    /// T-187 : avis des familles en lecture seule.
+    @State private var ratings: GroupRatingsViewModel?
 
     private var group: NeighborhoodGroup { content.group }
     private var neighborhood: String? { NeighborhoodName.display(group.neighborhood) }
@@ -34,7 +32,10 @@ struct GroupPublicContent: View {
                     header
                     keyFigures
                     coordinationCard
-                    openOrdersPreview
+                    openOrdersList
+                    if let ratings {
+                        GroupRatingsSection(model: ratings, groupName: theme.displayName ?? group.name)
+                    }
                     benefits
                     if !group.isPublic { PrivateGroupNote(isMember: false) }
                 }
@@ -58,14 +59,13 @@ struct GroupPublicContent: View {
                     .accessibilityHidden(!showsNavigationTitle)
             }
         }
-        .safeAreaInset(edge: .bottom) { joinBar }
-        .sheet(isPresented: $isJoiningWithCode) {
-            JoinWithCodeSheet(repositories: context.repositories, householdId: context.householdId) { joined in
-                Task {
-                    await viewModel.load()
-                    await contextStore?.reload(preferring: joined.id)
-                }
-            }
+        .safeAreaInset(edge: .bottom) { GroupJoinBar(group: group, viewModel: viewModel) }
+        .task(id: group.id) {
+            let model = ratings ?? GroupRatingsViewModel(repositories: context.repositories, groupId: group.id,
+                                                         householdId: context.householdId, userId: context.userId,
+                                                         isReadOnly: true)
+            ratings = model
+            await model.load(isMember: false, isOwner: viewModel.isCreator)
         }
     }
 
@@ -151,7 +151,7 @@ struct GroupPublicContent: View {
     // MARK: Lots ouverts
 
     @ViewBuilder
-    private var openOrdersPreview: some View {
+    private var openOrdersList: some View {
         let orders = content.openOrders
         VStack(alignment: .leading, spacing: 12) {
             GroupsSectionHeader(title: String(localized: "En ce moment dans le groupe"),
@@ -176,21 +176,15 @@ struct GroupPublicContent: View {
                 .grenierCard()
                 .accessibilityElement(children: .combine)
             } else {
-                ForEach(orders.prefix(Self.previewLimit)) { summary in
-                    NavigationLink(value: OfferRoute(offerId: summary.offer.id)) {
+                // T-187 : tous les lots ouverts, en consultation (réserver demande d'être membre).
+                ForEach(orders) { summary in
+                    NavigationLink(value: GroupOfferRoute(offerId: summary.offer.id, groupId: group.id)) {
                         OfferCard(offer: summary.offer, product: summary.product, vendor: summary.vendor,
                                   committedShares: summary.committedShares,
                                   committedHouseholds: summary.committedHouseholds)
                     }
                     .buttonStyle(.plain)
-                    .accessibilityHint("Ouvre la fiche du lot.")
-                }
-                if orders.count > Self.previewLimit {
-                    Label(String(localized: "Et \(FrenchPlural.count(orders.count - Self.previewLimit, "autre lot", plural: "autres lots")) pour les membres"),
-                          systemImage: "plus.circle.fill")
-                        .font(.subheadline.weight(.semibold))
-                        .symbolRenderingMode(.hierarchical)
-                        .foregroundStyle(theme.accent)
+                    .accessibilityHint("Ouvre la fiche du lot, en consultation.")
                 }
             }
         }
@@ -235,60 +229,6 @@ struct GroupPublicContent: View {
             }
         }
         .accessibilityElement(children: .combine)
-    }
-
-    // MARK: Action principale
-
-    @ViewBuilder
-    private var joinBar: some View {
-        VStack(spacing: 8) {
-            if group.isPublic {
-                Button {
-                    Task {
-                        await viewModel.join()
-                        await contextStore?.reload(preferring: group.id)
-                    }
-                } label: {
-                    Group {
-                        if viewModel.isUpdatingMembership {
-                            ProgressView()
-                        } else {
-                            Label("Rejoindre le groupe", systemImage: "person.badge.plus")
-                                .symbolEffect(.wiggle, options: .repeat(.periodic(delay: 3)), isActive: !reduceMotion)
-                        }
-                    }
-                    .font(.headline)
-                    .frame(maxWidth: .infinity)
-                }
-                .buttonStyle(.glassProminent)
-                .tint(theme.accent)
-                .controlSize(.large)
-                .disabled(viewModel.isUpdatingMembership)
-                .accessibilityHint("Ton ménage rejoint \(group.name) et voit tous ses lots.")
-            } else {
-                // Groupe privé : on demande une invitation à un voisin qui en fait partie, ou on entre son code.
-                ShareLink(item: Self.invitationRequest(for: group)) {
-                    Label("Demander une invitation", systemImage: "envelope.badge.fill")
-                        .font(.headline)
-                        .frame(maxWidth: .infinity)
-                }
-                .buttonStyle(.glassProminent)
-                .tint(theme.accent)
-                .controlSize(.large)
-                .accessibilityHint("Envoie une demande à un voisin qui fait partie du groupe.")
-                Button {
-                    isJoiningWithCode = true
-                } label: {
-                    Label("J'ai déjà une invitation", systemImage: "ticket.fill")
-                        .fontWeight(.semibold)
-                        .frame(maxWidth: .infinity)
-                }
-                .buttonStyle(.glass)
-                .controlSize(.large)
-            }
-        }
-        .padding(.horizontal, 16)
-        .padding(.bottom, 8)
     }
 
     /// Message partagé pour demander une invitation à un groupe privé.

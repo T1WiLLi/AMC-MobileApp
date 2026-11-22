@@ -237,7 +237,7 @@ private struct SummaryGrid: View {
                 systemImage: "banknote.fill", tint: .grenier
             )
             StatTile(
-                title: String(localized: "Parts vendues"), value: report.totalUnits.formatted(),
+                title: String(localized: "Parts vendues"), value: report.totalUnits.formatted(.number.locale(AppLanguage.formattingLocale)),
                 numeric: Double(report.totalUnits), detail: productsDetail,
                 systemImage: GrenierSymbol.offers, tint: .grenier
             )
@@ -247,7 +247,7 @@ private struct SummaryGrid: View {
                 systemImage: GrenierSymbol.savings, tint: .economie
             )
             StatTile(
-                title: String(localized: "Familles"), value: report.householdCount.formatted(),
+                title: String(localized: "Familles"), value: report.householdCount.formatted(.number.locale(AppLanguage.formattingLocale)),
                 numeric: Double(report.householdCount), detail: groupsDetail,
                 systemImage: GrenierSymbol.groups, tint: .solidarite
             )
@@ -460,7 +460,7 @@ private struct ProductFilterChips: View {
     var body: some View {
         ScrollView(.horizontal) {
             HStack(spacing: 8) {
-                chip(title: "Tous", systemImage: "square.grid.2x2.fill", id: nil)
+                chip(title: String(localized: "Tous"), systemImage: "square.grid.2x2.fill", id: nil)
                 ForEach(products) { product in
                     chip(title: product.name, systemImage: ProductCategorySymbol.name(for: product.category), id: product.productId)
                 }

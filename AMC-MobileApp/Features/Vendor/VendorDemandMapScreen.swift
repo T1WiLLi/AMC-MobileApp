@@ -682,6 +682,8 @@ struct DemandPointSheet: View {
                 )
             }
         }
+        // Les trois tuiles prennent la hauteur de la plus haute.
+        .fixedSize(horizontal: false, vertical: true)
     }
 
     /// Envies des familles (S-07) : anonymes, par catégorie et unité.
@@ -829,7 +831,7 @@ private struct DemandStatTile: View {
                 .foregroundStyle(Color.texteSecondaire)
                 .fixedSize(horizontal: false, vertical: true)
         }
-        .frame(maxWidth: .infinity, alignment: .leading)
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
         .padding(12)
         .background(tint.opacity(0.1), in: .rect(cornerRadius: 18))
         .accessibilityElement(children: .combine)
@@ -984,12 +986,12 @@ extension DemandMapViewModel.Scope {
 nonisolated enum DemandFormatting {
     /// « 1 famille », « 24 familles ».
     static func families(_ count: Int) -> String {
-        "\(count.formatted()) \(FrenchPlural.word(count, "famille", plural: "familles"))"
+        "\(count.formatted(.number.locale(AppLanguage.formattingLocale))) \(FrenchPlural.word(count, "famille", plural: "familles"))"
     }
 
     /// « 1 part », « 26 parts ».
     static func shares(_ count: Int) -> String {
-        "\(count.formatted()) \(FrenchPlural.word(count, "part", plural: "parts"))"
+        "\(count.formatted(.number.locale(AppLanguage.formattingLocale))) \(FrenchPlural.word(count, "part", plural: "parts"))"
     }
 
     /// « 260 kg voulus » si l'unité de part contient un poids (« sac de 10 kg »), sinon « 26 parts voulues ».

@@ -178,7 +178,7 @@ struct TierEditorScreen: View {
             if model.share.container != .bulk {
                 Stepper(value: $model.share.count, in: 1...100) {
                     Label {
-                        Text("\(model.share.count) \(model.share.count > 1 ? model.share.container.pluralName : model.share.container.name) par part")
+                        Text("\(model.share.count) \(model.share.count > 1 ? model.share.container.displayPluralName : model.share.container.displayName) par part")
                             .monospacedDigit()
                             .contentTransition(.numericText())
                     } icon: {
@@ -203,7 +203,7 @@ struct TierEditorScreen: View {
                     .fixedSize()
                 }
             } label: {
-                Label(model.share.container == .bulk ? "Poids" : "Poids par \(model.share.container.name)", systemImage: "scalemass.fill")
+                Label(model.share.container == .bulk ? String(localized: "Poids") : String(localized: "Poids par \(model.share.container.displayName)"), systemImage: "scalemass.fill")
             }
 
             LabeledContent {
@@ -216,7 +216,7 @@ struct TierEditorScreen: View {
             }
 
             LabeledContent {
-                Text(model.share.label)
+                Text(model.share.displayLabel)
                     .foregroundStyle(.texte)
                     .contentTransition(.interpolate)
                     .multilineTextAlignment(.trailing)
@@ -514,7 +514,7 @@ struct TierEditorScreen: View {
 
     private var referencePriceText: String {
         guard let product = model.selectedProduct else { return "—" }
-        return "\(Money.format(product.referenceGroceryPriceCents))/\(product.unit)"
+        return "\(Money.format(product.referenceGroceryPriceCents))/\(product.displayUnit)"
     }
 }
 
@@ -868,7 +868,7 @@ private struct WeightField: View {
                 result.append(character)
             } else if (character == "," || character == "."), !hasSeparator {
                 hasSeparator = true
-                result.append(",")
+                result.append(contentsOf: AppLanguage.decimalSeparator)
             }
         }
         return result
@@ -889,7 +889,7 @@ private struct PriceField: View {
 
     var body: some View {
         HStack(spacing: 4) {
-            TextField(label, text: $text, prompt: Text("0,00"))
+            TextField(label, text: $text, prompt: Text(verbatim: "0\(AppLanguage.decimalSeparator)00"))
                 .keyboardType(.decimalPad)
                 .multilineTextAlignment(.trailing)
                 .priceStyle(.headline)

@@ -80,6 +80,6 @@ nonisolated enum InfoTopic: String, CaseIterable, Identifiable, Sendable {
 
     /// Label VoiceOver du bouton « i ».
     var accessibilityLabel: String {
-        String(localized: "En savoir plus sur \(title.lowercased(with: Locale(identifier: "fr_CA")))")
+        String(localized: "En savoir plus sur \(title.lowercased(with: AppLanguage.formattingLocale))")
     }
 }

@@ -35,11 +35,9 @@ struct VendorCatalogSheet: View {
         _path = State(initialValue: startsWithNewProduct ? [.create] : [])
     }
 
-    /// Photos dans Storage seulement si les produits sont eux-mêmes dans Firebase ; sinon en mémoire.
+    /// Photos dans le dépôt d'images de l'app (documents `media` Firestore en live, mémoire en fake).
     static func uploader(for repositories: AppRepositories) -> any ProductPhotoUploader {
-        repositories.vendors is FakeVendorRepository
-            ? FakeProductPhotoUploader(behavior: .realistic)
-            : ProductPhoto.uploader(mode: FirebaseSetup.mode)
+        ImageStoreProductPhotoUploader(images: repositories.images)
     }
 
     var body: some View {
@@ -155,7 +153,7 @@ private struct CatalogProductRow: View {
                 Text(product.name)
                     .font(.headline)
                     .foregroundStyle(.texte)
-                Text("\(product.unit) · \(product.origin)")
+                Text("\(product.displayUnit) · \(product.origin)")
                     .font(.subheadline)
                     .foregroundStyle(.texteSecondaire)
                 Label("\(Money.format(product.referenceGroceryPriceCents)) en épicerie", systemImage: "cart")
@@ -182,16 +180,12 @@ private struct CatalogProductRow: View {
     @ViewBuilder
     private var thumbnail: some View {
         if let url = product.photoURL {
-            AsyncImage(url: url) { phase in
-                if let image = phase.image {
-                    image.resizable().scaledToFill()
-                        .frame(width: side, height: side)
-                        .clipShape(.rect(cornerRadius: 14))
-                        .accessibilityHidden(true)
-                } else {
-                    ProductIcon(category: product.category)
-                }
+            MediaImage(url: url) {
+                ProductIcon(category: product.category)
             }
+            .frame(width: side, height: side)
+            .clipShape(.rect(cornerRadius: 14))
+            .accessibilityHidden(true)
         } else {
             ProductIcon(category: product.category)
         }

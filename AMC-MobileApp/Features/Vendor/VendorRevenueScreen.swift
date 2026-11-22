@@ -212,7 +212,7 @@ private struct KeyFigures: View {
             FigureTile(
                 title: String(localized: "Parts engagées"),
                 value: revenue.committedShares,
-                detail: String(localized: "sur \(revenue.totalShares.formatted()) offertes"),
+                detail: String(localized: "sur \(revenue.totalShares.formatted(.number.locale(AppLanguage.formattingLocale))) offertes"),
                 detailImage: "chart.pie.fill",
                 systemImage: GrenierSymbol.offers,
                 tint: .grenier
@@ -251,7 +251,7 @@ private struct FigureTile: View {
             .font(.subheadline)
             .foregroundStyle(.texteSecondaire)
             .symbolRenderingMode(.hierarchical)
-            Text(value.formatted())
+            Text(value.formatted(.number.locale(AppLanguage.formattingLocale)))
                 .priceStyle()
                 .foregroundStyle(.texte)
                 .contentTransition(.numericText(value: Double(value)))
@@ -264,7 +264,7 @@ private struct FigureTile: View {
         .frame(maxWidth: .infinity, alignment: .leading)
         .grenierCard()
         .accessibilityElement(children: .ignore)
-        .accessibilityLabel("\(title) : \(value.formatted()), \(detail)")
+        .accessibilityLabel("\(title) : \(value.formatted(.number.locale(AppLanguage.formattingLocale))), \(detail)")
     }
 }
 

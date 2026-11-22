@@ -448,20 +448,15 @@ private struct GroupRow: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
-            // La fiche n'est ouverte qu'aux membres : pour un non-membre, elle finissait sur « Action non permise ».
-            if item.isMember {
-                NavigationLink(value: GroupRoute(groupId: group.id)) {
-                    summary
-                }
-                .buttonStyle(.plain)
-                .accessibilityElement(children: .ignore)
-                .accessibilityLabel("\(group.name), \(detailText), tu es membre")
-                .accessibilityHint("Ouvre la fiche du groupe.")
-            } else {
+            // T-187 : un non-membre ouvre la fiche publique du groupe (T-172) : avis, lots en consultation.
+            NavigationLink(value: GroupRoute(groupId: group.id)) {
                 summary
-                    .accessibilityElement(children: .ignore)
-                    .accessibilityLabel("\(group.name), \(detailText)")
             }
+            .buttonStyle(.plain)
+            .accessibilityElement(children: .ignore)
+            .accessibilityLabel(item.isMember ? Text("\(group.name), \(detailText), tu es membre")
+                                              : Text("\(group.name), \(detailText)"))
+            .accessibilityHint("Ouvre la fiche du groupe.")
             if !item.isMember {
                 joinButton
                     .padding([.horizontal, .bottom], 14)
@@ -497,11 +492,9 @@ private struct GroupRow: View {
                         .minimumScaleFactor(0.85)
                         .fixedSize(horizontal: false, vertical: true)
                     Spacer(minLength: 0)
-                    if item.isMember {
-                        Image(systemName: "chevron.right")
-                            .font(.footnote.weight(.semibold))
-                            .foregroundStyle(.texteSecondaire)
-                    }
+                    Image(systemName: "chevron.right")
+                        .font(.footnote.weight(.semibold))
+                        .foregroundStyle(.texteSecondaire)
                 }
                 // Pastilles en ligne, qui passent à la ligne une à une quand la place manque
                 // (au lieu de tout empiler en colonne dès qu'un nom de quartier est long).

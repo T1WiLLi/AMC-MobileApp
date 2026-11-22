@@ -103,7 +103,7 @@ private struct HostPickupContent: View {
                     viewModel.selectedSlot = nil
                 }
                 ForEach(station.slots, id: \.self) { slot in
-                    chip(title: slot.formatted(date: .abbreviated, time: .shortened), isOn: viewModel.selectedSlot == slot) {
+                    chip(title: slot.formatted(Date.FormatStyle(date: .abbreviated, time: .shortened).locale(AppLanguage.formattingLocale)), isOn: viewModel.selectedSlot == slot) {
                         viewModel.selectedSlot = slot
                     }
                 }

@@ -84,7 +84,7 @@ final class PreferencesViewModel {
     var dietarySummary: String {
         let tags = user?.dietaryPreferences ?? []
         guard !tags.isEmpty else { return String(localized: "Aucune") }
-        return tags.map(Self.title(of:)).formatted(.list(type: .and))
+        return tags.map(Self.title(of:)).formatted(.list(type: .and).locale(AppLanguage.formattingLocale))
     }
 
     nonisolated static func title(of tag: DietaryTag) -> String { OfferFeedViewModel.title(of: tag) }

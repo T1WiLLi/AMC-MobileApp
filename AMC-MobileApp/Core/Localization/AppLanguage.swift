@@ -53,6 +53,9 @@ nonisolated enum AppLanguage: String, CaseIterable, Sendable {
         lookupLocale.withLock { $0 } ?? AppLanguage.system.locale
     }
 
+    /// Séparateur décimal de la langue en cours : « , » en français, « . » en anglais.
+    static var decimalSeparator: String { formattingLocale.decimalSeparator ?? "," }
+
     /// Vrai quand la langue en cours est l'anglais.
     static var isEnglish: Bool {
         formattingLocale.language.languageCode?.identifier == "en"

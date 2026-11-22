@@ -141,17 +141,31 @@ nonisolated enum HouseholdMembership {
     }
 
     /// Ménage après le retrait de `userId` : par le propriétaire (un autre membre), ou par la personne elle-même.
-    /// Le propriétaire ne se retire pas (le ménage resterait sans propriétaire).
+    /// Le propriétaire ne se retire pas (le ménage resterait sans propriétaire) : il cède d'abord son rôle
+    /// à un autre membre (`transferringOwnership`).
     static func removing(_ userId: String, from household: Household, byUserId callerId: String) throws -> Household {
         guard household.userIds.contains(userId) else { throw AppError.notFound }
         let owner = ownerId(of: household)
         guard userId != owner else {
-            throw AppError.invalidInput(String(localized: "Le propriétaire ne peut pas quitter son ménage."))
+            throw AppError.invalidInput(String(localized: "Nomme d'abord un autre membre propriétaire, puis quitte le ménage."))
         }
         guard callerId == owner || callerId == userId else { throw AppError.permissionDenied }
         var household = household
         household.userIds.removeAll { $0 == userId }
         household.memberNames?[userId] = nil
+        return household
+    }
+
+    /// Ménage après que le propriétaire a cédé son rôle à `newOwnerId`, un autre membre (FB-22).
+    /// Les membres et leurs noms ne bougent pas ; seul `ownerId` change.
+    static func transferringOwnership(to newOwnerId: String, in household: Household, byUserId callerId: String) throws -> Household {
+        guard isOwner(callerId, of: household) else { throw AppError.permissionDenied }
+        guard newOwnerId != callerId else {
+            throw AppError.invalidInput(String(localized: "Tu es déjà propriétaire du ménage."))
+        }
+        guard household.userIds.contains(newOwnerId) else { throw AppError.notFound }
+        var household = household
+        household.ownerId = newOwnerId
         return household
     }
 

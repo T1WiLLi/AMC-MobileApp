@@ -114,6 +114,32 @@ struct PortalChoiceTests {
         #expect(defaults.string(forKey: OnboardingKeys.portalChoice) == PortalChoice.both.rawValue)
     }
 
+    @Test func organizationIsNotSelectableAtOnboarding() {
+        #expect(!Portal.organization.isSelectableAtOnboarding)
+        #expect(Portal.organization.unavailableReason != nil)
+        #expect(Portal.family.isSelectableAtOnboarding)
+        #expect(Portal.vendor.isSelectableAtOnboarding)
+
+        let model = PortalChoiceViewModel()
+        model.toggle(.organization)
+        #expect(!model.isSelected(.organization))
+        #expect(!model.canContinue)
+        model.toggle(.family)
+        model.toggle(.organization)
+        #expect(model.choice == .family)
+    }
+
+    @Test func restoredOrganizationSelectionIsDropped() {
+        let defaults = makeDefaults()
+        let onlyOrganization = PortalChoiceViewModel(selection: [.organization])
+        #expect(onlyOrganization.selection.isEmpty)
+        #expect(!onlyOrganization.confirm(in: defaults))
+        #expect(!defaults.bool(forKey: OnboardingKeys.hasChosenPortal))
+
+        let mixed = PortalChoiceViewModel(selection: [.vendor, .organization])
+        #expect(mixed.choice == .vendor)
+    }
+
     @Test func hintFollowsSelection() {
         let model = PortalChoiceViewModel()
         let empty = model.hint

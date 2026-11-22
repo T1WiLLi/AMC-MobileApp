@@ -13,6 +13,8 @@ struct PortalCard: View {
     let portal: Portal
     let isSelected: Bool
     var size: Size = .regular
+    /// Faux : carte visible mais grisée et désactivée (VoiceOver : « estompé »), avec `portal.unavailableReason`.
+    var isAvailable: Bool = true
     let action: () -> Void
 
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
@@ -23,6 +25,7 @@ struct PortalCard: View {
     var body: some View {
         Button(action: action) {
             content
+                .opacity(isAvailable ? 1 : 0.55)
                 .frame(maxWidth: .infinity, maxHeight: size == .compact ? .infinity : nil, alignment: .topLeading)
                 .padding(size == .regular ? 16 : 12)
                 .background(Color.surface, in: .rect(cornerRadius: cornerRadius))
@@ -33,13 +36,19 @@ struct PortalCard: View {
                 .contentShape(.rect(cornerRadius: cornerRadius))
         }
         .buttonStyle(PortalCardButtonStyle())
+        .disabled(!isAvailable)
         .grenierAnimation(.smooth, value: isSelected)
         .grenierHaptic(.selection, trigger: isSelected)
         .accessibilityElement(children: .ignore)
         .accessibilityLabel(portal.title)
-        .accessibilityValue(portal.tagline)
-        .accessibilityHint(isSelected ? String(localized: "Touche deux fois pour retirer ce choix.") : String(localized: "Touche deux fois pour choisir ce portail."))
+        .accessibilityValue(isAvailable ? portal.tagline : String(localized: "Indisponible"))
+        .accessibilityHint(accessibilityHint)
         .accessibilityAddTraits(isSelected ? [.isSelected] : [])
+    }
+
+    private var accessibilityHint: String {
+        if !isAvailable { return portal.unavailableReason ?? "" }
+        return isSelected ? String(localized: "Touche deux fois pour retirer ce choix.") : String(localized: "Touche deux fois pour choisir ce portail.")
     }
 
     private var cornerRadius: CGFloat { size == .regular ? 24 : 18 }
@@ -71,6 +80,13 @@ struct PortalCard: View {
                     .foregroundStyle(Color.texteSecondaire)
                     .fixedSize(horizontal: false, vertical: true)
                     .padding(.top, 2)
+                if !isAvailable, let reason = portal.unavailableReason {
+                    Label(reason, systemImage: "building.2")
+                        .font(.footnote)
+                        .foregroundStyle(Color.texteSecondaire)
+                        .fixedSize(horizontal: false, vertical: true)
+                        .padding(.top, 4)
+                }
             }
         }
     }
@@ -110,7 +126,19 @@ struct PortalCard: View {
             .accessibilityHidden(true)
     }
 
+    @ViewBuilder
     private var checkmark: some View {
+        if isAvailable {
+            selectionMark
+        } else {
+            Image(systemName: "lock.fill")
+                .font(size == .regular ? .title2 : .title3)
+                .foregroundStyle(Color.texteSecondaire)
+                .accessibilityHidden(true)
+        }
+    }
+
+    private var selectionMark: some View {
         Image(systemName: isSelected ? "checkmark.circle.fill" : "circle")
             .font(size == .regular ? .title2 : .title3)
             .symbolRenderingMode(.palette)

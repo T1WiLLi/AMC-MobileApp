@@ -130,8 +130,9 @@ struct PortalChoice: RawRepresentable, Hashable, Sendable {
 final class PortalChoiceViewModel {
     private(set) var selection: Set<Portal>
 
+    /// Une sélection de départ (valeur restaurée, aperçu) ne peut contenir que des portails sélectionnables.
     init(selection: Set<Portal> = []) {
-        self.selection = selection
+        self.selection = selection.filter(\.isSelectableAtOnboarding)
     }
 
     var choice: PortalChoice? { PortalChoice(selection: selection) }
@@ -139,7 +140,9 @@ final class PortalChoiceViewModel {
 
     func isSelected(_ portal: Portal) -> Bool { selection.contains(portal) }
 
+    /// Ignoré pour un portail non sélectionnable (Organismes).
     func toggle(_ portal: Portal) {
+        guard portal.isSelectableAtOnboarding else { return }
         if selection.contains(portal) {
             selection.remove(portal)
         } else {
@@ -163,7 +166,7 @@ final class PortalChoiceViewModel {
     /// Enregistre le choix (portail actif + drapeau) ; renvoie faux s'il n'y a rien de choisi.
     @discardableResult
     func confirm(in defaults: UserDefaults = .standard) -> Bool {
-        guard let choice else { return false }
+        guard let choice, choice.portals.allSatisfy(\.isSelectableAtOnboarding) else { return false }
         defaults.set(choice.initialPortal.rawValue, forKey: Portal.storageKey)
         defaults.set(choice.rawValue, forKey: OnboardingKeys.portalChoice)
         defaults.set(true, forKey: OnboardingKeys.hasChosenPortal)

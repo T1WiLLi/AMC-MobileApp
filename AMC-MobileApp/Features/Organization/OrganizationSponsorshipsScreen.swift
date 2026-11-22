@@ -52,8 +52,6 @@ struct OrganizationSponsorshipsScreen: View {
                             }
                             .grenierAppear(index: model.sponsoredGroups.count + index)
                         }
-                        SimulationNotice()
-                            .padding(.top, 8)
                     }
                     .padding(16)
                 }
@@ -217,7 +215,6 @@ struct SponsorSheet: View {
                                 .foregroundStyle(Color.solidarite)
                                 .grenierCard()
                         }
-                        SimulationNotice()
 
                         if existing != nil {
                             Button(role: .destructive) {

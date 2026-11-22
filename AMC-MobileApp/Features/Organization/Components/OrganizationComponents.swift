@@ -72,39 +72,6 @@ struct CoverageBar: View {
     }
 }
 
-// MARK: - Simulation
-
-/// Rappel bien visible : aucun argent réel ne circule.
-struct SimulationNotice: View {
-    var compact = false
-
-    var body: some View {
-        Label {
-            VStack(alignment: .leading, spacing: 2) {
-                Text("Simulation")
-                    .font(.subheadline.weight(.semibold))
-                if !compact {
-                    Text("Aucun argent réel n'est prélevé : les financements servent à la démonstration.")
-                        .font(.caption)
-                        .fixedSize(horizontal: false, vertical: true)
-                }
-            }
-        } icon: {
-            Image(systemName: "testtube.2")
-                .symbolRenderingMode(.hierarchical)
-        }
-        .foregroundStyle(Color.texteSecondaire)
-        .padding(12)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .background(Color.piste.opacity(0.5), in: .rect(cornerRadius: 16))
-        .overlay {
-            RoundedRectangle(cornerRadius: 16)
-                .strokeBorder(Color.texteSecondaire.opacity(0.35), style: StrokeStyle(lineWidth: 1, dash: [5, 4]))
-        }
-        .accessibilityElement(children: .combine)
-    }
-}
-
 // MARK: - Mise en page
 
 /// Titre de section avec icône.

@@ -55,8 +55,6 @@ struct OrganizationDashboardScreen: View {
                         }
                         .buttonStyle(.glass)
                         .tint(.grenier)
-                        SimulationNotice()
-                            .padding(.top, 8)
                     }
                     .padding(16)
                 }

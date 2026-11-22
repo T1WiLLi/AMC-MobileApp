@@ -45,7 +45,7 @@ nonisolated struct PaymentSimulator: Sendable {
         case declined
     }
 
-    static let methodLabel = String(localized: "Apple Pay (démo)")
+    static let methodLabel = String(localized: "Apple Pay")
 
     var outcome: Outcome
     var now: @Sendable () -> Date

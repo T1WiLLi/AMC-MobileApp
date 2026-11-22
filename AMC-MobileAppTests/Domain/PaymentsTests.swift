@@ -42,7 +42,7 @@ struct PaymentsTests {
         #expect(record.finalPriceCents == 990)
         #expect(record.subsidyCents == 700)
         #expect(record.amountDueCents == 290)
-        #expect(record.methodLabel == "Apple Pay (démo)")
+        #expect(record.methodLabel == "Apple Pay")
         #expect(record.date == Self.date)
         #expect(PaymentSimulator.applying(record, to: h2).isPaid)
     }
@@ -167,7 +167,7 @@ struct PaymentsTests {
         #expect(text.contains("Tu économises \(Money.format(610))"))
         #expect(text.contains("Ton don pour un panier suspendu : +\(Money.format(500))"))
         #expect(text.contains("Total payé : \(Money.format(1_490))"))
-        #expect(text.contains("Payé avec Apple Pay (démo)"))
+        #expect(text.contains("Payé avec Apple Pay"))
         #expect(!text.contains("fonds de solidarité"))
     }
 

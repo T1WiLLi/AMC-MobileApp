@@ -91,7 +91,6 @@ struct DonationSheet: View {
                 }
 
                 preview(profile)
-                SimulationNotice()
             }
             .padding(16)
         }
@@ -288,7 +287,6 @@ struct DonationSheet: View {
         .buttonStyle(.glassProminent)
         .tint(.grenier)
         .disabled(plan == nil || model.isSubmitting)
-        .accessibilityHint("Simulation : aucun argent réel n'est prélevé.")
         .padding(.horizontal, 16)
         .padding(.vertical, 12)
     }
@@ -326,7 +324,6 @@ struct DonationThanksView: View {
                         .foregroundStyle(Color.texteSecondaire)
                         .fixedSize(horizontal: false, vertical: true)
                 }
-                SimulationNotice(compact: true)
                 Button(action: onDone) {
                     Label("Terminé", systemImage: "checkmark")
                         .font(.headline)

@@ -35,6 +35,9 @@ nonisolated struct AppUser: Identifiable, Codable, Sendable, Hashable {
     /// T-159 : ménage que la personne a demandé à rejoindre (`households/{id}/joinRequests/{uid}`), en attente
     /// du propriétaire. Une fois acceptée, `householdId` y pointe et ce champ redevient `nil`.
     var pendingHouseholdId: String? = nil
+    /// T-194 : organisme auquel le compte est rattaché (portail Organismes). Posé par le seed ou l'Admin SDK seulement :
+    /// les règles Firestore interdisent au client de l'écrire, de le changer ou de l'effacer.
+    var organizationId: String? = nil
 
     /// Le compte n'a pas encore fini l'onboarding.
     /// Un profil sans drapeau (créé avant T-156 ou par un ancien build) le voit aussi tant qu'il n'a ni quartier

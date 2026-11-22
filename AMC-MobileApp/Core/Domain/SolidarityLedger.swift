@@ -27,6 +27,10 @@ nonisolated struct SolidarityFund: Sendable, Equatable, Codable {
         /// Paniers offerts par cette application (0 pour une contribution).
         var basketCount: Int
         var date: Date
+        /// T-194 : don d'organisme qui a créé cette contribution (`organizations/{organizationId}/donations/{donationId}`).
+        /// Les règles Firestore lient le crédit du fonds au document de don. Nil pour toute autre ligne.
+        var donationId: String? = nil
+        var organizationId: String? = nil
     }
 
     var entries: [Entry]
@@ -134,12 +138,18 @@ nonisolated enum SolidarityLedger {
     }
 
     /// Ajoute un don direct au fonds (hors commande).
-    static func donating(_ amountCents: Cents, to fund: SolidarityFund, date: Date = .now) throws -> SolidarityFund {
+    static func donating(
+        _ amountCents: Cents, to fund: SolidarityFund, date: Date = .now,
+        donationId: String? = nil, organizationId: String? = nil
+    ) throws -> SolidarityFund {
         guard amountCents > 0 else {
             throw AppError.invalidInput(String(localized: "Choisis un montant plus grand que 0 $."))
         }
         var fund = fund
-        fund.entries.append(.init(kind: .contribution, orderId: nil, amountCents: amountCents, basketCount: 0, date: date))
+        fund.entries.append(.init(
+            kind: .contribution, orderId: nil, amountCents: amountCents, basketCount: 0, date: date,
+            donationId: donationId, organizationId: organizationId
+        ))
         return fund
     }
 

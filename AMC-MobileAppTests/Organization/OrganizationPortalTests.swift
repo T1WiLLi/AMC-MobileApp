@@ -21,6 +21,21 @@ struct OrganizationLedgerTests {
         #expect(plan.householdsReached == 3)
     }
 
+    // T-194 : la ligne de fonds nomme le don et l'organisme (les règles Firestore lient le crédit au document de don).
+    @Test func recordedDonationCreditsFundWithItsDonationId() throws {
+        let result = try OrganizationLedger.record(
+            .fund(amountCents: 5_000), to: profile(subsidized: 2, balance: 2_500),
+            organizationId: "org-1", donationId: "don-1"
+        )
+        let entry = try #require(result.fund.entries.last)
+        #expect(result.fund.entries.count == 2)
+        #expect(entry.kind == .contribution)
+        #expect(entry.amountCents == result.donation.amountCents)
+        #expect(entry.donationId == "don-1")
+        #expect(entry.organizationId == "org-1")
+        #expect(result.fund.balanceCents == 7_500)
+    }
+
     @Test func fundPlanCountsWholeBaskets() throws {
         let plan = try OrganizationLedger.plan(.fund(amountCents: 6_000), for: profile(subsidized: 5, balance: 0))
         #expect(plan.basketCount == 2)

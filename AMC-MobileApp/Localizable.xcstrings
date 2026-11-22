@@ -27222,6 +27222,76 @@
           }
         }
       }
+    },
+    "1234 rue Jarry Est" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "1234 Jarry Street East"
+          }
+        }
+      }
+    },
+    "Adresse introuvable. Vérifie le numéro et la rue." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Address not found. Check the number and street."
+          }
+        }
+      }
+    },
+    "Adresse vérifiée" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Address verified"
+          }
+        }
+      }
+    },
+    "Choisir cette adresse" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Choose this address"
+          }
+        }
+      }
+    },
+    "Numéro et rue" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Number and street"
+          }
+        }
+      }
+    },
+    "Suggestions d'adresses" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Address suggestions"
+          }
+        }
+      }
+    },
+    "Vérification de l'adresse" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Checking the address"
+          }
+        }
+      }
     }
   },
   "version" : "1.0"

@@ -609,6 +609,11 @@ actor FakeOfferRepository: OfferRepository {
     func saveOffer(_ offer: Offer) async throws {
         try await behavior.simulate()
         guard !offer.tiers.isEmpty else { throw AppError.invalidInput("Ajoute au moins un palier de prix.") }
+        // Comme firestore.rules : un lot publié garde ses conditions, et une pause garde la marque de publication.
+        if let stored = offers[offer.id], stored.areTermsLocked,
+           !offer.hasSameTerms(as: stored) || !offer.areTermsLocked {
+            throw AppError.permissionDenied
+        }
         offers[offer.id] = offer
     }
 }
@@ -622,6 +627,8 @@ actor FakeGroupOrderRepository: GroupOrderRepository {
     /// E21-2 : faux terminal de paiement utilisé à la clôture.
     private let payments: PaymentSimulator
     private var broadcaster = FakeBroadcaster<GroupOrder>()
+    /// Jetons privés des codes de cueillette (`shares/{h}/private/pickup`) : commande → ménage → jeton.
+    private var pickupTokens: [String: [String: String]] = [:]
 
     init(
         behavior: FakeBehavior = .instant,
@@ -776,15 +783,42 @@ actor FakeGroupOrderRepository: GroupOrderRepository {
     func confirmPickup(code: String, groupOrderId: String, at date: Date) async throws -> PickupDesk.ScanResult {
         try await behavior.simulate()
         guard let order = groupOrders[groupOrderId] else { throw AppError.notFound }
-        var orderShares = shares[groupOrderId, default: []]
-        let result = PickupDesk.scan(code, order: order, shares: orderShares, at: date)
-        if case .pickedUp(let share) = result, let index = orderShares.firstIndex(where: { $0.householdId == share.householdId }) {
-            var updated = share
-            updated.updatedAt = date
-            orderShares[index] = updated
-            shares[groupOrderId] = orderShares
-        }
+        let result = PickupDesk.scan(code, order: order, shares: shares[groupOrderId, default: []],
+                                     pickupTokens: pickupTokens[groupOrderId, default: [:]], at: date)
+        record(result, in: groupOrderId, at: date)
         return result
+    }
+
+    @discardableResult
+    func confirmPickupByHand(
+        householdId: String, groupOrderId: String, confirmedBy: String, at date: Date
+    ) async throws -> PickupDesk.ScanResult {
+        try await behavior.simulate()
+        guard let order = groupOrders[groupOrderId] else { throw AppError.notFound }
+        let result = PickupDesk.handOver(householdId: householdId, order: order, shares: shares[groupOrderId, default: []],
+                                         pickedUpBy: confirmedBy, at: date)
+        record(result, in: groupOrderId, at: date)
+        return result
+    }
+
+    func pickupCode(householdId: String, groupOrderId: String) async throws -> String {
+        try await behavior.simulate()
+        guard groupOrders[groupOrderId] != nil,
+              shares[groupOrderId, default: []].contains(where: { $0.householdId == householdId }) else {
+            throw AppError.notFound
+        }
+        let token = pickupTokens[groupOrderId, default: [:]][householdId] ?? PickupDesk.newPickupToken()
+        pickupTokens[groupOrderId, default: [:]][householdId] = token
+        return PickupDesk.pickupCode(orderId: groupOrderId, householdId: householdId, token: token)
+    }
+
+    /// Part remise : enregistrée comme dans la transaction Firestore.
+    private func record(_ result: PickupDesk.ScanResult, in groupOrderId: String, at date: Date) {
+        guard case .pickedUp(let share) = result,
+              let index = shares[groupOrderId]?.firstIndex(where: { $0.householdId == share.householdId }) else { return }
+        var updated = share
+        updated.updatedAt = date
+        shares[groupOrderId]?[index] = updated
     }
 
     @discardableResult

@@ -400,6 +400,23 @@ describe('cueillette unique par ménage (T-159)', () => {
   test('pickedUpBy doit être un membre du ménage', async () => {
     await assertFails(updateDoc(doc(amina(), sharePath), pickedUp('intrus')))
   })
+  test('pickedUpBy obligatoire : null ou absent refusé', async () => {
+    await assertFails(updateDoc(doc(amina(), sharePath), { ...pickedUp(), pickedUpBy: null }))
+    await assertFails(updateDoc(doc(amina(), sharePath), { isPickedUp: true, pickedUpAt: Timestamp.now(), updatedAt: Timestamp.now() }))
+  })
+  test('« Récupéré » à la main : l’hôte se note lui-même', async () => {
+    await assertSucceeds(updateDoc(doc(amina(), sharePath), pickedUp('amina')))
+  })
+  test('jeton privé du code : le ménage le crée une fois et le relit, l’hôte le lit, l’intrus non', async () => {
+    const tokenPath = `${sharePath}/private/pickup`
+    const nadia = () => env.authenticatedContext('nadia').firestore()
+    await assertSucceeds(getDoc(doc(karim(), tokenPath)))
+    await assertSucceeds(setDoc(doc(karim(), tokenPath), { code: 'a'.repeat(32), createdAt: Timestamp.now() }))
+    await assertSucceeds(getDoc(doc(nadia(), tokenPath)))
+    await assertSucceeds(getDoc(doc(amina(), tokenPath)))
+    await assertFails(getDoc(doc(intruder(), tokenPath)))
+    await assertFails(setDoc(doc(nadia(), tokenPath), { code: 'b'.repeat(32) }))
+  })
   test('pas avant la fermeture de la commande', async () => {
     await env.withSecurityRulesDisabled(async (c) => {
       await updateDoc(doc(c.firestore(), 'groupOrders/order-pickup'), { status: 'open' })

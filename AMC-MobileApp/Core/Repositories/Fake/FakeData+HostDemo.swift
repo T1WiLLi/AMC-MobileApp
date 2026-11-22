@@ -29,7 +29,7 @@ nonisolated extension FakeData {
             let (householdId, quantity) = pair
             return Share(householdId: householdId, quantity: quantity, finalPriceCents: 1_100 * quantity, isPaid: true,
                          suspendedAmountCents: 0, subsidyCents: 0,
-                         qrCode: ShareAllocator.qrCode(orderId: orderId, householdId: householdId),
+                         qrCode: nil,
                          isPickedUp: index == 1, pickedUpAt: index == 1 ? now.addingTimeInterval(-40 * 60) : nil)
         }
         let slots = data.pickupPoints.first { $0.id == ID.jarryPickup }?.slots ?? []
@@ -56,7 +56,7 @@ nonisolated extension FakeData {
         let shares = quantities.map { householdId, name, quantity in
             Share(householdId: householdId, quantity: quantity, finalPriceCents: unitPrice * quantity, isPaid: true,
                   suspendedAmountCents: 0, subsidyCents: 0,
-                  qrCode: ShareAllocator.qrCode(orderId: orderId, householdId: householdId),
+                  qrCode: nil,
                   isPickedUp: false, householdName: name)
         }
         let slots = data.pickupPoints.first { $0.id == ID.jarryPickup }?.slots ?? []
@@ -85,7 +85,7 @@ nonisolated extension FakeData {
         data.shares[orderId, default: []].append(Share(
             householdId: ID.aminaHousehold, quantity: 1, finalPriceCents: unitPrice, isPaid: true,
             suspendedAmountCents: 0, subsidyCents: 0,
-            qrCode: ShareAllocator.qrCode(orderId: orderId, householdId: ID.aminaHousehold),
+            qrCode: nil,
             isPickedUp: false, householdName: "Famille Benali"
         ))
         return data

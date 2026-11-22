@@ -147,7 +147,8 @@ function closeBatch(db: Firestore, orderId: string, shares: Record<string, unkno
   return batch.commit()
 }
 
-// Swift : FNV-1a 32 bits de "orderId|householdId".
+// Ancien code de cueillette (avant le jeton privé) : FNV-1a 32 bits de "orderId|householdId", recalculable par
+// n'importe quel membre du groupe. La clôture ne le pose plus ; les tests vérifient qu'il est refusé.
 function qr(orderId: string, householdId: string) {
   let hash = 2166136261
   for (const byte of new TextEncoder().encode(`${orderId}|${householdId}`)) {
@@ -157,8 +158,9 @@ function qr(orderId: string, householdId: string) {
   return `GRENIER:${orderId}:${householdId}:${hash.toString(16).padStart(8, '0')}`
 }
 
+// Clôture (ShareAllocator.allocate) : prix et subvention, sans code QR dans la part (lisible par tout le groupe).
 const closedShare = (householdId: string, quantity: number, unit: number, subsidyCents = 0) => ({
-  ...familyShare(householdId, quantity), finalPriceCents: quantity * unit, subsidyCents, qrCode: qr('order-due', householdId)
+  ...familyShare(householdId, quantity), finalPriceCents: quantity * unit, subsidyCents
 })
 
 
@@ -260,7 +262,7 @@ describe('parcours légitimes de l’app (ne doivent pas casser)', () => {
       }
     })
     const shares = ids.map((id, i) => ({
-      ...familyShare(id, 2), finalPriceCents: 2 * unit, subsidyCents: i < subsidized ? 500 : 0, qrCode: qr('order-big', id)
+      ...familyShare(id, 2), finalPriceCents: 2 * unit, subsidyCents: i < subsidized ? 500 : 0
     }))
     await assertSucceeds(closeBatch(as('jean'), 'order-big', shares, { ...big, status: 'closed' }))
   })
@@ -286,7 +288,7 @@ describe('parcours légitimes de l’app (ne doivent pas casser)', () => {
     const db = as('jean')
     const batch = writeBatch(db)
     for (const [h, q] of [['household-amina', 4], ['household-bob', 6]] as const) {
-      batch.update(doc(db, `groupOrders/order-due/shares/${h}`), { finalPriceCents: q * 739, subsidyCents: 0, qrCode: qr('order-due', h) })
+      batch.update(doc(db, `groupOrders/order-due/shares/${h}`), { finalPriceCents: q * 739, subsidyCents: 0 })
     }
     batch.update(doc(db, 'groupOrders/order-due'), { committedShares: 10, committedHouseholds: 2, currentTierIndex: 0, status: 'closed' })
     await assertSucceeds(batch.commit())
@@ -522,12 +524,16 @@ describe('attaques : coordonnateur et vendeur à la clôture', () => {
       closedShare('household-amina', 4, 739), closedShare('household-bob', 6, 739, 6 * 739 + 1)
     ], { ...dueOrder, status: 'closed', currentTierIndex: 0 }))
   })
-  test('QR d’une autre commande ou d’un autre ménage', async () => {
+  test('la clôture pose un code QR dans la part (lisible par tout le groupe, donc copiable)', async () => {
     await assertFails(closeBatch(as('jean'), 'order-due', [
-      { ...closedShare('household-amina', 4, 739), qrCode: qr('order-due', 'household-bob') }
+      { ...closedShare('household-amina', 4, 739), qrCode: qr('order-due', 'household-amina') }, closedShare('household-bob', 6, 739)
     ], { ...dueOrder, status: 'closed', currentTierIndex: 0 }))
     await assertFails(closeBatch(as('jean'), 'order-due', [
-      { ...closedShare('household-amina', 4, 739), qrCode: 'GRENIER:order-x:household-amina:00000000' }
+      { ...closedShare('household-amina', 4, 739), qrCode: qr('order-due', 'household-bob') }, closedShare('household-bob', 6, 739)
+    ], { ...dueOrder, status: 'closed', currentTierIndex: 0 }))
+    await assertFails(closeBatch(as('jean'), 'order-due', [
+      { ...closedShare('household-amina', 4, 739), qrCode: 'GRENIER:order-due:household-amina:0123456789abcdef0123456789abcdef' },
+      closedShare('household-bob', 6, 739)
     ], { ...dueOrder, status: 'closed', currentTierIndex: 0 }))
   })
   test('E21-2 : marquer payé sans fermer la commande, ou dé-payer une part à la clôture', async () => {
@@ -597,8 +603,55 @@ describe('attaques : lots et produits (vendeur)', () => {
       await assertFails(updateDoc(offerRef('lafleur'), { tiers: bad }))
     }
   })
-  test('le vendeur modifie ses paliers correctement', async () => {
-    await assertSucceeds(updateDoc(offerRef('lafleur'), { tiers: [{ minShares: 8, priceCents: 700 }, { minShares: 16, priceCents: 600 }] }))
+  // Sécurité (prix) : les familles s'engagent sur les paliers d'un lot publié ; le prix final se calcule dessus à la
+  // clôture (que le vendeur peut déclencher). Plus aucun changement de conditions une fois le lot publié.
+  test('le vendeur change paliers, minimum, nombre de parts ou part d’un lot actif', async () => {
+    await assertFails(updateDoc(offerRef('lafleur'), { tiers: [{ minShares: 8, priceCents: 900 }, { minShares: 16, priceCents: 800 }] }))
+    await assertFails(updateDoc(offerRef('lafleur'), { tiers: [{ minShares: 8, priceCents: 700 }, { minShares: 16, priceCents: 600 }] }))
+    await assertFails(updateDoc(offerRef('lafleur'), { tiers: [{ minShares: 30, priceCents: 739 }] }))
+    await assertFails(updateDoc(offerRef('lafleur'), { minimumSharesToLaunch: 30 }))
+    await assertFails(updateDoc(offerRef('lafleur'), { totalShares: 24 }))
+    await assertFails(updateDoc(offerRef('lafleur'), { totalShares: 39, tiers, minimumSharesToLaunch: 8 }))
+    await assertFails(updateDoc(offerRef('lafleur'), { shareUnit: 'sac de 2 kg' }))
+  })
+  test('pause puis édition : le retour en brouillon ne rouvre pas les paliers', async () => {
+    // Pause sans la marque de publication : refusée (sinon le brouillon redeviendrait modifiable).
+    await assertFails(updateDoc(offerRef('lafleur'), { status: 'draft' }))
+    await assertFails(updateDoc(offerRef('lafleur'), { status: 'draft', wasPublished: false }))
+    // Pause de l'app (Offer.encode pose wasPublished) : permise, mais paliers et parts restent figés.
+    await assertSucceeds(updateDoc(offerRef('lafleur'), { status: 'draft', wasPublished: true }))
+    await assertFails(updateDoc(offerRef('lafleur'), { tiers: [{ minShares: 8, priceCents: 900 }] }))
+    await assertFails(updateDoc(offerRef('lafleur'), { totalShares: 10, minimumSharesToLaunch: 8, tiers: [{ minShares: 8, priceCents: 739 }] }))
+    await assertFails(updateDoc(offerRef('lafleur'), { wasPublished: false }))
+    await assertFails(updateDoc(offerRef('lafleur'), { wasPublished: deleteField() }))
+    // Reprise et date limite repoussée : permises.
+    await assertSucceeds(updateDoc(offerRef('lafleur'), { status: 'active', deadline: Timestamp.fromMillis(Date.now() + 5 * 86_400_000) }))
+  })
+  test('saveOffer d’un lot actif (lot réécrit en entier, mêmes conditions) passe', async () => {
+    await assertSucceeds(setDoc(offerRef('lafleur'), {
+      ...offer, share: { container: 'sac', count: 1, weight: { value: 5, unit: 'kg' } }, wasPublished: true,
+      deadline: Timestamp.fromMillis(Date.now() + 3 * 86_400_000)
+    }))
+    // Une fois `share` posé, il est figé lui aussi.
+    await assertFails(updateDoc(offerRef('lafleur'), { share: { container: 'sac', count: 1, weight: { value: 2, unit: 'kg' } } }))
+  })
+  test('le vendeur modifie librement un brouillon jamais publié, puis le publie', async () => {
+    await env.withSecurityRulesDisabled(async (c) => {
+      await setDoc(doc(c.firestore(), 'offers/offer-brouillon'), { ...offer, id: 'offer-brouillon', status: 'draft', deadline: future() })
+    })
+    const ref = offerRef('lafleur', 'offer-brouillon')
+    await assertSucceeds(updateDoc(ref, { tiers: [{ minShares: 8, priceCents: 700 }, { minShares: 16, priceCents: 600 }] }))
+    await assertSucceeds(updateDoc(ref, { totalShares: 30, minimumSharesToLaunch: 10, tiers: [{ minShares: 10, priceCents: 650 }] }))
+    await assertSucceeds(updateDoc(ref, { shareUnit: 'sac de 10 kg' }))
+    await assertSucceeds(updateDoc(ref, { status: 'active', wasPublished: true }))
+    await assertFails(updateDoc(ref, { tiers: [{ minShares: 10, priceCents: 900 }] }))
+  })
+  test('un lot fermé ou retiré garde aussi ses conditions', async () => {
+    await env.withSecurityRulesDisabled(async (c) => {
+      await setDoc(doc(c.firestore(), 'offers/offer-ferme'), { ...offer, id: 'offer-ferme', status: 'closed', deadline: future() })
+    })
+    await assertFails(updateDoc(offerRef('lafleur', 'offer-ferme'), { tiers: [{ minShares: 8, priceCents: 999 }] }))
+    await assertFails(updateDoc(offerRef('lafleur', 'offer-ferme'), { status: 'draft', tiers: [{ minShares: 8, priceCents: 999 }] }))
   })
   test('reculer la date limite dans le passé pour clôturer avant l’heure', async () => {
     await assertFails(updateDoc(offerRef('lafleur'), { deadline: past() }))
@@ -688,5 +741,79 @@ describe('attaques : groupes, points de cueillette, profils', () => {
   test('s’ajouter au ménage d’un autre, ou le supprimer', async () => {
     await assertFails(updateDoc(doc(as('intrus'), 'households/household-bob'), { userIds: ['bob', 'intrus'] }))
     await assertFails(deleteDoc(doc(as('bob'), 'households/household-bob')))
+  })
+})
+
+// Sécurité (vol de cueillette) : la part est lisible par tout le groupe (groupe public : on y entre sans
+// approbation). Le code de cueillette ne doit donc ni s'y lire ni s'y recalculer : son jeton vit dans
+// shares/{h}/private/pickup, lisible par le ménage, l'hôte du point de la commande et les coordonnateurs.
+describe('attaques : code de cueillette d’une autre famille', () => {
+  const TOKEN = '0123456789abcdef0123456789abcdef'
+  const tokenPath = 'groupOrders/order-pret/shares/household-amina/private/pickup'
+  const sharePath = 'groupOrders/order-pret/shares/household-amina'
+  const pickup = (by: unknown) => ({ isPickedUp: true, pickedUpBy: by, pickedUpAt: Timestamp.now(), updatedAt: Timestamp.now() })
+
+  beforeEach(async () => {
+    await env.withSecurityRulesDisabled(async (c) => {
+      const db = c.firestore()
+      // Commande arrivée (livrée), cueillette chez Fatima (hôte, ménage household-fatima hors groupe).
+      await setDoc(doc(db, 'users/fatima'), user('fatima', 'household-fatima'))
+      await setDoc(doc(db, 'households/household-fatima'), { id: 'household-fatima', name: 'f', size: 1, geohash: 'f25', userIds: ['fatima'] })
+      await setDoc(doc(db, 'pickupPoints/pickup-fatima'), { id: 'pickup-fatima', hostUserId: 'fatima', name: 'Cour', address: '2 rue', capacity: 40, accessibility: [], slots: [] })
+      await setDoc(doc(db, 'groupOrders/order-pret'), {
+        ...dueOrder, id: 'order-pret', status: 'delivered', pickupPointId: 'pickup-fatima'
+      })
+      await setDoc(doc(db, sharePath), { ...closedShare('household-amina', 4, 739), isPaid: true })
+      await setDoc(doc(db, 'groupOrders/order-pret/shares/household-bob'), { ...closedShare('household-bob', 6, 739), isPaid: true })
+    })
+  })
+
+  test('un membre du groupe lit le jeton privé d’une autre famille', async () => {
+    await env.withSecurityRulesDisabled(async (c) => { await setDoc(doc(c.firestore(), tokenPath), { code: TOKEN }) })
+    await assertSucceeds(getDoc(doc(as('bob'), sharePath)))
+    await assertFails(getDoc(doc(as('bob'), tokenPath)))
+    await assertFails(getDocs(collection(as('bob'), `${sharePath}/private`)))
+    // Un membre d'un autre groupe, un vendeur, un anonyme : non plus.
+    await assertFails(getDoc(doc(as('rival'), tokenPath)))
+    await assertFails(getDoc(doc(as('lafleur'), tokenPath)))
+    await assertFails(getDoc(doc(anonymous(), tokenPath)))
+  })
+  test('un membre du groupe crée ou remplace le jeton d’une autre famille', async () => {
+    await assertFails(setDoc(doc(as('bob'), tokenPath), { code: TOKEN }))
+    await env.withSecurityRulesDisabled(async (c) => { await setDoc(doc(c.firestore(), tokenPath), { code: TOKEN }) })
+    await assertFails(setDoc(doc(as('bob'), tokenPath), { code: 'f'.repeat(32) }))
+    await assertFails(deleteDoc(doc(as('bob'), tokenPath)))
+  })
+  test('la famille ne réécrit ni ne supprime son jeton, et pas de jeton faible ou d’autre document privé', async () => {
+    await assertFails(setDoc(doc(as('amina'), tokenPath), { code: '00000000' }))
+    await assertFails(setDoc(doc(as('amina'), tokenPath), { code: TOKEN.toUpperCase() }))
+    await assertFails(setDoc(doc(as('amina'), tokenPath), { code: TOKEN, extra: 'x' }))
+    await assertFails(setDoc(doc(as('amina'), `${sharePath}/private/autre`), { code: TOKEN }))
+    await assertSucceeds(setDoc(doc(as('amina'), tokenPath), { code: TOKEN, createdAt: Timestamp.now() }))
+    await assertFails(setDoc(doc(as('amina'), tokenPath), { code: 'f'.repeat(32) }))
+    await assertFails(deleteDoc(doc(as('amina'), tokenPath)))
+  })
+  test('jeton d’une part qui n’existe pas', async () => {
+    await assertFails(setDoc(doc(as('jean'), 'groupOrders/order-pret/shares/household-jean/private/pickup'), { code: TOKEN }))
+  })
+  test('l’hôte et le coordonnateur lisent le jeton pour vérifier le code', async () => {
+    await env.withSecurityRulesDisabled(async (c) => { await setDoc(doc(c.firestore(), tokenPath), { code: TOKEN }) })
+    await assertSucceeds(getDoc(doc(as('amina'), tokenPath)))
+    await assertSucceeds(getDoc(doc(as('fatima'), tokenPath)))
+    await assertSucceeds(getDoc(doc(as('jean'), tokenPath)))
+  })
+  test('l’hôte confirme sans dire qui prend la part (pickedUpBy null ou absent)', async () => {
+    await assertFails(updateDoc(doc(as('fatima'), sharePath), pickup(null)))
+    await assertFails(updateDoc(doc(as('fatima'), sharePath), { isPickedUp: true, pickedUpAt: Timestamp.now(), updatedAt: Timestamp.now() }))
+    await assertFails(updateDoc(doc(as('fatima'), sharePath), pickup('bob')))
+  })
+  test('un membre du groupe (pas hôte) confirme la cueillette d’une autre famille', async () => {
+    await assertFails(updateDoc(doc(as('bob'), sharePath), pickup('bob')))
+    await assertFails(updateDoc(doc(as('bob'), sharePath), pickup('amina')))
+  })
+  test('cueillette légitime : scan (membre du ménage) puis « Récupéré » à la main (l’hôte lui-même)', async () => {
+    await assertSucceeds(getDoc(doc(as('fatima'), tokenPath)))
+    await assertSucceeds(updateDoc(doc(as('fatima'), sharePath), pickup('amina')))
+    await assertSucceeds(updateDoc(doc(as('jean'), 'groupOrders/order-pret/shares/household-bob'), pickup('jean')))
   })
 })

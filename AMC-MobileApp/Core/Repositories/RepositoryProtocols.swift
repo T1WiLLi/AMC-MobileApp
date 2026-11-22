@@ -258,6 +258,7 @@ nonisolated protocol GroupOrderRepository: Sendable {
     func reservePickupSlot(start: Date?, householdId: String, groupOrderId: String) async throws -> Share
     /// T-159 : l'hôte (ou un coordonnateur) scanne le code d'un membre (`PickupDesk.memberCode`) et remet la part.
     /// Une part par ménage, remise une seule fois : un deuxième scan renvoie `.alreadyPickedUp` sans rien écrire.
+    /// Le jeton privé du ménage (`shares/{h}/private/pickup`) est relu dans la même transaction et comparé au code.
     @discardableResult
     func confirmPickup(code: String, groupOrderId: String, at date: Date) async throws -> PickupDesk.ScanResult
     /// « La livraison est arrivée » : un coordonnateur du groupe ou l'hôte du point passe la commande de fermée à
@@ -265,6 +266,15 @@ nonisolated protocol GroupOrderRepository: Sendable {
     /// n'est pas fermée, `.permissionDenied` si l'utilisateur n'a pas le droit (firestore.rules).
     @discardableResult
     func markArrived(groupOrderId: String, at date: Date) async throws -> GroupOrder
+    /// Sécurité : « Récupéré » sans code, par l'hôte ou un coordonnateur qui a reconnu la famille
+    /// (`PickupDesk.handOver`). `confirmedBy` (son uid) est noté dans `pickedUpBy`.
+    @discardableResult
+    func confirmPickupByHand(
+        householdId: String, groupOrderId: String, confirmedBy: String, at date: Date
+    ) async throws -> PickupDesk.ScanResult
+    /// Sécurité : code QR de la part du ménage (`PickupDesk.pickupCode`), avec son jeton privé, créé au premier
+    /// appel. Réservé aux membres du ménage. Lève `.notFound` si le ménage n'a pas de part dans la commande.
+    func pickupCode(householdId: String, groupOrderId: String) async throws -> String
     /// T-181 : fixe le panier suspendu (0 = aucun) de la part du ménage, commande ouverte (`SolidarityLedger`).
     /// Lève `.notFound` sans part, `.orderClosed` si la commande est fermée, `.invalidInput` au-dessus du plafond.
     @discardableResult
@@ -294,6 +304,16 @@ extension GroupOrderRepository {
     }
 
     func confirmPickup(code: String, groupOrderId: String, at date: Date) async throws -> PickupDesk.ScanResult {
+        throw AppError.permissionDenied
+    }
+
+    func confirmPickupByHand(
+        householdId: String, groupOrderId: String, confirmedBy: String, at date: Date
+    ) async throws -> PickupDesk.ScanResult {
+        throw AppError.permissionDenied
+    }
+
+    func pickupCode(householdId: String, groupOrderId: String) async throws -> String {
         throw AppError.permissionDenied
     }
 

@@ -253,7 +253,7 @@ nonisolated final class FirestoreGroupOrderRepository: GroupOrderRepository, @un
 
     /// RQ-053, RQ-054, E21-2 : clôture la commande (coordonnateur du groupe ou vendeur du lot, ou automatiquement
     /// après la date limite), voir `GroupOrderClosing.close`. Dans la même transaction : palier figé, prix final,
-    /// subvention et code QR de chaque part (`ShareAllocator`), puis paiement simulé de chaque part au pot
+    /// subvention de chaque part (`ShareAllocator`), puis paiement simulé de chaque part au pot
     /// (`isPaid` à true si le paiement réussit). Lève `.orderClosed` si elle est déjà fermée.
     @discardableResult
     func closeGroupOrder(
@@ -282,7 +282,7 @@ nonisolated final class FirestoreGroupOrderRepository: GroupOrderRepository, @un
                     var fields: [String: Any] = [
                         "finalPriceCents": share.finalPriceCents.map { $0 as Any } ?? NSNull(),
                         "subsidyCents": share.subsidyCents,
-                        "qrCode": share.qrCode.map { $0 as Any } ?? NSNull(),
+                        // Pas de qrCode : la part est lisible par tout le groupe, le jeton est privé (`pickupCode`).
                     ]
                     // Paiement simulé réussi : seul passage de `isPaid` à true (firestore.rules, clôture).
                     if share.isPaid, !wasPaid.contains(share.householdId) { fields["isPaid"] = true }
@@ -458,29 +458,88 @@ nonisolated final class FirestoreGroupOrderRepository: GroupOrderRepository, @un
     }
 
     /// T-159 : une transaction relit la part avant de la marquer : deux scans en même temps n'en remettent qu'un.
+    /// Sécurité : elle relit aussi le jeton privé du ménage (`private/pickup`, lisible par l'hôte du point et les
+    /// coordonnateurs) ; un code qui ne le porte pas est refusé (`.unknownCode`, ancien code : `.outdatedCode`).
     func confirmPickup(code: String, groupOrderId: String, at date: Date) async throws -> PickupDesk.ScanResult {
         let order = try await groupOrder(id: groupOrderId)
-        let qrCode = PickupDesk.splitMemberCode(code).qrCode
-        guard PickupDesk.canPickUp(order.status),
-              let householdId = ShareAllocator.householdId(fromQRCode: qrCode, orderId: groupOrderId) else {
-            return PickupDesk.scan(code, order: order, shares: [], at: date)
+        guard PickupDesk.canPickUp(order.status), let parsed = PickupDesk.parse(code),
+              parsed.orderId == groupOrderId, !parsed.isLegacy else {
+            return PickupDesk.scan(code, order: order, shares: [], pickupTokens: [:], at: date)
+        }
+        let shareRef = sharesRef(groupOrderId).document(parsed.householdId)
+        let tokenRef = pickupTokenRef(groupOrderId, householdId: parsed.householdId)
+        return try await runTransaction { transaction in
+            let snapshot = try transaction.getDocument(shareRef)
+            let tokenSnapshot = try transaction.getDocument(tokenRef)
+            let shares = snapshot.exists ? [try Self.decodeShare(snapshot)] : []
+            let tokens = (tokenSnapshot.data()?["code"] as? String).map { [parsed.householdId: $0] } ?? [:]
+            let result = PickupDesk.scan(code, order: order, shares: shares, pickupTokens: tokens, at: date)
+            if case .pickedUp(let share) = result {
+                transaction.updateData(Self.pickupFields(share, at: date), forDocument: shareRef)
+            }
+            return result
+        }
+    }
+
+    /// « Récupéré » sans code (`PickupDesk.handOver`) : `pickedUpBy` = l'hôte ou le coordonnateur qui confirme.
+    @discardableResult
+    func confirmPickupByHand(
+        householdId: String, groupOrderId: String, confirmedBy: String, at date: Date
+    ) async throws -> PickupDesk.ScanResult {
+        let order = try await groupOrder(id: groupOrderId)
+        guard PickupDesk.canPickUp(order.status), !householdId.isEmpty, !householdId.contains("/") else {
+            return PickupDesk.handOver(householdId: householdId, order: order, shares: [], pickedUpBy: confirmedBy, at: date)
         }
         let shareRef = sharesRef(groupOrderId).document(householdId)
         return try await runTransaction { transaction in
             let snapshot = try transaction.getDocument(shareRef)
             let shares = snapshot.exists ? [try Self.decodeShare(snapshot)] : []
-            let result = PickupDesk.scan(code, order: order, shares: shares, at: date)
+            let result = PickupDesk.handOver(householdId: householdId, order: order, shares: shares,
+                                             pickedUpBy: confirmedBy, at: date)
             if case .pickedUp(let share) = result {
-                var data: [String: Any] = [
-                    "isPickedUp": true,
-                    "pickedUpAt": Timestamp(date: date),
-                    "updatedAt": Timestamp(date: date),
-                ]
-                if let memberId = share.pickedUpBy { data["pickedUpBy"] = memberId }
-                transaction.updateData(data, forDocument: shareRef)
+                transaction.updateData(Self.pickupFields(share, at: date), forDocument: shareRef)
             }
             return result
         }
+    }
+
+    /// Code de la part du ménage : relit son jeton privé, ou le crée (une seule fois : firestore.rules refuse
+    /// de le réécrire ; deux membres en même temps → la transaction relit celui de l'autre).
+    func pickupCode(householdId: String, groupOrderId: String) async throws -> String {
+        guard !householdId.isEmpty, !householdId.contains("/") else { throw AppError.notFound }
+        let shareRef = sharesRef(groupOrderId).document(householdId)
+        let tokenRef = pickupTokenRef(groupOrderId, householdId: householdId)
+        let fresh = PickupDesk.newPickupToken()
+        let createdAt = Timestamp(date: now())
+        let token: String = try await runTransaction { transaction in
+            let tokenSnapshot = try transaction.getDocument(tokenRef)
+            if tokenSnapshot.exists {
+                guard let code = tokenSnapshot.data()?["code"] as? String, PickupDesk.isPickupToken(code) else {
+                    throw AppError.unknown("Code de cueillette illisible.")
+                }
+                return code
+            }
+            guard try transaction.getDocument(shareRef).exists else { throw AppError.notFound }
+            transaction.setData(["code": fresh, "createdAt": createdAt], forDocument: tokenRef)
+            return fresh
+        }
+        return PickupDesk.pickupCode(orderId: groupOrderId, householdId: householdId, token: token)
+    }
+
+    /// Champs d'une remise (firestore.rules, `isPickupConfirmation`) : `pickedUpBy` est obligatoire.
+    private static func pickupFields(_ share: Share, at date: Date) -> [String: Any] {
+        var data: [String: Any] = [
+            "isPickedUp": true,
+            "pickedUpAt": Timestamp(date: date),
+            "updatedAt": Timestamp(date: date),
+        ]
+        if let memberId = share.pickedUpBy { data["pickedUpBy"] = memberId }
+        return data
+    }
+
+    /// Jeton privé du code de cueillette d'un ménage (`groupOrders/{o}/shares/{h}/private/pickup`).
+    private func pickupTokenRef(_ groupOrderId: String, householdId: String) -> DocumentReference {
+        sharesRef(groupOrderId).document(householdId).collection("private").document("pickup")
     }
 
     // MARK: - Requêtes et décodage

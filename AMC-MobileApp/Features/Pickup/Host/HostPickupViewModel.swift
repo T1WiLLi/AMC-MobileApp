@@ -322,31 +322,42 @@ final class HostPickupViewModel {
 
 // MARK: Remise
 
-    /// Un tap sur « Récupéré » : même chemin que le scan, avec le code du ménage (transaction côté dépôt).
+    /// Un tap sur « Récupéré » : l'hôte a reconnu la famille, sans code (`confirmPickupByHand`, transaction côté
+    /// dépôt). C'est aussi le recours pour un ancien code ou une famille qui n'a pas l'app à jour.
     func markPickedUp(householdId: String, in orderId: String) async {
         guard pendingHouseholdId == nil else { return }
         pendingHouseholdId = householdId
         defer { pendingHouseholdId = nil }
-        let code = ShareAllocator.qrCode(orderId: orderId, householdId: householdId)
-        await confirm(code: code, orderId: orderId)
+        let repositories = repositories, userId = userId, date = now()
+        await confirm(orderId: orderId) {
+            try await repositories.groupOrders.confirmPickupByHand(
+                householdId: householdId, groupOrderId: orderId, confirmedBy: userId, at: date
+            )
+        }
     }
 
     /// Code lu par la caméra. La commande est celle du code si l'hôte la sert, sinon la commande affichée
     /// (le dépôt répond alors « mauvaise commande »).
     func scan(_ rawCode: String) async {
         guard pendingHouseholdId == nil, let content = state.value else { return }
-        let qr = PickupDesk.splitMemberCode(rawCode).qrCode
-        let parts = qr.split(separator: ":", omittingEmptySubsequences: false).map(String.init)
-        let codeOrderId = parts.count == 4 && parts[0] == "GRENIER" ? parts[1] : nil
-        let target = content.stations.first { $0.id == codeOrderId } ?? selectedStation
+        let parsed = PickupDesk.parse(rawCode)
+        let target = content.stations.first { $0.id == parsed?.orderId } ?? selectedStation
         guard let target else { return }
         if target.id != selectedOrderId { selectOrder(target.id) }
-        await confirm(code: rawCode, orderId: target.id)
+        // Un code sans membre : l'hôte qui scanne est noté (firestore.rules exige `pickedUpBy`).
+        let trimmed = rawCode.trimmingCharacters(in: .whitespacesAndNewlines)
+        let code = parsed?.memberId == nil ? PickupDesk.memberCode(trimmed, memberId: userId) : trimmed
+        let repositories = repositories, date = now(), orderId = target.id
+        await confirm(orderId: orderId) {
+            try await repositories.groupOrders.confirmPickup(code: code, groupOrderId: orderId, at: date)
+        }
     }
 
-    private func confirm(code: String, orderId: String) async {
+    private func confirm(
+        orderId: String, _ attempt: @Sendable () async throws -> PickupDesk.ScanResult
+    ) async {
         do {
-            let result = try await repositories.groupOrders.confirmPickup(code: code, groupOrderId: orderId, at: now())
+            let result = try await attempt()
             if let share = result.share { apply(share, to: orderId) }
             var householdName: String?
             if let share = result.share {

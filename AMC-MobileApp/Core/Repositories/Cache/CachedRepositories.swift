@@ -208,6 +208,23 @@ nonisolated struct CachedGroupRepository: GroupRepository {
         )
     }
 
+    /// FB-22 : chaque changement d'adhésion (vu en direct) fait relire les listes de groupes du ménage
+    /// et les membres des groupes concernés.
+    func observeGroupIds(ofHousehold householdId: String) async -> AsyncThrowingStream<Set<String>, any Error> {
+        let cache = cache
+        let known = GroupIdsBox()
+        return relayingSnapshots(
+            of: await base.observeGroupIds(ofHousehold: householdId),
+            apply: { ids in
+                guard let changed = await known.swap(ids) else { return }
+                for groupId in changed {
+                    await Self.invalidateMembership(groupId: groupId, householdId: householdId, in: cache)
+                }
+            },
+            onFailure: { await cache.invalidate(.groupsOfHousehold(householdId)) }
+        )
+    }
+
     /// Le nombre de ménages du groupe et la liste des groupes du ménage ont changé.
     // MARK: B-056 (invitations jamais mises en cache : le créateur doit voir leur état réel)
 
@@ -273,5 +290,17 @@ nonisolated struct CachedGroupRepository: GroupRepository {
             if case .groupsInNeighborhood = key { return true }
             return false
         }
+    }
+}
+
+/// Derniers ids reçus par `observeGroupIds` : le premier état ne vide pas le cache, les suivants
+/// rendent les groupes ajoutés ou retirés.
+private actor GroupIdsBox {
+    private var ids: Set<String>?
+
+    func swap(_ new: Set<String>) -> Set<String>? {
+        defer { ids = new }
+        guard let ids else { return nil }
+        return ids.symmetricDifference(new)
     }
 }

@@ -229,6 +229,16 @@ service cloud.firestore {
         && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['userIds', 'memberNames']);
     }
 
+    // FB-22 : le propriétaire cède son rôle à un autre membre, puis peut quitter le ménage.
+    // Seul ownerId change, et le nouveau propriétaire fait déjà partie du ménage.
+    function isTransferringOwnership() {
+      let newOwner = request.resource.data.get('ownerId', null);
+      return householdOwner(resource.data) == request.auth.uid
+        && newOwner is string && newOwner != request.auth.uid
+        && newOwner in resource.data.userIds
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['ownerId']);
+    }
+
     match /households/{householdId} {
       allow read: if isAuthenticated() && request.auth.uid in resource.data.userIds;
       // Un ménage neuf ne contient que son créateur, qui en est le propriétaire.
@@ -238,15 +248,16 @@ service cloud.firestore {
         && request.resource.data.userIds == [request.auth.uid]
         && request.resource.data.get('ownerId', request.auth.uid) == request.auth.uid;
       // Un membre modifie nom, taille, quartier, adresse ; seul le propriétaire change userIds (T-159),
-      // sauf pour se retirer soi-même.
+      // sauf pour se retirer soi-même. Le propriétaire peut céder son rôle (FB-22).
       allow update: if isAuthenticated()
         && request.auth.uid in resource.data.userIds
         && isValidHousehold(request.resource.data)
         && areImmutableFieldsUnchanged(['id'])
-        && isOwnerIdKept()
-        && (userIdsAfter() == userIdsBefore()
-            || isAcceptingJoinRequest(householdId)
-            || isRemovingMember());
+        && ((isOwnerIdKept()
+             && (userIdsAfter() == userIdsBefore()
+                 || isAcceptingJoinRequest(householdId)
+                 || isRemovingMember()))
+            || isTransferringOwnership());
       allow delete: if false;
 
       // -------------------------------------------------------------

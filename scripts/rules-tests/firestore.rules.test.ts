@@ -337,6 +337,38 @@ describe('ménage partagé (T-159)', () => {
     })
     await assertSucceeds(updateDoc(doc(amina(), 'households/household-amina'), { ownerId: 'amina' }))
   })
+
+  // FB-22 : le propriétaire cède son rôle, puis peut partir.
+  async function shareWithKarim() {
+    await env.withSecurityRulesDisabled(async (context) => {
+      await updateDoc(doc(context.firestore(), 'households/household-amina'), { userIds: ['amina', 'karim'] })
+    })
+  }
+  test('le propriétaire nomme un autre membre propriétaire, puis quitte le ménage', async () => {
+    await shareWithKarim()
+    await assertSucceeds(updateDoc(doc(amina(), 'households/household-amina'), { ownerId: 'karim' }))
+    await assertSucceeds(updateDoc(doc(amina(), 'households/household-amina'), { userIds: ['karim'] }))
+  })
+  test('le nouveau propriétaire gère les demandes ; l’ancien ne les liste plus', async () => {
+    await shareWithKarim()
+    await env.withSecurityRulesDisabled(async (context) => {
+      await setDoc(doc(context.firestore(), 'households/household-amina/joinRequests/nadia'),
+        { householdId: 'household-amina', userId: 'nadia', displayName: 'Nadia', createdAt: Timestamp.now(), status: 'pending' })
+    })
+    await assertSucceeds(updateDoc(doc(amina(), 'households/household-amina'), { ownerId: 'karim' }))
+    await assertSucceeds(getDocs(collection(karim(), 'households/household-amina/joinRequests')))
+    await assertFails(getDocs(collection(amina(), 'households/household-amina/joinRequests')))
+  })
+  test('pas de transfert vers quelqu’un hors du ménage, ni par un simple membre', async () => {
+    await shareWithKarim()
+    await assertFails(updateDoc(doc(amina(), 'households/household-amina'), { ownerId: 'intrus' }))
+    await assertFails(updateDoc(doc(karim(), 'households/household-amina'), { ownerId: 'karim' }))
+  })
+  test('le transfert ne change rien d’autre dans la même écriture', async () => {
+    await shareWithKarim()
+    await assertFails(updateDoc(doc(amina(), 'households/household-amina'), { ownerId: 'karim', userIds: ['karim'] }))
+    await assertFails(updateDoc(doc(amina(), 'households/household-amina'), { ownerId: 'karim', name: 'Autre nom' }))
+  })
 })
 
 describe('cueillette unique par ménage (T-159)', () => {

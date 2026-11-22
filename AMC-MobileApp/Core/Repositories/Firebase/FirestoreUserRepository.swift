@@ -138,6 +138,74 @@ nonisolated final class FirestoreUserRepository: UserRepository, @unchecked Send
         }
         return updated
     }
+
+    // MARK: FB-22 — propriétaire qui part, temps réel
+
+    /// Seul `ownerId` change (la règle `isTransferringOwnership` le vérifie : appelant propriétaire,
+    /// nouveau propriétaire déjà membre, membres inchangés).
+    func transferOwnership(ofHousehold householdId: String, to newOwnerId: String, byUserId callerId: String) async throws -> Household {
+        let household = try await household(id: householdId)
+        let updated = try HouseholdMembership.transferringOwnership(to: newOwnerId, in: household, byUserId: callerId)
+        do {
+            try await householdRef(householdId).updateData(["ownerId": newOwnerId])
+        } catch {
+            throw FirestoreGroupOrderRepository.appError(from: error)
+        }
+        return updated
+    }
+
+    func observeHousehold(id: String) async -> AsyncThrowingStream<Household, any Error> {
+        let (stream, continuation) = AsyncThrowingStream<Household, any Error>.makeStream()
+        // Retiré du ménage : la règle de lecture refuse, le listener se termine en `.permissionDenied`.
+        let registration = householdRef(id).addSnapshotListener { snapshot, error in
+            if let error {
+                continuation.finish(throwing: FirestoreGroupOrderRepository.appError(from: error))
+                return
+            }
+            guard let snapshot, snapshot.exists else {
+                continuation.finish(throwing: AppError.notFound)
+                return
+            }
+            do {
+                continuation.yield(try FirestoreDocument.decode(Household.self, snapshot, idKey: "id"))
+            } catch {
+                continuation.finish(throwing: FirestoreGroupOrderRepository.appError(from: error))
+            }
+        }
+        let box = HouseholdListenerBox(registration: registration)
+        continuation.onTermination = { _ in box.registration.remove() }
+        return stream
+    }
+
+    func observeJoinRequests(ofHousehold householdId: String, byUserId userId: String) async -> AsyncThrowingStream<[HouseholdJoinRequest], any Error> {
+        let (stream, continuation) = AsyncThrowingStream<[HouseholdJoinRequest], any Error>.makeStream()
+        let query = db.collection(FirestoreCollection.joinRequests(ofHousehold: householdId))
+            .whereField("status", isEqualTo: HouseholdJoinRequest.Status.pending.rawValue)
+        // Propriété cédée : la règle `list` refuse, le listener se termine en `.permissionDenied`.
+        let registration = query.addSnapshotListener { snapshot, error in
+            if let error {
+                continuation.finish(throwing: FirestoreGroupOrderRepository.appError(from: error))
+                return
+            }
+            do {
+                let requests = try (snapshot?.documents ?? [])
+                    .map { try FirestoreDocument.decode(HouseholdJoinRequest.self, $0, idKey: "userId") }
+                    .sorted { $0.createdAt < $1.createdAt }
+                continuation.yield(requests)
+            } catch {
+                continuation.finish(throwing: FirestoreGroupOrderRepository.appError(from: error))
+            }
+        }
+        let box = HouseholdListenerBox(registration: registration)
+        continuation.onTermination = { _ in box.registration.remove() }
+        return stream
+    }
+}
+
+/// Transporte un `ListenerRegistration` (non Sendable) dans `onTermination`.
+/// Sûr : `remove()` est thread-safe et n'est appelé qu'une fois, à la fin du flux.
+private nonisolated struct HouseholdListenerBox: @unchecked Sendable {
+    let registration: any ListenerRegistration
 }
 
 /// Lecture, écriture et décodage communs aux dépôts Firestore de B-017 et B-018.

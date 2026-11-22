@@ -427,6 +427,8 @@ private struct DashboardContent: View {
     @AppStorage(DashboardSection.storageKey) private var rawLayout = ""
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Environment(\.isEditingLayout) private var isEditingLayout
+    /// Filtre des lots ouverts par type de produit (nil = tous), comme sur l'Accueil des familles.
+    @State private var offerCategory: Product.Category?
 
     private var layout: SectionLayout { SectionLayout(raw: rawLayout, defaults: DashboardSection.allCases.map(\.rawValue)) }
 
@@ -466,8 +468,22 @@ private struct DashboardContent: View {
         case .offers:
             VStack(alignment: .leading, spacing: 20) {
                 SectionTitle(String(localized: "Lots ouverts"), systemImage: "shippingbox.fill")
+                let categories = dashboard.offers.compactMap { $0.product?.category }
+                // Une catégorie choisie qui n'a plus de lot (après un rechargement) retombe sur « Tous ».
+                let category = offerCategory.flatMap { categories.contains($0) ? $0 : nil }
+                if HomeOfferFilter.showsChips(categories) {
+                    OfferCategoryChips(
+                        counts: HomeOfferFilter.categoryCounts(categories),
+                        total: dashboard.offers.count,
+                        selection: category,
+                        reduceMotion: reduceMotion
+                    ) { newValue in
+                        withAnimation(reduceMotion ? nil : .smooth) { offerCategory = newValue }
+                    }
+                }
+                let offers = category.map { selected in dashboard.offers.filter { $0.product?.category == selected } } ?? dashboard.offers
                 VStack(spacing: 12) {
-                    ForEach(Array(dashboard.offers.enumerated()), id: \.element.id) { index, summary in
+                    ForEach(Array(offers.enumerated()), id: \.element.id) { index, summary in
                         VendorOfferCard(summary: summary)
                             .guidedTourAnchor(.vendorRisk, if: index == 0)
                             .grenierTransition(.cardAppear)

@@ -1022,6 +1022,7 @@ private extension TierEditorViewModel {
 }
 #endif
 
+#if DEBUG
 #Preview("Nouveau lot") {
     NavigationStack {
         TierEditorScreen(repositories: .fake(), vendorId: FakeData.ID.fermeRive)
@@ -1047,3 +1048,4 @@ private extension TierEditorViewModel {
         TierEditorScreen(model: .invalidSample(), showsErrors: true)
     }
 }
+#endif

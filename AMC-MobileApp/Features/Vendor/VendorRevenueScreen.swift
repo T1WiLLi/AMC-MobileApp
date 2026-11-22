@@ -821,6 +821,7 @@ extension FakeData {
 }
 #endif
 
+#if DEBUG
 #Preview("Clair") {
     VendorRevenueScreen(repositories: .fake(data: .vendorRevenueDemo), vendorId: FakeData.ID.fermeRive)
 }
@@ -851,3 +852,4 @@ extension FakeData {
     VendorRevenueSkeleton()
         .grenierBackground()
 }
+#endif

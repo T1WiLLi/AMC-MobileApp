@@ -42,6 +42,7 @@ struct ProfileScreen: View {
                         .grenierAppear(index: 0, style: .sheet)
                 }
 
+                if availablePortals.count > 1 {
                 Section {
                     portalSwitcher
                         .listRowInsets(EdgeInsets(top: 4, leading: 0, bottom: 4, trailing: 0))
@@ -49,6 +50,7 @@ struct ProfileScreen: View {
                         .grenierAppear(index: 1, style: .sheet)
                 } header: {
                     ProfileSectionHeader(String(localized: "Portail"), systemImage: "arrow.left.arrow.right.circle.fill")
+                }
                 }
 
                 // T-075 : profil famille (RQ-015, RQ-017 à RQ-020), écrans dans Features/Profile/.
@@ -252,7 +254,7 @@ struct ProfileScreen: View {
 
     /// « Organismes » seulement pour un compte rattaché à un organisme (ou déjà sur ce portail).
     private var availablePortals: [Portal] {
-        Portal.allCases.filter { $0 != .organization || appContext.hasOrganization || portal == .organization }
+        Portal.available(hasOrganization: appContext.hasOrganization)
     }
 
     /// La pastille glisse tout de suite, puis la feuille se ferme pendant que le voile de bascule

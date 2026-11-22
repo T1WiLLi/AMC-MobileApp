@@ -17,7 +17,7 @@ struct SessionContextGate: View {
     var body: some View {
         Group {
             switch store.phase {
-            case .ready where store.context.needsOnboarding:
+            case .ready where store.context.needsOnboarding && !store.context.hasOrganization:
                 // Compte tout neuf (T-156) : préférences et ménage, puis le tableau de bord Familles.
                 PostSignupOnboardingScreen(model: PostSignupOnboardingViewModel(context: store.context)) { householdId in
                     PostSignupOnboardingViewModel.openFamilyPortalIfChosen()

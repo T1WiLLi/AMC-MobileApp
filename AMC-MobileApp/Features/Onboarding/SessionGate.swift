@@ -32,8 +32,10 @@ struct SessionGate: View {
                 EmailVerificationScreen(session: session)
                     .transition(transition)
             case .portalChoice:
-                PortalChoiceScreen { hasChosenPortal = true }
-                    .transition(transition)
+                if let user = session.currentUser {
+                    PortalChoiceGate(user: user) { hasChosenPortal = true }
+                        .transition(transition)
+                }
             case .app:
                 if let user = session.currentUser {
                     // Ménage, groupe et vendeur lus depuis users/{uid} avant d'ouvrir l'app (T-127).
@@ -62,6 +64,38 @@ struct SessionGate: View {
                 insertion: .move(edge: .trailing).combined(with: .opacity),
                 removal: .move(edge: .leading).combined(with: .opacity)
             )
+    }
+}
+
+/// Avant le choix du portail : lit le profil (organisme rattaché ?). Un compte d'organisme n'a qu'un portail,
+/// Organismes : on l'ouvre directement, sans écran de choix. Les autres comptes voient le choix habituel.
+private struct PortalChoiceGate: View {
+    let user: AuthUser
+    let onChosen: () -> Void
+
+    @Environment(\.appContext) private var base
+    @Environment(SessionContextStore.self) private var store: SessionContextStore?
+    @State private var showsChoice = false
+
+    var body: some View {
+        Group {
+            if showsChoice {
+                PortalChoiceScreen(onFinish: onChosen)
+            } else {
+                SessionLoadingView()
+            }
+        }
+        .task(id: user.id) {
+            if let store {
+                await store.load(for: user, base: base)
+                if store.context.hasOrganization {
+                    Portal.lockToOrganization()
+                    onChosen()
+                    return
+                }
+            }
+            showsChoice = true
+        }
     }
 }
 

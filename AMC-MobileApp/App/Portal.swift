@@ -72,6 +72,19 @@ enum Portal: String, CaseIterable, Identifiable, Sendable {
     /// Grenier relie le compte à l'organisme (`users/{uid}.organizationId`), voir `OrganizationAccessRequestView`.
     var isSelectableAtOnboarding: Bool { self != .organization }
 
+    /// Portails entre lesquels un compte peut basculer : un compte d'organisme reste sur Organismes
+    /// (pas d'accès aux Familles ni aux Vendeurs), les autres comptes ont Familles et Vendeurs.
+    static func available(hasOrganization: Bool) -> [Portal] {
+        hasOrganization ? [.organization] : [.family, .vendor]
+    }
+
+    /// Compte d'organisme : enregistre le portail Organismes comme choisi, sans passer par l'écran de choix.
+    static func lockToOrganization(in defaults: UserDefaults = .standard) {
+        defaults.set(Portal.organization.rawValue, forKey: Portal.storageKey)
+        defaults.set(Portal.organization.rawValue, forKey: OnboardingKeys.portalChoice)
+        defaults.set(true, forKey: OnboardingKeys.hasChosenPortal)
+    }
+
     /// Explication affichée sous une carte non sélectionnable.
     var unavailableReason: String? {
         isSelectableAtOnboarding ? nil : String(localized: "Les organismes sont ajoutés par l'équipe Grenier. Écris-nous pour inscrire le tien.")

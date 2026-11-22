@@ -8,15 +8,19 @@ struct ProfileToolbarModifier: ViewModifier {
     @AppStorage(Portal.storageKey) private var portal: Portal = .family
     @Environment(PortalSwitchCoordinator.self) private var portalSwitch: PortalSwitchCoordinator?
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Environment(\.appContext) private var appContext
+
+    /// Compte d'organisme : un seul portail, donc pas de menu de bascule.
+    private var availablePortals: [Portal] { Portal.available(hasOrganization: appContext.hasOrganization) }
 
     func body(content: Content) -> some View {
         content
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
                     Menu {
-                        if portalSwitch != nil {
+                        if portalSwitch != nil, availablePortals.count > 1 {
                             Picker(selection: portalSelection) {
-                                ForEach(Portal.allCases) { item in
+                                ForEach(availablePortals) { item in
                                     Label(item.title, systemImage: item.systemImage).tag(item)
                                 }
                             } label: {
@@ -37,7 +41,9 @@ struct ProfileToolbarModifier: ViewModifier {
                     }
                     // FB-19 : dernière étape des visites (Noisette, Racoonette) : le bouton Profil.
                     .guidedTourAnchor(portal == .vendor ? .vendorProfile : .profile, cornerRadius: 22, padding: 4)
-                    .accessibilityHint("Ouvre ton profil. Maintiens le doigt pour changer de portail.")
+                    .accessibilityHint(availablePortals.count > 1
+                        ? String(localized: "Ouvre ton profil. Maintiens le doigt pour changer de portail.")
+                        : String(localized: "Ouvre ton profil."))
                 }
             }
             .sensoryFeedback(.selection, trigger: isPresented) { _, new in new }

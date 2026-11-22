@@ -451,12 +451,7 @@ private struct GroupBanner: View {
                 ? AnyLayout(VStackLayout(alignment: .leading, spacing: 8))
                 : AnyLayout(HStackLayout(alignment: .center, spacing: 12))
             headerLayout {
-                Image(systemName: GrenierSymbol.groups)
-                    .font(.title2)
-                    .symbolRenderingMode(.hierarchical)
-                    .foregroundStyle(Color.grenier)
-                    .frame(width: min(tileSide, 80), height: min(tileSide, 80))
-                    .background(Color.grenier.opacity(0.12), in: .rect(cornerRadius: 14))
+                GrenierIconTile(systemImage: GrenierSymbol.groups, side: min(tileSide, 80), font: .title2)
                     .symbolEffect(.bounce, options: .nonRepeating, value: reduceMotion ? false : hasAppeared)
                     .accessibilityHidden(true)
                 VStack(alignment: .leading, spacing: 2) {
@@ -654,8 +649,7 @@ private struct SavingsCard: View {
                 Image(systemName: GrenierSymbol.savings)
                     .font(.title2.bold())
                     .symbolRenderingMode(.hierarchical)
-                    .frame(width: iconSize, height: iconSize)
-                    .background(Color.onAccent.opacity(0.18), in: .circle)
+                    .grenierIconCircle(Color.onAccent, side: iconSize, opacity: 0.18)
                     .symbolEffect(.bounce, options: .nonRepeating, value: reduceMotion ? false : hasAppeared)
                     .symbolEffect(.bounce, options: .nonRepeating, value: savedCents)
                     .accessibilityHidden(true)

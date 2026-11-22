@@ -192,8 +192,7 @@ private struct ImpactStatTile: View {
                 .symbolRenderingMode(.hierarchical)
                 .foregroundStyle(tint)
                 .symbolEffect(.bounce, value: trigger)
-                .frame(width: iconSide, height: iconSide)
-                .background(tint.opacity(0.12), in: .rect(cornerRadius: 12))
+                .grenierIconTile(tint, side: iconSide, cornerRadius: 12)
                 .accessibilityHidden(true)
             value
                 .priceStyle(.title.bold())

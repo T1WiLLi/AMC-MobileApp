@@ -27202,6 +27202,36 @@
           }
         }
       }
+    },
+    "Il manque %@ pour commander" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ missing to order"
+          }
+        }
+      }
+    },
+    "plus que %@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ left"
+          }
+        }
+      }
+    },
+    "moins d'une heure" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "under an hour left"
+          }
+        }
+      }
     }
   },
   "version" : "1.0"

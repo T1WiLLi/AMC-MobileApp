@@ -629,18 +629,34 @@ actor FakeGroupOrderRepository: GroupOrderRepository {
     private var broadcaster = FakeBroadcaster<GroupOrder>()
     /// Jetons privés des codes de cueillette (`shares/{h}/private/pickup`) : commande → ménage → jeton.
     private var pickupTokens: [String: [String: String]] = [:]
+    /// T-195 : ce que la clôture écrit dans Firestore, gardé en mémoire (`payments`, `payouts/vendor`, fonds du groupe).
+    private var paymentRecords: [String: [PaymentRecord]] = [:]
+    private var vendorPayouts: [String: VendorPayoutRecord] = [:]
+    private var solidarityFunds: [String: SolidarityFund]
+    private let verifiedVendorIds: Set<String>
+    private let subsidizedHouseholdIds: Set<String>
 
+    /// - Parameters:
+    ///   - solidarityFunds: fonds de solidarité par groupe (`groups/{id}/solidarity/fund`), débité à la clôture.
+    ///   - verifiedVendorIds: vendeurs vérifiés (acompte de 50 % à la clôture).
+    ///   - subsidizedHouseholdIds: ménages au statut subventionné ; leur part est marquée admissible quand ils réservent.
     init(
         behavior: FakeBehavior = .instant,
         groupOrders: [GroupOrder] = [],
         shares: [String: [Share]] = [:],
         offers: [Offer] = [],
         now: @escaping @Sendable () -> Date = { .now },
-        payments: PaymentSimulator = PaymentSimulator()
+        payments: PaymentSimulator = PaymentSimulator(),
+        solidarityFunds: [String: SolidarityFund] = [:],
+        verifiedVendorIds: Set<String> = [],
+        subsidizedHouseholdIds: Set<String> = []
     ) {
         self.behavior = behavior
         self.now = now
         self.payments = payments
+        self.solidarityFunds = solidarityFunds
+        self.verifiedVendorIds = verifiedVendorIds
+        self.subsidizedHouseholdIds = subsidizedHouseholdIds
         self.groupOrders = Dictionary(uniqueKeysWithValues: groupOrders.map { ($0.id, $0) })
         self.shares = shares
         self.offers = Dictionary(uniqueKeysWithValues: offers.map { ($0.id, $0) })
@@ -712,12 +728,15 @@ actor FakeGroupOrderRepository: GroupOrderRepository {
             } else {
                 orderShares[index].quantity = quantity
                 orderShares[index].updatedAt = now()
+                if subsidizedHouseholdIds.contains(householdId) { orderShares[index].solidarityEligible = true }
             }
         } else if quantity > 0 {
-            orderShares.append(Share(
+            var share = Share(
                 householdId: householdId, quantity: quantity, finalPriceCents: nil, isPaid: false,
                 suspendedAmountCents: 0, subsidyCents: 0, qrCode: nil, isPickedUp: false, updatedAt: now()
-            ))
+            )
+            if subsidizedHouseholdIds.contains(householdId) { share.solidarityEligible = true }
+            orderShares.append(share)
         }
         // Même recalcul que la transaction Firestore (RQ-051).
         let updated = try TierEngine.recalculated(order, offer: offer, shares: orderShares)
@@ -832,10 +851,19 @@ actor FakeGroupOrderRepository: GroupOrderRepository {
         guard let order = groupOrders[groupOrderId], let offer = offers[order.offerId] else { throw AppError.notFound }
         let closure = try GroupOrderClosing.close(
             order: order, offer: offer, shares: shares[groupOrderId, default: []], trigger: trigger, now: now(),
-            eligibleHouseholdIds: eligibleHouseholdIds, solidarityFundCents: solidarityFundCents, payments: payments
+            eligibleHouseholdIds: eligibleHouseholdIds, solidarityFundCents: solidarityFundCents,
+            fund: solidarityFunds[order.groupId], vendorIsVerified: verifiedVendorIds.contains(offer.vendorId),
+            payments: payments
         )
-        // Même écriture que la transaction Firestore : parts figées (et payées), puis la commande.
+        // Même écriture que la transaction Firestore : parts figées (et payées), paiements enregistrés,
+        // versement du vendeur, débit du fonds, puis la commande.
         if closure.isConfirmed {
+            paymentRecords[groupOrderId] = closure.payments.filter { $0.status == .succeeded }
+            vendorPayouts[groupOrderId] = closure.vendorPayout
+            if let entry = closure.fundEntry, var fund = solidarityFunds[order.groupId] {
+                fund.entries.append(entry)
+                solidarityFunds[order.groupId] = fund
+            }
             var orderShares = shares[groupOrderId, default: []]
             for share in closure.shares {
                 if let index = orderShares.firstIndex(where: { $0.householdId == share.householdId }) {
@@ -847,6 +875,21 @@ actor FakeGroupOrderRepository: GroupOrderRepository {
         groupOrders[groupOrderId] = closure.order
         broadcaster.send(closure.order, for: groupOrderId)
         return closure
+    }
+
+    func payments(ofGroupOrder groupOrderId: String) async throws -> [PaymentRecord] {
+        try await behavior.simulate()
+        return paymentRecords[groupOrderId, default: []].sorted { $0.householdId < $1.householdId }
+    }
+
+    func vendorPayout(ofGroupOrder groupOrderId: String) async throws -> VendorPayoutRecord? {
+        try await behavior.simulate()
+        return vendorPayouts[groupOrderId]
+    }
+
+    /// T-195 : fonds de solidarité d'un groupe tel que la clôture l'a laissé (pour les tests et l'aperçu).
+    func solidarityFund(ofGroup groupId: String) -> SolidarityFund? {
+        solidarityFunds[groupId]
     }
 
     func observeGroupOrder(id: String) async -> AsyncThrowingStream<GroupOrder, any Error> {

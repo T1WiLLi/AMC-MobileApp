@@ -9,6 +9,8 @@ import SwiftUI
 struct GroupRatingsSection: View {
     let model: GroupRatingsViewModel
     let groupName: String
+    /// Photo du groupe pour l'en-tête de la feuille d'avis (initiales si nil).
+    var groupPhotoURL: URL? = nil
     /// Groupe aux agrégats à jour après un avis (en-tête et cartes).
     var onGroupUpdated: (NeighborhoodGroup) -> Void = { _ in }
 
@@ -46,6 +48,8 @@ struct GroupRatingsSection: View {
                 title: groupName,
                 prompt: String(localized: "Comment ça se passe dans ce groupe ?"),
                 context: contextLine,
+                subject: .init(photoURL: groupPhotoURL, systemImage: "person.3.fill"),
+                suggestions: RatingCommentTags.group,
                 placeholder: String(localized: "Organisation, ambiance, cueillettes…"),
                 maxLength: GroupRating.maxCommentLength,
                 existingRating: mine?.rating,

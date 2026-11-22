@@ -71,6 +71,7 @@ private struct PublicVendorContent: View {
                     .sheet(isPresented: $isRating) {
                         VendorReviewSheet(vendorName: profile.name,
                                           saleText: viewModel.reputation.value?.eligibleSale.map(SaleText.short),
+                                          photoURL: profile.coverPhotoURL,
                                           existing: viewModel.reputation.value?.myReview) { rating, comment in
                             await viewModel.saveReview(rating: rating, comment: comment)
                         }

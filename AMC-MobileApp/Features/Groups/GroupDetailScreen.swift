@@ -204,7 +204,8 @@ private struct GroupDetailContent: View {
 
                     // T-174 (FB-20) : avis des familles, « Noter ce groupe » pour les membres et anciens membres.
                     if let ratings {
-                        GroupRatingsSection(model: ratings, groupName: theme.displayName ?? group.name) { updated in
+                        GroupRatingsSection(model: ratings, groupName: theme.displayName ?? group.name,
+                                            groupPhotoURL: group.photoURL) { updated in
                             viewModel.replaceGroup(updated)
                         }
                     }

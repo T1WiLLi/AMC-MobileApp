@@ -34,7 +34,8 @@ struct GroupPublicContent: View {
                     coordinationCard
                     openOrdersList
                     if let ratings {
-                        GroupRatingsSection(model: ratings, groupName: theme.displayName ?? group.name)
+                        GroupRatingsSection(model: ratings, groupName: theme.displayName ?? group.name,
+                                            groupPhotoURL: group.photoURL)
                     }
                     benefits
                     if !group.isPublic { PrivateGroupNote(isMember: false) }

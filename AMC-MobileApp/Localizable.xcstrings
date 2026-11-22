@@ -29065,6 +29065,252 @@
           }
         }
       }
+    },
+    "Bonne ambiance" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Great atmosphere"
+          }
+        }
+      }
+    },
+    "Bien organisé" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Well organized"
+          }
+        }
+      }
+    },
+    "Cueillettes à l'heure" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pickups on time"
+          }
+        }
+      }
+    },
+    "Bonne communication" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Good communication"
+          }
+        }
+      }
+    },
+    "Prix avantageux" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Great prices"
+          }
+        }
+      }
+    },
+    "Produits frais" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Fresh products"
+          }
+        }
+      }
+    },
+    "Bonne quantité" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Good quantity"
+          }
+        }
+      }
+    },
+    "Livré à l'heure" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Delivered on time"
+          }
+        }
+      }
+    },
+    "Bon prix" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Fair price"
+          }
+        }
+      }
+    },
+    "Bien emballé" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Well packed"
+          }
+        }
+      }
+    },
+    "Bof" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Meh"
+          }
+        }
+      }
+    },
+    "Bien" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Good"
+          }
+        }
+      }
+    },
+    "Excellent" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Excellent"
+          }
+        }
+      }
+    },
+    "Donner mon avis" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Write a review"
+          }
+        }
+      }
+    },
+    "Balaie vers le haut ou le bas pour changer la note." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Swipe up or down to change the rating."
+          }
+        }
+      }
+    },
+    "Ton commentaire" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Your comment"
+          }
+        }
+      }
+    },
+    "Facultatif" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Optional"
+          }
+        }
+      }
+    },
+    "Touche un mot pour l'ajouter au commentaire." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tap a word to add it to your comment."
+          }
+        }
+      }
+    },
+    "Retire ce mot du commentaire." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Removes this word from your comment."
+          }
+        }
+      }
+    },
+    "Ajoute ce mot au commentaire." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Adds this word to your comment."
+          }
+        }
+      }
+    },
+    "Signé de ton prénom et de l'initiale de ton nom." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Signed with your first name and last initial."
+          }
+        }
+      }
+    },
+    "%lld sur %lld caractères" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$lld of %2$lld characters"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$lld sur %2$lld caractères"
+          }
+        }
+      }
+    },
+    "Publication…" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Publishing…"
+          }
+        }
+      }
+    },
+    "Publier mon avis" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Publish my review"
+          }
+        }
+      }
     }
   },
   "version" : "1.0"

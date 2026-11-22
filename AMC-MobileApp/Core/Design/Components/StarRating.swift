@@ -29,20 +29,24 @@ struct StarRatingView: View {
 /// Choix de 1 à 5 étoiles : cibles de 44 pt, rebond à chaque choix, ajustable au balayage VoiceOver.
 struct StarRatingPicker: View {
     @Binding var rating: Int
+    /// Couleur des étoiles choisies (accent Grenier dans la feuille d'avis).
+    var tint: Color = .orange
 
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
-    @ScaledMetric(relativeTo: .largeTitle) private var size: CGFloat = 36
+    @ScaledMetric(relativeTo: .largeTitle) private var size: CGFloat = 40
 
     var body: some View {
-        HStack(spacing: 6) {
+        HStack(spacing: 4) {
             ForEach(1...5, id: \.self) { star in
                 Button {
                     withGrenierAnimation(.snappy, reduceMotion: reduceMotion) { rating = star }
                 } label: {
                     Image(systemName: star <= rating ? "star.fill" : "star")
-                        .font(.system(size: size))
-                        .foregroundStyle(star <= rating ? Color.orange : Color.texteSecondaire.opacity(0.5))
-                        .symbolEffect(.bounce, value: reduceMotion ? 0 : (star == rating ? rating : 0))
+                        .font(.system(size: size, weight: .semibold))
+                        .foregroundStyle(star <= rating ? tint : Color.texteSecondaire.opacity(0.45))
+                        .contentTransition(.symbolEffect(.replace))
+                        .symbolEffect(.bounce.up.byLayer, value: reduceMotion ? 0 : (star <= rating ? rating : 0))
+                        .scaleEffect(star == rating && !reduceMotion ? 1.08 : 1)
                         .frame(minWidth: 44, minHeight: 44)
                         .contentShape(.rect)
                 }
@@ -68,10 +72,10 @@ enum StarRatingText {
     static func label(for rating: Int) -> String {
         switch rating {
         case 1: String(localized: "Décevant")
-        case 2: String(localized: "Moyen")
+        case 2: String(localized: "Bof")
         case 3: String(localized: "Correct")
-        case 4: String(localized: "Très bien")
-        case 5: String(localized: "Excellent !")
+        case 4: String(localized: "Bien")
+        case 5: String(localized: "Excellent")
         default: String(localized: "Touche une étoile")
         }
     }

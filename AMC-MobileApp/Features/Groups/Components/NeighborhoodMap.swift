@@ -181,12 +181,12 @@ nonisolated enum NeighborhoodMapLayout {
 
     /// « 450 m », « 1,5 km ».
     static func distanceText(_ meters: Int) -> String {
-        if meters < 1_000 { return "\(meters) m" }
+        if meters < 1_000 { return String(localized: "\(meters) m") }
         let kilometers = Double(meters) / 1_000
         let format = FloatingPointFormatStyle<Double>.number
             .precision(.fractionLength(0...1))
             .locale(AppLanguage.formattingLocale)
-        return kilometers.formatted(format) + " km"
+        return String(localized: "\(kilometers.formatted(format)) km")
     }
 
     /// « 7420 rue Ogilvy, Montréal » → « rue Ogilvy » (sans numéro civique).

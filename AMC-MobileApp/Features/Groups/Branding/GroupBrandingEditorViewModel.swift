@@ -32,14 +32,14 @@ final class GroupBrandingEditorViewModel: Identifiable {
     static let maxWelcomeLength = 160
 
     /// Accents proposés : tous passent le contraste AA de `GroupTheme` (vérifié par les tests).
-    static let accentPresets: [AccentPreset] = [
-        AccentPreset(id: "foret", name: "Forêt", light: "#1E6B52", dark: "#7FD1AE"),
-        AccentPreset(id: "fleuve", name: "Fleuve", light: "#1F5F8B", dark: "#8CC4EE"),
-        AccentPreset(id: "brique", name: "Brique", light: "#A3402A", dark: "#F2A08A"),
-        AccentPreset(id: "prune", name: "Prune", light: "#6E3A86", dark: "#CDA6E6"),
-        AccentPreset(id: "erable", name: "Érable", light: "#9A4A00", dark: "#F5B56B"),
-        AccentPreset(id: "nuit", name: "Nuit", light: "#2E3A70", dark: "#A9B6F0"),
-    ]
+    static var accentPresets: [AccentPreset] { [
+        AccentPreset(id: "foret", name: String(localized: "Forêt"), light: "#1E6B52", dark: "#7FD1AE"),
+        AccentPreset(id: "fleuve", name: String(localized: "Fleuve"), light: "#1F5F8B", dark: "#8CC4EE"),
+        AccentPreset(id: "brique", name: String(localized: "Brique"), light: "#A3402A", dark: "#F2A08A"),
+        AccentPreset(id: "prune", name: String(localized: "Prune"), light: "#6E3A86", dark: "#CDA6E6"),
+        AccentPreset(id: "erable", name: String(localized: "Érable"), light: "#9A4A00", dark: "#F5B56B"),
+        AccentPreset(id: "nuit", name: String(localized: "Nuit"), light: "#2E3A70", dark: "#A9B6F0"),
+    ] }
 
     /// Emblèmes proposés (SF Symbols).
     static let emblems: [String] = [

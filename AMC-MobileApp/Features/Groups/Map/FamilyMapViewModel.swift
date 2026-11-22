@@ -477,13 +477,13 @@ final class FamilyMapViewModel {
     /// « 850 m » (à 50 m près), « 4,2 km » (au dixième), « 18 km » (au km dès 10 km).
     nonisolated static func radiusText(meters: Double) -> String {
         let meters = max(0, meters)
-        if meters < 950 { return "\(max(50, Int((meters / 50).rounded()) * 50)) m" }
+        if meters < 950 { return String(localized: "\(max(50, Int((meters / 50).rounded()) * 50)) m") }
         let tenths = Int((meters / 100).rounded())
         if tenths < 100 {
             let separator = AppLanguage.formattingLocale.decimalSeparator ?? ","
-            return tenths % 10 == 0 ? "\(tenths / 10) km" : "\(tenths / 10)\(separator)\(tenths % 10) km"
+            return tenths % 10 == 0 ? String(localized: "\(tenths / 10) km") : String(localized: "\(tenths / 10)\(separator)\(tenths % 10) km")
         }
-        return "\(Int((meters / 1_000).rounded())) km"
+        return String(localized: "\(Int((meters / 1_000).rounded())) km")
     }
 
     nonisolated private static func household(id: String, repositories: AppRepositories) async -> Household? {

@@ -135,7 +135,7 @@ struct GroupBrandingEditorScreen: View {
         VStack(alignment: .leading, spacing: 12) {
             GroupsSectionHeader(title: "Couleur", systemImage: "paintpalette.fill", tint: theme.accent)
             VStack(spacing: 0) {
-                AccentRow(name: "LeGrenier (par défaut)", light: nil, dark: nil,
+                AccentRow(name: String(localized: "LeGrenier (par défaut)"), light: nil, dark: nil,
                           isSelected: viewModel.accentId == nil) { viewModel.accentId = nil }
                 ForEach(viewModel.availableAccents) { preset in
                     Divider().padding(.leading, 52)

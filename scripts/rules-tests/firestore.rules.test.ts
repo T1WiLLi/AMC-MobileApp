@@ -2274,7 +2274,7 @@ describe('clôture : paiements enregistrés, versement vendeur et débit du fond
   }
   const payout = {
     id: 'vendor', groupOrderId: ORDER, vendorId: 'vendor-lafleur', mode: 'deposit', grossCents: 7000,
-    commissionCents: 420, netCents: 6580, releasedCents: 3290, heldCents: 3290, subsidyTotalCents: 5000,
+    commissionCents: 70, netCents: 6930, releasedCents: 3465, heldCents: 3465, subsidyTotalCents: 5000,
     solidarityContributedCents: 0, paidShareCount: 1, date: Timestamp.now()
   }
   const debit = { kind: 'application', orderId: ORDER, amountCents: 5000, basketCount: 0, date: Timestamp.now() }
@@ -2395,6 +2395,8 @@ describe('clôture : paiements enregistrés, versement vendeur et débit du fond
     await assertFails(closeBatch(lafleur(), { payout: { ...payout, netCents: 7000 } }))
     await assertFails(closeBatch(lafleur(), { payout: { ...payout, heldCents: 0 } }))
     await assertFails(closeBatch(lafleur(), { payout: { ...payout, commissionCents: 0, netCents: 7000, releasedCents: 3500, heldCents: 3500 } }))
+    // L'ancien taux de 6 % est refusé : la commission est d'au plus 1 %.
+    await assertFails(closeBatch(lafleur(), { payout: { ...payout, commissionCents: 420, netCents: 6580, releasedCents: 3290, heldCents: 3290 } }))
     await assertFails(closeBatch(lafleur(), { payout: { ...payout, vendorId: 'vendor-autre' } }))
     await assertFails(closeBatch(lafleur(), { payout: { ...payout, mode: 'cash' } }))
   })

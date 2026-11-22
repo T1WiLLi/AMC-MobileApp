@@ -31,14 +31,14 @@ struct PaymentPotTests {
 
     // MARK: Commission
 
-    @Test func defaultRateIsSixPercent() {
-        #expect(Commission.defaultRate == 600)
-        #expect(Commission.standard.rateBasisPoints == 600)
-        #expect(Commission.standard.fee(onCents: 10_000) == 600)
-        #expect(Commission.standard.net(onCents: 10_000) == 9_400)
+    @Test func defaultRateIsOnePercent() {
+        #expect(Commission.defaultRate == 100)
+        #expect(Commission.standard.rateBasisPoints == 100)
+        #expect(Commission.standard.fee(onCents: 10_000) == 100)
+        #expect(Commission.standard.net(onCents: 10_000) == 9_900)
     }
 
-    @Test(arguments: [(100, 6), (25, 2), (24, 1), (8, 0), (9, 1), (1_980, 119), (990, 59), (1_000_000, 60_000)])
+    @Test(arguments: [(100, 1), (50, 1), (49, 0), (150, 2), (149, 1), (1_980, 20), (990, 10), (1_000_000, 10_000)])
     func feeIsRoundedToTheNearestCent(amount: Cents, fee: Cents) {
         #expect(Commission.standard.fee(onCents: amount) == fee)
         #expect(Commission.standard.net(onCents: amount) == amount - fee)
@@ -58,7 +58,7 @@ struct PaymentPotTests {
         #expect(Commission(rateBasisPoints: -50).fee(onCents: 123) == 0)
     }
 
-    @Test(arguments: [0, 600, 1_250, 5_000, 9_999, 10_000])
+    @Test(arguments: [0, 100, 600, 1_250, 5_000, 9_999, 10_000])
     func feeAndNetAlwaysAddUpToTheAmount(rate: Int) {
         let commission = Commission(rateBasisPoints: rate)
         for amount in 0...3_000 {
@@ -180,32 +180,32 @@ struct PaymentPotTests {
         #expect(payout.mode == .atPickup)
         // Subvention comprise (fonds de solidarité), don de h3 exclu.
         #expect(payout.grossCents == 3_960)
-        #expect(payout.commissionCents == 119 + 59 + 59)
-        #expect(payout.netCents == 3_723)
-        #expect(payout.releasedCents == 1_861)
-        #expect(payout.heldCents == 1_862)
+        #expect(payout.commissionCents == 20 + 10 + 10)
+        #expect(payout.netCents == 3_920)
+        #expect(payout.releasedCents == 1_960)
+        #expect(payout.heldCents == 1_960)
     }
 
     @Test func unverifiedVendorGetsNothingBeforePickup() throws {
         let payout = VendorPayout(order: order(), shares: try allocated(paid: ["h1", "h2", "h3"]), vendorIsVerified: false)
-        #expect(payout.netCents == 3_723)
+        #expect(payout.netCents == 3_920)
         #expect(payout.releasedCents == 0)
-        #expect(payout.heldCents == 3_723)
+        #expect(payout.heldCents == 3_920)
     }
 
     @Test func verifiedVendorGetsHalfAtClosure() throws {
         let payout = VendorPayout(order: order(), shares: try allocated(paid: ["h1", "h2", "h3"]), vendorIsVerified: true)
         #expect(payout.mode == .deposit)
-        // 1 861 / 2 = 930, 931 / 2 = 465 (deux fois) : arrondi au cent inférieur.
-        #expect(payout.releasedCents == 930 + 465 + 465)
-        #expect(payout.heldCents == 1_863)
+        // 1 960 / 2 = 980, 980 / 2 = 490 (deux fois) : arrondi au cent inférieur.
+        #expect(payout.releasedCents == 980 + 490 + 490)
+        #expect(payout.heldCents == 1_960)
     }
 
     @Test func verifiedVendorGetsTheRestAtPickup() throws {
         let shares = try allocated(paid: ["h1", "h2", "h3"], pickedUp: ["h1"])
         let payout = VendorPayout(order: order(.delivered), shares: shares, vendorIsVerified: true)
-        #expect(payout.releasedCents == 1_861 + 465 + 465)
-        #expect(payout.heldCents == 466 + 466)
+        #expect(payout.releasedCents == 1_960 + 490 + 490)
+        #expect(payout.heldCents == 490 + 490)
 
         let all = try allocated(paid: ["h1", "h2", "h3"], pickedUp: ["h1", "h2", "h3"])
         let done = VendorPayout(order: order(.delivered), shares: all, vendorIsVerified: true)
@@ -217,8 +217,8 @@ struct PaymentPotTests {
         let shares = try allocated(paid: ["h2"], pickedUp: ["h1", "h2"])
         let payout = VendorPayout(order: order(), shares: shares, vendorIsVerified: false)
         #expect(payout.grossCents == 990)
-        #expect(payout.commissionCents == 59)
-        #expect(payout.releasedCents == 931)
+        #expect(payout.commissionCents == 10)
+        #expect(payout.releasedCents == 980)
         #expect(payout.heldCents == 0)
     }
 

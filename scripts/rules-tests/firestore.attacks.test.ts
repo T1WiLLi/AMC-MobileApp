@@ -661,7 +661,7 @@ describe('attaques : groupes, points de cueillette, profils', () => {
     // Avec le compteur du groupe, dans le même lot (#93).
     const db = as('rival')
     const batch = writeBatch(db)
-    batch.set(doc(db, `groups/${GROUP}/members/household-rival`), { householdId: 'household-rival', role: 'member', joinedAt: serverTimestamp() })
+    batch.set(doc(db, `groups/${GROUP}/members/household-rival`), { householdId: 'household-rival', role: 'member', joinedAt: serverTimestamp(), userId: 'rival' })
     batch.update(doc(db, `groups/${GROUP}`), { householdCount: increment(1), lastMembershipChange: 'household-rival' })
     await assertSucceeds(batch.commit())
   })

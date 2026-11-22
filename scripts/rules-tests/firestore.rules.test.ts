@@ -414,7 +414,7 @@ describe('cueillette unique par ménage (T-159)', () => {
 describe('groups/members', () => {
   const groupPath = 'groups/group-parc-extension'
   const memberPath = `${groupPath}/members/household-amina`
-  const membership = { householdId: 'household-amina', role: 'member', joinedAt: serverTimestamp() }
+  const membership = { householdId: 'household-amina', role: 'member', joinedAt: serverTimestamp(), userId: 'amina' }
 
   // Ce que fait FirestoreGroupRepository.join / leave (T-099) : adhésion + compteur, dans un batch.
   function joinBatch(db: Firestore, member: object = membership, householdId = 'household-amina', delta = 1) {
@@ -438,6 +438,13 @@ describe('groups/members', () => {
     return count
   }
 
+  test('adhésion sans userId, ou avec l’uid d’un autre : refusée (T-193)', async () => {
+    const { userId: _userId, ...withoutUserId } = membership
+    await assertFails(joinBatch(amina(), withoutUserId))
+    await assertFails(joinBatch(amina(), { ...membership, userId: 'lafleur' }))
+    await assertFails(joinBatch(amina(), { ...membership, userId: '' }))
+    await assertSucceeds(joinBatch(amina()))
+  })
   test('le ménage rejoint un groupe : adhésion + householdCount +1 (T-099)', async () => {
     await assertSucceeds(joinBatch(amina()))
     assert.equal(await householdCount(), 4)
@@ -927,7 +934,7 @@ describe('groupes privés et invitations (B-056)', () => {
   // Ce que fait FirestoreGroupRepository.consume : adhésion qui nomme l'invitation, compteur, invitation utilisée.
   function joinWithInvitation(db: Firestore, code: string | null, groupPath = privatePath, consume = true) {
     const batch = writeBatch(db)
-    const member: Record<string, unknown> = { householdId: 'household-intrus', role: 'member', joinedAt: serverTimestamp() }
+    const member: Record<string, unknown> = { householdId: 'household-intrus', role: 'member', joinedAt: serverTimestamp(), userId: 'intrus' }
     if (code) member.invitationCode = code
     batch.set(doc(db, `${groupPath}/members/household-intrus`), member)
     batch.update(doc(db, groupPath), { householdCount: increment(1), lastMembershipChange: 'household-intrus' })
@@ -1037,7 +1044,7 @@ describe('créer un groupe depuis l’app (B-059)', () => {
     createdAt: serverTimestamp(), lastMembershipChange: 'household-amina', ...overrides
   })
   const coordinator = (overrides: Record<string, unknown> = {}) => ({
-    householdId: 'household-amina', role: 'coordinator', joinedAt: serverTimestamp(), ...overrides
+    householdId: 'household-amina', role: 'coordinator', joinedAt: serverTimestamp(), userId: 'amina', ...overrides
   })
 
   // Ce que fait FirestoreGroupRepository.createGroup : groupe et adhésion du ménage créateur dans un seul batch.
@@ -1055,6 +1062,12 @@ describe('créer un groupe depuis l’app (B-059)', () => {
     await env.withSecurityRulesDisabled(async (c) => { data = (await getDoc(doc(c.firestore(), groupPath))).data() })
     assert.equal(data?.householdCount, 1)
     assert.equal(data?.createdBy, 'amina')
+  })
+
+  test('le premier membre sans userId, ou avec l’uid d’un autre : refusé (T-193)', async () => {
+    const { userId: _userId, ...withoutUserId } = coordinator()
+    await assertFails(createBatch(amina(), group(), withoutUserId))
+    await assertFails(createBatch(amina(), group(), coordinator({ userId: 'intrus' })))
   })
 
   test('un groupe privé se crée aussi', async () => {
@@ -1579,7 +1592,7 @@ describe('groups : passation du créateur qui quitte (T-193)', () => {
         await setDoc(doc(db, `households/${household}`), { id: household, name: `Famille ${uid}`, size: 2, geohash: 'f25du', userIds: [uid] })
         // `etranger` a un ménage mais n'est PAS membre du groupe.
         if (uid !== 'etranger') {
-          await setDoc(doc(db, memberOf(household)), { householdId: household, role, joinedAt: Timestamp.now() })
+          await setDoc(doc(db, memberOf(household)), { householdId: household, role, joinedAt: Timestamp.now(), userId: uid })
         }
       }
       await setDoc(doc(db, groupPath), {
@@ -1677,6 +1690,24 @@ describe('groups : passation du créateur qui quitte (T-193)', () => {
   })
   test('un héritier sans promotion (reste simple membre) est refusé', async () => {
     await assertFails(handoverBatch(creator(), { promote: false }))
+  })
+  test('createdBy doit être le userId de l’adhésion de l’héritier', async () => {
+    // Le compte nommé est bien dans le ménage héritier, mais l'adhésion ne le désigne pas.
+    await env.withSecurityRulesDisabled(async (c) => {
+      await setDoc(doc(c.firestore(), 'households/household-membre'), { id: 'household-membre', name: 'Famille', size: 2, geohash: 'f25du', userIds: ['membre', 'autre'] })
+    })
+    await assertFails(handoverBatch(creator(), { newOwner: 'autre', coordinatorIds: ['coord', 'autre'] }))
+    await assertSucceeds(handoverBatch(creator()))
+  })
+  test('adhésion ancienne sans userId : la passation est refusée', async () => {
+    await env.withSecurityRulesDisabled(async (c) => {
+      await setDoc(doc(c.firestore(), memberOf('household-membre')), { householdId: 'household-membre', role: 'member', joinedAt: Timestamp.now() })
+    })
+    await assertFails(handoverBatch(creator()))
+  })
+  test('userId d’une adhésion ne se modifie jamais', async () => {
+    await assertFails(updateDoc(doc(member(), memberOf('household-membre')), { userId: 'createur' }))
+    await assertFails(updateDoc(doc(creator(), memberOf('household-membre')), { userId: 'createur' }))
   })
   test('le créateur qui sort sans passation reste permis (sortie ordinaire inchangée)', async () => {
     const db = creator()

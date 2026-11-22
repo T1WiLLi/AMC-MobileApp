@@ -56,6 +56,13 @@ nonisolated struct CachedGroupOrderRepository: GroupOrderRepository {
     }
 
     @discardableResult
+    func setSuspendedBasket(_ amountCents: Cents, householdId: String, groupOrderId: String) async throws -> Share {
+        let share = try await base.setSuspendedBasket(amountCents, householdId: householdId, groupOrderId: groupOrderId)
+        await cache.invalidate(.shares(ofGroupOrder: groupOrderId))
+        return share
+    }
+
+    @discardableResult
     func setPickupPoint(_ pickupPointId: String?, slots: [PickupSlot], groupOrderId: String) async throws -> GroupOrder {
         let order = try await base.setPickupPoint(pickupPointId, slots: slots, groupOrderId: groupOrderId)
         // Les réservations sur un créneau retiré sont effacées : `apply` fait aussi relire les parts.

@@ -196,6 +196,10 @@ nonisolated protocol GroupOrderRepository: Sendable {
     /// Une part par ménage, remise une seule fois : un deuxième scan renvoie `.alreadyPickedUp` sans rien écrire.
     @discardableResult
     func confirmPickup(code: String, groupOrderId: String, at date: Date) async throws -> PickupDesk.ScanResult
+    /// T-181 : fixe le panier suspendu (0 = aucun) de la part du ménage, commande ouverte (`SolidarityLedger`).
+    /// Lève `.notFound` sans part, `.orderClosed` si la commande est fermée, `.invalidInput` au-dessus du plafond.
+    @discardableResult
+    func setSuspendedBasket(_ amountCents: Cents, householdId: String, groupOrderId: String) async throws -> Share
     /// T-174 : part du ménage dans la commande, nil s'il n'en a pas. Lisible par le ménage lui-même, même
     /// après avoir quitté le groupe (preuve d'ancienne adhésion pour noter le groupe).
     func share(ofHousehold householdId: String, inGroupOrder groupOrderId: String) async throws -> Share?
@@ -209,6 +213,10 @@ extension GroupOrderRepository {
     }
 
     func confirmPickup(code: String, groupOrderId: String, at date: Date) async throws -> PickupDesk.ScanResult {
+        throw AppError.permissionDenied
+    }
+
+    func setSuspendedBasket(_ amountCents: Cents, householdId: String, groupOrderId: String) async throws -> Share {
         throw AppError.permissionDenied
     }
 }

@@ -98,6 +98,20 @@ struct NeedSummaryCard: View {
 
     private var missing: Int { groups.reduce(0) { $0 + $1.basketsMissing } }
 
+    /// Accord du verbe : « 1 panier manque », « 2 paniers manquent ».
+    private var missingTitle: String {
+        let count = FrenchPlural.count(missing, "panier")
+        return missing == 1 ? String(localized: "\(count) manque") : String(localized: "\(count) manquent")
+    }
+
+    /// « 1 groupe n'a pas assez… », « 2 groupes n'ont pas assez… ».
+    private var missingMessage: String {
+        let count = FrenchPlural.count(groups.count, "groupe")
+        return groups.count == 1
+            ? String(localized: "\(count) n'a pas assez dans son fonds pour ses familles aidées.")
+            : String(localized: "\(count) n'ont pas assez dans leur fonds pour leurs familles aidées.")
+    }
+
     var body: some View {
         HStack(alignment: .top, spacing: 12) {
             Image(systemName: missing > 0 ? "basket.fill" : "checkmark.seal.fill")
@@ -108,12 +122,12 @@ struct NeedSummaryCard: View {
                 .contentTransition(.symbolEffect(.replace))
                 .accessibilityHidden(true)
             VStack(alignment: .leading, spacing: 4) {
-                Text(missing > 0 ? String(localized: "\(FrenchPlural.count(missing, "panier")) manquent") : String(localized: "Tout est couvert"))
+                Text(missing > 0 ? missingTitle : String(localized: "Tout est couvert"))
                     .font(.title3.bold())
                     .foregroundStyle(Color.texte)
                     .contentTransition(.numericText(value: Double(missing)))
                 Text(missing > 0
-                     ? String(localized: "\(FrenchPlural.count(groups.count, "groupe")) n'ont pas assez dans leur fonds pour leurs familles aidées.")
+                     ? missingMessage
                      : String(localized: "Chaque famille aidée a son panier réservé. Merci !"))
                     .font(.subheadline)
                     .foregroundStyle(Color.texteSecondaire)

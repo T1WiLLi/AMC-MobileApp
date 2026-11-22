@@ -63,6 +63,7 @@ struct GrenierStatTile<Value: View>: View {
     private let valueText: String?
 
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     @ScaledMetric(relativeTo: .title3) private var badgeSide: CGFloat = 40
 
     /// Tuile à valeur sur mesure (ex. `AnimatedCounter`), qui gère elle-même sa transition de chiffres.
@@ -148,6 +149,9 @@ struct GrenierStatTile<Value: View>: View {
                         Label { title } icon: { symbol }
                             .font(.subheadline)
                             .foregroundStyle(.texteSecondaire)
+                            // Une ligne tant que le texte n'est pas agrandi : deux tuiles côte à côte gardent leurs chiffres alignés.
+                            .lineLimit(dynamicTypeSize.isAccessibilitySize ? nil : 1)
+                            .minimumScaleFactor(dynamicTypeSize.isAccessibilitySize ? 1 : 0.8)
                     } else {
                         title
                             .font(.subheadline)

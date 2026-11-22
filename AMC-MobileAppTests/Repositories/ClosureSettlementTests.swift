@@ -41,7 +41,7 @@ struct ClosureSettlementTests {
     }
 
     static let trigger = GroupOrderClosureTrigger.manual(
-        user: ClosurePolicyTests.user(household: "h9"), groupCoordinatorIds: [ClosurePolicyTests.user(household: "h9").id]
+        user: ClosurePolicyTests.user(household: "h9"), groupCoordinatorIds: ["u1"]
     )
 
     // MARK: Subventions

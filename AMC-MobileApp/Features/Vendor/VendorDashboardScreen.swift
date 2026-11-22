@@ -808,11 +808,21 @@ private struct VendorOfferCard: View {
                 titles
             }
         } else {
+            // Le badge reste sur la ligne du titre : les lignes de méta (groupe, échéance) gardent toute la largeur
+            // au lieu de se couper au milieu d'un nom (« Voisins de Parc-\nEx »).
             HStack(alignment: .top, spacing: 12) {
                 icon
-                titles
-                Spacer(minLength: 8)
-                tierBadge
+                VStack(alignment: .leading, spacing: 2) {
+                    HStack(alignment: .top, spacing: 8) {
+                        Text(summary.title)
+                            .font(.headline)
+                            .foregroundStyle(.texte)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .layoutPriority(1)
+                        tierBadge
+                    }
+                    metaLines
+                }
             }
         }
     }
@@ -826,10 +836,15 @@ private struct VendorOfferCard: View {
             Text(summary.title)
                 .font(.headline)
                 .foregroundStyle(.texte)
-            MetaLabel(placeText, systemImage: summary.linkedOrders.isEmpty ? "person.2.slash" : "person.3.fill")
-            MetaLabel(String(localized: "Ferme \(VendorDeadline.weekday(summary.offer.deadline))"), systemImage: "calendar.badge.clock")
+            metaLines
         }
         .layoutPriority(1)
+    }
+
+    @ViewBuilder
+    private var metaLines: some View {
+        MetaLabel(placeText, systemImage: summary.linkedOrders.isEmpty ? "person.2.slash" : "person.3.fill")
+        MetaLabel(String(localized: "Ferme \(VendorDeadline.weekday(summary.offer.deadline))"), systemImage: "calendar.badge.clock")
     }
 
     @ViewBuilder

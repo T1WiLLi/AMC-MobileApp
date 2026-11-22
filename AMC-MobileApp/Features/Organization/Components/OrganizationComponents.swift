@@ -209,7 +209,7 @@ struct GroupNeedCard<Actions: View>: View {
                         .foregroundStyle(Color.texte)
                         .fixedSize(horizontal: false, vertical: true)
                     HStack(spacing: 8) {
-                        Label(profile.neighborhood, systemImage: "mappin.and.ellipse")
+                        Label(MontrealNeighborhood.displayName(for: profile.neighborhood), systemImage: "mappin.and.ellipse")
                         if let distance {
                             Label(distance, systemImage: "location.fill")
                         }

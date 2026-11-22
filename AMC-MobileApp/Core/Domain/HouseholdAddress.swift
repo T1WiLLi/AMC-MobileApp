@@ -51,10 +51,9 @@ nonisolated struct HouseholdAddress: Sendable, Hashable {
             .joined()
     }
 
-    /// Code postal canadien sans espace (« h2r1a1 »), vide s'il n'a pas 6 caractères.
+    /// Code postal canadien sans espace (« h2r1a1 »), vide s'il n'a pas la forme A1A 1A1 (V4).
     var normalizedPostalCode: String {
-        let compact = Self.fold(postalCode).filter { $0.isLetter || $0.isNumber }
-        return compact.count == 6 ? compact : ""
+        PostalCode.normalized(Self.fold(postalCode)) ?? ""
     }
 
     /// Les trois parties sont-elles assez remplies pour chercher un ménage ?
@@ -116,6 +115,8 @@ nonisolated struct HouseholdJoinRequest: Identifiable, Codable, Sendable, Hashab
 nonisolated enum HouseholdMembership {
     /// Nombre de comptes par ménage (même limite que `firestore.rules`).
     static let maxMembers = 10
+    /// Taille d'un ménage acceptée (même limite que `firestore.rules`, `isIntIn(data.size, 1, 30)`, V6).
+    static let sizeRange = 1...30
 
     /// Propriétaire : `ownerId`, sinon (ménage d'avant T-159) le premier compte du ménage.
     static func ownerId(of household: Household) -> String? {

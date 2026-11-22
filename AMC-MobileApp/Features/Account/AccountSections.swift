@@ -240,6 +240,7 @@ private struct DeletionDialogs: ViewModifier {
     let model: AccountViewModel
     let session: SessionViewModel?
     @Binding var isConfirmingFirstStep: Bool
+    @Environment(\.dismiss) private var dismiss
 
     func body(content: Content) -> some View {
         content
@@ -274,7 +275,7 @@ private struct DeletionDialogs: ViewModifier {
             get: { model.deletionState == .needsReauthentication },
             set: { if !$0 { model.dismissDeletionMessage() } }
         )) {
-            Button("Se reconnecter") { session?.signOut() }
+            Button("Se reconnecter") { if session?.signOut() == true { dismiss() } }
             Button("Plus tard", role: .cancel) { model.dismissDeletionMessage() }
         } message: {
             Text("Pour protéger ton compte, LeGrenier demande une connexion récente avant de le supprimer. Reconnecte-toi, puis reviens ici.")

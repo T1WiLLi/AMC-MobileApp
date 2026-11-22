@@ -160,7 +160,7 @@ struct ProfileScreen: View {
                             AccountSummaryRow(name: user.displayName, email: user.email, photoURL: photoURL)
                         }
                         Button(role: .destructive) {
-                            session?.signOut()
+                            if session?.signOut() == true { dismiss() }
                         } label: {
                             Label("Se déconnecter", systemImage: "rectangle.portrait.and.arrow.right")
                                 .symbolRenderingMode(.hierarchical)

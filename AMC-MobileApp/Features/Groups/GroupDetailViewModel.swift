@@ -254,13 +254,16 @@ final class GroupDetailViewModel {
         }
     }
 
-    /// Héritier (`GroupRules.heir`) et un compte de son ménage : le propriétaire du ménage (`households/{id}`).
+    /// Héritier (`GroupRules.heir`) et son compte (`userId` de son adhésion).
     private func resolveSuccession() async -> Succession {
         guard let members = try? await repositories.groups.members(ofGroup: groupId) else { return .unresolved }
         guard let heir = GroupRules.heir(among: members, leaving: householdId) else { return .nobody }
-        guard let household = try? await repositories.users.household(id: heir.householdId),
-              let ownerId = HouseholdMembership.ownerId(of: household) else { return .unresolved }
-        return .heir(familyName: household.name, handover: GroupRules.Handover(householdId: heir.householdId, userId: ownerId))
+        // Le compte de l'héritier vient de son adhésion (`members/{h}.userId`, lisible par les membres du groupe),
+        // pas de `households/{h}` (réservé à ses membres). Adhésion d'avant T-193 sans `userId` : sortie ordinaire.
+        guard let userId = heir.userId, !userId.isEmpty else { return .unresolved }
+        // Le nom est un plus : le ménage n'est pas lisible par le créateur, le message reste alors générique.
+        let name = try? await repositories.users.household(id: heir.householdId).name
+        return .heir(familyName: name, handover: GroupRules.Handover(householdId: heir.householdId, userId: userId))
     }
 
     private func changeMembership(join: Bool) async {

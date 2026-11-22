@@ -142,57 +142,70 @@ struct GroupOwnerHandoverTests {
 
     // MARK: - Confirmation (ViewModel)
 
-    private func viewModel(heirHousehold: Household?) -> (GroupDetailViewModel, AppRepositories) {
+    private static let villerayId = FakeData.ID.villerayKitchen
+
+    /// Villeray : Amina (créatrice) + des voisins. L'héritier se lit dans `userId` de son adhésion.
+    private func viewModel(neighbors: [GroupMember]) -> (GroupDetailViewModel, AppRepositories) {
+        let data = FakeData.montreal
+        let amina = GroupMember(householdId: FakeData.ID.aminaHousehold, role: .coordinator,
+                                joinedAt: Self.now.addingTimeInterval(-20 * Self.day), userId: FakeData.ID.amina)
         var repositories = AppRepositories.fake(behavior: .instant)
-        if let heirHousehold {
-            repositories.users = FakeUserRepository(users: [], households: [heirHousehold])
-        }
+        repositories.groups = FakeGroupRepository(groups: data.groups, members: [Self.villerayId: [amina] + neighbors],
+                                                  invitations: data.invitations)
         let model = GroupDetailViewModel(repositories: repositories, householdId: FakeData.ID.aminaHousehold,
-                                         groupId: FakeData.ID.villerayKitchen, userId: FakeData.ID.amina)
+                                         groupId: Self.villerayId, userId: FakeData.ID.amina)
         return (model, repositories)
     }
 
     @Test func confirmationNamesTheFamilyThatWillOwnTheGroup() async throws {
-        // Villeray : Amina (coordonnatrice) + 3 voisins arrivés en même temps ; « household-voisin-1 » passe en premier.
-        let diallo = Household(id: "household-voisin-1", name: "Famille Diallo", size: 3, geohash: "f25dv",
-                               userIds: ["diallo-user"], ownerId: "diallo-user")
-        let (model, repositories) = viewModel(heirHousehold: diallo)
+        var diallo = Self.member("household-voisin-1", .member, daysAgo: 5)
+        diallo.userId = "diallo-user"
+        let (model, repositories) = viewModel(neighbors: [diallo, Self.member("household-voisin-2", .member, daysAgo: 1)])
         await model.load()
         await model.prepareLeave()
-        #expect(model.succession == .heir(familyName: "Famille Diallo",
-                                          handover: GroupRules.Handover(householdId: "household-voisin-1", userId: "diallo-user")))
-        #expect(model.successionMessage?.contains("Famille Diallo") == true)
+        guard case .heir(_, let handover) = model.succession else {
+            Issue.record("succession attendue : \(String(describing: model.succession))")
+            return
+        }
+        #expect(handover == GroupRules.Handover(householdId: "household-voisin-1", userId: "diallo-user"))
+        #expect(model.successionMessage?.contains("la famille la plus ancienne") == true)
 
         await model.leave()
 
-        let group = try await repositories.groups.group(id: FakeData.ID.villerayKitchen)
+        let group = try await repositories.groups.group(id: Self.villerayId)
         #expect(group.createdBy == "diallo-user")
         #expect(model.state.value?.isMember == false)
     }
 
+    @Test func heirWithoutUserIdFallsBackToAPlainLeaveWithAMessage() async throws {
+        // Adhésion d'avant T-193 (sans userId) : on ne devine pas le compte, la sortie reste ordinaire.
+        let (model, repositories) = viewModel(neighbors: [Self.member("household-voisin-1", .member, daysAgo: 5)])
+        await model.load()
+        await model.prepareLeave()
+        #expect(model.succession == .unresolved)
+        #expect(model.successionMessage != nil)
+
+        await model.leave()
+
+        #expect(try await repositories.groups.group(id: Self.villerayId).createdBy == FakeData.ID.amina)
+        #expect(try await repositories.groups.members(ofGroup: Self.villerayId).count == 1)
+    }
+
     @Test func confirmationSaysWhenNobodyWillInherit() async throws {
-        let repositories = AppRepositories.fake(behavior: .instant)
-        for member in try await repositories.groups.members(ofGroup: FakeData.ID.villerayKitchen)
-        where member.householdId != FakeData.ID.aminaHousehold {
-            try await repositories.groups.removeHousehold(member.householdId, fromGroup: FakeData.ID.villerayKitchen,
-                                                          byUserId: FakeData.ID.amina,
-                                                          creatorHouseholdId: FakeData.ID.aminaHousehold)
-        }
-        let model = GroupDetailViewModel(repositories: repositories, householdId: FakeData.ID.aminaHousehold,
-                                         groupId: FakeData.ID.villerayKitchen, userId: FakeData.ID.amina)
+        let (model, repositories) = viewModel(neighbors: [])
         await model.load()
         await model.prepareLeave()
         #expect(model.succession == .nobody)
         #expect(model.successionMessage != nil)
 
         await model.leave()
-        #expect(try await repositories.groups.members(ofGroup: FakeData.ID.villerayKitchen).isEmpty)
+        #expect(try await repositories.groups.members(ofGroup: Self.villerayId).isEmpty)
     }
 
     @Test func aSimpleMemberGetsNoSuccessionMessage() async {
         let repositories = AppRepositories.fake(behavior: .instant)
         let model = GroupDetailViewModel(repositories: repositories, householdId: "household-voisin-1",
-                                         groupId: FakeData.ID.villerayKitchen, userId: "voisin-1")
+                                         groupId: Self.villerayId, userId: "voisin-1")
         await model.load()
         await model.prepareLeave()
         #expect(model.succession == nil)

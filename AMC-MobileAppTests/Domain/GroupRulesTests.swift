@@ -47,7 +47,7 @@ struct GroupRulesTests {
         #expect(group.householdCount == 1)
         #expect(!group.isPublic)
         #expect(group.inviteCode == "ABC234")
-        #expect(creation.creatorMember == GroupMember(householdId: "hh-jean", role: .coordinator, joinedAt: Self.now))
+        #expect(creation.creatorMember == GroupMember(householdId: "hh-jean", role: .coordinator, joinedAt: Self.now, userId: "user-jean"))
     }
 
     @Test func makeGroupDefaultCodeIsValid() throws {

@@ -11,6 +11,7 @@
 
 #if canImport(FirebaseFirestore)
 import Foundation
+import FirebaseAuth
 import FirebaseFirestore
 
 /// Transporte un `ListenerRegistration` (non Sendable) dans `onTermination`.
@@ -21,10 +22,19 @@ private nonisolated struct GroupListenerBox: @unchecked Sendable {
 
 nonisolated final class FirestoreGroupRepository: GroupRepository, @unchecked Sendable {
     private let db: Firestore
+    /// T-193 : uid du compte connecté, écrit dans `userId` de chaque adhésion (les règles exigent `== request.auth.uid`).
+    private let currentUserId: @Sendable () -> String?
 
     /// À créer APRÈS `FirebaseApp.configure()` (voir docs/firebase.md, § 3).
-    init(db: Firestore = Firestore.firestore()) {
+    init(db: Firestore = Firestore.firestore(),
+         currentUserId: @escaping @Sendable () -> String? = { Auth.auth().currentUser?.uid }) {
         self.db = db
+        self.currentUserId = currentUserId
+    }
+
+    private func requireUserId() throws -> String {
+        guard let uid = currentUserId(), !uid.isEmpty else { throw AppError.permissionDenied }
+        return uid
     }
 
     // MARK: - Références
@@ -317,6 +327,7 @@ nonisolated final class FirestoreGroupRepository: GroupRepository, @unchecked Se
         let invitationRef = invitationRef(code)
         let memberRef = membersRef(groupId).document(householdId)
         let groupRef = groupRef(groupId)
+        let uid = try requireUserId()
         _ = try await FirestoreTransactions.run(db) { transaction -> Bool in
             let invitation = try FirestoreTransactions.decode(
                 GroupInvitation.self, try transaction.getDocument(invitationRef), idKey: "code"
@@ -328,6 +339,7 @@ nonisolated final class FirestoreGroupRepository: GroupRepository, @unchecked Se
                 "householdId": householdId,
                 "role": GroupMember.Role.member.rawValue,
                 "joinedAt": FieldValue.serverTimestamp(),
+                "userId": uid,
                 "invitationCode": code,
             ], forDocument: memberRef)
             transaction.updateData([
@@ -421,6 +433,7 @@ nonisolated final class FirestoreGroupRepository: GroupRepository, @unchecked Se
             "householdId": householdId,
             "role": GroupMember.Role.coordinator.rawValue,
             "joinedAt": FieldValue.serverTimestamp(),
+            "userId": userId,
         ], forDocument: membersRef(group.id).document(householdId))
         do {
             try await batch.commit()
@@ -444,6 +457,7 @@ nonisolated final class FirestoreGroupRepository: GroupRepository, @unchecked Se
                     "householdId": householdId,
                     "role": GroupMember.Role.member.rawValue,
                     "joinedAt": FieldValue.serverTimestamp(),
+                    "userId": try requireUserId(),
                 ], forDocument: memberRef)
             } else {
                 batch.deleteDocument(memberRef)

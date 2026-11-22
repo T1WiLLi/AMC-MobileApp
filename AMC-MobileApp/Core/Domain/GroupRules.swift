@@ -91,7 +91,7 @@ nonisolated enum GroupRules {
             inviteCode: makeInviteCode(),
             createdBy: creatorUserId
         )
-        let member = GroupMember(householdId: creatorHouseholdId, role: .coordinator, joinedAt: now)
+        let member = GroupMember(householdId: creatorHouseholdId, role: .coordinator, joinedAt: now, userId: creatorUserId)
         return Creation(group: group, creatorMember: member)
     }
 

@@ -129,6 +129,9 @@ nonisolated struct GroupMember: Identifiable, Codable, Sendable, Hashable {
     var householdId: String
     var role: Role
     var joinedAt: Date
+    /// T-193 : compte qui a adhéré (uid, membre du ménage). Les ménages ne sont lisibles que par leurs membres : c'est
+    /// ici que le groupe retrouve l'uid de l'héritier. Absent des adhésions d'avant T-193 (rattrapage `backfill:members`).
+    var userId: String? = nil
 
     var id: String { householdId }
 }

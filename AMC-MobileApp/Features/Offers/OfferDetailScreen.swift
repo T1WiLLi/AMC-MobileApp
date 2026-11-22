@@ -145,6 +145,8 @@ private struct OfferDetailContent: View {
     @State private var shownCelebration: OfferDetailViewModel.TierCelebration?
     /// E21-2 : confirmation de « Fermer la commande ».
     @State private var isConfirmingClose = false
+    /// E21-4 : reçu de la part payée.
+    @State private var isShowingReceipt = false
 
     var body: some View {
         StateView(
@@ -185,6 +187,12 @@ private struct OfferDetailContent: View {
         }
         .sheet(isPresented: celebrationPresented) {
             celebrationSheet
+        }
+        // E21-4 : reçu de la part payée.
+        .sheet(isPresented: $isShowingReceipt) {
+            if let receipt = viewModel.receipt {
+                ReceiptSheet(receipt: receipt)
+            }
         }
         // E21-3 : première réservation, la carte s'enregistre avant (rien n'est débité).
         .sheet(item: cardRegistrationPresented) { registration in
@@ -288,7 +296,11 @@ private struct OfferDetailContent: View {
             if let consultation, let group = consultation.group {
                 GroupJoinBar(group: group, viewModel: consultation.groupModel).padding(.top, 12)
             } else {
-                reserveBar(content)
+                if Self.isSettled(content) {
+                    settledBar(content)
+                } else {
+                    reserveBar(content)
+                }
             }
         }
     }
@@ -587,7 +599,9 @@ private struct OfferDetailContent: View {
                 TierProgressBar(
                     tiers: content.offer.tiers,
                     committedShares: content.committedShares,
-                    totalShares: content.offer.totalShares
+                    totalShares: content.offer.totalShares,
+                    // E21-4 : commande fermée, plus rien à « débloquer ».
+                    isClosed: Self.isSettled(content)
                 )
                 // RQ-050 (T-104) : rien tant que le rythme suffit ou que le minimum est atteint.
                 if let order = content.groupOrder {
@@ -691,8 +705,10 @@ private struct OfferDetailContent: View {
         let pricing = content.pricing
         if content.groupOrder == nil {
             hintLabel(String(localized: "Ton groupe n'a pas encore lancé de commande sur ce lot."), systemImage: "person.badge.plus")
+        } else if content.groupOrder?.status == .cancelled {
+            hintLabel(String(localized: "Commande annulée : le minimum de parts n'a pas été atteint."), systemImage: "xmark.circle.fill")
         } else if !content.isOpen {
-            hintLabel(String(localized: "La commande est fermée : les parts ne bougent plus."), systemImage: OfferDetailSymbol.deadlineClosed)
+            hintLabel(String(localized: "La commande est fermée : prix final figé, les parts ne bougent plus."), systemImage: OfferDetailSymbol.deadlineClosed)
         } else if content.committedShares < content.offer.minimumSharesToLaunch {
             // La barre de paliers dit déjà « Encore N pour lancer la commande » : pas de second message sur le palier suivant.
             EmptyView()
@@ -732,24 +748,9 @@ private struct OfferDetailContent: View {
         VStack(alignment: .leading, spacing: 14) {
             sectionHeader(String(localized: "Ta part"), systemImage: OfferDetailSymbol.shareSection, info: .share)
 
-            if content.groupOrder?.status == .cancelled {
-                OfferSymbolScene(
-                    symbol: GrenierSymbol.offers,
-                    badge: "xmark.circle.fill",
-                    tint: .texteSecondaire,
-                    title: String(localized: "Commande annulée"),
-                    message: String(localized: "Le minimum n'a pas été atteint : aucune famille n'est débitée.")
-                )
-            } else if content.groupOrder != nil && !content.isOpen {
-                OfferSymbolScene(
-                    symbol: GrenierSymbol.offers,
-                    badge: "lock.circle.fill",
-                    title: String(localized: "Commande fermée"),
-                    message: closedMessage(content)
-                )
-            }
-
-            if viewModel.quantityOptions.isEmpty {
+            if Self.isSettled(content) {
+                settledShare(content)
+            } else if viewModel.quantityOptions.isEmpty {
                 OfferSymbolScene(
                     symbol: GrenierSymbol.offers,
                     badge: "xmark.circle.fill",
@@ -794,7 +795,7 @@ private struct OfferDetailContent: View {
                 }
             }
 
-            if content.myShareQuantity > 0 {
+            if content.myShareQuantity > 0, !Self.isSettled(content) {
                 OfferSymbolScene(
                     symbol: OfferDetailSymbol.shareSection,
                     badge: "checkmark.circle.fill",
@@ -821,6 +822,38 @@ private struct OfferDetailContent: View {
         }
         .grenierAnimation(.smooth, value: viewModel.selectedQuantity)
         .grenierAnimation(.smooth, value: content.myShareQuantity)
+    }
+
+    /// E21-4 : commande fermée, livrée ou annulée : plus de choix de part, l'état du paiement à la place.
+    static func isSettled(_ content: OfferDetailViewModel.Content) -> Bool {
+        content.groupOrder != nil && !content.isOpen
+    }
+
+    /// E21-4 : part payée / refusée / commande annulée ; sans part du ménage, l'état de la commande seulement.
+    @ViewBuilder
+    private func settledShare(_ content: OfferDetailViewModel.Content) -> some View {
+        if let settlement = viewModel.settlement {
+            SettlementCard(
+                settlement: settlement,
+                shareLabel: Self.quantityLabel(content.myShareQuantity, shareUnit: content.offer.displayShareUnit)
+            )
+            .grenierTransition(.cardAppear)
+        } else if content.groupOrder?.status == .cancelled {
+            OfferSymbolScene(
+                symbol: GrenierSymbol.offers,
+                badge: "xmark.circle.fill",
+                tint: .texteSecondaire,
+                title: String(localized: "Commande annulée"),
+                message: String(localized: "Le minimum n'a pas été atteint : aucune famille n'est débitée.")
+            )
+        } else {
+            OfferSymbolScene(
+                symbol: GrenierSymbol.offers,
+                badge: "lock.circle.fill",
+                title: String(localized: "Commande fermée"),
+                message: closedMessage(content)
+            )
+        }
     }
 
     /// E21-3 : « Tu paieras au plus X $ · prix final à la clôture », suit le palier en direct.
@@ -928,16 +961,72 @@ private struct OfferDetailContent: View {
         .grenierAnimation(.smooth, value: viewModel.selectedQuantity)
     }
 
-    /// E21-2 : après la clôture, prix final de la part et paiement au pot du groupe.
+    /// E21-4 : barre du bas d'une commande fermée : ce qui a été payé (ou pas), jamais un prix projeté.
+    private func settledBar(_ content: OfferDetailViewModel.Content) -> some View {
+        let layout = dynamicTypeSize.isAccessibilitySize
+            ? AnyLayout(VStackLayout(alignment: .leading, spacing: 12))
+            : AnyLayout(HStackLayout(alignment: .center, spacing: 16))
+        return layout {
+            VStack(alignment: .leading, spacing: 2) {
+                switch viewModel.settlement {
+                case .paid(let paid, _):
+                    Text(Money.format(paid))
+                        .priceStyle(.title2.bold())
+                        .foregroundStyle(.texte)
+                    Label("Payé au pot du groupe", systemImage: OfferDetailSymbol.paid)
+                        .foregroundStyle(Color.economie)
+                case .declined(let due):
+                    Text(Money.format(due))
+                        .priceStyle(.title2.bold())
+                        .foregroundStyle(.texte)
+                    Label("Paiement refusé", systemImage: "exclamationmark.triangle.fill")
+                        .foregroundStyle(Color.red)
+                case .cancelled:
+                    Label("Rien n'a été débité", systemImage: "xmark.circle.fill")
+                        .font(.headline)
+                        .foregroundStyle(.texte)
+                case nil:
+                    Label(content.groupOrder?.status == .cancelled ? String(localized: "Commande annulée") : String(localized: "Commande fermée"),
+                          systemImage: OfferDetailSymbol.closeOrder)
+                        .font(.headline)
+                        .foregroundStyle(.texte)
+                }
+            }
+            .font(.footnote.weight(.semibold))
+            .symbolRenderingMode(.hierarchical)
+            .accessibilityElement(children: .combine)
+
+            if !dynamicTypeSize.isAccessibilitySize { Spacer(minLength: 0) }
+
+            if viewModel.receipt != nil {
+                Button {
+                    isShowingReceipt = true
+                } label: {
+                    Label("Voir le reçu", systemImage: "doc.text.fill")
+                        .font(.headline)
+                        .lineLimit(dynamicTypeSize.isAccessibilitySize ? nil : 1)
+                        .fixedSize(horizontal: !dynamicTypeSize.isAccessibilitySize, vertical: true)
+                        .frame(minHeight: 32)
+                        .frame(maxWidth: dynamicTypeSize.isAccessibilitySize ? .infinity : nil)
+                        .padding(.horizontal, 8)
+                }
+                .buttonStyle(.glassProminent)
+                .controlSize(.large)
+                .tint(Color.grenier)
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(.horizontal, 16)
+        .padding(.top, 12)
+        .padding(.bottom, 8)
+    }
+
+    /// Commande fermée sans part lisible du ménage (E21-4 : la part payée ou refusée a sa propre carte).
     private func closedMessage(_ content: OfferDetailViewModel.Content) -> String {
-        guard let share = content.myShare, let finalPrice = share.finalPriceCents else {
+        if content.myShareQuantity > 0 {
             return String(localized: "Les parts sont figées. Rendez-vous à la cueillette avec ton code QR.")
         }
-        let total = Money.format(finalPrice - share.subsidyCents + share.suspendedAmountCents)
-        if share.isPaid {
-            return String(localized: "Prix final : \(total) pour ta part, payé au pot du groupe. Rendez-vous à la cueillette avec ton code QR.")
-        }
-        return String(localized: "Prix final : \(total) pour ta part. Le paiement a été refusé : la coordination du groupe te recontactera.")
+        return String(localized: "Les parts sont figées au prix final. Ton groupe lancera d'autres commandes bientôt.")
     }
 
     /// Confirmation sous « Part réservée ! » : mentionne le panier suspendu enregistré avec la part.

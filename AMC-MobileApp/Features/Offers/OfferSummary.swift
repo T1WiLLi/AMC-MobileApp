@@ -12,6 +12,8 @@ nonisolated struct OfferSummary: Identifiable, Sendable, Hashable {
     var groupOrder: GroupOrder?
     /// Parts réservées par le ménage dans `groupOrder` (0 si aucune).
     var myShareQuantity: Int
+    /// E21-4 : la part du ménage est payée au pot du groupe (commande fermée).
+    var myShareIsPaid: Bool = false
 
     var id: String { offer.id }
 
@@ -23,6 +25,10 @@ nonisolated struct OfferSummary: Identifiable, Sendable, Hashable {
     var pricing: OfferPricing { OfferPricing(offer: offer, product: product, committedShares: committedShares) }
     /// Le ménage a une part dans la commande.
     var hasMyShare: Bool { myShareQuantity > 0 }
+    /// E21-4 : commande du groupe fermée ou livrée (prix figé).
+    var isClosed: Bool { groupOrder.map { $0.status == .closed || $0.status == .delivered } ?? false }
+    /// E21-4 : « Payé » sur la carte de l'Accueil : part payée d'une commande fermée.
+    var isPaid: Bool { isClosed && hasMyShare && myShareIsPaid }
 }
 
 /// Assemble des `OfferSummary` à partir des dépôts.
@@ -49,13 +55,14 @@ nonisolated enum OfferSummaryLoader {
                 vendors[offer.vendorId] = vendor
             }
             let order = groupOrders.first { $0.offerId == offer.id }
-            var myQuantity = 0
+            var myShare: Share?
             if let order, includeMyShares {
-                myQuantity = try await shareQuantity(householdId: householdId, groupOrderId: order.id,
-                                                     repositories: repositories)
+                myShare = try await repositories.groupOrders.shares(ofGroupOrder: order.id)
+                    .first { $0.householdId == householdId }
             }
             result.append(OfferSummary(offer: offer, product: product, vendor: vendor,
-                                       groupOrder: order, myShareQuantity: myQuantity))
+                                       groupOrder: order, myShareQuantity: myShare?.quantity ?? 0,
+                                       myShareIsPaid: myShare?.isPaid ?? false))
         }
         return result
     }

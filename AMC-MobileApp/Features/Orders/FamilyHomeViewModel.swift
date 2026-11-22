@@ -12,6 +12,7 @@ final class FamilyHomeViewModel {
         var user: AppUser
         var group: NeighborhoodGroup
         /// Commandes du groupe encore ouvertes ; celles où le ménage a une part d'abord.
+        /// E21-4 : plus les commandes fermées (pas encore livrées) où le ménage a une part (« Payé »).
         var currentOrders: [OfferSummary]
         /// Lots actifs qui desservent la zone du groupe et que le groupe n'a pas encore lancés.
         var newOffers: [OfferSummary]
@@ -58,11 +59,14 @@ final class FamilyHomeViewModel {
             async let feedLoad = repositories.offers.activeOffers(inZone: nil)
             let (user, group, orders, allActive) = try await (userLoad, groupLoad, ordersLoad, feedLoad)
             let activeOrders = orders.filter(OfferSummaryLoader.isActive)
+            // E21-4 : une commande fermée reste « en cours » pour le ménage jusqu'à la livraison (payée, à cueillir).
+            let closedOrders = orders.filter { $0.status == .closed }
+            let shownOrders = activeOrders + closedOrders
 
             async let saved = Self.savingsBreakdown(of: householdId, in: orders, repositories: repositories)
-            let orderOffers = try await Self.offers(for: activeOrders, repositories: repositories)
+            let orderOffers = try await Self.offers(for: shownOrders, repositories: repositories)
             async let current = OfferSummaryLoader.summaries(
-                for: orderOffers, groupOrders: activeOrders, householdId: householdId, repositories: repositories
+                for: orderOffers, groupOrders: shownOrders, householdId: householdId, repositories: repositories
             )
 
             let launchedOfferIds = Set(orders.map(\.offerId))
@@ -75,7 +79,10 @@ final class FamilyHomeViewModel {
             return Content(
                 user: user,
                 group: group,
-                currentOrders: currentSummaries.filter(\.hasMyShare) + currentSummaries.filter { !$0.hasMyShare },
+                // Ouvertes avec ma part, fermées avec ma part, puis ouvertes du groupe (une fermée sans ma part n'apparaît pas).
+                currentOrders: currentSummaries.filter { $0.hasMyShare && !$0.isClosed }
+                    + currentSummaries.filter { $0.hasMyShare && $0.isClosed }
+                    + currentSummaries.filter { !$0.hasMyShare && !$0.isClosed },
                 newOffers: newSummaries,
                 savedCents: savedBreakdown.total,
                 launchedSavedCents: savedBreakdown.launched
